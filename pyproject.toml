@@ -1,0 +1,25 @@
+[project]
+name = "nicestlog"
+version = "0.1.0"
+description = "A sophisticated multi-target structured logging system built on structlog"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "structlog>=23.0.0",
+]
+
+[project.optional-dependencies]
+color = ["colorama>=0.4.0"]
+
+[project.scripts]
+nicestlog = "nicestlog:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
