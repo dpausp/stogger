@@ -75,7 +75,7 @@ def demonstrate_file_logging():
         )
         
         # Log command output (goes to separate file if enabled)
-        log.trace("command-output", output=result.stdout.strip())
+        log.debug("command-output", output=result.stdout.strip())
         
     except subprocess.CalledProcessError as e:
         log.error("command-failed", error=str(e), exit_code=e.returncode)
@@ -181,8 +181,8 @@ def demonstrate_different_log_levels():
     
     log = nicestlog.setup_basic_logging(verbose=True, app_name="demo")
     
-    # TRACE - Very detailed debugging
-    log.trace("function-entry", function="process_data", args={"id": 123})
+    # TRACE - Very detailed debugging (using debug since trace is not standard)
+    log.debug("function-entry", function="process_data", args={"id": 123})
     
     # DEBUG - Detailed debugging information
     log.debug("cache-lookup", key="user:123", hit=True, ttl=300)

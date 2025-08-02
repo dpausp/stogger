@@ -11,7 +11,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, TextIO
+from typing import Any, Optional, Union, MutableMapping
 
 import structlog
 
@@ -42,8 +42,8 @@ def has_systemd_support() -> bool:
         True if systemd journal logging is available, False otherwise.
     """
     try:
-        import systemd.journal
-        return True
+        import importlib.util
+        return importlib.util.find_spec("systemd.journal") is not None
     except ImportError:
         return False
 
@@ -60,7 +60,8 @@ class OptimisticHandler(logging.Handler):
         super().__init__()
         self.wrapped_handler = wrapped_handler
         self.setLevel(wrapped_handler.level)
-        self.setFormatter(wrapped_handler.formatter)
+        if wrapped_handler.formatter:
+            self.setFormatter(wrapped_handler.formatter)
     
     def emit(self, record: logging.LogRecord) -> None:
         """Emit a log record, catching any exceptions."""
@@ -75,7 +76,7 @@ class OptimisticHandler(logging.Handler):
         super().setLevel(level)
         self.wrapped_handler.setLevel(level)
     
-    def setFormatter(self, formatter: logging.Formatter) -> None:
+    def setFormatter(self, formatter: Optional[logging.Formatter]) -> None:
         """Set the formatter for both this handler and the wrapped handler."""
         super().setFormatter(formatter)
         self.wrapped_handler.setFormatter(formatter)
@@ -105,7 +106,7 @@ class ConsoleRenderer:
     def _supports_color(self) -> bool:
         """Check if the terminal supports color output."""
         try:
-            import colorama
+            import colorama  # type: ignore[import-untyped]
             colorama.init()
             return True
         except ImportError:
@@ -124,7 +125,7 @@ class ConsoleRenderer:
             return text
         return f"{self._color_codes.get(color, '')}{text}{self._color_codes['RESET']}"
     
-    def __call__(self, logger: Any, method_name: str, event_dict: Dict[str, Any]) -> str:
+    def __call__(self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]) -> str:
         """Render a log event as a colored console string."""
         # Extract standard fields
         timestamp = event_dict.pop('timestamp', time.strftime('%Y-%m-%d %H:%M:%S'))
@@ -181,7 +182,7 @@ class JSONRenderer:
     Produces machine-parseable JSON output suitable for log aggregation systems.
     """
     
-    def __call__(self, logger: Any, method_name: str, event_dict: Dict[str, Any]) -> str:
+    def __call__(self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]) -> str:
         """Render a log event as a JSON string."""
         import json
         
@@ -286,7 +287,7 @@ def create_systemd_handler() -> Optional[logging.Handler]:
         return None
     
     try:
-        from systemd.journal import JournalHandler
+        from systemd.journal import JournalHandler  # type: ignore[import-not-found]
         
         handler = JournalHandler()
         handler.setLevel(logging.DEBUG)
@@ -397,7 +398,7 @@ def init_logging(
     ])
     
     structlog.configure(
-        processors=processors,
+        processors=processors,  # type: ignore[arg-type]
         wrapper_class=structlog.stdlib.BoundLogger,
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,

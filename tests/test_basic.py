@@ -3,10 +3,8 @@ Basic tests for nicestlog functionality.
 """
 
 import pytest
-import structlog
 from pathlib import Path
 import tempfile
-import shutil
 
 import nicestlog
 
