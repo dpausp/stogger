@@ -31,7 +31,9 @@ def main() -> None:
     from pathlib import Path
 
     parser = argparse.ArgumentParser(description="Nicestlog demo and testing")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
     parser.add_argument("--logdir", type=Path, help="Directory for file logging")
     parser.add_argument("--demo", action="store_true", help="Run demonstration")
 
@@ -41,6 +43,7 @@ def main() -> None:
         # Run the basic usage examples
         try:
             from examples.basic_usage import main as demo_main
+
             demo_main()
         except ImportError:
             print("Demo examples not available. Install nicestlog with examples.")

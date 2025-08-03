@@ -29,8 +29,8 @@ def is_systemd_context() -> bool:
         True if running under systemd, False otherwise.
     """
     return (
-        os.environ.get('INVOCATION_ID') is not None or
-        os.environ.get('JOURNAL_STREAM') is not None
+        os.environ.get("INVOCATION_ID") is not None
+        or os.environ.get("JOURNAL_STREAM") is not None
     )
 
 
@@ -43,6 +43,7 @@ def has_systemd_support() -> bool:
     """
     try:
         import importlib.util
+
         return importlib.util.find_spec("systemd.journal") is not None
     except ImportError:
         return False
@@ -92,21 +93,22 @@ class ConsoleRenderer:
     def __init__(self, colors: bool = True):
         self.colors = colors and self._supports_color()
         self._color_codes = {
-            'TRACE': '\033[90m',     # Dark gray
-            'DEBUG': '\033[36m',     # Cyan
-            'INFO': '\033[32m',      # Green
-            'WARNING': '\033[33m',   # Yellow
-            'ERROR': '\033[31m',     # Red
-            'CRITICAL': '\033[35m',  # Magenta
-            'RESET': '\033[0m',      # Reset
-            'BOLD': '\033[1m',       # Bold
-            'DIM': '\033[2m',        # Dim
+            "TRACE": "\033[90m",  # Dark gray
+            "DEBUG": "\033[36m",  # Cyan
+            "INFO": "\033[32m",  # Green
+            "WARNING": "\033[33m",  # Yellow
+            "ERROR": "\033[31m",  # Red
+            "CRITICAL": "\033[35m",  # Magenta
+            "RESET": "\033[0m",  # Reset
+            "BOLD": "\033[1m",  # Bold
+            "DIM": "\033[2m",  # Dim
         }
 
     def _supports_color(self) -> bool:
         """Check if the terminal supports color output."""
         try:
             import colorama  # type: ignore[import-untyped]
+
             colorama.init()
             return True
         except ImportError:
@@ -114,9 +116,9 @@ class ConsoleRenderer:
 
         # Check if we're in a terminal that supports color
         return (
-            hasattr(sys.stdout, 'isatty') and
-            sys.stdout.isatty() and
-            os.environ.get('TERM') != 'dumb'
+            hasattr(sys.stdout, "isatty")
+            and sys.stdout.isatty()
+            and os.environ.get("TERM") != "dumb"
         )
 
     def _colorize(self, text: str, color: str) -> str:
@@ -125,15 +127,17 @@ class ConsoleRenderer:
             return text
         return f"{self._color_codes.get(color, '')}{text}{self._color_codes['RESET']}"
 
-    def __call__(self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]) -> str:
+    def __call__(
+        self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
+    ) -> str:
         """Render a log event as a colored console string."""
         # Extract standard fields
-        timestamp = event_dict.pop('timestamp', time.strftime('%Y-%m-%d %H:%M:%S'))
-        level = event_dict.pop('level', method_name.upper())
-        event = event_dict.pop('event', '')
+        timestamp = event_dict.pop("timestamp", time.strftime("%Y-%m-%d %H:%M:%S"))
+        level = event_dict.pop("level", method_name.upper())
+        event = event_dict.pop("event", "")
 
         # Handle template message replacement
-        replace_msg = event_dict.pop('_replace_msg', None)
+        replace_msg = event_dict.pop("_replace_msg", None)
         if replace_msg:
             try:
                 message = replace_msg.format(**event_dict)
@@ -143,7 +147,7 @@ class ConsoleRenderer:
             message = event
 
         # Extract logger name
-        logger_name = event_dict.pop('logger', '')
+        logger_name = event_dict.pop("logger", "")
         if logger_name:
             logger_name = f"[{logger_name}] "
 
@@ -156,20 +160,26 @@ class ConsoleRenderer:
         # Add structured data if present
         if event_dict:
             # Remove internal structlog fields
-            clean_dict = {k: v for k, v in event_dict.items()
-                         if not k.startswith('_') and k not in ('exc_info',)}
+            clean_dict = {
+                k: v
+                for k, v in event_dict.items()
+                if not k.startswith("_") and k not in ("exc_info",)
+            }
 
             if clean_dict:
                 data_str = " ".join(f"{k}={v}" for k, v in clean_dict.items())
-                data_line = self._colorize(f"    {data_str}", 'DIM')
+                data_line = self._colorize(f"    {data_str}", "DIM")
                 main_line += f"\n{data_line}"
 
         # Handle exception info
-        if 'exc_info' in event_dict and event_dict['exc_info']:
+        if "exc_info" in event_dict and event_dict["exc_info"]:
             import traceback
-            exc_text = ''.join(traceback.format_exception(*event_dict['exc_info']))
-            exc_lines = [self._colorize(f"    {line.rstrip()}", 'DIM')
-                        for line in exc_text.splitlines()]
+
+            exc_text = "".join(traceback.format_exception(*event_dict["exc_info"]))
+            exc_lines = [
+                self._colorize(f"    {line.rstrip()}", "DIM")
+                for line in exc_text.splitlines()
+            ]
             main_line += "\n" + "\n".join(exc_lines)
 
         return main_line
@@ -182,28 +192,33 @@ class JSONRenderer:
     Produces machine-parseable JSON output suitable for log aggregation systems.
     """
 
-    def __call__(self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]) -> str:
+    def __call__(
+        self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
+    ) -> str:
         """Render a log event as a JSON string."""
         import json
 
         # Ensure we have standard fields
-        if 'timestamp' not in event_dict:
-            event_dict['timestamp'] = time.time()
-        if 'level' not in event_dict:
-            event_dict['level'] = method_name.upper()
+        if "timestamp" not in event_dict:
+            event_dict["timestamp"] = time.time()
+        if "level" not in event_dict:
+            event_dict["level"] = method_name.upper()
 
         # Handle exception info
-        if 'exc_info' in event_dict and event_dict['exc_info']:
+        if "exc_info" in event_dict and event_dict["exc_info"]:
             import traceback
-            event_dict['exception'] = ''.join(
-                traceback.format_exception(*event_dict['exc_info'])
+
+            event_dict["exception"] = "".join(
+                traceback.format_exception(*event_dict["exc_info"])
             )
-            del event_dict['exc_info']
+            del event_dict["exc_info"]
 
         return json.dumps(event_dict, default=str, ensure_ascii=False)
 
 
-def create_console_handler(verbose: bool = False, colors: bool = True) -> logging.Handler:
+def create_console_handler(
+    verbose: bool = False, colors: bool = True
+) -> logging.Handler:
     """
     Create a console handler with rich formatting.
 
@@ -236,7 +251,7 @@ def create_file_handler(
     logdir: Path,
     filename: str = "application.log",
     max_bytes: int = 10 * 1024 * 1024,  # 10MB
-    backup_count: int = 5
+    backup_count: int = 5,
 ) -> logging.Handler:
     """
     Create a rotating file handler with JSON formatting.
@@ -254,10 +269,7 @@ def create_file_handler(
     log_file = logdir / filename
 
     handler = logging.handlers.RotatingFileHandler(
-        log_file,
-        maxBytes=max_bytes,
-        backupCount=backup_count,
-        encoding='utf-8'
+        log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
     )
     handler.setLevel(logging.DEBUG)
 
@@ -334,13 +346,13 @@ def init_logging(
 
     # Store configuration
     _current_config = {
-        'verbose': verbose,
-        'logdir': logdir,
-        'log_cmd_output': log_cmd_output,
-        'log_to_console': log_to_console,
-        'syslog_identifier': syslog_identifier,
-        'show_caller_info': show_caller_info,
-        'colors': colors,
+        "verbose": verbose,
+        "logdir": logdir,
+        "log_cmd_output": log_cmd_output,
+        "log_to_console": log_to_console,
+        "syslog_identifier": syslog_identifier,
+        "show_caller_info": show_caller_info,
+        "colors": colors,
     }
 
     # Determine if we should log to console
@@ -391,11 +403,13 @@ def init_logging(
     if show_caller_info:
         processors.append(structlog.processors.CallsiteParameterAdder())
 
-    processors.extend([
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-    ])
+    processors.extend(
+        [
+            structlog.processors.StackInfoRenderer(),
+            structlog.processors.format_exc_info,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ]
+    )
 
     structlog.configure(
         processors=processors,  # type: ignore[arg-type]
@@ -407,7 +421,9 @@ def init_logging(
     _logging_initialized = True
 
 
-def setup_basic_logging(verbose: bool = False, app_name: Optional[str] = None, colors: bool = True):
+def setup_basic_logging(
+    verbose: bool = False, app_name: Optional[str] = None, colors: bool = True
+):
     """
     Quick setup for basic console logging.
 

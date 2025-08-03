@@ -14,20 +14,16 @@ def test_basic_logging_setup():
     log = nicestlog.setup_basic_logging(verbose=True, app_name="test")
 
     assert log is not None
-    assert hasattr(log, 'info')
-    assert hasattr(log, 'debug')
-    assert hasattr(log, 'error')
+    assert hasattr(log, "info")
+    assert hasattr(log, "debug")
+    assert hasattr(log, "error")
 
 
 def test_file_logging_setup():
     """Test file logging setup works."""
     with tempfile.TemporaryDirectory() as tmpdir:
         logdir = Path(tmpdir)
-        log = nicestlog.setup_file_logging(
-            logdir=logdir,
-            verbose=True,
-            app_name="test"
-        )
+        log = nicestlog.setup_file_logging(logdir=logdir, verbose=True, app_name="test")
 
         assert log is not None
 
@@ -47,7 +43,7 @@ def test_structured_logging():
         "test-event",
         _replace_msg="Test message with {field}",
         field="value",
-        additional_data=123
+        additional_data=123,
     )
 
 
@@ -70,10 +66,7 @@ def test_error_logging():
     except ValueError as e:
         # This should not raise any exceptions
         log.error(
-            "test-error",
-            error=str(e),
-            error_type=type(e).__name__,
-            exc_info=True
+            "test-error", error=str(e), error_type=type(e).__name__, exc_info=True
         )
 
 
@@ -83,7 +76,7 @@ def test_get_logger():
     log = nicestlog.get_logger("test_component")
 
     assert log is not None
-    assert hasattr(log, 'info')
+    assert hasattr(log, "info")
 
 
 if __name__ == "__main__":

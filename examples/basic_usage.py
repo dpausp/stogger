@@ -36,7 +36,7 @@ def demonstrate_basic_logging():
         username="alice",
         user_id=123,
         ip="192.168.1.1",
-        session_id="abc-def-123"
+        session_id="abc-def-123",
     )
 
 
@@ -50,10 +50,7 @@ def demonstrate_file_logging():
 
     # Setup file logging
     log = nicestlog.setup_file_logging(
-        logdir=log_dir,
-        verbose=True,
-        app_name="demo",
-        log_cmd_output=True
+        logdir=log_dir, verbose=True, app_name="demo", log_cmd_output=True
     )
 
     log.info("File logging initialized", log_directory=str(log_dir))
@@ -64,14 +61,14 @@ def demonstrate_file_logging():
             ["echo", "Hello from subprocess!"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
 
         log.info(
             "command-executed",
             command=["echo", "Hello from subprocess!"],
             exit_code=result.returncode,
-            stdout_length=len(result.stdout)
+            stdout_length=len(result.stdout),
         )
 
         # Log command output (goes to separate file if enabled)
@@ -93,11 +90,7 @@ def demonstrate_bound_loggers():
     log = nicestlog.setup_basic_logging(verbose=True, app_name="demo")
 
     # Create a request-scoped logger
-    request_log = log.bind(
-        request_id="req-12345",
-        user_id=456,
-        endpoint="/api/users"
-    )
+    request_log = log.bind(request_id="req-12345", user_id=456, endpoint="/api/users")
 
     request_log.info("request-started", method="POST")
     request_log.debug("validating-input", fields=["username", "email"])
@@ -123,7 +116,7 @@ def demonstrate_error_handling():
             operation="risky_operation",
             error=str(e),
             error_type=type(e).__name__,
-            exc_info=True  # Include full traceback
+            exc_info=True,  # Include full traceback
         )
 
     # Demonstrate recovery logging
@@ -136,7 +129,7 @@ def demonstrate_error_handling():
                 "fallback-used",
                 _replace_msg="Using cached data due to error: {error}",
                 error=str(e),
-                fallback_type="cache"
+                fallback_type="cache",
             )
             return {"cached": True, "data": "fallback_value"}
 
@@ -223,7 +216,7 @@ def main():
             "demo-failed",
             _replace_msg="Demo script failed: {error}",
             error=str(e),
-            exc_info=True
+            exc_info=True,
         )
         sys.exit(1)
 
