@@ -64,4 +64,3 @@ test: boost coverage to 90%
 ```
 
 - concise Git messages explaining the reason for the change and essential technical decisions.
-

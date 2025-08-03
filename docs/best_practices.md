@@ -191,9 +191,9 @@ def handle_request(request):
         method=request.method,
         path=request.path
     )
-    
+
     req_log.info("request-started")
-    
+
     try:
         result = process_request(request, req_log)
         req_log.info("request-completed", status="success")
@@ -268,7 +268,7 @@ import subprocess
 
 def run_command(cmd, log):
     log.info("command-starting", command=cmd)
-    
+
     try:
         result = subprocess.run(
             cmd,
@@ -276,7 +276,7 @@ def run_command(cmd, log):
             text=True,
             check=True
         )
-        
+
         log.info(
             "command-completed",
             command=cmd,
@@ -284,15 +284,15 @@ def run_command(cmd, log):
             stdout_lines=len(result.stdout.splitlines()),
             stderr_lines=len(result.stderr.splitlines())
         )
-        
+
         # Log command output to separate file
         if result.stdout:
             log.trace("command-stdout", command=cmd, output=result.stdout)
         if result.stderr:
             log.trace("command-stderr", command=cmd, output=result.stderr)
-            
+
         return result
-        
+
     except subprocess.CalledProcessError as e:
         log.error(
             "command-failed",
@@ -421,10 +421,10 @@ from structlog.testing import LogCapture
 def test_user_creation():
     cap = LogCapture()
     structlog.configure(processors=[cap])
-    
+
     # Your code that logs
     create_user("testuser")
-    
+
     # Assert log entries
     assert len(cap.entries) == 1
     assert cap.entries[0]["event"] == "user-created"
@@ -439,10 +439,10 @@ def test_command_execution(mocker):
     mock_run = mocker.patch('subprocess.run')
     mock_run.return_value.returncode = 0
     mock_run.return_value.stdout = "success"
-    
+
     # Test your logging
     result = run_command_with_logging(["echo", "test"])
-    
+
     # Verify logging behavior
     # ... assertions ...
 ```
@@ -459,9 +459,9 @@ def main():
         logdir=args.logdir,
         syslog_identifier="myapp"
     )
-    
+
     log = structlog.get_logger()
-    
+
     log.info(
         "application-starting",
         _replace_msg="Starting {app_name} version {version}",
@@ -470,7 +470,7 @@ def main():
         python_version=sys.version,
         args=vars(args)
     )
-    
+
     try:
         app = create_app(args)
         log.info("application-ready", port=args.port)
@@ -490,13 +490,13 @@ def create_user():
         endpoint="create_user",
         method="POST"
     )
-    
+
     req_log.info("request-started")
-    
+
     try:
         data = request.get_json()
         req_log.debug("request-data", data_keys=list(data.keys()))
-        
+
         user = User.create(data)
         req_log.info(
             "user-created",
@@ -504,13 +504,13 @@ def create_user():
             user_id=user.id,
             username=user.username
         )
-        
+
         return jsonify(user.to_dict()), 201
-        
+
     except ValidationError as e:
         req_log.warning("validation-failed", errors=e.errors)
         return jsonify({"error": "Validation failed"}), 400
-        
+
     except Exception as e:
         req_log.error("request-failed", error=str(e), exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
@@ -521,28 +521,28 @@ def create_user():
 ```python
 def process_queue():
     task_log = log.bind(worker_id=worker_id, queue="main")
-    
+
     task_log.info("worker-started")
-    
+
     while True:
         try:
             task = queue.get(timeout=30)
             if task is None:
                 continue
-                
+
             task_log = task_log.bind(task_id=task.id, task_type=task.type)
             task_log.info("task-started")
-            
+
             start_time = time.time()
             result = process_task(task, task_log)
             duration = time.time() - start_time
-            
+
             task_log.info(
                 "task-completed",
                 duration_seconds=duration,
                 result_size=len(str(result)) if result else 0
             )
-            
+
         except queue.Empty:
             task_log.trace("queue-empty")
             continue
@@ -556,23 +556,23 @@ def process_queue():
 class ServiceManager:
     def __init__(self):
         self.log = structlog.get_logger("service_manager")
-        
+
     def start_service(self, service_name):
         svc_log = self.log.bind(service=service_name)
-        
+
         svc_log.info("service-starting")
-        
+
         try:
             service = self.services[service_name]
             service.start()
-            
+
             svc_log.info(
                 "service-started",
                 _replace_msg="Service {service} started successfully",
                 pid=service.pid,
                 port=getattr(service, 'port', None)
             )
-            
+
         except Exception as e:
             svc_log.error(
                 "service-start-failed",
