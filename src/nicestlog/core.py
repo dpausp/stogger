@@ -132,54 +132,53 @@ class ConsoleRenderer:
     ) -> str:
         """Render a log event as a colored console string."""
         # Extract standard fields
-        timestamp = event_dict.pop("timestamp", time.strftime("%Y-%m-%d %H:%M:%S"))
+        timestamp = event_dict.pop("timestamp", time.strftime("%Y-%m-%dT%H:%M:%S.%f"))
+        # Remove 'Z' suffix if present (from ISO format)
+        if isinstance(timestamp, str) and timestamp.endswith("Z"):
+            timestamp = timestamp[:-1]
         level = event_dict.pop("level", method_name.upper())
         event = event_dict.pop("event", "")
+
+        # Convert level to single character
+        level_char = {
+            "DEBUG": "D",
+            "INFO": "I",
+            "WARNING": "W",
+            "ERROR": "E",
+            "CRITICAL": "C",
+        }.get(level.upper() if level else "", level[0].upper() if level else "?")
 
         # Handle template message replacement
         replace_msg = event_dict.pop("_replace_msg", None)
         if replace_msg:
             try:
-                message = replace_msg.format(**event_dict)
+                template_message = replace_msg.format(**event_dict)
+                # Format: timestamp level event-name spaces template-message
+                event_padded = f"{event:<40}"
+                main_line = (
+                    f"{timestamp} {level_char} {event_padded} {template_message}"
+                )
             except (KeyError, ValueError):
-                message = f"{event} (template error: {replace_msg})"
+                # Fallback on template error
+                event_padded = f"{event:<40}"
+                main_line = f"{timestamp} {level_char} {event_padded} (template error: {replace_msg})"
         else:
-            message = event
+            # No template, just show the event
+            main_line = f"{timestamp} {level_char} {event}"
 
-        # Extract logger name
-        logger_name = event_dict.pop("logger", "")
-        if logger_name:
-            logger_name = f"[{logger_name}] "
-
-        # Color the level
-        colored_level = self._colorize(f"{level:8}", level)
-
-        # Build the main message line
-        main_line = f"{timestamp} {colored_level} {logger_name}{message}"
-
-        # Add structured data if present
-        if event_dict:
-            # Remove internal structlog fields
-            clean_dict = {
-                k: v
-                for k, v in event_dict.items()
-                if not k.startswith("_") and k not in ("exc_info",)
-            }
-
-            if clean_dict:
-                data_str = " ".join(f"{k}={v}" for k, v in clean_dict.items())
-                data_line = self._colorize(f"    {data_str}", "DIM")
-                main_line += f"\n{data_line}"
+        # Remove internal fields but don't show structured data in compact format
+        # Clean up remaining fields
+        event_dict.pop("logger", None)
+        for key in list(event_dict.keys()):
+            if key.startswith("_") or key in ("exc_info",):
+                event_dict.pop(key, None)
 
         # Handle exception info
         if "exc_info" in event_dict and event_dict["exc_info"]:
             import traceback
 
             exc_text = "".join(traceback.format_exception(*event_dict["exc_info"]))
-            exc_lines = [
-                self._colorize(f"    {line.rstrip()}", "DIM")
-                for line in exc_text.splitlines()
-            ]
+            exc_lines = [f"    {line.rstrip()}" for line in exc_text.splitlines()]
             main_line += "\n" + "\n".join(exc_lines)
 
         return main_line
