@@ -1,533 +1,496 @@
-"""
 Core logging functionality for nicestlog.
 
 This module contains the main structlog-based multi-target logging implementation.
 Originally developed for the Flying Circus platform.
 """
-
-import logging
-import logging.handlers
+import io
+import json
 import os
+import string
 import sys
-import time
+import syslog
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union, MutableMapping
+from typing import Any, Dict, Optional
 
 import structlog
+import toml
+
+try:
+    import colorama
+except ImportError:
+    colorama = None
+
+try:
+    from systemd import journal
+except ImportError:
+    journal = None
+
+_MISSING = "{who} requires the {package} package installed."
+_EVENT_WIDTH = 30  # pad the event name to so many characters
+
+if sys.stdout.isatty() and colorama:
+    RESET_ALL = colorama.Style.RESET_ALL
+    BRIGHT = colorama.Style.BRIGHT
+    DIM = colorama.Style.DIM
+    RED = colorama.Fore.RED
+    BACKRED = colorama.Back.RED
+    BLUE = colorama.Fore.BLUE
+    CYAN = colorama.Fore.CYAN
+    MAGENTA = colorama.Fore.MAGENTA
+    YELLOW = colorama.Fore.YELLOW
+    GREEN = colorama.Fore.GREEN
+else:
+    RESET_ALL = ""
+    BRIGHT = ""
+    DIM = ""
+    RED = ""
+    BACKRED = ""
+    BLUE = ""
+    CYAN = ""
+    MAGENTA = ""
+    YELLOW = ""
+    GREEN = ""
 
 
-# Global state for logging configuration
-_logging_initialized = False
-_current_config = {}
-
-
-def is_systemd_context() -> bool:
-    """
-    Detect if we're running under systemd.
-
-    Returns:
-        True if running under systemd, False otherwise.
-    """
-    return (
-        os.environ.get("INVOCATION_ID") is not None
-        or os.environ.get("JOURNAL_STREAM") is not None
-    )
-
-
-def has_systemd_support() -> bool:
-    """
-    Check if systemd-python is available.
-
-    Returns:
-        True if systemd journal logging is available, False otherwise.
-    """
+def _load_config() -> Dict[str, Any]:
+    """Loads nicestlog config from pyproject.toml."""
+    pyproject_path = Path("pyproject.toml")
+    if not pyproject_path.is_file():
+        return {}
     try:
-        import importlib.util
+        config = toml.load(pyproject_path)
+        return config.get("tool", {}).get("nicestlog", {})
+    except toml.TomlDecodeError as e:
+        print(f"Error decoding pyproject.toml: {e}", file=sys.stderr)
+        return {}
 
-        return importlib.util.find_spec("systemd.journal") is not None
-    except ImportError:
-        return False
 
-
-class OptimisticHandler(logging.Handler):
+class PartialFormatter(string.Formatter):
     """
-    A logging handler that never raises exceptions.
-
-    This handler wraps other handlers and catches any exceptions they might
-    raise, preventing logging failures from crashing the application.
+    A string formatter that doesn't break if values are missing or formats are wrong.
     """
+    def __init__(self, missing="<missing>", bad_format="<bad format>"):
+        self.missing = missing
+        self.bad_format = bad_format
 
-    def __init__(self, wrapped_handler: logging.Handler):
-        super().__init__()
-        self.wrapped_handler = wrapped_handler
-        self.setLevel(wrapped_handler.level)
-        if wrapped_handler.formatter:
-            self.setFormatter(wrapped_handler.formatter)
-
-    def emit(self, record: logging.LogRecord) -> None:
-        """Emit a log record, catching any exceptions."""
+    def get_field(self, field_name, args, kwargs):
         try:
-            self.wrapped_handler.emit(record)
-        except Exception:
-            # Silently ignore logging errors to prevent application crashes
-            pass
+            val = super().get_field(field_name, args, kwargs)
+        except (KeyError, AttributeError):
+            val = (None, field_name)
+        return val
 
-    def setLevel(self, level: Union[int, str]) -> None:
-        """Set the logging level for both this handler and the wrapped handler."""
-        super().setLevel(level)
-        self.wrapped_handler.setLevel(level)
-
-    def setFormatter(self, formatter: Optional[logging.Formatter]) -> None:
-        """Set the formatter for both this handler and the wrapped handler."""
-        super().setFormatter(formatter)
-        self.wrapped_handler.setFormatter(formatter)
-
-
-class ConsoleRenderer:
-    """
-    Rich console renderer for structured logs.
-
-    Provides colored, human-readable output with structured data display.
-    """
-
-    def __init__(self, colors: bool = True):
-        self.colors = colors and self._supports_color()
-        self._color_codes = {
-            "TRACE": "\033[90m",  # Dark gray
-            "DEBUG": "\033[36m",  # Cyan
-            "INFO": "\033[32m",  # Green
-            "WARNING": "\033[33m",  # Yellow
-            "ERROR": "\033[31m",  # Red
-            "CRITICAL": "\033[35m",  # Magenta
-            "RESET": "\033[0m",  # Reset
-            "BOLD": "\033[1m",  # Bold
-            "DIM": "\033[2m",  # Dim
-        }
-
-    def _supports_color(self) -> bool:
-        """Check if the terminal supports color output."""
+    def format_field(self, value, format_spec):
+        if value is None:
+            return self.missing
         try:
-            import colorama  # type: ignore[import-untyped]
+            return super().format_field(value, format_spec)
+        except ValueError:
+            return self.bad_format
 
-            colorama.init()
-            return True
-        except ImportError:
-            pass
 
-        # Check if we're in a terminal that supports color
-        return (
-            hasattr(sys.stdout, "isatty")
-            and sys.stdout.isatty()
-            and os.environ.get("TERM") != "dumb"
-        )
+class TranslationProcessor:
+    def __init__(self, translations):
+        self.translations = translations
+        self.formatter = PartialFormatter()
 
-    def _colorize(self, text: str, color: str) -> str:
-        """Apply color to text if colors are enabled."""
-        if not self.colors:
-            return text
-        return f"{self._color_codes.get(color, '')}{text}{self._color_codes['RESET']}"
+    def __call__(self, logger, method_name, event_dict):
+        # Prioritize _msg_key, fall back to event, then to _replace_msg
+        msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
+        template = self.translations.get(msg_key)
 
-    def __call__(
-        self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
-    ) -> str:
-        """Render a log event as a colored console string."""
-        # Extract standard fields
-        timestamp = event_dict.pop("timestamp", time.strftime("%Y-%m-%dT%H:%M:%S.%f"))
-        # Remove 'Z' suffix if present (from ISO format)
-        if isinstance(timestamp, str) and timestamp.endswith("Z"):
-            timestamp = timestamp[:-1]
-        level = event_dict.pop("level", method_name.upper())
-        event = event_dict.pop("event", "")
+        if template:
+            event_dict["formatted_message"] = self.formatter.format(template, **event_dict)
+        elif replace_msg := event_dict.pop("_replace_msg", None):
+            # Legacy support
+            event_dict["formatted_message"] = self.formatter.format(replace_msg, **event_dict)
 
-        # Convert level to single character
-        level_char = {
-            "DEBUG": "D",
-            "INFO": "I",
-            "WARNING": "W",
-            "ERROR": "E",
-            "CRITICAL": "C",
-        }.get(level.upper() if level else "", level[0].upper() if level else "?")
+        return event_dict
 
-        # Handle template message replacement
-        replace_msg = event_dict.pop("_replace_msg", None)
-        if replace_msg:
+
+class MultiOptimisticLoggerFactory:
+    def __init__(self, context, factories):
+        self.context = context
+        self.factories = factories
+
+    def __call__(self, *args):
+        loggers = {k: f() for k, f in self.factories.items()}
+        return MultiOptimisticLogger(loggers)
+
+
+class MultiOptimisticLogger:
+    """
+    A logger which distributes messages to multiple loggers.
+    """
+    def __init__(self, loggers):
+        self.loggers = loggers
+
+    def __repr__(self):
+        return f"<MultiOptimisticLogger {[repr(logger) for logger in self.loggers]}>"
+
+    def msg(self, **messages):
+        for name, logger in self.loggers.items():
             try:
-                template_message = replace_msg.format(**event_dict)
-                # Format: timestamp level event-name spaces template-message
-                event_padded = f"{event:<40}"
-                main_line = (
-                    f"{timestamp} {level_char} {event_padded} {template_message}"
-                )
-            except (KeyError, ValueError):
-                # Fallback on template error
-                event_padded = f"{event:<40}"
-                main_line = f"{timestamp} {level_char} {event_padded} (template error: {replace_msg})"
-        else:
-            # No template, just show the event
-            main_line = f"{timestamp} {level_char} {event}"
+                line = messages.get(name)
+                if line:
+                    logger.msg(line)
+            except Exception:
+                pass  # Be optimistic
 
-        # Remove internal fields but don't show structured data in compact format
-        # Clean up remaining fields
-        event_dict.pop("logger", None)
-        for key in list(event_dict.keys()):
-            if key.startswith("_") or key in ("exc_info",):
+    def __getattr__(self, name):
+        return self.msg
+
+
+class DummyJournalLogger:
+    def msg(self, message):
+        pass
+
+
+class JournalLogger:
+    def msg(self, message):
+        if journal:
+            journal.send(**message)
+
+
+class JournalLoggerFactory:
+    def __init__(self):
+        if journal is None:
+            print(_MISSING.format(who=self.__class__.__name__, package="systemd"))
+
+    def __call__(self, *args):
+        if journal is None:
+            return DummyJournalLogger()
+        else:
+            return JournalLogger()
+
+
+class CmdOutputFileRenderer:
+    def __call__(self, logger, method_name, event_dict):
+        line = event_dict.pop("cmd_output_line", None)
+        if line is not None:
+            return {"cmd_output_file": line}
+        return {}
+
+
+def prefix(p, line):
+    return f"{p}>\t" + line.replace("\n", f"\n{p}>\t")
+
+
+def _pad(s, length):
+    missing = length - len(s)
+    return s + " " * (missing if missing > 0 else 0)
+
+
+class ConsoleFileRenderer:
+    """
+    Render `event_dict` nicely aligned, in colors.
+    """
+    LEVELS = ["alert", "critical", "error", "warn", "warning", "info", "debug", "trace"]
+
+    def __init__(self, min_level, show_caller_info=False, pad_event=_EVENT_WIDTH):
+        self.min_level = self.LEVELS.index(min_level.lower())
+        self.show_caller_info = show_caller_info
+        if colorama is None:
+            print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
+        if sys.stdout.isatty() and colorama:
+            colorama.init()
+
+        self._pad_event = pad_event
+        self._level_to_color = {
+            "alert": RED, "critical": RED, "error": RED, "warn": YELLOW,
+            "warning": YELLOW, "info": GREEN, "debug": GREEN, "trace": GREEN,
+            "notset": BACKRED,
+        }
+        for key in self._level_to_color:
+            self._level_to_color[key] += BRIGHT
+
+    def __call__(self, logger, method_name, event_dict):
+        log_settings = event_dict.pop("_log_settings", {})
+        if log_settings.get("console_ignore", False):
+            return {}
+
+        console_io = io.StringIO()
+        log_io = io.StringIO()
+
+        def write(line):
+            console_io.write(line)
+            clean_line = line
+            if RESET_ALL:
+                for symb in [RESET_ALL, BRIGHT, DIM, RED, BACKRED, BLUE, CYAN, MAGENTA, YELLOW, GREEN]:
+                    clean_line = clean_line.replace(symb, "")
+            log_io.write(clean_line)
+
+        formatted_message = event_dict.pop("formatted_message", None)
+
+        if not self.show_caller_info:
+            for key in ["code_file", "code_func", "code_lineno", "code_module"]:
                 event_dict.pop(key, None)
 
-        # Handle exception info
-        if "exc_info" in event_dict and event_dict["exc_info"]:
-            import traceback
+        if ts := event_dict.pop("timestamp", None):
+            write(f"{DIM}{ts}{RESET_ALL} ")
 
-            exc_text = "".join(traceback.format_exception(*event_dict["exc_info"]))
-            exc_lines = [f"    {line.rstrip()}" for line in exc_text.splitlines()]
-            main_line += "\n" + "\n".join(exc_lines)
+        event_dict.pop("pid", None)
 
-        return main_line
+        if level := event_dict.pop("level", None):
+            write(f"{self._level_to_color.get(level, '')}{level[0].upper()}{RESET_ALL} ")
 
+        event = event_dict.pop("event")
+        write(f"{BRIGHT}{_pad(event, self._pad_event)}{RESET_ALL} ")
 
-class JSONRenderer:
-    """
-    JSON renderer for structured logs.
+        if logger_name := event_dict.pop("logger", None):
+            write(f"[{BLUE}{BRIGHT}{logger_name}{RESET_ALL}] ")
 
-    Produces machine-parseable JSON output suitable for log aggregation systems.
-    """
+        if formatted_message:
+            write(formatted_message)
+        else:
+            write(" ".join(f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
+                for k, v in sorted(event_dict.items())))
 
-    def __call__(
-        self, logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
-    ) -> str:
-        """Render a log event as a JSON string."""
-        import json
-
-        # Ensure we have standard fields
-        if "timestamp" not in event_dict:
-            event_dict["timestamp"] = time.time()
-        if "level" not in event_dict:
-            event_dict["level"] = method_name.upper()
-
-        # Handle exception info
-        if "exc_info" in event_dict and event_dict["exc_info"]:
-            import traceback
-
-            event_dict["exception"] = "".join(
-                traceback.format_exception(*event_dict["exc_info"])
-            )
-            del event_dict["exc_info"]
-
-        return json.dumps(event_dict, default=str, ensure_ascii=False)
+        # Simplified handling for other fields
+        for key in ["cmd_output_line", "_output", "stdout", "stderr", "stack", "exception_traceback"]:
+             if value := event_dict.pop(key, None):
+                write(f"\n{prefix(key, str(value))}{RESET_ALL}")
 
 
-def create_console_handler(
-    verbose: bool = False, colors: bool = True
-) -> logging.Handler:
-    """
-    Create a console handler with rich formatting.
+        if self.LEVELS.index(method_name.lower()) > self.min_level:
+            console_io.seek(0)
+            console_io.truncate()
 
-    Args:
-        verbose: If True, set level to DEBUG, otherwise INFO
-        colors: If True, enable colored output
-
-    Returns:
-        Configured console logging handler
-    """
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG if verbose else logging.INFO)
-
-    # Use our custom console renderer
-    renderer = ConsoleRenderer(colors=colors)
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processor=renderer,
-        foreign_pre_chain=[
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.add_logger_name,
-            structlog.processors.TimeStamper(fmt="iso"),
-        ],
-    )
-    handler.setFormatter(formatter)
-
-    return OptimisticHandler(handler)
+        return {"console": console_io.getvalue(), "file": log_io.getvalue()}
 
 
-def create_file_handler(
-    logdir: Path,
-    filename: str = "application.log",
-    max_bytes: int = 10 * 1024 * 1024,  # 10MB
-    backup_count: int = 5,
-) -> logging.Handler:
-    """
-    Create a rotating file handler with JSON formatting.
+class MultiRenderer:
+    def __init__(self, **renderers):
+        self.renderers = renderers
 
-    Args:
-        logdir: Directory for log files
-        filename: Name of the log file
-        max_bytes: Maximum size before rotation
-        backup_count: Number of backup files to keep
-
-    Returns:
-        Configured file logging handler
-    """
-    logdir.mkdir(parents=True, exist_ok=True)
-    log_file = logdir / filename
-
-    handler = logging.handlers.RotatingFileHandler(
-        log_file, maxBytes=max_bytes, backupCount=backup_count, encoding="utf-8"
-    )
-    handler.setLevel(logging.DEBUG)
-
-    # Use JSON formatting for files
-    renderer = JSONRenderer()
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processor=renderer,
-        foreign_pre_chain=[
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.add_logger_name,
-            structlog.processors.TimeStamper(fmt="iso"),
-        ],
-    )
-    handler.setFormatter(formatter)
-
-    return OptimisticHandler(handler)
+    def __call__(self, logger, method_name, event_dict):
+        merged_messages = {}
+        for renderer in self.renderers.values():
+            try:
+                if messages := renderer(logger, method_name, event_dict.copy()):
+                    merged_messages.update(messages)
+            except Exception:
+                pass
+        return merged_messages
 
 
-def create_systemd_handler() -> Optional[logging.Handler]:
-    """
-    Create a systemd journal handler if available.
+def add_pid(logger, method_name, event_dict):
+    event_dict["pid"] = os.getpid()
+    return event_dict
 
-    Returns:
-        Configured systemd journal handler, or None if not available
-    """
-    if not has_systemd_support():
-        return None
+
+def add_caller_info(logger, method_name, event_dict):
+    frame, module_str = structlog._frames._find_first_app_frame_and_name(additional_ignores=[__name__])
+    event_dict.update({
+        "code_file": frame.f_code.co_filename,
+        "code_func": frame.f_code.co_name,
+        "code_lineno": frame.f_lineno,
+        "code_module": module_str,
+    })
+    return event_dict
+
+
+JOURNAL_LEVELS = {
+    "alert": syslog.LOG_ALERT, "critical": syslog.LOG_CRIT, "error": syslog.LOG_ERR,
+    "warn": syslog.LOG_WARNING, "warning": syslog.LOG_WARNING, "info": syslog.LOG_INFO,
+    "debug": syslog.LOG_DEBUG, "trace": syslog.LOG_DEBUG,
+}
+
+KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
+    "_msg_key", "_replace_msg", "code_file", "code_func", "code_lineno",
+    "code_module", "event", "exception_traceback", "formatted_message",
+    "invocation_id", "level", "message", "output", "pid", "timestamp",
+]
+
+
+class SystemdJournalRenderer:
+    def __init__(self, syslog_identifier, syslog_facility=syslog.LOG_LOCAL0):
+        self.syslog_identifier = syslog_identifier
+        self.syslog_facility = syslog_facility
+
+    def __call__(self, logger, method_name, event_dict):
+        if method_name == "trace":
+            return {}
+
+        event_dict.pop("_log_settings", None)
+        kv_renderer = structlog.processors.KeyValueRenderer(sort_keys=True)
+        event_dict["message"] = event_dict["event"]
+
+        if formatted_message := event_dict.pop("formatted_message", None):
+            event_dict["message"] += f": {formatted_message}"
+        else:
+            if kv := kv_renderer(None, None, {k: v for k, v in event_dict.items() if k not in KEYS_TO_SKIP_IN_JOURNAL_MESSAGE}):
+                event_dict["message"] += f": {kv}"
+
+        event_dict.pop("timestamp", None)
+        event_dict.pop("pid", None)
+        code_lineno = event_dict.pop("code_lineno", None)
+
+        event_dict = {k.upper(): self.dump_for_journal(v) for k, v in event_dict.items()}
+        event_dict.update({
+            "PRIORITY": JOURNAL_LEVELS.get(event_dict.get("LEVEL"), syslog.LOG_INFO),
+            "SYSLOG_FACILITY": self.syslog_facility,
+            "SYSLOG_IDENTIFIER": self.syslog_identifier,
+            "CODE_LINE": code_lineno,
+        })
+        return {"journal": event_dict}
+
+    def handle_json_fallback(self, obj):
+        try:
+            return obj.__structlog__()
+        except AttributeError:
+            return repr(obj)
+
+    def dump_for_journal(self, obj):
+        if isinstance(obj, (str, int, float, bool)) or obj is None:
+            return obj
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return json.dumps(obj, default=self.handle_json_fallback)
+
+
+def process_exc_info(logger, name, event_dict):
+    if exc_info := event_dict.get("exc_info"):
+        if isinstance(exc_info, BaseException):
+            event_dict["exc_info"] = (type(exc_info), exc_info, exc_info.__traceback__)
+        elif not isinstance(exc_info, tuple):
+            event_dict["exc_info"] = sys.exc_info()
+    return event_dict
+
+
+def format_exc_info(logger, name, event_dict):
+    if exc_info := event_dict.pop("exc_info", None):
+        exc_class = exc_info[0]
+        event_dict.update({
+            "exception_traceback": "".join(structlog.processors._format_exception(exc_info)),
+            "exception_msg": str(exc_info[1]),
+            "exception_class": f"{exc_class.__module__}.{exc_class.__name__}",
+        })
+    return event_dict
+
+
+def init_command_logging(log, logdir=None):
+    logger_factory = structlog.get_config()["logger_factory"]
+    if not isinstance(logger_factory, MultiOptimisticLoggerFactory):
+        return
+
+    logdir = logdir or logger_factory.context.get("logdir")
+    if not logdir:
+        log.warn("logging-cmd-output-no-logdir", _replace_msg="Cannot set up command logging: No logdir given.")
+        return
+
+    if invocation_id := os.environ.get("INVOCATION_ID"):
+        formatted_dt = datetime.now().strftime("%Y-%m-%dT%H_%m_%S")
+        cmd_log_file_name = logdir / f"{formatted_dt}_build-output_{invocation_id}.log"
+    else:
+        cmd_log_file_name = logdir / "build-output.log"
+
+    cmd_log_file = open(cmd_log_file_name, "w")
+    log.info("logging-cmd-output", _replace_msg=f"External command output goes to: {cmd_log_file.name}")
+    logger_factory.factories["cmd_output_file"] = structlog.PrintLoggerFactory(cmd_log_file)
+
+
+def drop_cmd_output_logfile(log):
+    logger_factory = structlog.get_config()["logger_factory"]
+    if not isinstance(logger_factory, MultiOptimisticLoggerFactory):
+        return
 
     try:
-        from systemd.journal import JournalHandler  # type: ignore[import-not-found]
-
-        handler = JournalHandler()
-        handler.setLevel(logging.DEBUG)
-
-        # Use JSON formatting for systemd journal
-        renderer = JSONRenderer()
-        formatter = structlog.stdlib.ProcessorFormatter(
-            processor=renderer,
-            foreign_pre_chain=[
-                structlog.stdlib.add_log_level,
-                structlog.stdlib.add_logger_name,
-                structlog.processors.TimeStamper(fmt="iso"),
-            ],
-        )
-        handler.setFormatter(formatter)
-
-        return OptimisticHandler(handler)
-    except Exception:
-        return None
+        cmd_output_file_factory = logger_factory.factories["cmd_output_file"]
+        cmd_log_file = cmd_output_file_factory._file
+        log.debug("logging-cmd-output-drop", _replace_msg=f"Removing command log file at {cmd_log_file.name}")
+        cmd_log_file.close()
+        os.unlink(cmd_log_file.name)
+    except KeyError:
+        log.error("logging-cmd-output-file-not-found", _replace_msg="cmd_output_file logger factory not found.")
+        raise
 
 
 def init_logging(
-    verbose: bool = False,
+    verbose: Optional[bool] = None,
     logdir: Optional[Path] = None,
-    log_cmd_output: bool = False,
+    log_cmd_output: Optional[bool] = None,
     log_to_console: Optional[bool] = None,
     syslog_identifier: Optional[str] = None,
-    show_caller_info: bool = False,
-    colors: bool = True,
-) -> None:
-    """
-    Initialize the structured logging system.
+    show_caller_info: Optional[bool] = None,
+    translation_dir: Optional[Path] = None,
+    language: Optional[str] = None,
+):
+    config = _load_config()
 
-    Args:
-        verbose: Enable verbose (DEBUG) logging to console
-        logdir: Directory for file logging (enables file logging if provided)
-        log_cmd_output: Enable separate command output logging (requires logdir)
-        log_to_console: Force console logging on/off (auto-detects if None)
-        syslog_identifier: Identifier for systemd journal entries
-        show_caller_info: Include caller information in logs
-        colors: Enable colored console output
-    """
-    global _logging_initialized, _current_config
+    # Parameters take precedence over config file
+    verbose = verbose if verbose is not None else config.get("verbose", False)
+    logdir_path = Path(logdir or config.get("logdir")) if logdir or config.get("logdir") else None
+    log_cmd_output = log_cmd_output if log_cmd_output is not None else config.get("log_cmd_output", False)
+    log_to_console = log_to_console if log_to_console is not None else config.get("log_to_console", True)
+    syslog_identifier = syslog_identifier or config.get("syslog_identifier", "nicestlog")
+    show_caller_info = show_caller_info if show_caller_info is not None else config.get("show_caller_info", False)
+    translation_dir_path = Path(translation_dir or config.get("translation_dir")) if translation_dir or config.get("translation_dir") else None
+    language = language or config.get("language", "en")
 
-    # Store configuration
-    _current_config = {
-        "verbose": verbose,
-        "logdir": logdir,
-        "log_cmd_output": log_cmd_output,
-        "log_to_console": log_to_console,
-        "syslog_identifier": syslog_identifier,
-        "show_caller_info": show_caller_info,
-        "colors": colors,
-    }
-
-    # Determine if we should log to console
-    if log_to_console is None:
-        log_to_console = not is_systemd_context()
-
-    # Clear any existing handlers
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    root_logger.setLevel(logging.DEBUG)
-
-    # Collect handlers
-    handlers = []
-
-    # Console handler
-    if log_to_console:
-        console_handler = create_console_handler(verbose=verbose, colors=colors)
-        handlers.append(console_handler)
-
-    # File handler
-    if logdir:
-        file_handler = create_file_handler(logdir, "application.log")
-        handlers.append(file_handler)
-
-        # Command output handler
-        if log_cmd_output:
-            cmd_handler = create_file_handler(logdir, "commands.log")
-            handlers.append(cmd_handler)
-
-    # Systemd journal handler
-    if has_systemd_support():
-        systemd_handler = create_systemd_handler()
-        if systemd_handler:
-            handlers.append(systemd_handler)
-
-    # Add all handlers to root logger
-    for handler in handlers:
-        root_logger.addHandler(handler)
-
-    # Configure structlog
-    processors = [
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-    ]
-
-    if show_caller_info:
-        processors.append(structlog.processors.CallsiteParameterAdder())
-
-    processors.extend(
-        [
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ]
+    multi_renderer = MultiRenderer(
+        journal=SystemdJournalRenderer(syslog_identifier, syslog.LOG_LOCAL1),
+        cmd_output_file=CmdOutputFileRenderer(),
+        text=ConsoleFileRenderer(
+            min_level="trace" if verbose else "info",
+            show_caller_info=show_caller_info,
+        ),
     )
 
+    processors = [
+        add_pid, structlog.processors.add_log_level, process_exc_info,
+        format_exc_info, structlog.processors.StackInfoRenderer(),
+        structlog.processors.TimeStamper(fmt="iso", utc=False),
+        add_caller_info,
+    ]
+
+    if translation_dir_path:
+        try:
+            translation_file = translation_dir_path / f"{language}.toml"
+            with open(translation_file, "r") as f:
+                translations = toml.load(f)
+            processors.append(TranslationProcessor(translations))
+        except (IOError, toml.TomlDecodeError) as e:
+            print(f"Warning: failed to load translations from {translation_file}: {e}", file=sys.stderr)
+
+    processors.append(multi_renderer)
+
+    context = {}
+    loggers = {}
+
+    if logdir_path:
+        try:
+            logdir_path.mkdir(parents=True, exist_ok=True)
+            main_log_file_name = logdir_path / f"{syslog_identifier}.log"
+            main_log_file = open(main_log_file_name, "a")
+            loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
+            context["logdir"] = logdir_path
+        except (IOError, PermissionError) as e:
+            print(f"Warning: failed to set up logging to {main_log_file_name}: {e}", file=sys.stderr)
+
+    if journal:
+        loggers["journal"] = JournalLoggerFactory()
+
+    if log_to_console:
+        if journal and os.environ.get("JOURNAL_STREAM"):
+            print("Detected systemd journal context. Disabling console output.", file=sys.stderr)
+        else:
+            loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
+
     structlog.configure(
-        processors=processors,  # type: ignore[arg-type]
-        wrapper_class=structlog.stdlib.BoundLogger,
-        logger_factory=structlog.stdlib.LoggerFactory(),
+        processors=processors,
+        wrapper_class=structlog.BoundLogger,
+        logger_factory=MultiOptimisticLoggerFactory(context, loggers),
         cache_logger_on_first_use=True,
     )
 
-    _logging_initialized = True
+    if log_cmd_output:
+        if not logdir_path:
+            raise ValueError("A logdir is required for command logging.")
+        init_command_logging(structlog.get_logger(), logdir_path)
 
 
-def setup_basic_logging(
-    verbose: bool = False, app_name: Optional[str] = None, colors: bool = True
-):
-    """
-    Quick setup for basic console logging.
-
-    Args:
-        verbose: Enable verbose (DEBUG) logging
-        app_name: Application name for log identification
-        colors: Enable colored console output
-
-    Returns:
-        Configured structlog logger
-    """
-    init_logging(
-        verbose=verbose,
-        log_to_console=True,
-        syslog_identifier=app_name,
-        colors=colors,
-    )
-
-    logger = structlog.get_logger()
-    if app_name:
-        logger = logger.bind(app=app_name)
-
-    return logger
-
-
-def setup_file_logging(
-    logdir: Path,
-    verbose: bool = False,
-    app_name: Optional[str] = None,
-    log_cmd_output: bool = False,
-    colors: bool = True,
-):
-    """
-    Setup logging with both file and console output.
-
-    Args:
-        logdir: Directory for log files
-        verbose: Enable verbose (DEBUG) logging to console
-        app_name: Application name for log identification
-        log_cmd_output: Enable separate command output logging
-        colors: Enable colored console output
-
-    Returns:
-        Configured structlog logger
-    """
-    init_logging(
-        verbose=verbose,
-        logdir=logdir,
-        log_cmd_output=log_cmd_output,
-        log_to_console=True,
-        syslog_identifier=app_name,
-        colors=colors,
-    )
-
-    logger = structlog.get_logger()
-    if app_name:
-        logger = logger.bind(app=app_name)
-
-    return logger
-
-
-def setup_systemd_logging(
-    verbose: bool = False,
-    app_name: Optional[str] = None,
-    logdir: Optional[Path] = None,
-):
-    """
-    Setup logging optimized for systemd environments.
-
-    Args:
-        verbose: Enable verbose (DEBUG) logging
-        app_name: Application name for journal identification
-        logdir: Optional directory for additional file logging
-
-    Returns:
-        Configured structlog logger
-    """
-    init_logging(
-        verbose=verbose,
-        logdir=logdir,
-        log_to_console=False,  # Systemd handles console output
-        syslog_identifier=app_name,
-        colors=False,  # No colors for systemd
-    )
-
-    logger = structlog.get_logger()
-    if app_name:
-        logger = logger.bind(app=app_name)
-
-    return logger
-
-
-def get_logger(name: Optional[str] = None):
-    """
-    Get a structlog logger instance.
-
-    Args:
-        name: Optional logger name for identification
-
-    Returns:
-        Configured structlog logger
-    """
-    if not _logging_initialized:
-        # Auto-initialize with basic settings
-        setup_basic_logging()
-
-    logger = structlog.get_logger(name)
-    return logger
+def logging_initialized():
+    logger_factory = structlog.get_config().get("logger_factory")
+    return isinstance(logger_factory, MultiOptimisticLoggerFactory)

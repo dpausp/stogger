@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
 Basic usage examples for nicestlog.
-
 This script demonstrates various logging patterns and best practices
-using the nicestlog library.
+using the new nicestlog API.
 """
 
 import sys
@@ -11,214 +10,86 @@ import time
 import subprocess
 from pathlib import Path
 import structlog
+import tempfile
 
 # Import our logging library
 import nicestlog
 
-
-def demonstrate_basic_logging():
-    """Demonstrate basic console logging setup and usage."""
-    print("=== Basic Console Logging ===")
-
-    # Setup basic console logging
-    log = nicestlog.setup_basic_logging(verbose=True, app_name="demo")
-
-    # Basic logging examples
-    log.info("Application started", version="1.0.0")
+def demonstrate_logging(log):
+    """Runs a series of logging examples."""
+    log.info("application-started", version="1.0.0")
     log.debug("Debug information", component="main")
     log.warning("This is a warning", threshold=80, current=85)
     log.error("An error occurred", error_code=404)
 
-    # Structured logging with template messages
+    # Structured logging with translated messages
     log.info(
         "user-login",
-        _replace_msg="User {username} logged in from {ip}",
         username="alice",
         user_id=123,
         ip="192.168.1.1",
-        session_id="abc-def-123",
     )
 
+    # Example of a multiline message from translation file
+    log.error("command-failed")
 
-def demonstrate_file_logging():
-    """Demonstrate file + console logging."""
-    print("\n=== File + Console Logging ===")
-
-    # Create temporary log directory
-    log_dir = Path("/tmp/nicestlog_demo")
-    log_dir.mkdir(exist_ok=True)
-
-    # Setup file logging
-    log = nicestlog.setup_file_logging(
-        logdir=log_dir, verbose=True, app_name="demo", log_cmd_output=True
-    )
-
-    log.info("File logging initialized", log_directory=str(log_dir))
-
-    # Demonstrate command output logging
-    try:
-        result = subprocess.run(
-            ["echo", "Hello from subprocess!"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-
-        log.info(
-            "command-executed",
-            command=["echo", "Hello from subprocess!"],
-            exit_code=result.returncode,
-            stdout_length=len(result.stdout),
-        )
-
-        # Log command output (goes to separate file if enabled)
-        log.debug("command-output", output=result.stdout.strip())
-
-    except subprocess.CalledProcessError as e:
-        log.error("command-failed", error=str(e), exit_code=e.returncode)
-
-    print(f"Logs written to: {log_dir}")
-    print("Files created:")
-    for log_file in log_dir.glob("*.log"):
-        print(f"  - {log_file.name}")
-
-
-def demonstrate_bound_loggers():
-    """Demonstrate using bound loggers for context."""
-    print("\n=== Bound Loggers (Context) ===")
-
-    log = nicestlog.setup_basic_logging(verbose=True, app_name="demo")
-
-    # Create a request-scoped logger
-    request_log = log.bind(request_id="req-12345", user_id=456, endpoint="/api/users")
-
+    # Bound logger for context
+    request_log = log.bind(request_id="req-12345", user_id=456)
     request_log.info("request-started", method="POST")
-    request_log.debug("validating-input", fields=["username", "email"])
-    request_log.info("user-created", new_user_id=789)
-    request_log.info("request-completed", status_code=201, duration_ms=150)
+    request_log.info("request-completed", status_code=201)
 
-
-def demonstrate_error_handling():
-    """Demonstrate proper error logging."""
-    print("\n=== Error Handling ===")
-
-    log = nicestlog.setup_basic_logging(verbose=True, app_name="demo")
-
-    def risky_operation():
-        raise ValueError("Something went wrong!")
-
+    # Error handling
     try:
-        risky_operation()
+        raise ValueError("Something went wrong!")
     except ValueError as e:
         log.error(
             "operation-failed",
-            _replace_msg="Operation failed: {error}",
-            operation="risky_operation",
             error=str(e),
-            error_type=type(e).__name__,
-            exc_info=True,  # Include full traceback
+            exc_info=True,
         )
-
-    # Demonstrate recovery logging
-    def get_data_with_fallback():
-        try:
-            # Simulate a failing operation
-            raise ConnectionError("Database unavailable")
-        except ConnectionError as e:
-            log.warning(
-                "fallback-used",
-                _replace_msg="Using cached data due to error: {error}",
-                error=str(e),
-                fallback_type="cache",
-            )
-            return {"cached": True, "data": "fallback_value"}
-
-    result = get_data_with_fallback()
-    log.info("operation-completed", result_type="fallback", cached=result.get("cached"))
-
-
-def demonstrate_performance_patterns():
-    """Demonstrate performance-conscious logging patterns."""
-    print("\n=== Performance Patterns ===")
-
-    log = nicestlog.setup_basic_logging(verbose=True, app_name="demo")
-
-    # Lazy evaluation for expensive operations
-    def expensive_debug_data():
-        time.sleep(0.1)  # Simulate expensive operation
-        return {"expensive": "data", "computed_at": time.time()}
-
-    # This only calls expensive_debug_data() if debug logging is enabled
-    log.debug("expensive-debug", data=lambda: expensive_debug_data())
-
-    # Batch logging instead of logging every iteration
-    items = list(range(100))
-    batch_size = 25
-
-    log.info("batch-processing-started", total_items=len(items), batch_size=batch_size)
-
-    for i, item in enumerate(items):
-        # Only log every batch_size items
-        if i % batch_size == 0:
-            log.debug("processing-batch", batch_start=i, items_remaining=len(items) - i)
-
-        # Simulate processing
-        time.sleep(0.001)
-
-    log.info("batch-processing-completed", total_items=len(items))
-
-
-def demonstrate_different_log_levels():
-    """Demonstrate when to use different log levels."""
-    print("\n=== Log Levels ===")
-
-    log = nicestlog.setup_basic_logging(verbose=True, app_name="demo")
-
-    # TRACE - Very detailed debugging (using debug since trace is not standard)
-    log.debug("function-entry", function="process_data", args={"id": 123})
-
-    # DEBUG - Detailed debugging information
-    log.debug("cache-lookup", key="user:123", hit=True, ttl=300)
-
-    # INFO - General information (default production level)
-    log.info("user-action", action="create_post", user_id=123, post_id=456)
-
-    # WARNING - Potentially harmful situations
-    log.warning("rate-limit-approaching", current_requests=95, limit=100)
-
-    # ERROR - Error events that don't stop the application
-    log.error("external-service-failed", service="payment_api", retry_count=3)
-
-    # CRITICAL - Very serious errors that might cause program abort
-    log.critical("database-connection-lost", attempts=5, max_attempts=5)
-
 
 def main():
     """Run all demonstration functions."""
     print("Nicestlog Usage Examples")
     print("=" * 50)
 
-    try:
-        demonstrate_basic_logging()
-        demonstrate_file_logging()
-        demonstrate_bound_loggers()
-        demonstrate_error_handling()
-        demonstrate_performance_patterns()
-        demonstrate_different_log_levels()
+    # --- Logging initialized from pyproject.toml ---
+    # Create a dummy pyproject.toml for the example
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        pyproject_path = config_dir / "pyproject.toml"
+        with open(pyproject_path, "w") as f:
+            f.write("""
+[tool.nicestlog]
+verbose = true
+logdir = "logs"
+syslog_identifier = "demo-config"
+translation_dir = "translations"
+language = "en"
+""")
+        # Temporarily change directory to where pyproject.toml is
+        import os
+        original_dir = os.getcwd()
+        # Create dummy translations dir
+        (config_dir / "translations").mkdir()
+        with open(config_dir / "translations" / "en.toml", "w") as f:
+            f.write('user-login = "LOGIN: User {username} logged in from {ip}"\n')
+            f.write('command-failed = "The command failed!"\n')
 
-        print("\n" + "=" * 50)
-        print("All examples completed successfully!")
+        os.chdir(config_dir)
+        print(f"\n=== Logging configured from {pyproject_path} ===")
+        nicestlog.init_logging()
+        log = structlog.get_logger("config_demo")
+        demonstrate_logging(log)
+        os.chdir(original_dir)
 
-    except Exception as e:
-        # Even our demo can have proper error logging!
-        log = structlog.get_logger()
-        log.critical(
-            "demo-failed",
-            _replace_msg="Demo script failed: {error}",
-            error=str(e),
-            exc_info=True,
-        )
-        sys.exit(1)
+
+    print("\n" + "=" * 50)
+    print("All examples completed successfully!")
+
+
+    print("\n" + "=" * 50)
+    print("All examples completed successfully!")
 
 
 if __name__ == "__main__":

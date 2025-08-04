@@ -1,0 +1,9 @@
+# English translations for nicestlog
+"user-login" = "User {username} logged in from {ip}"
+
+"command-failed" = """
+The command failed to execute.
+Please check the following logs for details:
+- /var/log/app.log
+- /var/log/system.log
+"""
