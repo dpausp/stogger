@@ -8,6 +8,8 @@ dependencies = [
     "structlog>=23.0.0",
     "toml>=0.10.2",
     "eliot>=1.0.0",
+    "flask>=3.0.3",
+    "requests>=2.32.4",
 ]
 
 [project.optional-dependencies]

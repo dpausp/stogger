@@ -70,6 +70,13 @@ def main():
     lint_parser.add_argument("--max-coverage", type=float, default=15.0, help="Maximum logging coverage %% (default: 15.0)")
     lint_parser.add_argument("--strict", action="store_true", help="Use stricter coverage requirements")
     lint_parser.set_defaults(func=run_linter)
+    
+    # Add web dashboard subcommand
+    web_parser = subparsers.add_parser("dashboard", help="Start the web dashboard for live log viewing.")
+    web_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
+    web_parser.add_argument("--port", type=int, default=8080, help="Port to bind to (default: 8080)")
+    web_parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    web_parser.set_defaults(func=run_dashboard_cmd)
 
     args = parser.parse_args()
     args.func()
@@ -78,6 +85,33 @@ def run_linter():
     """Run the logging linter."""
     from .linter import main as linter_main
     linter_main()
+
+def run_dashboard_cmd():
+    """Run the web dashboard."""
+    import sys
+    from .web_dashboard import run_dashboard
+    
+    # Parse args manually since argparse is tricky with subcommands
+    host = "127.0.0.1"
+    port = 8080
+    debug = False
+    
+    args = sys.argv[2:]  # Skip 'nicestlog dashboard'
+    i = 0
+    while i < len(args):
+        if args[i] == "--host" and i + 1 < len(args):
+            host = args[i + 1]
+            i += 2
+        elif args[i] == "--port" and i + 1 < len(args):
+            port = int(args[i + 1])
+            i += 2
+        elif args[i] == "--debug":
+            debug = True
+            i += 1
+        else:
+            i += 1
+    
+    run_dashboard(host=host, port=port, debug=debug)
 
 if __name__ == "__main__":
     main()
