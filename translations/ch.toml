@@ -1,0 +1,52 @@
+# Schweizerdeutsche Übersetzungen für nicestlog
+# Swiss German translations with politeness
+
+[setup]
+welcome = "Grüezi! Willkomme bim nicestlog Setup!"
+config_created = "Konfiguration erstellt - merci vilmal!"
+config_exists = "Konfiguration git's scho, oder?"
+
+[linter]
+too_little_logging = "Entschuldigung, aber Sie händ z'wenig Logging!"
+too_much_logging = "Chli z'viel Logging, aber kei Problem!"
+good_coverage = "Sehr gueti Logging-Abdeckig, kompliment!"
+no_files_found = "Kei Python-Dateie gfunde - chönd Sie luege?"
+
+[quality]
+verdict_arsch = "Entschuldigung, aber das isch nöd so guet..."
+verdict_schlecht = "Chli schlecht, aber machbar!"
+verdict_maessig = "Könnt besser si, aber okay"
+verdict_verziehbar = "Ganz okay, gäll?"
+verdict_leiwand = "Huere guet! Das isch super!"
+
+[dashboard]
+starting = "Dashboard startet - bitte warte chli!"
+logs_cleared = "Logs ufgruumt - merci!"
+no_logs = "Kei Logs vorhande, oder?"
+
+[systemd]
+service_generated = "Service-File erstellt - chönd Sie deploye!"
+journal_reading = "Journal wird glese..."
+no_systemd = "Systemd nöd verfüegbar - schade!"
+
+[errors]
+file_not_found = "Datei nöd gfunde - chönd Sie nochmal luege?"
+permission_denied = "Kei Berechtigung - sind Sie root?"
+general_error = "Öppis isch schiefgange - entschuldigung!"
+
+[pii]
+scrubbing_enabled = "PII-Scrubbing aktiv - Ihri Date sind sicher!"
+sensitive_data_found = "Sensibli Date gfunde und versteckt!"
+
+[journal]
+following_logs = "Logs werded verfolgt - Ctrl+C zum stoppe"
+no_entries = "Kei Iitrag gfunde - luegid woanders!"
+connection_failed = "Verbindig fählgschlage - systemd spinnt!"
+
+[general]
+success = "Sehr guet!"
+failed = "Isch schiefgange!"
+warning = "Achtung!"
+info = "Information:"
+debug = "Debug-Sache:"
+goodbye = "Uf Widerluege!"

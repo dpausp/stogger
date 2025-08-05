@@ -1,0 +1,52 @@
+# Österreichische Übersetzungen für nicestlog
+# Austrian German translations with proper dialect
+
+[setup]
+welcome = "Servas! Willkommen beim nicestlog Setup!"
+config_created = "Konfiguration erstellt - leiwand!"
+config_exists = "Konfiguration gibt's schon, Hawara!"
+
+[linter]
+too_little_logging = "Oida, zu wenig Logging! Des is arsch!"
+too_much_logging = "Zu viel Logging, du Vollkoffer!"
+good_coverage = "Passt scho, gute Logging-Abdeckung!"
+no_files_found = "Keine Python-Dateien gefunden, du Depp!"
+
+[quality]
+verdict_arsch = "Komplett arsch! Des ghört neu gmacht!"
+verdict_schlecht = "Oag schlecht, aber nicht hoffnungslos"
+verdict_maessig = "Naja, könnt besser sein..."
+verdict_verziehbar = "Geht scho, aber da geht noch was!"
+verdict_leiwand = "Oida, des is richtig geil! Top-Quality!"
+
+[dashboard]
+starting = "Dashboard startet - gleich kannst zuschauen!"
+logs_cleared = "Logs weggeputzt! Sauber!"
+no_logs = "Keine Logs da, Hawara!"
+
+[systemd]
+service_generated = "Service-File erstellt - jetzt kannst deployen!"
+journal_reading = "Journal wird gelesen..."
+no_systemd = "Systemd nicht verfügbar, du Pfeife!"
+
+[errors]
+file_not_found = "Datei nicht gefunden, schau nochmal nach!"
+permission_denied = "Keine Berechtigung - bist du root oder was?"
+general_error = "Irgendwas is schiefgegangen, Oida!"
+
+[pii]
+scrubbing_enabled = "PII-Scrubbing aktiv - deine Daten sind sicher!"
+sensitive_data_found = "Sensible Daten gefunden und versteckt!"
+
+[journal]
+following_logs = "Logs werden verfolgt - Ctrl+C zum Stoppen"
+no_entries = "Keine Einträge gefunden, schau woanders!"
+connection_failed = "Verbindung fehlgeschlagen - systemd spinnt!"
+
+[general]
+success = "Passt scho!"
+failed = "Is schiefgegangen!"
+warning = "Aufpassen!"
+info = "Info für dich:"
+debug = "Debug-Zeug:"
+goodbye = "Baba und foi net!"
