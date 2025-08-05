@@ -86,6 +86,15 @@ def main():
     systemd_parser.add_argument("--working-dir", help="Working directory (default: current dir)")
     systemd_parser.add_argument("--output", "-o", help="Output file (default: stdout)")
     systemd_parser.set_defaults(func=generate_service_cmd)
+    
+    # Add journal viewer subcommand
+    journal_parser = subparsers.add_parser("journal", help="Beautiful systemd journal viewer.")
+    journal_parser.add_argument('-u', '--unit', '--service', dest='service', help='Service to show logs for')
+    journal_parser.add_argument('-n', '--lines', type=int, default=50, help='Number of lines (default: 50)')
+    journal_parser.add_argument('-f', '--follow', action='store_true', help='Follow new entries')
+    journal_parser.add_argument('--since', help='Show logs since time (e.g., "1 hour ago")')
+    journal_parser.add_argument('--level', choices=['critical', 'error', 'warning', 'info', 'debug'], help='Minimum log level')
+    journal_parser.set_defaults(func=run_journal_viewer)
 
     args = parser.parse_args()
     args.func()
@@ -175,6 +184,62 @@ def generate_service_cmd():
         print(f"💡 Start with: sudo systemctl start {service_name}")
     else:
         print(service_content)
+
+def run_journal_viewer():
+    """Run the journal viewer."""
+    import sys
+    from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
+    
+    if not SYSTEMD_AVAILABLE:
+        print("Error: systemd-python not available. Install with: pip install systemd-python", file=sys.stderr)
+        sys.exit(1)
+    
+    # Parse args manually
+    args = sys.argv[2:]  # Skip 'nicestlog journal'
+    
+    service = None
+    lines = 50
+    follow = False
+    since = None
+    level = None
+    
+    i = 0
+    while i < len(args):
+        if args[i] in ['-u', '--unit', '--service'] and i + 1 < len(args):
+            service = args[i + 1]
+            i += 2
+        elif args[i] in ['-n', '--lines'] and i + 1 < len(args):
+            lines = int(args[i + 1])
+            i += 2
+        elif args[i] in ['-f', '--follow']:
+            follow = True
+            i += 1
+        elif args[i] == '--since' and i + 1 < len(args):
+            since = args[i + 1]
+            i += 2
+        elif args[i] == '--level' and i + 1 < len(args):
+            level = args[i + 1]
+            i += 2
+        else:
+            i += 1
+    
+    # Create viewer and run
+    viewer = JournalViewer()
+    
+    try:
+        for entry in viewer.query_journal(
+            service=service,
+            since=since,
+            level=level,
+            lines=lines,
+            follow=follow
+        ):
+            print(viewer.format_entry(entry))
+    except KeyboardInterrupt:
+        print("\n👋 Goodbye!", file=sys.stderr)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
