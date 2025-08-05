@@ -21,6 +21,7 @@ def init_config():
     config["verbose"] = input("Enable verbose (trace-level) logging? [y/N]: ").lower() == "y"
     config["syslog_identifier"] = input("Syslog identifier [nicestlog]: ") or "nicestlog"
     config["log_format"] = input("Log format (console/json) [console]: ") or "console"
+    config["async_logging"] = input("Enable asynchronous (non-blocking) logging? [y/N]: ").lower() == "y"
 
     print("\n--- File Logging ---")
     if input("Enable file logging? [y/N]: ").lower() == "y":
