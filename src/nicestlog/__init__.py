@@ -8,7 +8,7 @@ systemd journal output.
 
 from .config import NicestLogConfig
 from .core import init_logging, logging_initialized
-from .factory import build_loggers, build_processors
+from .factory import build_shared_processors, configure_stdlib_logging
 from .cli import main
 
 __version__ = "0.1.0"
@@ -17,6 +17,6 @@ __all__ = [
     "logging_initialized",
     "main",
     "NicestLogConfig",
-    "build_processors",
-    "build_loggers",
+    "build_shared_processors",
+    "configure_stdlib_logging",
 ]

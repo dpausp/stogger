@@ -27,9 +27,13 @@ pip install nicestlog
 
 ```python
 import nicestlog
+import structlog
 
-# Quick setup for console logging
-log = nicestlog.setup_basic_logging(verbose=True, app_name="myapp")
+# Initialize logging for console output
+nicestlog.init_logging(verbose=True, syslog_identifier="myapp")
+
+# Get a logger instance
+log = structlog.get_logger()
 
 log.info(
     "application-started",
@@ -43,15 +47,17 @@ log.info(
 
 ```python
 import nicestlog
+import structlog
 from pathlib import Path
 
-# Setup with file logging
-log = nicestlog.setup_file_logging(
+# Setup with file and console logging
+nicestlog.init_logging(
     logdir=Path("/var/log/myapp"),
     verbose=True,
-    app_name="myapp"
+    syslog_identifier="myapp"
 )
 
+log = structlog.get_logger()
 log.info("Starting application", component="main")
 ```
 

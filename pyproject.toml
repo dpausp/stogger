@@ -7,6 +7,7 @@ requires-python = ">=3.8"
 dependencies = [
     "structlog>=23.0.0",
     "toml>=0.10.2",
+    "eliot>=1.0.0",
 ]
 
 [project.optional-dependencies]

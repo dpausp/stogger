@@ -76,6 +76,9 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
         return
 
     if config.async_logging:
+        from logging.handlers import QueueHandler, QueueListener
+        from queue import Queue
+        
         log_queue: Queue = Queue(-1)
         queue_handler = QueueHandler(log_queue)
         listener = QueueListener(log_queue, *handlers)

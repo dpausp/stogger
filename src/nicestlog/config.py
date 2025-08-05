@@ -37,7 +37,7 @@ class NicestLogConfig:
 
     def _load_config(self) -> Dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""
-        pyproject_path = Path("pyproject.toml")
+        pyproject_path = Path.cwd() / "pyproject.toml"
         if not pyproject_path.is_file():
             return {}
         try:

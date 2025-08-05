@@ -12,7 +12,7 @@ from typing import Any
 import structlog
 
 from .config import NicestLogConfig
-from .factory import build_shared_processors, configure_stdlib_logging
+# Import moved to avoid circular import
 
 try:
     import colorama
@@ -91,22 +91,51 @@ class ConsoleFileRenderer:
         if self.LEVELS.index(event_dict["level"]) > self.min_level_idx:
             raise structlog.DropEvent
 
-        sio = io.StringIO()
-        ts = event_dict.pop("timestamp", "notimestamp")
-        sio.write(f"{DIM}{ts}{RESET_ALL} ")
+        # Console output with colors
+        console_sio = io.StringIO()
+        ts = event_dict.get("timestamp", "notimestamp")
+        console_sio.write(f"{DIM}{ts}{RESET_ALL} ")
 
-        level = event_dict.pop("level")
-        sio.write(f"{self._level_to_color.get(level, '')}{level[0].upper()}{RESET_ALL} ")
+        level = event_dict.get("level")
+        console_sio.write(f"{self._level_to_color.get(level, '')}{level[0].upper()}{RESET_ALL} ")
 
-        event = event_dict.pop("event")
-        sio.write(f"{BRIGHT}{_pad(event, _EVENT_WIDTH)}{RESET_ALL} ")
+        event = event_dict.get("event")
+        console_sio.write(f"{BRIGHT}{_pad(event, _EVENT_WIDTH)}{RESET_ALL} ")
 
-        logger_name = event_dict.pop("logger", "root")
-        sio.write(f"[{BLUE}{BRIGHT}{logger_name}{RESET_ALL}] ")
+        logger_name = event_dict.get("logger", "root")
+        console_sio.write(f"[{BLUE}{BRIGHT}{logger_name}{RESET_ALL}] ")
 
-        sio.write(" ".join(f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
-                           for k, v in sorted(event_dict.items())))
-        return sio.getvalue()
+        console_sio.write(" ".join(f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
+                           for k, v in sorted(event_dict.items()) if k not in ["timestamp", "level", "event", "logger"]))
+
+        # File output without colors
+        file_sio = io.StringIO()
+        file_sio.write(f"{ts} ")
+        file_sio.write(f"{level[0].upper()} ")
+        file_sio.write(f"{_pad(event, _EVENT_WIDTH)} ")
+        file_sio.write(f"[{logger_name}] ")
+        file_sio.write(" ".join(f"{k}={repr(v)}"
+                        for k, v in sorted(event_dict.items()) if k not in ["timestamp", "level", "event", "logger"]))
+
+        return {
+            "console": console_sio.getvalue(),
+            "file": file_sio.getvalue()
+        }
+
+class JSONRenderer:
+    """JSON renderer for structured logging output."""
+    
+    def __init__(self, min_level="info"):
+        self.min_level_idx = ConsoleFileRenderer.LEVELS.index(min_level.lower())
+    
+    def __call__(self, _, __, event_dict):
+        if ConsoleFileRenderer.LEVELS.index(event_dict["level"]) > self.min_level_idx:
+            raise structlog.DropEvent
+        json_output = json.dumps(event_dict, default=str)
+        return {
+            "console": json_output,
+            "file": json_output
+        }
 
 def add_pid(_, __, event_dict):
     event_dict["pid"] = os.getpid()
@@ -137,6 +166,9 @@ def format_exc_info(_, __, event_dict):
     return event_dict
 
 def init_logging(**kwargs: Any):
+    # Import here to avoid circular import
+    from .factory import build_shared_processors, configure_stdlib_logging
+    
     config = NicestLogConfig(**kwargs)
     
     shared_processors = build_shared_processors(config)
