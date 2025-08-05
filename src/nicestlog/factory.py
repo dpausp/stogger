@@ -17,6 +17,7 @@ from .core import (
     add_pid,
     CmdOutputFileRenderer,
     ConsoleFileRenderer,
+    JSONRenderer,
     format_exc_info,
     JournalLoggerFactory,
     MultiRenderer,
@@ -54,13 +55,18 @@ def build_processors(config: NicestLogConfig) -> List[Any]:
         except (IOError, toml.TomlDecodeError) as e:
             print(f"Warning: failed to load translations from {translation_file}: {e}", file=sys.stderr)
 
+    if config.log_format == "json":
+        text_renderer = JSONRenderer()
+    else:
+        text_renderer = ConsoleFileRenderer(
+            min_level="trace" if config.verbose else "info",
+            show_caller_info=config.show_caller_info,
+        )
+
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(config.syslog_identifier),
         cmd_output_file=CmdOutputFileRenderer(),
-        text=ConsoleFileRenderer(
-            min_level="trace" if config.verbose else "info",
-            show_caller_info=config.show_caller_info,
-        ),
+        text=text_renderer,
     )
     processors.append(multi_renderer)
 

@@ -32,6 +32,7 @@ class NicestLogConfig:
         self.show_caller_info: bool = config.get("show_caller_info", False)
         self.translation_dir: Optional[Path] = Path(config["translation_dir"]) if config.get("translation_dir") else None
         self.language: str = config.get("language", "en")
+        self.log_format: str = config.get("log_format", "console")
 
     def _load_config(self) -> Dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""

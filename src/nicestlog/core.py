@@ -253,6 +253,12 @@ class MultiRenderer:
         return merged_messages
 
 
+class JSONRenderer:
+    """Render `event_dict` as a JSON string."""
+    def __call__(self, logger, method_name, event_dict):
+        return {"console": json.dumps(event_dict, default=str), "file": json.dumps(event_dict, default=str)}
+
+
 def add_pid(logger, method_name, event_dict):
     event_dict["pid"] = os.getpid()
     return event_dict
