@@ -192,7 +192,7 @@ def demo_translations():
     print("🌍 Nicestlog Translation Demo")
     print("=" * 50)
     
-    languages = ["en", "at", "ch"]
+    languages = ["en", "at", "ch", "wollgesisch"]
     
     for lang in languages:
         print(f"\n🗣️  {lang.upper()}:")

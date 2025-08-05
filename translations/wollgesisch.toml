@@ -1,0 +1,60 @@
+# Wollgesische Übersetzungen für nicestlog
+# Kölsch-Walisisch Mischung mit "woll" als Füllwort
+# Die verrückteste Sprache der Welt!
+
+[setup]
+welcome = "Croeso, woll! Willkomme bei dat nicestlog, oder woll?"
+config_created = "Konfig is jemaat, woll! Pob lwc!"
+config_exists = "Konfig jibt et ald, woll bach!"
+
+[linter]
+too_little_logging = "Alaaf, woll! Z'wenig Logging, bach! Dat is nit joot!"
+too_much_logging = "Woll, z'vill Logging, neu! Dat nervt, oder woll?"
+good_coverage = "Joot jemaat, woll! Logging coverage is da iawn, bach!"
+no_files_found = "Kei Python-Files jefunge, woll! Llyfrau dim yma!"
+
+[quality]
+verdict_arsch = "Dat is komplett crap, woll bach! Gwneud eto!"
+verdict_schlecht = "Nit so joot, woll, ond schlecht wie'n alter Halver!"
+verdict_maessig = "Jeiht so, woll bach, könnt besser sin!"
+verdict_verziehbar = "Is okay, woll! Da iawn, neu!"
+verdict_leiwand = "Alaaf, woll! Dat is jeil joot! Ardderchog!"
+
+[dashboard]
+starting = "Dashboard started, woll bach! Aros bach!"
+logs_cleared = "Logs sin weg, woll! Glanhau wedi!"
+no_logs = "Kei Logs do, woll bach! Dim cofnodion!"
+
+[systemd]
+service_generated = "Service-File jemaat, woll! Ffeil gwasanaeth!"
+journal_reading = "Journal weed jelese, woll bach..."
+no_systemd = "Systemd nit do, woll! Dim systemd yma!"
+
+[errors]
+file_not_found = "File nit jefunge, woll bach! Ffeil ddim yma!"
+permission_denied = "Kei Berechtigung, woll! Dim hawl!"
+general_error = "Öppis is schiefjelaufe, woll bach! Gwall!"
+
+[pii]
+scrubbing_enabled = "PII-Scrubbing an, woll! Diogelwch data!"
+sensitive_data_found = "Sensible Daten jefunge ond versteck, woll bach!"
+
+[journal]
+following_logs = "Logs werded verfolgt, woll! Dilyn cofnodion!"
+no_entries = "Kei Entries jefunge, woll bach! Dim cofnodion!"
+connection_failed = "Verbindung kaputt, woll! Cysylltiad wedi methu!"
+
+[general]
+success = "Joot jemaat, woll bach!"
+failed = "Is schiefjelaufe, woll!"
+warning = "Opjepass, woll bach!"
+info = "Info för dich, woll:"
+debug = "Debug-Zeuch, woll bach:"
+goodbye = "Tschüss dann, woll! Hwyl fawr!"
+
+[special]
+woll_intensifier = "woll bach neu!"
+kölsch_greeting = "Alaaf un joot Daach!"
+welsh_blessing = "Bendith Duw arnoch chi!"
+mixed_confusion = "Woll, wat soll dat dann, bach?"
+ultimate_wollgesisch = "Alaaf woll bach neu, oder wat?"
