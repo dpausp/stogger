@@ -62,9 +62,22 @@ def main():
 
     init_parser = subparsers.add_parser("init-config", help="Create a default configuration in pyproject.toml.")
     init_parser.set_defaults(func=init_config)
+    
+    # Add logging linter subcommand
+    lint_parser = subparsers.add_parser("lint", help="Check logging coverage in your codebase.")
+    lint_parser.add_argument("path", nargs="?", default=".", help="Path to analyze (default: current directory)")
+    lint_parser.add_argument("--min-coverage", type=float, default=5.0, help="Minimum logging coverage %% (default: 5.0)")
+    lint_parser.add_argument("--max-coverage", type=float, default=15.0, help="Maximum logging coverage %% (default: 15.0)")
+    lint_parser.add_argument("--strict", action="store_true", help="Use stricter coverage requirements")
+    lint_parser.set_defaults(func=run_linter)
 
     args = parser.parse_args()
     args.func()
+
+def run_linter():
+    """Run the logging linter."""
+    from .linter import main as linter_main
+    linter_main()
 
 if __name__ == "__main__":
     main()
