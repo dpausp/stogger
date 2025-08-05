@@ -6,17 +6,9 @@ development and production environments with support for console, file, and
 systemd journal output.
 """
 
-from .core import (
-    init_logging,
-    logging_initialized,
-    # The following are for convenience but the API is not stable.
-    # Consider them deprecated.
-    # setup_basic_logging,
-    # setup_file_logging,
-    # setup_systemd_logging,
-    # get_logger,
-)
-
+from .config import NicestLogConfig
+from .core import init_logging, logging_initialized
+from .factory import build_loggers, build_processors
 from .cli import main
 
 __version__ = "0.1.0"
@@ -24,4 +16,7 @@ __all__ = [
     "init_logging",
     "logging_initialized",
     "main",
+    "NicestLogConfig",
+    "build_processors",
+    "build_loggers",
 ]

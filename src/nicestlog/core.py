@@ -1,7 +1,8 @@
+
 Core logging functionality for nicestlog.
 
-This module contains the main structlog-based multi-target logging implementation.
-Originally developed for the Flying Circus platform.
+This module contains the main structlog-based multi-target logging implementation,
+as well as the high-level `init_logging` function.
 """
 import io
 import json
@@ -10,11 +11,12 @@ import string
 import sys
 import syslog
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
-import toml
+
+from .config import NicestLogConfig
+from .factory import build_loggers, build_processors
 
 try:
     import colorama
@@ -53,19 +55,6 @@ else:
     GREEN = ""
 
 
-def _load_config() -> Dict[str, Any]:
-    """Loads nicestlog config from pyproject.toml."""
-    pyproject_path = Path("pyproject.toml")
-    if not pyproject_path.is_file():
-        return {}
-    try:
-        config = toml.load(pyproject_path)
-        return config.get("tool", {}).get("nicestlog", {})
-    except toml.TomlDecodeError as e:
-        print(f"Error decoding pyproject.toml: {e}", file=sys.stderr)
-        return {}
-
-
 class PartialFormatter(string.Formatter):
     """
     A string formatter that doesn't break if values are missing or formats are wrong.
@@ -96,14 +85,12 @@ class TranslationProcessor:
         self.formatter = PartialFormatter()
 
     def __call__(self, logger, method_name, event_dict):
-        # Prioritize _msg_key, fall back to event, then to _replace_msg
         msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
         template = self.translations.get(msg_key)
 
         if template:
             event_dict["formatted_message"] = self.formatter.format(template, **event_dict)
         elif replace_msg := event_dict.pop("_replace_msg", None):
-            # Legacy support
             event_dict["formatted_message"] = self.formatter.format(replace_msg, **event_dict)
 
         return event_dict
@@ -120,9 +107,7 @@ class MultiOptimisticLoggerFactory:
 
 
 class MultiOptimisticLogger:
-    """
-    A logger which distributes messages to multiple loggers.
-    """
+    """A logger which distributes messages to multiple loggers."""
     def __init__(self, loggers):
         self.loggers = loggers
 
@@ -159,10 +144,7 @@ class JournalLoggerFactory:
             print(_MISSING.format(who=self.__class__.__name__, package="systemd"))
 
     def __call__(self, *args):
-        if journal is None:
-            return DummyJournalLogger()
-        else:
-            return JournalLogger()
+        return DummyJournalLogger() if journal is None else JournalLogger()
 
 
 class CmdOutputFileRenderer:
@@ -183,9 +165,7 @@ def _pad(s, length):
 
 
 class ConsoleFileRenderer:
-    """
-    Render `event_dict` nicely aligned, in colors.
-    """
+    """Render `event_dict` nicely aligned, in colors."""
     LEVELS = ["alert", "critical", "error", "warn", "warning", "info", "debug", "trace"]
 
     def __init__(self, min_level, show_caller_info=False, pad_event=_EVENT_WIDTH):
@@ -247,11 +227,9 @@ class ConsoleFileRenderer:
             write(" ".join(f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
                 for k, v in sorted(event_dict.items())))
 
-        # Simplified handling for other fields
         for key in ["cmd_output_line", "_output", "stdout", "stderr", "stack", "exception_traceback"]:
              if value := event_dict.pop(key, None):
                 write(f"\n{prefix(key, str(value))}{RESET_ALL}")
-
 
         if self.LEVELS.index(method_name.lower()) > self.min_level:
             console_io.seek(0)
@@ -407,76 +385,23 @@ def drop_cmd_output_logfile(log):
         raise
 
 
-def init_logging(
-    verbose: Optional[bool] = None,
-    logdir: Optional[Path] = None,
-    log_cmd_output: Optional[bool] = None,
-    log_to_console: Optional[bool] = None,
-    syslog_identifier: Optional[str] = None,
-    show_caller_info: Optional[bool] = None,
-    translation_dir: Optional[Path] = None,
-    language: Optional[str] = None,
-):
-    config = _load_config()
+def init_logging(**kwargs: Any):
+    """
+    Initializes the logging system.
 
-    # Parameters take precedence over config file
-    verbose = verbose if verbose is not None else config.get("verbose", False)
-    logdir_path = Path(logdir or config.get("logdir")) if logdir or config.get("logdir") else None
-    log_cmd_output = log_cmd_output if log_cmd_output is not None else config.get("log_cmd_output", False)
-    log_to_console = log_to_console if log_to_console is not None else config.get("log_to_console", True)
-    syslog_identifier = syslog_identifier or config.get("syslog_identifier", "nicestlog")
-    show_caller_info = show_caller_info if show_caller_info is not None else config.get("show_caller_info", False)
-    translation_dir_path = Path(translation_dir or config.get("translation_dir")) if translation_dir or config.get("translation_dir") else None
-    language = language or config.get("language", "en")
+    This is the main entry point for configuring and activating nicestlog.
+    It can be configured via a `pyproject.toml` file or by passing
+    keyword arguments to this function.
 
-    multi_renderer = MultiRenderer(
-        journal=SystemdJournalRenderer(syslog_identifier, syslog.LOG_LOCAL1),
-        cmd_output_file=CmdOutputFileRenderer(),
-        text=ConsoleFileRenderer(
-            min_level="trace" if verbose else "info",
-            show_caller_info=show_caller_info,
-        ),
-    )
-
-    processors = [
-        add_pid, structlog.processors.add_log_level, process_exc_info,
-        format_exc_info, structlog.processors.StackInfoRenderer(),
-        structlog.processors.TimeStamper(fmt="iso", utc=False),
-        add_caller_info,
-    ]
-
-    if translation_dir_path:
-        try:
-            translation_file = translation_dir_path / f"{language}.toml"
-            with open(translation_file, "r") as f:
-                translations = toml.load(f)
-            processors.append(TranslationProcessor(translations))
-        except (IOError, toml.TomlDecodeError) as e:
-            print(f"Warning: failed to load translations from {translation_file}: {e}", file=sys.stderr)
-
-    processors.append(multi_renderer)
+    Keyword arguments will override any settings in the config file.
+    """
+    config = NicestLogConfig(**kwargs)
+    processors = build_processors(config)
+    loggers = build_loggers(config)
 
     context = {}
-    loggers = {}
-
-    if logdir_path:
-        try:
-            logdir_path.mkdir(parents=True, exist_ok=True)
-            main_log_file_name = logdir_path / f"{syslog_identifier}.log"
-            main_log_file = open(main_log_file_name, "a")
-            loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
-            context["logdir"] = logdir_path
-        except (IOError, PermissionError) as e:
-            print(f"Warning: failed to set up logging to {main_log_file_name}: {e}", file=sys.stderr)
-
-    if journal:
-        loggers["journal"] = JournalLoggerFactory()
-
-    if log_to_console:
-        if journal and os.environ.get("JOURNAL_STREAM"):
-            print("Detected systemd journal context. Disabling console output.", file=sys.stderr)
-        else:
-            loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
+    if config.logdir:
+        context["logdir"] = config.logdir
 
     structlog.configure(
         processors=processors,
@@ -485,10 +410,10 @@ def init_logging(
         cache_logger_on_first_use=True,
     )
 
-    if log_cmd_output:
-        if not logdir_path:
+    if config.log_cmd_output:
+        if not config.logdir:
             raise ValueError("A logdir is required for command logging.")
-        init_command_logging(structlog.get_logger(), logdir_path)
+        init_command_logging(structlog.get_logger(), config.logdir)
 
 
 def logging_initialized():
