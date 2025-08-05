@@ -77,6 +77,15 @@ def main():
     web_parser.add_argument("--port", type=int, default=8080, help="Port to bind to (default: 8080)")
     web_parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     web_parser.set_defaults(func=run_dashboard_cmd)
+    
+    # Add systemd service generator subcommand
+    systemd_parser = subparsers.add_parser("generate-service", help="Generate systemd service file.")
+    systemd_parser.add_argument("service_name", help="Name of the service")
+    systemd_parser.add_argument("exec_command", help="Command to execute")
+    systemd_parser.add_argument("--user", help="User to run as (default: current user)")
+    systemd_parser.add_argument("--working-dir", help="Working directory (default: current dir)")
+    systemd_parser.add_argument("--output", "-o", help="Output file (default: stdout)")
+    systemd_parser.set_defaults(func=generate_service_cmd)
 
     args = parser.parse_args()
     args.func()
@@ -112,6 +121,60 @@ def run_dashboard_cmd():
             i += 1
     
     run_dashboard(host=host, port=port, debug=debug)
+
+def generate_service_cmd():
+    """Generate systemd service file."""
+    import sys
+    import os
+    from .systemd_integration import create_systemd_service_file
+    
+    # Parse args manually
+    args = sys.argv[2:]  # Skip 'nicestlog generate-service'
+    
+    if len(args) < 2:
+        print("Usage: nicestlog generate-service <service_name> <exec_command>", file=sys.stderr)
+        sys.exit(1)
+    
+    service_name = args[0]
+    exec_command = args[1]
+    
+    # Parse optional arguments
+    user = None
+    working_dir = None
+    output_file = None
+    
+    i = 2
+    while i < len(args):
+        if args[i] == "--user" and i + 1 < len(args):
+            user = args[i + 1]
+            i += 2
+        elif args[i] == "--working-dir" and i + 1 < len(args):
+            working_dir = args[i + 1]
+            i += 2
+        elif args[i] in ["--output", "-o"] and i + 1 < len(args):
+            output_file = args[i + 1]
+            i += 2
+        else:
+            i += 1
+    
+    # Generate service file
+    service_content = create_systemd_service_file(
+        service_name=service_name,
+        exec_command=exec_command,
+        user=user,
+        working_directory=working_dir
+    )
+    
+    # Output
+    if output_file:
+        with open(output_file, 'w') as f:
+            f.write(service_content)
+        print(f"✅ Service file written to {output_file}")
+        print(f"💡 Install with: sudo cp {output_file} /etc/systemd/system/")
+        print(f"💡 Enable with: sudo systemctl enable {service_name}")
+        print(f"💡 Start with: sudo systemctl start {service_name}")
+    else:
+        print(service_content)
 
 if __name__ == "__main__":
     main()

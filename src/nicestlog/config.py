@@ -41,6 +41,8 @@ class NicestLogConfig:
         self.async_logging: bool = config.get("async_logging", False)
         self.enable_pii_scrubbing: bool = config.get("enable_pii_scrubbing", True)
         self.pii_redaction_text: str = config.get("pii_redaction_text", "[REDACTED]")
+        self.enable_systemd: bool = config.get("enable_systemd", True)
+        self.systemd_facility: str = config.get("systemd_facility", None)
 
     def _load_config(self) -> Dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""
