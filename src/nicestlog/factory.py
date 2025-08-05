@@ -32,6 +32,11 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
         add_caller_info,
         process_exc_info,
     ]
+    
+    # Add PII scrubbing if enabled
+    if config.enable_pii_scrubbing:
+        from .pii_scrubber import create_pii_processor
+        processors.append(create_pii_processor(redaction_text=config.pii_redaction_text))
     if config.translation_dir:
         try:
             translation_file = config.translation_dir / f"{config.language}.toml"
@@ -48,7 +53,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
         renderer = structlog.processors.JSONRenderer()
     else:
         renderer = ConsoleFileRenderer(
-            min_level="trace" if config.verbose else "info",
+            min_level="debug" if config.verbose else "info",
             show_caller_info=config.show_caller_info,
         )
     return renderer

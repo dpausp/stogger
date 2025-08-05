@@ -74,7 +74,7 @@ def _pad(s, length):
     return s + " " * (missing if missing > 0 else 0)
 
 class ConsoleFileRenderer:
-    LEVELS = ["critical", "error", "warning", "info", "debug"]
+    LEVELS = ["critical", "error", "warning", "info", "debug", "trace"]
 
     def __init__(self, min_level="info", show_caller_info=False, pad_event=_EVENT_WIDTH):
         self.min_level_idx = self.LEVELS.index(min_level.lower())

@@ -39,6 +39,8 @@ class NicestLogConfig:
         self.language: str = config.get("language", "en")
         self.log_format: str = config.get("log_format", "console")
         self.async_logging: bool = config.get("async_logging", False)
+        self.enable_pii_scrubbing: bool = config.get("enable_pii_scrubbing", True)
+        self.pii_redaction_text: str = config.get("pii_redaction_text", "[REDACTED]")
 
     def _load_config(self) -> Dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""

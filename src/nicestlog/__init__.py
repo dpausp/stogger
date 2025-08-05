@@ -12,6 +12,7 @@ from .factory import build_shared_processors, configure_stdlib_logging
 from .cli import main
 from .linter import main as lint_main
 from .eliot_integration import setup_eliot_logging, log_action, log_call
+from .pii_scrubber import create_pii_processor, PIIScrubber
 
 __version__ = "0.1.0"
 __all__ = [
@@ -23,6 +24,8 @@ __all__ = [
     "build_shared_processors",
     "configure_stdlib_logging",
     "setup_eliot_logging",
-    "log_action",
+    "log_action", 
     "log_call",
+    "create_pii_processor",
+    "PIIScrubber",
 ]
