@@ -95,6 +95,13 @@ def main():
     journal_parser.add_argument('--since', help='Show logs since time (e.g., "1 hour ago")')
     journal_parser.add_argument('--level', choices=['critical', 'error', 'warning', 'info', 'debug'], help='Minimum log level')
     journal_parser.set_defaults(func=run_journal_viewer)
+    
+    # Add log quality reviewer subcommand
+    review_parser = subparsers.add_parser("review", help="Review log quality with Austrian honesty.")
+    review_parser.add_argument('path', help='Log file or directory to review')
+    review_parser.add_argument('--format', choices=['text', 'json'], default='text', help='Output format')
+    review_parser.add_argument('--min-score', type=float, default=70, help='Minimum acceptable score')
+    review_parser.set_defaults(func=run_log_reviewer)
 
     args = parser.parse_args()
     args.func()
@@ -239,6 +246,67 @@ def run_journal_viewer():
         print("\n👋 Goodbye!", file=sys.stderr)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def run_log_reviewer():
+    """Run the log quality reviewer."""
+    import sys
+    from .log_reviewer import LogQualityReviewer, print_report
+    from pathlib import Path
+    
+    # Parse args manually
+    args = sys.argv[2:]  # Skip 'nicestlog review'
+    
+    if not args:
+        print("Usage: nicestlog review <path> [--format text|json] [--min-score 70]", file=sys.stderr)
+        sys.exit(1)
+    
+    path_str = args[0]
+    format_type = 'text'
+    min_score = 70
+    
+    i = 1
+    while i < len(args):
+        if args[i] == '--format' and i + 1 < len(args):
+            format_type = args[i + 1]
+            i += 2
+        elif args[i] == '--min-score' and i + 1 < len(args):
+            min_score = float(args[i + 1])
+            i += 2
+        else:
+            i += 1
+    
+    reviewer = LogQualityReviewer()
+    path = Path(path_str)
+    
+    if path.is_file():
+        report = reviewer.analyze_log_file(path)
+        print_report(report, format_type)
+        
+        if report.overall_score < min_score:
+            sys.exit(1)
+    
+    elif path.is_dir():
+        log_files = list(path.glob('*.log')) + list(path.glob('*.txt'))
+        if not log_files:
+            print("Keine Log-Dateien gefunden!", file=sys.stderr)
+            sys.exit(1)
+        
+        total_score = 0
+        for log_file in log_files:
+            print(f"\n📁 {log_file.name}:")
+            report = reviewer.analyze_log_file(log_file)
+            print_report(report, format_type)
+            total_score += report.overall_score
+        
+        avg_score = total_score / len(log_files)
+        print(f"\n🎯 Durchschnittliche Qualität: {avg_score:.1f}/100")
+        
+        if avg_score < min_score:
+            sys.exit(1)
+    
+    else:
+        print(f"Pfad nicht gefunden: {path}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
