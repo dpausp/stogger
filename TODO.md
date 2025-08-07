@@ -12,15 +12,15 @@
 **Target: 70% coverage of core modules**
 
 #### 1.1 Core Module Tests (`tests/test_core.py`)
-- [ ] **PartialFormatter class**
+- [x] **PartialFormatter class**
   - Test missing field handling
   - Test bad format handling
   - Test normal formatting
-- [ ] **TranslationProcessor class**
+- [x] **TranslationProcessor class**
   - Test message key translation
   - Test replace_msg functionality
   - Test fallback behavior
-- [ ] **ConsoleFileRenderer class** (partially tested)
+- [x] **ConsoleFileRenderer class** (partially tested)
   - Test level filtering
   - Test color output vs plain output
   - Test caller info display
@@ -40,7 +40,7 @@
 - [ ] **logging_initialized() function**
 
 #### 1.2 Factory Module Tests (`tests/test_factory.py`)
-- [ ] **build_shared_processors()**
+- [x] **build_shared_processors()**
   - Test processor chain building
   - Test PII scrubbing integration
   - Test translation integration
@@ -48,7 +48,7 @@
 - [ ] **build_renderer()**
   - Test JSON vs console renderer selection
   - Test configuration parameter passing
-- [ ] **configure_stdlib_logging()**
+- [x] **configure_stdlib_logging()**
   - Test sync vs async logging setup
   - Test file handler creation
   - Test console handler setup
