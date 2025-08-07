@@ -26,18 +26,18 @@
   - Test caller info display
   - Test different log levels
   - Test edge cases (missing fields, long events)
-- [ ] **JSONRenderer class** (partially tested)
+- [x] **JSONRenderer class** (partially tested)
   - Test level filtering
   - Test JSON serialization edge cases
-- [ ] **Processor functions**
+- [x] **Processor functions**
   - `add_pid()` - test PID addition
   - `add_caller_info()` - test frame extraction
   - `process_exc_info()` - test exception handling
   - `format_exc_info()` - test exception formatting
-- [ ] **init_logging() function**
+- [x] **init_logging() function**
   - Test with different configurations
   - Test integration with structlog
-- [ ] **logging_initialized() function**
+- [x] **logging_initialized() function**
 
 #### 1.2 Factory Module Tests (`tests/test_factory.py`)
 - [x] **build_shared_processors()**
@@ -68,16 +68,16 @@
 **Target: 85% coverage including feature modules**
 
 #### 2.1 PII Scrubber Tests (`tests/test_pii_scrubber.py`)
-- [ ] **PIIScrubber class**
+- [x] **PIIScrubber class**
   - Test email detection and redaction
   - Test phone number detection
   - Test credit card number detection
   - Test custom pattern detection
   - Test configuration options
-- [ ] **create_pii_processor()**
+- [x] **create_pii_processor()**
   - Test processor creation with different configs
   - Test integration with logging pipeline
-- [ ] **Performance tests**
+- [x] **Performance tests**
   - Test with large log messages
   - Test regex compilation caching
 
@@ -112,12 +112,12 @@
   - Test message routing
   - Test field mapping
 
-#### 2.4 I18n Module Tests (`tests/test_i18n.py`)
-- [ ] **Translation loading**
+#### 2.4 I18n Module Tests (`tests/test_i18n_simple.py`)
+- [x] **Translation loading**
   - Test TOML file loading
   - Test fallback language behavior
   - Test missing translation handling
-- [ ] **Message formatting**
+- [x] **Message formatting**
   - Test template substitution
   - Test pluralization (if implemented)
   - Test locale-specific formatting
@@ -135,12 +135,12 @@
   - Test configuration validation
   - Test help output
 
-#### 3.2 Linter Tests (`tests/test_linter.py`)
-- [ ] **Log format validation**
+#### 3.2 Linter Tests (`tests/test_linter_simple.py`)
+- [x] **Log format validation**
   - Test structured log validation
   - Test common anti-patterns detection
   - Test performance analysis
-- [ ] **Rule engine**
+- [x] **Rule engine**
   - Test custom rule loading
   - Test rule execution
   - Test reporting

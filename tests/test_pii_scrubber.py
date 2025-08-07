@@ -210,7 +210,7 @@ class TestPIIScrubber:
         ]
 
         for text in test_cases:
-            result = scrubber.scrub(text)
+            result = scrubber.scrub_string(text)
             # Should not raise regex errors and should scrub appropriately
             assert isinstance(result, str)
 
@@ -280,7 +280,7 @@ class TestPIIScrubbingPatterns:
 
         for email in email_variations:
             text = f"Contact: {email}"
-            result = scrubber.scrub(text)
+            result = scrubber.scrub_string(text)
             assert email not in result
             assert "[REDACTED]" in result
 
@@ -302,7 +302,7 @@ class TestPIIScrubbingPatterns:
             if phone == "1-800-FLOWERS":  # Skip non-numeric patterns
                 continue
             text = f"Call: {phone}"
-            result = scrubber.scrub(text)
+            result = scrubber.scrub_string(text)
             if (
                 phone.replace(" ", "")
                 .replace("-", "")
@@ -326,7 +326,7 @@ class TestPIIScrubbingPatterns:
         ]
 
         for data in legitimate_data:
-            result = scrubber.scrub(data)
+            result = scrubber.scrub_string(data)
             # Most of these should not be scrubbed (depending on pattern specificity)
             # This test ensures patterns are not too broad
             assert isinstance(result, str)
