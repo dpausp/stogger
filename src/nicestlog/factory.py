@@ -1,11 +1,10 @@
 """
 Factory functions for building nicestlog components.
 """
+
 import logging
 import sys
-from logging.handlers import QueueHandler, QueueListener
-from queue import Queue
-from typing import Any, Dict, List
+from typing import Any, List
 
 import structlog
 import toml
@@ -16,10 +15,10 @@ from .core import (
     add_pid,
     ConsoleFileRenderer,
     JSONRenderer,
-    format_exc_info,
     process_exc_info,
     TranslationProcessor,
 )
+
 
 def build_shared_processors(config: NicestLogConfig) -> List[Any]:
     """
@@ -32,11 +31,14 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
         add_caller_info,
         process_exc_info,
     ]
-    
+
     # Add PII scrubbing if enabled
     if config.enable_pii_scrubbing:
         from .pii_scrubber import create_pii_processor
-        processors.append(create_pii_processor(redaction_text=config.pii_redaction_text))
+
+        processors.append(
+            create_pii_processor(redaction_text=config.pii_redaction_text)
+        )
     if config.translation_dir:
         try:
             translation_file = config.translation_dir / f"{config.language}.toml"
@@ -44,19 +46,24 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
                 translations = toml.load(f)
             processors.append(TranslationProcessor(translations))
         except (IOError, toml.TomlDecodeError) as e:
-            print(f"Warning: failed to load translations from {translation_file}: {e}", file=sys.stderr)
+            print(
+                f"Warning: failed to load translations from {translation_file}: {e}",
+                file=sys.stderr,
+            )
     return processors
+
 
 def build_renderer(config: NicestLogConfig) -> Any:
     """Builds the final renderer based on the log format."""
     if config.log_format == "json":
-        renderer = structlog.processors.JSONRenderer()
+        renderer = JSONRenderer(min_level="debug" if config.verbose else "info")
     else:
         renderer = ConsoleFileRenderer(
             min_level="debug" if config.verbose else "info",
             show_caller_info=config.show_caller_info,
         )
     return renderer
+
 
 def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     """Configures the standard Python logging library."""
@@ -69,7 +76,9 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     if config.logdir:
         try:
             config.logdir.mkdir(parents=True, exist_ok=True)
-            file_handler = logging.FileHandler(config.logdir / f"{config.syslog_identifier}.log")
+            file_handler = logging.FileHandler(
+                config.logdir / f"{config.syslog_identifier}.log"
+            )
             handlers.append(file_handler)
         except (IOError, PermissionError) as e:
             print(f"Warning: failed to set up file logging: {e}", file=sys.stderr)
@@ -83,7 +92,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     if config.async_logging:
         from logging.handlers import QueueHandler, QueueListener
         from queue import Queue
-        
+
         log_queue: Queue = Queue(-1)
         queue_handler = QueueHandler(log_queue)
         listener = QueueListener(log_queue, *handlers)
@@ -99,8 +108,8 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
         logging.basicConfig(
             level=logging.DEBUG,
             handlers=handlers,
-            force=True, # Override existing config
+            force=True,  # Override existing config
         )
-    
+
     for handler in logging.root.handlers:
         handler.setFormatter(formatter)

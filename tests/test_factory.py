@@ -130,7 +130,9 @@ class TestBuildRenderer:
         config = NicestLogConfig(log_format="json")
         renderer = build_renderer(config)
 
-        assert hasattr(renderer, "__call__")  # Should be callable
+        from nicestlog.core import JSONRenderer
+
+        assert isinstance(renderer, JSONRenderer)
 
     def test_verbose_mode_affects_min_level(self):
         """Test that verbose mode affects the minimum log level."""

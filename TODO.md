@@ -12,53 +12,53 @@
 **Target: 70% coverage of core modules**
 
 #### 1.1 Core Module Tests (`tests/test_core.py`)
-- [x] **PartialFormatter class**
+- [x] **PartialFormatter class** ✅
   - Test missing field handling
   - Test bad format handling
   - Test normal formatting
-- [x] **TranslationProcessor class**
+- [x] **TranslationProcessor class** ✅
   - Test message key translation
   - Test replace_msg functionality
   - Test fallback behavior
-- [x] **ConsoleFileRenderer class** (partially tested)
+- [x] **ConsoleFileRenderer class** ✅
   - Test level filtering
   - Test color output vs plain output
   - Test caller info display
   - Test different log levels
   - Test edge cases (missing fields, long events)
-- [x] **JSONRenderer class** (partially tested)
+- [x] **JSONRenderer class** ✅
   - Test level filtering
   - Test JSON serialization edge cases
-- [x] **Processor functions**
+- [x] **Processor functions** ✅
   - `add_pid()` - test PID addition
   - `add_caller_info()` - test frame extraction
   - `process_exc_info()` - test exception handling
   - `format_exc_info()` - test exception formatting
-- [x] **init_logging() function**
+- [x] **init_logging() function** ✅
   - Test with different configurations
   - Test integration with structlog
-- [x] **logging_initialized() function**
+- [x] **logging_initialized() function** ✅
 
 #### 1.2 Factory Module Tests (`tests/test_factory.py`)
-- [x] **build_shared_processors()**
+- [x] **build_shared_processors()** ✅
   - Test processor chain building
   - Test PII scrubbing integration
   - Test translation integration
   - Test error handling for missing translation files
-- [ ] **build_renderer()**
+- [x] **build_renderer()** ✅
   - Test JSON vs console renderer selection
   - Test configuration parameter passing
-- [x] **configure_stdlib_logging()**
+- [x] **configure_stdlib_logging()** ✅
   - Test sync vs async logging setup
   - Test file handler creation
   - Test console handler setup
   - Test error handling (permission errors, etc.)
 
-#### 1.3 Config Module Tests (partially done - `tests/test_config.py`)
-- [x] Basic config loading (done)
-- [x] File override behavior (done)
-- [x] Default fallbacks (done)
-- [ ] **Additional edge cases**
+#### 1.3 Config Module Tests ✅ (`tests/test_config.py`)
+- [x] Basic config loading ✅
+- [x] File override behavior ✅
+- [x] Default fallbacks ✅
+- [x] **Additional edge cases** ✅
   - Invalid TOML syntax handling
   - Path validation and normalization
   - Type conversion edge cases
