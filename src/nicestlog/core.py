@@ -165,6 +165,39 @@ def format_exc_info(_, __, event_dict):
         )
     return event_dict
 
+
+class SelectRenderedString:
+    """
+    Processor that selects a string from the dict returned by ConsoleFileRenderer.
+    
+    This ensures that structlog.stdlib.ProcessorFormatter receives a string
+    as required, avoiding RuntimeWarnings.
+    """
+    
+    def __init__(self, key: str = "console"):
+        """
+        Initialize the selector.
+        
+        Args:
+            key: Which key to select from the renderer dict ("console" or "file")
+        """
+        self.key = key
+    
+    def __call__(self, _, __, event_dict):
+        """Select the appropriate rendered string from the dict."""
+        # If it's already a string, pass it through
+        if isinstance(event_dict, str):
+            return event_dict
+        
+        # If it's a dict (from ConsoleFileRenderer), extract the right key
+        if isinstance(event_dict, dict):
+            val = event_dict.get(self.key)
+            if isinstance(val, str):
+                return val
+        
+        # Fallback: convert to string
+        return str(event_dict)
+
 def init_logging(**kwargs: Any):
     # Import here to avoid circular import
     from .factory import build_shared_processors, configure_stdlib_logging
