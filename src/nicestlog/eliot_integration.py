@@ -231,11 +231,17 @@ def setup_eliot_logging(destination: TextIO = None, human_readable: bool = True,
 
 # Convenience decorators and context managers
 if ELIOT_AVAILABLE:
-    @contextmanager
+    class _ActionContext:
+        def __init__(self, action_name: str, **kwargs):
+            self._cm = start_action(action_type=action_name, **kwargs)
+        def __enter__(self):
+            return self._cm.__enter__()
+        def __exit__(self, exc_type, exc, tb):
+            return self._cm.__exit__(exc_type, exc, tb)
+    
     def log_action(action_name: str, **kwargs):
-        """Context manager for logging an action with nicestlog formatting."""
-        with start_action(action_type=action_name, **kwargs) as action:
-            yield action
+        """Return a context manager for logging an action with nicestlog formatting."""
+        return _ActionContext(action_name, **kwargs)
     
     def log_call(action_name: str = None, **action_kwargs):
         """Decorator to log function calls as Eliot actions."""
@@ -259,9 +265,14 @@ if ELIOT_AVAILABLE:
         return decorator
 else:
     # Dummy implementations when Eliot is not available
-    @contextmanager
+    class _DummyActionContext:
+        def __enter__(self):
+            return None
+        def __exit__(self, exc_type, exc, tb):
+            return False
+    
     def log_action(action_name: str, **kwargs):
-        yield None
+        return _DummyActionContext()
     
     def log_call(action_name: str = None, **action_kwargs):
         def decorator(func):

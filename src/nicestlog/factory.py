@@ -28,6 +28,8 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
     processors = [
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
+        # Always add a timestamp to events so renderers have it available
+        structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
         add_pid,
         add_caller_info,
         process_exc_info,
