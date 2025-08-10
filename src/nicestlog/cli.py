@@ -2,10 +2,13 @@
 Command-line interface for nicestlog.
 """
 import sys
+import time
 from pathlib import Path
 from typing import Annotated, Optional
 
 import typer
+import structlog
+import nicestlog
 
 def init_config():
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""

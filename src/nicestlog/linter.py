@@ -32,9 +32,8 @@ class LoggingVisitor(ast.NodeVisitor):
         self.functions_with_logging = 0
         self.current_function_has_logs = False
         
-        # Common logging patterns to detect
+        # Detect calls to common logging methods (suffix-based)
         self.log_patterns = {
-            'log.', 'logger.', 'logging.', 'structlog.',
             '.info(', '.debug(', '.warning(', '.error(', '.critical(',
             '.trace(', '.exception(', '.warn('
         }
@@ -59,7 +58,9 @@ class LoggingVisitor(ast.NodeVisitor):
         
         # Check if this looks like a logging call
         if any(pattern in call_str for pattern in self.log_patterns):
-            self.log_statements += 1
+            # Count only per function, not every call inside it
+            if not self.current_function_has_logs:
+                self.log_statements += 1
             self.current_function_has_logs = True
             
         self.generic_visit(node)
