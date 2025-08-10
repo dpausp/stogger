@@ -128,6 +128,15 @@ def review(
     run_log_reviewer(path, format_type, min_score)
 
 
+@app.command()
+def demo(
+    feature: Annotated[Optional[str], typer.Argument(help="Specific feature to demo")] = None,
+    all_features: Annotated[bool, typer.Option("--all", help="Run all demos")] = False,
+):
+    """Demonstrate nicestlog features with live examples."""
+    run_demos(feature, all_features)
+
+
 def main():
     app()
 
@@ -248,6 +257,276 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
     else:
         print(f"Pfad nicht gefunden: {path}", file=sys.stderr)
         sys.exit(1)
+
+
+def run_demos(feature: Optional[str] = None, all_features: bool = False):
+    """Run nicestlog feature demonstrations."""
+    import time
+    
+    available_demos = {
+        "basic": "Basic structured logging with console output",
+        "i18n": "Internationalization and message translations", 
+        "pii": "PII scrubbing and data protection",
+        "eliot": "Eliot integration for action tracing",
+        "systemd": "Systemd journal integration",
+        "async": "Asynchronous logging performance",
+        "complete": "Complete real-world application example"
+    }
+    
+    def print_demo_header(title: str, description: str):
+        print(f"\n{'='*60}")
+        print(f"🎭 {title}")
+        print(f"📝 {description}")
+        print(f"{'='*60}")
+        time.sleep(1)
+    
+    def print_demo_separator():
+        print(f"\n{'-'*40}")
+        time.sleep(0.5)
+    
+    if not feature and not all_features:
+        print("🎯 Available nicestlog demos:")
+        print()
+        for demo_name, description in available_demos.items():
+            print(f"  {demo_name:12} - {description}")
+        print()
+        print("Usage:")
+        print("  nicestlog demo basic           # Run specific demo")
+        print("  nicestlog demo --all           # Run all demos")
+        return
+    
+    demos_to_run = []
+    if all_features:
+        demos_to_run = list(available_demos.keys())
+    elif feature in available_demos:
+        demos_to_run = [feature]
+    else:
+        print(f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}")
+        sys.exit(1)
+    
+    print("🚀 Starting nicestlog demonstrations...")
+    
+    for demo_name in demos_to_run:
+        if demo_name == "basic":
+            run_basic_demo()
+        elif demo_name == "i18n":
+            run_i18n_demo()
+        elif demo_name == "pii":
+            run_pii_demo()
+        elif demo_name == "eliot":
+            run_eliot_demo()
+        elif demo_name == "systemd":
+            run_systemd_demo()
+        elif demo_name == "async":
+            run_async_demo()
+        elif demo_name == "complete":
+            run_complete_demo()
+        
+        if len(demos_to_run) > 1:
+            print_demo_separator()
+    
+    print("\n🎉 Demo complete! Try these features in your own applications.")
+
+
+def print_demo_header(title: str, description: str):
+    """Print a formatted demo section header."""
+    import time
+    print(f"\n{'='*60}")
+    print(f"🎭 {title}")
+    print(f"📝 {description}")
+    print(f"{'='*60}")
+    time.sleep(1)
+
+
+def run_basic_demo():
+    """Demonstrate basic nicestlog features."""
+    print_demo_header("Basic Structured Logging", "Console output with beautiful formatting")
+    
+    import nicestlog
+    import structlog
+    
+    # Initialize with console output
+    nicestlog.init_logging(verbose=True, syslog_identifier="demo")
+    log = structlog.get_logger()
+    
+    print("📋 Demonstrating different log levels and structured data:")
+    
+    log.info("application-started", 
+             _replace_msg="🚀 Application {name} v{version} started successfully",
+             name="nicestlog-demo", version="1.0.0", pid=12345)
+    
+    log.debug("user-authentication",
+              _replace_msg="🔐 User {username} attempting login from {ip}",
+              username="alice", ip="192.168.1.100", session_id="abc123")
+    
+    log.warning("rate-limit-approaching",
+               _replace_msg="⚠️  Rate limit at {percent}% for user {user_id}",
+               percent=85, user_id=42, requests_remaining=15)
+    
+    log.error("database-connection-failed",
+              _replace_msg="💥 Database connection failed: {error}",
+              error="Connection timeout", host="db.example.com", 
+              retry_count=3, max_retries=5)
+    
+    log.info("api-request-completed",
+             _replace_msg="✅ API request completed in {duration}ms",
+             method="GET", endpoint="/api/users", duration=234,
+             status_code=200, response_size=1024)
+
+
+def run_i18n_demo():
+    """Demonstrate internationalization features."""
+    print_demo_header("Internationalization (i18n)", "Multi-language log messages")
+    
+    try:
+        from .i18n import demo_translations
+        demo_translations()
+    except ImportError:
+        print("⚠️  i18n demo requires additional setup")
+
+
+def run_pii_demo():
+    """Demonstrate PII scrubbing."""
+    print_demo_header("PII Scrubbing", "Automatic removal of sensitive data")
+    
+    try:
+        from .pii_scrubber import demo_pii_scrubbing
+        demo_pii_scrubbing()
+    except ImportError:
+        print("⚠️  PII demo requires additional setup")
+
+
+def run_eliot_demo():
+    """Demonstrate Eliot integration."""
+    print_demo_header("Eliot Integration", "Beautiful action tracing and causality")
+    
+    try:
+        from .eliot_integration import demo_eliot_integration
+        demo_eliot_integration()
+    except ImportError:
+        print("⚠️  Eliot demo requires: pip install eliot")
+
+
+def run_systemd_demo():
+    """Demonstrate systemd integration."""
+    print_demo_header("Systemd Integration", "Journal logging and service management")
+    
+    try:
+        from .systemd_integration import demo_systemd_integration
+        demo_systemd_integration()
+    except ImportError:
+        print("⚠️  Systemd demo requires: pip install systemd-python")
+
+
+def run_async_demo():
+    """Demonstrate async logging performance."""
+    print_demo_header("Async Logging", "Non-blocking high-performance logging")
+    
+    import nicestlog
+    import structlog
+    import asyncio
+    import time
+    
+    print("🔄 Comparing sync vs async logging performance...")
+    
+    # Sync logging
+    nicestlog.init_logging(async_logging=False, syslog_identifier="sync-demo")
+    log = structlog.get_logger()
+    
+    start_time = time.time()
+    for i in range(100):
+        log.info("sync-message", iteration=i, data=f"payload-{i}")
+    sync_duration = time.time() - start_time
+    
+    print(f"⏱️  Sync logging: {sync_duration:.3f}s for 100 messages")
+    
+    # Async logging
+    nicestlog.init_logging(async_logging=True, syslog_identifier="async-demo")
+    log = structlog.get_logger()
+    
+    start_time = time.time()
+    for i in range(100):
+        log.info("async-message", iteration=i, data=f"payload-{i}")
+    async_duration = time.time() - start_time
+    
+    print(f"⚡ Async logging: {async_duration:.3f}s for 100 messages")
+    print(f"🚀 Speedup: {sync_duration/async_duration:.1f}x faster")
+
+
+def run_complete_demo():
+    """Demonstrate a complete real-world application scenario."""
+    print_demo_header("Complete Application Example", "Real-world usage patterns")
+    
+    import nicestlog
+    import structlog
+    from pathlib import Path
+    import tempfile
+    import time
+    
+    # Setup comprehensive logging
+    with tempfile.TemporaryDirectory() as temp_dir:
+        log_dir = Path(temp_dir)
+        
+        nicestlog.init_logging(
+            verbose=True,
+            logdir=log_dir,
+            syslog_identifier="webapp",
+            async_logging=True,
+            log_cmd_output=True
+        )
+        
+        log = structlog.get_logger()
+        
+        print("🌐 Simulating web application with comprehensive logging...")
+        
+        # Application startup
+        log.info("app-startup",
+                 _replace_msg="🚀 Web application starting on port {port}",
+                 port=8080, version="2.1.0", environment="production")
+        
+        # Database connection
+        log.info("db-connection",
+                 _replace_msg="🔌 Connected to database {db_name}",
+                 db_name="userdb", host="db.prod.com", pool_size=10)
+        
+        # User requests
+        for i in range(5):
+            user_id = 1000 + i
+            session_id = f"sess_{i:03d}"
+            
+            log.info("request-start",
+                     _replace_msg="📥 Processing request {request_id}",
+                     request_id=f"req_{i:03d}", user_id=user_id,
+                     session_id=session_id, method="GET", path="/api/profile")
+            
+            # Simulate processing time
+            time.sleep(0.1)
+            
+            if i == 3:  # Simulate an error
+                log.error("request-error",
+                          _replace_msg="💥 Request failed: {error}",
+                          request_id=f"req_{i:03d}", error="User not found",
+                          user_id=user_id, status_code=404)
+            else:
+                log.info("request-complete",
+                         _replace_msg="✅ Request completed in {duration}ms",
+                         request_id=f"req_{i:03d}", duration=50 + i*10,
+                         status_code=200, response_size=512)
+        
+        # Show log files created
+        log_files = list(log_dir.glob("*.log"))
+        if log_files:
+            print(f"\n📁 Log files created in {log_dir}:")
+            for log_file in log_files:
+                size = log_file.stat().st_size
+                print(f"  {log_file.name}: {size} bytes")
+        
+        print("\n💡 This demonstrates:")
+        print("  • Structured logging with meaningful events")
+        print("  • File and console output")
+        print("  • Request tracing with IDs")
+        print("  • Error handling and context")
+        print("  • Performance monitoring")
 
 if __name__ == "__main__":
     main()
