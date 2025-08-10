@@ -10,6 +10,7 @@ dependencies = [
     "eliot>=1.0.0",
     "flask>=3.0.3",
     "requests>=2.32.4",
+    "typer>=0.9.0",
 ]
 
 [project.optional-dependencies]

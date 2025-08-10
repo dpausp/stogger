@@ -1,9 +1,11 @@
 """
 Command-line interface for nicestlog.
 """
-import argparse
 import sys
 from pathlib import Path
+from typing import Annotated, Optional
+
+import typer
 
 def init_config():
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""
@@ -56,122 +58,107 @@ def init_config():
     else:
         print("Aborted.")
 
+app = typer.Typer(help="Nicestlog utility.")
+
+
+@app.command("init-config")
+def init_config_cmd():
+    """Create a default configuration in pyproject.toml."""
+    init_config()
+
+
+@app.command()
+def lint(
+    path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
+    min_coverage: Annotated[float, typer.Option(help="Minimum logging coverage %")] = 5.0,
+    max_coverage: Annotated[float, typer.Option(help="Maximum logging coverage %")] = 15.0,
+    strict: Annotated[bool, typer.Option(help="Use stricter coverage requirements")] = False,
+):
+    """Check logging coverage in your codebase."""
+    run_linter(path, min_coverage, max_coverage, strict)
+
+
+@app.command()
+def dashboard(
+    host: Annotated[str, typer.Option(help="Host to bind to")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port to bind to")] = 8080,
+    debug: Annotated[bool, typer.Option(help="Enable debug mode")] = False,
+):
+    """Start the web dashboard for live log viewing."""
+    run_dashboard_cmd(host, port, debug)
+
+
+@app.command("generate-service")
+def generate_service(
+    service_name: Annotated[str, typer.Argument(help="Name of the service")],
+    exec_command: Annotated[str, typer.Argument(help="Command to execute")],
+    user: Annotated[Optional[str], typer.Option(help="User to run as (default: current user)")] = None,
+    working_dir: Annotated[Optional[str], typer.Option("--working-dir", help="Working directory (default: current dir)")] = None,
+    output: Annotated[Optional[str], typer.Option("-o", "--output", help="Output file (default: stdout)")] = None,
+):
+    """Generate systemd service file."""
+    generate_service_cmd(service_name, exec_command, user, working_dir, output)
+
+
+@app.command()
+def journal(
+    service: Annotated[Optional[str], typer.Option("-u", "--unit", "--service", help="Service to show logs for")] = None,
+    lines: Annotated[int, typer.Option("-n", "--lines", help="Number of lines")] = 50,
+    follow: Annotated[bool, typer.Option("-f", "--follow", help="Follow new entries")] = False,
+    since: Annotated[Optional[str], typer.Option(help='Show logs since time (e.g., "1 hour ago")')] = None,
+    level: Annotated[Optional[str], typer.Option(help="Minimum log level")] = None,
+):
+    """Beautiful systemd journal viewer."""
+    if level and level not in ['critical', 'error', 'warning', 'info', 'debug']:
+        typer.echo(f"Error: Invalid level '{level}'. Choose from: critical, error, warning, info, debug", err=True)
+        raise typer.Exit(1)
+    run_journal_viewer(service, lines, follow, since, level)
+
+
+@app.command()
+def review(
+    path: Annotated[str, typer.Argument(help="Log file or directory to review")],
+    format_type: Annotated[str, typer.Option("--format", help="Output format")] = "text",
+    min_score: Annotated[float, typer.Option("--min-score", help="Minimum acceptable score")] = 70.0,
+):
+    """Review log quality with Austrian honesty."""
+    if format_type not in ['text', 'json']:
+        typer.echo(f"Error: Invalid format '{format_type}'. Choose from: text, json", err=True)
+        raise typer.Exit(1)
+    run_log_reviewer(path, format_type, min_score)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Nicestlog utility.")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    app()
 
-    init_parser = subparsers.add_parser("init-config", help="Create a default configuration in pyproject.toml.")
-    init_parser.set_defaults(func=init_config)
-    
-    # Add logging linter subcommand
-    lint_parser = subparsers.add_parser("lint", help="Check logging coverage in your codebase.")
-    lint_parser.add_argument("path", nargs="?", default=".", help="Path to analyze (default: current directory)")
-    lint_parser.add_argument("--min-coverage", type=float, default=5.0, help="Minimum logging coverage %% (default: 5.0)")
-    lint_parser.add_argument("--max-coverage", type=float, default=15.0, help="Maximum logging coverage %% (default: 15.0)")
-    lint_parser.add_argument("--strict", action="store_true", help="Use stricter coverage requirements")
-    lint_parser.set_defaults(func=run_linter)
-    
-    # Add web dashboard subcommand
-    web_parser = subparsers.add_parser("dashboard", help="Start the web dashboard for live log viewing.")
-    web_parser.add_argument("--host", default="127.0.0.1", help="Host to bind to (default: 127.0.0.1)")
-    web_parser.add_argument("--port", type=int, default=8080, help="Port to bind to (default: 8080)")
-    web_parser.add_argument("--debug", action="store_true", help="Enable debug mode")
-    web_parser.set_defaults(func=run_dashboard_cmd)
-    
-    # Add systemd service generator subcommand
-    systemd_parser = subparsers.add_parser("generate-service", help="Generate systemd service file.")
-    systemd_parser.add_argument("service_name", help="Name of the service")
-    systemd_parser.add_argument("exec_command", help="Command to execute")
-    systemd_parser.add_argument("--user", help="User to run as (default: current user)")
-    systemd_parser.add_argument("--working-dir", help="Working directory (default: current dir)")
-    systemd_parser.add_argument("--output", "-o", help="Output file (default: stdout)")
-    systemd_parser.set_defaults(func=generate_service_cmd)
-    
-    # Add journal viewer subcommand
-    journal_parser = subparsers.add_parser("journal", help="Beautiful systemd journal viewer.")
-    journal_parser.add_argument('-u', '--unit', '--service', dest='service', help='Service to show logs for')
-    journal_parser.add_argument('-n', '--lines', type=int, default=50, help='Number of lines (default: 50)')
-    journal_parser.add_argument('-f', '--follow', action='store_true', help='Follow new entries')
-    journal_parser.add_argument('--since', help='Show logs since time (e.g., "1 hour ago")')
-    journal_parser.add_argument('--level', choices=['critical', 'error', 'warning', 'info', 'debug'], help='Minimum log level')
-    journal_parser.set_defaults(func=run_journal_viewer)
-    
-    # Add log quality reviewer subcommand
-    review_parser = subparsers.add_parser("review", help="Review log quality with Austrian honesty.")
-    review_parser.add_argument('path', help='Log file or directory to review')
-    review_parser.add_argument('--format', choices=['text', 'json'], default='text', help='Output format')
-    review_parser.add_argument('--min-score', type=float, default=70, help='Minimum acceptable score')
-    review_parser.set_defaults(func=run_log_reviewer)
-
-    args = parser.parse_args()
-    args.func()
-
-def run_linter():
+def run_linter(path: str = ".", min_coverage: float = 5.0, max_coverage: float = 15.0, strict: bool = False):
     """Run the logging linter."""
-    from .linter import main as linter_main
-    linter_main()
+    from .linter import LoggingLinter
+    
+    linter = LoggingLinter()
+    results = linter.analyze_directory(
+        path, 
+        min_coverage=min_coverage, 
+        max_coverage=max_coverage, 
+        strict=strict
+    )
+    linter.print_results(results)
 
-def run_dashboard_cmd():
+def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
-    import sys
     from .web_dashboard import run_dashboard
-    
-    # Parse args manually since argparse is tricky with subcommands
-    host = "127.0.0.1"
-    port = 8080
-    debug = False
-    
-    args = sys.argv[2:]  # Skip 'nicestlog dashboard'
-    i = 0
-    while i < len(args):
-        if args[i] == "--host" and i + 1 < len(args):
-            host = args[i + 1]
-            i += 2
-        elif args[i] == "--port" and i + 1 < len(args):
-            port = int(args[i + 1])
-            i += 2
-        elif args[i] == "--debug":
-            debug = True
-            i += 1
-        else:
-            i += 1
     
     run_dashboard(host=host, port=port, debug=debug)
 
-def generate_service_cmd():
+def generate_service_cmd(
+    service_name: str, 
+    exec_command: str, 
+    user: Optional[str] = None, 
+    working_dir: Optional[str] = None, 
+    output: Optional[str] = None
+):
     """Generate systemd service file."""
-    import sys
-    import os
     from .systemd_integration import create_systemd_service_file
-    
-    # Parse args manually
-    args = sys.argv[2:]  # Skip 'nicestlog generate-service'
-    
-    if len(args) < 2:
-        print("Usage: nicestlog generate-service <service_name> <exec_command>", file=sys.stderr)
-        sys.exit(1)
-    
-    service_name = args[0]
-    exec_command = args[1]
-    
-    # Parse optional arguments
-    user = None
-    working_dir = None
-    output_file = None
-    
-    i = 2
-    while i < len(args):
-        if args[i] == "--user" and i + 1 < len(args):
-            user = args[i + 1]
-            i += 2
-        elif args[i] == "--working-dir" and i + 1 < len(args):
-            working_dir = args[i + 1]
-            i += 2
-        elif args[i] in ["--output", "-o"] and i + 1 < len(args):
-            output_file = args[i + 1]
-            i += 2
-        else:
-            i += 1
     
     # Generate service file
     service_content = create_systemd_service_file(
@@ -182,53 +169,29 @@ def generate_service_cmd():
     )
     
     # Output
-    if output_file:
-        with open(output_file, 'w') as f:
+    if output:
+        with open(output, 'w') as f:
             f.write(service_content)
-        print(f"✅ Service file written to {output_file}")
-        print(f"💡 Install with: sudo cp {output_file} /etc/systemd/system/")
+        print(f"✅ Service file written to {output}")
+        print(f"💡 Install with: sudo cp {output} /etc/systemd/system/")
         print(f"💡 Enable with: sudo systemctl enable {service_name}")
         print(f"💡 Start with: sudo systemctl start {service_name}")
     else:
         print(service_content)
 
-def run_journal_viewer():
+def run_journal_viewer(
+    service: Optional[str] = None,
+    lines: int = 50,
+    follow: bool = False,
+    since: Optional[str] = None,
+    level: Optional[str] = None
+):
     """Run the journal viewer."""
-    import sys
     from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
     
     if not SYSTEMD_AVAILABLE:
         print("Error: systemd-python not available. Install with: pip install systemd-python", file=sys.stderr)
         sys.exit(1)
-    
-    # Parse args manually
-    args = sys.argv[2:]  # Skip 'nicestlog journal'
-    
-    service = None
-    lines = 50
-    follow = False
-    since = None
-    level = None
-    
-    i = 0
-    while i < len(args):
-        if args[i] in ['-u', '--unit', '--service'] and i + 1 < len(args):
-            service = args[i + 1]
-            i += 2
-        elif args[i] in ['-n', '--lines'] and i + 1 < len(args):
-            lines = int(args[i + 1])
-            i += 2
-        elif args[i] in ['-f', '--follow']:
-            follow = True
-            i += 1
-        elif args[i] == '--since' and i + 1 < len(args):
-            since = args[i + 1]
-            i += 2
-        elif args[i] == '--level' and i + 1 < len(args):
-            level = args[i + 1]
-            i += 2
-        else:
-            i += 1
     
     # Create viewer and run
     viewer = JournalViewer()
@@ -248,33 +211,10 @@ def run_journal_viewer():
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-def run_log_reviewer():
+def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
     """Run the log quality reviewer."""
-    import sys
     from .log_reviewer import LogQualityReviewer, print_report
     from pathlib import Path
-    
-    # Parse args manually
-    args = sys.argv[2:]  # Skip 'nicestlog review'
-    
-    if not args:
-        print("Usage: nicestlog review <path> [--format text|json] [--min-score 70]", file=sys.stderr)
-        sys.exit(1)
-    
-    path_str = args[0]
-    format_type = 'text'
-    min_score = 70
-    
-    i = 1
-    while i < len(args):
-        if args[i] == '--format' and i + 1 < len(args):
-            format_type = args[i + 1]
-            i += 2
-        elif args[i] == '--min-score' and i + 1 < len(args):
-            min_score = float(args[i + 1])
-            i += 2
-        else:
-            i += 1
     
     reviewer = LogQualityReviewer()
     path = Path(path_str)

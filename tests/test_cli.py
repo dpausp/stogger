@@ -54,7 +54,10 @@ class TestMainFunction:
     @patch("nicestlog.cli.init_config")
     def test_main_init_config_subcommand(self, mock_init_config):
         """Test main function with init-config subcommand."""
-        main()
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        # Typer exits with code 0 on successful command execution
+        assert exc_info.value.code == 0
         mock_init_config.assert_called_once()
 
     def test_main_requires_subcommand(self):
