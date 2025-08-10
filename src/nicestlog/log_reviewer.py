@@ -167,7 +167,7 @@ class LogQualityReviewer:
         """Extract log level from line."""
         level_patterns = [
             r'\b(DEBUG|INFO|WARN|WARNING|ERROR|CRITICAL|FATAL)\b',
-            r'\b[DIWECF]\b',  # Single letter levels
+            r'\b([DIWECF])\b',  # Single letter levels
         ]
         for pattern in level_patterns:
             match = re.search(pattern, line, re.IGNORECASE)
