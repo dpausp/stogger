@@ -133,16 +133,16 @@ def main():
 
 def run_linter(path: str = ".", min_coverage: float = 5.0, max_coverage: float = 15.0, strict: bool = False):
     """Run the logging linter."""
-    from .linter import LoggingLinter
+    from .linter import lint_directory
+    from pathlib import Path
     
-    linter = LoggingLinter()
-    results = linter.analyze_directory(
-        path, 
-        min_coverage=min_coverage, 
-        max_coverage=max_coverage, 
-        strict=strict
-    )
-    linter.print_results(results)
+    if strict:
+        min_coverage = 3.0
+        max_coverage = 10.0
+    
+    success = lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
+    if not success:
+        sys.exit(1)
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
