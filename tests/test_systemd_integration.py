@@ -24,14 +24,13 @@ class TestDetectSystemdEnvironment:
         assert isinstance(result, dict)
         assert result["journal_stream"] == "8:12345"
 
-    @patch.dict(os.environ, {}, clear=True)
-    @patch("os.path.exists")
-    def test_systemd_detected_with_systemd_dir(self, mock_exists):
-        """Test systemd detection when /run/systemd/system exists."""
-        mock_exists.return_value = True
+    @patch.dict(os.environ, {"SYSTEMD_EXEC_PID": "12345"}, clear=False)
+    def test_systemd_detected_with_systemd_exec_pid(self):
+        """Test systemd detection when SYSTEMD_EXEC_PID is present."""
         result = detect_systemd_environment()
         assert isinstance(result, dict)
-        mock_exists.assert_called_with("/run/systemd/system")
+        assert result["running_under_systemd"] is True
+        assert result["systemd_exec_pid"] == "12345"
 
     @patch.dict(os.environ, {}, clear=True)
     @patch("os.path.exists")
@@ -197,12 +196,17 @@ class TestSystemdJournalHandler:
             record.pathname = "/test/file.py"
             record.lineno = 42
             record.funcName = "test_function"
+            # Set exc_info and exc_text to None to avoid mock objects
+            record.exc_info = None
+            record.exc_text = None
 
             handler.emit(record)
 
             # Check that the priority was set correctly
             call_args = mock_journal.send.call_args
-            assert f"PRIORITY={expected_priority}" in str(call_args)
+            assert call_args is not None
+            # Check that PRIORITY is set to the expected value (with quotes in string representation)
+            assert f"PRIORITY='{expected_priority}'" in str(call_args)
 
     @patch("nicestlog.systemd_integration.journal")
     def test_emit_error_handling(self, mock_journal):
