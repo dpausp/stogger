@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+src/nicestlog/_docs
 
 # Virtual environments
 .venv

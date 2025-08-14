@@ -10,6 +10,13 @@ from .config import NicestLogConfig
 from .core import init_logging, logging_initialized
 from .factory import build_shared_processors, configure_stdlib_logging
 from .cli import main
+
+# Ensure package data includes markdown docs when installed from source
+try:
+    import importlib.resources as _resources  # noqa: F401
+except Exception:  # pragma: no cover
+    pass
+
 from .linter import main as lint_main
 from .eliot_integration import setup_eliot_logging, log_action, log_call
 from .pii_scrubber import create_pii_processor, PIIScrubber

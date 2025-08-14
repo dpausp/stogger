@@ -1,16 +1,17 @@
 [project]
 name = "nicestlog"
-version = "0.1.0"
+version = "0.14"
 description = "A sophisticated multi-target structured logging system built on structlog"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "structlog>=23.0.0",
-    "toml>=0.10.2",
     "eliot>=1.0.0",
     "flask>=3.0.3",
     "requests>=2.32.4",
     "typer>=0.9.0",
+    "rich>=13.0",
+    "toml>=0.10.2",
 ]
 
 [project.optional-dependencies]
@@ -20,15 +21,21 @@ color = ["colorama>=0.4.0"]
 nicestlog = "nicestlog:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
 
 [dependency-groups]
 dev = [
+    "hatch>=1.14.1",
     "mypy>=1.14.1",
     "pre-commit>=3.5.0",
     "ruff>=0.12.7",
     "types-colorama>=0.4.0",
+]
+ipython = [
+    "ipython>=9.4.0",
 ]
 test = [
     "pytest>=7.0.0",

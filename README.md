@@ -2,8 +2,6 @@
 
 A sophisticated logging system built on top of [structlog](https://www.structlog.org/) that provides multi-target logging with different renderers for console output, systemd journal, and file logging.
 
-Originally developed for the Flying Circus platform, this module provides robust, structured logging that works seamlessly across development and production environments.
-
 ## Features
 
 - **Multi-target logging**: Console, file, and systemd journal simultaneously

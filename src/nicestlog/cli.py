@@ -9,6 +9,7 @@ from typing import Annotated, Optional
 import typer
 import structlog
 import nicestlog
+import importlib.resources as resources
 
 def init_config():
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""
@@ -61,7 +62,14 @@ def init_config():
     else:
         print("Aborted.")
 
+
 app = typer.Typer(help="Nicestlog utility.")
+
+
+@app.command()
+def docs(ctx: typer.Context):
+    """Show all packaged docs"""
+    _show_markdown_files(["README.md", "best_practices.md"]) 
 
 
 @app.command("init-config")
@@ -138,6 +146,27 @@ def demo(
 ):
     """Demonstrate nicestlog features with live examples."""
     run_demos(feature, all_features)
+
+
+def _show_markdown_files(filenames: list[str]):
+    try:
+        import sys
+        from rich.console import Console
+        from rich.markdown import Markdown
+        console = Console()
+        with console.pager():
+            for idx, filename in enumerate(filenames):
+                resource_path = resources.files('nicestlog').joinpath(f"_docs/{filename}")
+                content = resource_path.read_text(encoding="utf-8")
+                md = Markdown(content, code_theme="monokai")
+                console.rule(f"{filename}")
+                console.print(md)
+                if idx < len(filenames) - 1:
+                    console.print()
+    except (FileNotFoundError, ModuleNotFoundError):
+        typer.echo("Dokumentation nicht gefunden.", err=True)
+        raise
+        raise typer.Exit(1)
 
 
 def main():

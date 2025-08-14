@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import toml
+import tomllib
 
 
 class NicestLogConfig:
@@ -56,11 +56,12 @@ class NicestLogConfig:
             log.info("No pyproject.toml found, using defaults")
             return {}
         try:
-            config = toml.load(pyproject_path)
+            with pyproject_path.open('rb') as f:
+                config = tomllib.load(f)
             nicest_config = config.get("tool", {}).get("nicestlog", {})
             log.info(f"Loaded nicestlog config with {len(nicest_config)} settings")
             return nicest_config
-        except toml.TomlDecodeError as e:
+        except (tomllib.TOMLDecodeError, Exception) as e:
             log.error(f"Error decoding pyproject.toml: {e}")
             print(f"Error decoding pyproject.toml: {e}", file=sys.stderr)
             return {}
