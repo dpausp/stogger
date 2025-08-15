@@ -26,7 +26,6 @@ from .systemd_integration import (
     create_systemd_service_file,
 )
 
-__version__ = "0.1.0"
 __all__ = [
     "init_logging",
     "logging_initialized",

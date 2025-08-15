@@ -1,25 +1,27 @@
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+  # Local hooks using UV for individual tools
+  - repo: local
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-toml
-      - id: check-merge-conflict
-      - id: check-added-large-files
-      - id: debug-statements
+      # Validation
+      - id: validate-pyproject
+        name: validate pyproject.toml
+        entry: uv run validate-pyproject pyproject.toml
+        language: system
+        files: pyproject\.toml$
+        pass_filenames: false
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.0
-    hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+      # Formatting
       - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        require_serial: false
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.0
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-pyyaml, types-requests]
-        args: [--ignore-missing-imports]
+      - id: ruff-check-fix
+        name: ruff check --fix
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+        require_serial: false
+

@@ -76,7 +76,7 @@ def init_config():
         print("Aborted.")
 
 
-app = typer.Typer(help="Nicestlog utility.")
+app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
 
 # Sub-app for i18n related commands
 i18n_app = typer.Typer(help="Internationalization utilities")
