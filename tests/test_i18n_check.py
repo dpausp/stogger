@@ -38,7 +38,8 @@ def test_find_required_translation_keys_detects_events_and_msg_keys(tmp_path: Pa
     assert "event-a" in events
     assert "event-b" in events
     # The plain event without _replace_msg should not be in events
-    assert "ignored-event" not in events
+    # .info without _replace_msg should be included now
+    assert "ignored-event" in events
 
     # _msg_key should be detected
     assert "custom.key" in msg_keys

@@ -28,6 +28,9 @@ _EVENT_WITH_REPLACE = re.compile(
 # Regex to capture explicit _msg_key assignments
 _MSG_KEY = re.compile(r"_msg_key\s*=\s*([\'\"])(?P<key>.+?)\1")
 
+# Regex to capture .info("event") calls regardless of _replace_msg presence
+_INFO_EVENT = re.compile(r"\.info\(\s*([\'\"])(?P<event>.+?)\1", re.DOTALL)
+
 
 def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str]]:
     """Scan Python files for keys required by the TranslationProcessor.
@@ -52,6 +55,10 @@ def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set
 
             # Event names where _replace_msg is present in the same call
             for m in _EVENT_WITH_REPLACE.finditer(text):
+                event_keys.add(m.group("event"))
+
+            # Also include .info("event") calls even without _replace_msg
+            for m in _INFO_EVENT.finditer(text):
                 event_keys.add(m.group("event"))
 
             # Explicit _msg_key assignments (potentially separate)
