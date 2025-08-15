@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import List
 from dataclasses import dataclass
 
+from .log_statement_analyzer import analyze_file as analyze_log_statements, LogAnalysisResult
+
 
 @dataclass
 class LoggingStats:
@@ -166,7 +168,8 @@ def check_logging_quality(
 
 
 def lint_directory(
-    directory: Path, min_coverage: float = 5.0, max_coverage: float = 15.0
+    directory: Path, min_coverage: float = 5.0, max_coverage: float = 15.0,
+    analyze_statements: bool = False, verbose: bool = False, allow_snake_case: bool = False
 ) -> bool:
     """Lint all Python files in a directory and its subdirectories."""
     # Recursively find all Python files in the directory
@@ -200,9 +203,21 @@ def lint_directory(
         total_stats.functions += stats.functions
         total_stats.functions_with_logging += stats.functions_with_logging
 
+        # Analyze log statements if requested
+        log_analysis = None
+        if analyze_statements:
+            log_analysis = analyze_log_statements(file_path, prefer_dash_case=not allow_snake_case)
+
         # Count issues and prepare compact summary
         error_count = sum(1 for issue in issues if "❌" in issue)
         warning_count = sum(1 for issue in issues if "⚠️" in issue)
+        
+        # Add log statement issues
+        statement_issues = 0
+        if log_analysis and log_analysis.total_statements > 0:
+            statement_issues = sum(len(s.issues) for s in log_analysis.statements)
+            if statement_issues > 0:
+                error_count += 1  # Add one error indicator for statement issues
         
         if error_count > 0 or warning_count > 0:
             total_issues += 1
@@ -213,9 +228,24 @@ def lint_directory(
             if warning_count > 0:
                 status_icons.append(f"⚠️{warning_count}")
             
+            # Add statement analysis summary
+            stmt_summary = ""
+            if log_analysis and log_analysis.total_statements > 0:
+                stmt_summary = f" │ Stmts:{log_analysis.total_statements}"
+                if statement_issues > 0:
+                    stmt_summary += f"({statement_issues}❌)"
+            
             print(f"📁 {file_path.relative_to(directory)} │ "
                   f"Lines:{stats.code_lines} Logs:{stats.log_statements} "
-                  f"({stats.log_coverage_percent:.1f}%) │ {' '.join(status_icons)}")
+                  f"({stats.log_coverage_percent:.1f}%){stmt_summary} │ {' '.join(status_icons)}")
+            
+            # Show detailed statement analysis if verbose
+            if verbose and log_analysis and log_analysis.total_statements > 0:
+                for stmt in log_analysis.statements:
+                    if stmt.issues:
+                        issues_str = ', '.join(stmt.issues)
+                        event_str = f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
+                        print(f"    L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}")
 
     # Overall summary
     if total_stats.code_lines > 0:
@@ -276,6 +306,22 @@ def main():
         action="store_true",
         help="Use stricter coverage requirements (3-10%)",
     )
+    parser.add_argument(
+        "--analyze-statements",
+        action="store_true",
+        help="Analyze individual log statements for common issues",
+    )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed statement breakdown when analyzing statements",
+    )
+    parser.add_argument(
+        "--allow-snake-case",
+        action="store_true",
+        help="Allow snake_case event IDs (default: prefer dash-case)",
+    )
 
     args = parser.parse_args()
 
@@ -294,9 +340,24 @@ def main():
         print(f"📁 {path}")
         for issue in issues:
             print(f"   {issue}")
+        
+        # Analyze statements for single file if requested
+        if args.analyze_statements:
+            log_analysis = analyze_log_statements(path, prefer_dash_case=not args.allow_snake_case)
+            if log_analysis.total_statements > 0:
+                statement_issues = sum(len(s.issues) for s in log_analysis.statements)
+                print(f"   Log statements: {log_analysis.total_statements} ({statement_issues} issues)")
+                if args.verbose:
+                    for stmt in log_analysis.statements:
+                        if stmt.issues:
+                            issues_str = ', '.join(stmt.issues)
+                            event_str = f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
+                            print(f"     L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}")
+        
         success = not any("❌" in issue for issue in issues)
     else:
-        success = lint_directory(path, args.min_coverage, args.max_coverage)
+        success = lint_directory(path, args.min_coverage, args.max_coverage, 
+                                args.analyze_statements, args.verbose, args.allow_snake_case)
 
     sys.exit(0 if success else 1)
 
