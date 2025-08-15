@@ -168,17 +168,18 @@ def check_logging_quality(
 def lint_directory(
     directory: Path, min_coverage: float = 5.0, max_coverage: float = 15.0
 ) -> bool:
-    """Lint all Python files in a directory."""
+    """Lint all Python files in a directory and its subdirectories."""
+    # Recursively find all Python files in the directory
     python_files = list(directory.rglob("*.py"))
 
     if not python_files:
-        print("No Python files found!")
+        print("No Python files found in the specified directory!")
         return True
 
     total_issues = 0
     total_stats = LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0)
 
-    print(f"🔍 Analyzing {len(python_files)} Python files for logging quality...\n")
+    print(f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n")
 
     for file_path in python_files:
         # Skip __pycache__ and other irrelevant files

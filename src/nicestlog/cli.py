@@ -113,7 +113,19 @@ def lint(
     ] = False,
 ):
     """Check logging coverage in your codebase."""
-    run_linter(path, min_coverage, max_coverage, strict)
+    # Import the config module to get the src_dir
+    from .config import NicestLogConfig
+    from pathlib import Path
+
+    # Get the configured source directory
+    config = NicestLogConfig()
+    src_dir = Path(config.src_dir).resolve()
+
+    # If no path is specified, use the configured src_dir
+    # Otherwise, use the provided path
+    path_to_lint = src_dir if path == "." else Path(path).resolve()
+
+    run_linter(str(path_to_lint), min_coverage, max_coverage, strict)
 
 
 @app.command()
@@ -300,9 +312,11 @@ def run_linter(
         min_coverage = 3.0
         max_coverage = 10.0
 
+    # Run the linter on the specified directory
     success = lint_directory(
         Path(path), min_coverage=min_coverage, max_coverage=max_coverage
     )
+
     if not success:
         sys.exit(1)
 
