@@ -65,6 +65,10 @@ def init_config():
 
 app = typer.Typer(help="Nicestlog utility.")
 
+# Sub-app for i18n related commands
+i18n_app = typer.Typer(help="Internationalization utilities")
+app.add_typer(i18n_app, name="i18n")
+
 
 @app.command()
 def docs(ctx: typer.Context):
@@ -171,6 +175,26 @@ def _show_markdown_files(filenames: list[str]):
 
 def main():
     app()
+
+
+@i18n_app.command("check")
+def i18n_check(
+    path: Annotated[str, typer.Argument(help="Path to source (file or directory)")] = ".",
+    translation_dir: Annotated[str, typer.Option(help="Directory containing translation files")] = "translations",
+    language: Annotated[str, typer.Option("-l", "--language", help="Language code to check")] = "en",
+    strict: Annotated[bool, typer.Option(help="Exit with non-zero code if missing keys")] = False,
+):
+    """Check that translation file contains entries for all _replace_msg/_msg_key usages."""
+    try:
+        from .i18n_check import run_i18n_check_cli
+    except Exception as e:
+        typer.echo(f"Error importing i18n check: {e}", err=True)
+        raise typer.Exit(1)
+
+    code = run_i18n_check_cli(path=path, translation_dir=translation_dir, language=language, strict=strict)
+    if code != 0:
+        raise typer.Exit(code)
+
 
 def run_linter(path: str = ".", min_coverage: float = 5.0, max_coverage: float = 15.0, strict: bool = False):
     """Run the logging linter."""
