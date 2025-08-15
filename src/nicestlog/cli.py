@@ -183,17 +183,37 @@ def i18n_check(
     translation_dir: Annotated[str, typer.Option(help="Directory containing translation files")] = "translations",
     language: Annotated[str, typer.Option("-l", "--language", help="Language code to check")] = "en",
     strict: Annotated[bool, typer.Option(help="Exit with non-zero code if missing keys")] = False,
+    list_missing: Annotated[bool, typer.Option("--list-missing", help="Only list missing keys (one per line)")] = False,
+    fail_on_extra: Annotated[bool, typer.Option("--fail-on-extra", help="Exit non-zero if extra (unused) keys exist")] = False,
 ):
-    """Check that translation file contains entries for all _replace_msg/_msg_key usages."""
+    """Check that translation file contains entries for all _replace_msg/_msg_key usages.
+
+    Also treats .info events without _replace_msg as requiring translation. .debug calls are ignored,
+    but any .debug using _replace_msg will be listed as a warning section in the report.
+    """
     try:
-        from .i18n_check import run_i18n_check_cli
+        from .i18n_check import check_translations, format_report
     except Exception as e:
         typer.echo(f"Error importing i18n check: {e}", err=True)
         raise typer.Exit(1)
 
-    code = run_i18n_check_cli(path=path, translation_dir=translation_dir, language=language, strict=strict)
-    if code != 0:
-        raise typer.Exit(code)
+    report = check_translations([Path(path)], Path(translation_dir), language)
+
+    if list_missing:
+        missing = report.get("missing_keys", [])
+        for k in missing:
+            typer.echo(k)
+        # In list-only mode, consider both strict (missing) and fail_on_extra
+        if (strict and missing) or (fail_on_extra and report.get("extra_keys", [])):
+            raise typer.Exit(1)
+        raise typer.Exit(0)
+
+    typer.echo(format_report(report))
+
+    if "error" in report:
+        raise typer.Exit(2)
+    if (strict and report.get("missing_keys", [])) or (fail_on_extra and report.get("extra_keys", [])):
+        raise typer.Exit(1)
 
 
 def run_linter(path: str = ".", min_coverage: float = 5.0, max_coverage: float = 15.0, strict: bool = False):

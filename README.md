@@ -61,6 +61,48 @@ log.info("Starting application", component="main")
 
 For more examples and best practices, see the [documentation](docs/best_practices.md).
 
+## i18n check (translation coverage)
+
+Use the built-in CLI to verify that your translation files contain entries for all messages used in your source code.
+
+- Includes .info events even when no `_replace_msg` is present
+- Ignores `.debug` events for coverage; warns if `.debug` uses `_replace_msg`
+
+Examples:
+
+```bash
+# Full report for English, using translations/en.toml
+nicestlog i18n check . --translation-dir translations -l en
+
+# Only print missing keys (one per line), good for CI scripting
+nicestlog i18n check src --translation-dir translations -l en --list-missing
+
+# Fail the check if missing keys exist
+nicestlog i18n check . --translation-dir translations -l en --strict
+
+# Also fail if extra (unused) keys exist in the translation file
+nicestlog i18n check . --translation-dir translations -l en --fail-on-extra
+
+# Combine list mode with strict/extra failure (machine-friendly + failing status)
+nicestlog i18n check src --translation-dir translations -l en --list-missing --strict --fail-on-extra
+```
+
+CI example (GitHub Actions):
+
+```yaml
+name: i18n-check
+on: [push, pull_request]
+jobs:
+  i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv sync --locked
+      - run: uv run nicestlog i18n check . --translation-dir translations -l en --list-missing --strict --fail-on-extra
+```
+
+
 ## License
 
 MIT License

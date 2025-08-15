@@ -18,18 +18,12 @@ except Exception:  # pragma: no cover - handled by CLI messaging
     toml = None  # type: ignore
 
 
-# Regex to capture event name when a call contains _replace_msg in its args
-# Matches: any_name.info("event-name", ..., _replace_msg=...)
-_EVENT_WITH_REPLACE = re.compile(
-    r"\.[a-zA-Z_][a-zA-Z0-9_]*\(\s*([\'\"])(?P<event>.+?)\1(?P<rest>[^\)]*?_replace_msg\s*=)",
-    re.DOTALL,
+from ._regexes import (
+    EVENT_WITH_REPLACE as _EVENT_WITH_REPLACE,
+    MSG_KEY as _MSG_KEY,
+    INFO_EVENT as _INFO_EVENT,
+    DEBUG_WITH_REPLACE as _DEBUG_WITH_REPLACE,
 )
-
-# Regex to capture explicit _msg_key assignments
-_MSG_KEY = re.compile(r"_msg_key\s*=\s*([\'\"])(?P<key>.+?)\1")
-
-# Regex to capture .info("event") calls regardless of _replace_msg presence
-_INFO_EVENT = re.compile(r"\.info\(\s*([\'\"])(?P<event>.+?)\1", re.DOTALL)
 
 
 def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str]]:
@@ -101,9 +95,9 @@ def check_translations(
       - extra_keys: list[str]
       - translation_file: str
       - msg_keys_found: set[str]
+      - debug_with_replace_events: set[str]
     """
     event_keys, msg_keys = find_required_translation_keys(source_paths)
-    required_keys = set(event_keys) | set(msg_keys)
 
     translation_file = translation_dir / f"{language}.toml"
     translation_keys: Set[str] = set()
@@ -123,6 +117,27 @@ def check_translations(
             "required_keys": sorted(required_keys),
         }
 
+    # Collect debug calls that use _replace_msg to warn, but do not require translation
+    debug_with_replace: Set[str] = set()
+    debug_events: Set[str] = set()
+    for root in source_paths:
+        if root.is_file() and root.suffix == ".py":
+            py_files = [root]
+        else:
+            py_files = list(root.rglob("*.py"))
+        for file in py_files:
+            try:
+                text = file.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            for m in _DEBUG_WITH_REPLACE.finditer(text):
+                ev = m.group("event")
+                debug_with_replace.add(ev)
+                debug_events.add(ev)
+
+    # Compute required keys: all event/info/_msg_key minus debug ones
+    required_keys = (set(event_keys) | set(msg_keys)) - debug_events
+
     missing = sorted(k for k in required_keys if k not in translation_keys)
     extra = sorted(k for k in translation_keys if k not in required_keys)
 
@@ -133,10 +148,14 @@ def check_translations(
         "extra_keys": extra,
         "translation_file": str(translation_file),
         "msg_keys_found": sorted(msg_keys),
+        "debug_with_replace_events": sorted(debug_with_replace),
     }
 
 
 def format_report(report: Dict[str, object]) -> str:
+    # If --list-missing is requested via env/flag, handled in CLI wrapper.
+    # This function returns the pretty report.
+
     if "error" in report:
         return (
             f"❌ i18n check failed: {report['error']}\n"
@@ -165,6 +184,12 @@ def format_report(report: Dict[str, object]) -> str:
     if extra:
         lines.append("\nℹ️ Extra keys (not used in source):")
         for k in extra:
+            lines.append(f"  - {k}")
+
+    dbg = report.get("debug_with_replace_events", [])  # type: ignore[assignment]
+    if dbg:
+        lines.append("\n⚠️ Debug events using _replace_msg (ignored for coverage):")
+        for k in dbg:
             lines.append(f"  - {k}")
 
     return "\n".join(lines)

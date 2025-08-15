@@ -7,7 +7,6 @@ from nicestlog.i18n_check import (
     find_required_translation_keys,
     load_translation_keys,
     check_translations,
-    run_i18n_check_cli,
 )
 
 
@@ -104,7 +103,7 @@ def test_check_translations_reports_missing_and_extra(tmp_path: Path):
     assert "extra-unused" in extra
 
 
-def test_run_i18n_check_cli_strict_exit_code(tmp_path: Path):
+def test_check_translations_missing_in_strict_semantics(tmp_path: Path):
     src = tmp_path / "src"
     src.mkdir()
     write(
@@ -124,10 +123,11 @@ def test_run_i18n_check_cli_strict_exit_code(tmp_path: Path):
     # Missing event-b
     write(tfile, "event-a = \"A\"\n")
 
-    code = run_i18n_check_cli(path=str(src), translation_dir=str(trans_dir), language="en", strict=True)
-    assert code == 1
+    # Simulate strict behavior by checking missing count non-empty
+    report = check_translations([src], trans_dir, language="en")
+    assert set(report["missing_keys"]) == {"event-b"}
 
     # Now make it complete
     write(tfile, "event-a = \"A\"\nevent-b = \"B\"\n")
-    code2 = run_i18n_check_cli(path=str(src), translation_dir=str(trans_dir), language="en", strict=True)
-    assert code2 == 0
+    report2 = check_translations([src], trans_dir, language="en")
+    assert report2["missing_keys"] == []

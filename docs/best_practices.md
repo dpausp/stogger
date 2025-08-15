@@ -152,6 +152,30 @@ Establish conventions for field names (e.g., `user_id`, `request_id`, `duration_
 
 ## Message Formatting
 
+### Checking i18n coverage
+
+Use the built-in CLI to ensure your translations match your code usage.
+
+- .info events without `_replace_msg` are treated as requiring a translation
+- .debug events are ignored for coverage; if they use `_replace_msg`, a warning is shown in the report
+
+Examples:
+
+```bash
+# Full, human-friendly report
+nicestlog i18n check . --translation-dir translations -l en
+
+# Machine-friendly list of missing keys
+nicestlog i18n check src --translation-dir translations -l en --list-missing
+
+# Strictly fail on missing keys
+nicestlog i18n check . --translation-dir translations -l en --strict
+
+# Also fail if extra (unused) keys exist
+nicestlog i18n check . --translation-dir translations -l en --fail-on-extra
+```
+
+
 Use `_replace_msg` for human-readable messages while maintaining structured data. The formatter is partial, so it won't break if a key is missing.
 
 ```python
