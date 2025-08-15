@@ -3,6 +3,7 @@ Simple Flask + HTMX web dashboard for live log viewing.
 
 No async bullshit, just good old Flask with HTMX for live updates.
 """
+
 import json
 import queue
 import threading
@@ -22,33 +23,36 @@ log_lock = threading.Lock()
 
 class WebLogHandler:
     """Log handler that feeds logs to the web dashboard."""
-    
+
     def __init__(self):
         self.session_id = int(time.time())
-    
+
     def __call__(self, _, __, event_dict):
         """Capture log events for web display."""
         log_entry = {
-            'timestamp': datetime.now().isoformat(),
-            'level': event_dict.get('level', 'info'),
-            'event': event_dict.get('event', ''),
-            'logger': event_dict.get('logger', 'root'),
-            'data': {k: v for k, v in event_dict.items() 
-                    if k not in ['timestamp', 'level', 'event', 'logger']},
-            'session_id': self.session_id
+            "timestamp": datetime.now().isoformat(),
+            "level": event_dict.get("level", "info"),
+            "event": event_dict.get("event", ""),
+            "logger": event_dict.get("logger", "root"),
+            "data": {
+                k: v
+                for k, v in event_dict.items()
+                if k not in ["timestamp", "level", "event", "logger"]
+            },
+            "session_id": self.session_id,
         }
-        
+
         with log_lock:
             recent_logs.append(log_entry)
             # Keep only last 500 logs
             if len(recent_logs) > 500:
                 recent_logs.pop(0)
-        
+
         try:
             log_buffer.put_nowait(log_entry)
         except queue.Full:
             pass  # Drop logs if buffer is full
-        
+
         return event_dict
 
 
@@ -293,37 +297,38 @@ LOG_ENTRY_TEMPLATE = """
 def create_dashboard_app():
     """Create the Flask dashboard app."""
     app = Flask(__name__)
-    
-    @app.route('/')
+
+    @app.route("/")
     def dashboard():
         """Main dashboard page."""
         stats = get_log_stats()
         return render_template_string(DASHBOARD_HTML, stats=stats)
-    
-    @app.route('/api/logs')
+
+    @app.route("/api/logs")
     def get_logs():
         """Get recent logs as HTML."""
-        level_filter = request.args.get('level', '').lower()
-        
+        level_filter = request.args.get("level", "").lower()
+
         with log_lock:
             logs = recent_logs.copy()
-        
+
         if level_filter:
-            logs = [log for log in logs if log['level'] == level_filter]
-        
+            logs = [log for log in logs if log["level"] == level_filter]
+
         # Render logs as HTML
         html_parts = []
         for log in logs[-100:]:  # Show last 100 logs
             html = render_template_string(LOG_ENTRY_TEMPLATE, log=log)
             html_parts.append(html)
-        
-        return ''.join(html_parts)
-    
-    @app.route('/api/stats')
+
+        return "".join(html_parts)
+
+    @app.route("/api/stats")
     def api_stats():
         """Get log statistics."""
         stats = get_log_stats()
-        return render_template_string("""
+        return render_template_string(
+            """
         <div class="stat-card">
             <div class="stat-number">{{ stats.total_logs }}</div>
             <div class="stat-label">Total Logs</div>
@@ -340,15 +345,17 @@ def create_dashboard_app():
             <div class="stat-number">{{ stats.logs_per_minute }}</div>
             <div class="stat-label">Logs/min</div>
         </div>
-        """, stats=stats)
-    
-    @app.route('/api/clear', methods=['POST'])
+        """,
+            stats=stats,
+        )
+
+    @app.route("/api/clear", methods=["POST"])
     def clear_logs():
         """Clear all logs."""
         with log_lock:
             recent_logs.clear()
         return '<div style="text-align: center; color: #888; padding: 20px;">Logs cleared! 🧹</div>'
-    
+
     return app
 
 
@@ -356,24 +363,28 @@ def get_log_stats():
     """Calculate log statistics."""
     with log_lock:
         logs = recent_logs.copy()
-    
+
     total_logs = len(logs)
-    error_count = len([l for l in logs if l['level'] in ['error', 'critical']])
-    warning_count = len([l for l in logs if l['level'] == 'warning'])
-    
+    error_count = len([l for l in logs if l["level"] in ["error", "critical"]])
+    warning_count = len([l for l in logs if l["level"] == "warning"])
+
     # Calculate logs per minute (rough estimate)
     if logs:
-        recent_logs_1min = [l for l in logs if 
-                           (datetime.now() - datetime.fromisoformat(l['timestamp'])).total_seconds() < 60]
+        recent_logs_1min = [
+            l
+            for l in logs
+            if (datetime.now() - datetime.fromisoformat(l["timestamp"])).total_seconds()
+            < 60
+        ]
         logs_per_minute = len(recent_logs_1min)
     else:
         logs_per_minute = 0
-    
+
     return {
-        'total_logs': total_logs,
-        'error_count': error_count,
-        'warning_count': warning_count,
-        'logs_per_minute': logs_per_minute
+        "total_logs": total_logs,
+        "error_count": error_count,
+        "warning_count": warning_count,
+        "logs_per_minute": logs_per_minute,
     }
 
 
@@ -394,11 +405,11 @@ def setup_web_logging():
     return web_handler
 
 
-def run_dashboard(host='127.0.0.1', port=8080, debug=False):
+def run_dashboard(host="127.0.0.1", port=8080, debug=False):
     """Run the web dashboard."""
     print(f"🚀 Starting Nicestlog Dashboard on http://{host}:{port}")
     print("📊 View your logs in real-time with style!")
-    
+
     app = create_dashboard_app()
     app.run(host=host, port=port, debug=debug, threaded=True)
 
@@ -408,36 +419,40 @@ if __name__ == "__main__":
     import time
     import random
     import threading
-    
+
     def generate_demo_logs():
         """Generate demo logs for testing."""
         setup_web_logging()
         log = structlog.get_logger("demo")
-        
+
         actions = [
-            "user_login", "api_request", "database_query", "cache_hit", 
-            "file_upload", "email_sent", "payment_processed"
+            "user_login",
+            "api_request",
+            "database_query",
+            "cache_hit",
+            "file_upload",
+            "email_sent",
+            "payment_processed",
         ]
-        
+
         while True:
             action = random.choice(actions)
             level = random.choices(
-                ['debug', 'info', 'warning', 'error'], 
-                weights=[20, 60, 15, 5]
+                ["debug", "info", "warning", "error"], weights=[20, 60, 15, 5]
             )[0]
-            
+
             getattr(log, level)(
                 action,
                 user_id=random.randint(1, 1000),
                 duration_ms=random.randint(10, 500),
-                status_code=random.choice([200, 201, 400, 404, 500])
+                status_code=random.choice([200, 201, 400, 404, 500]),
             )
-            
+
             time.sleep(random.uniform(0.5, 3.0))
-    
+
     # Start demo log generation in background
     demo_thread = threading.Thread(target=generate_demo_logs, daemon=True)
     demo_thread.start()
-    
+
     # Run dashboard
     run_dashboard(debug=True)

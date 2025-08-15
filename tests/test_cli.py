@@ -8,9 +8,14 @@ from pathlib import Path
 import sys
 
 from nicestlog.cli import (
-    main, init_config, run_linter, run_dashboard_cmd, 
-    generate_service_cmd, run_journal_viewer, run_log_reviewer,
-    app
+    main,
+    init_config,
+    run_linter,
+    run_dashboard_cmd,
+    generate_service_cmd,
+    run_journal_viewer,
+    run_log_reviewer,
+    app,
 )
 from typer.testing import CliRunner
 
@@ -76,11 +81,11 @@ class TestMainFunction:
 
 class TestTyperCliRunner:
     """Test cases using Typer's CliRunner for better integration testing."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     def test_help_command(self):
         """Test the main help command."""
         result = self.runner.invoke(app, ["--help"])
@@ -89,14 +94,14 @@ class TestTyperCliRunner:
         assert "init-config" in result.stdout
         assert "lint" in result.stdout
         assert "dashboard" in result.stdout
-    
+
     @patch("nicestlog.cli.init_config")
     def test_init_config_command(self, mock_init_config):
         """Test init-config command via CliRunner."""
         result = self.runner.invoke(app, ["init-config"])
         assert result.exit_code == 0
         mock_init_config.assert_called_once()
-    
+
     def test_init_config_help(self):
         """Test init-config help."""
         result = self.runner.invoke(app, ["init-config", "--help"])
@@ -106,11 +111,11 @@ class TestTyperCliRunner:
 
 class TestLintCommand:
     """Test cases for lint command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     def test_lint_help(self):
         """Test lint command help."""
         result = self.runner.invoke(app, ["lint", "--help"])
@@ -119,46 +124,52 @@ class TestLintCommand:
         assert "--min-coverage" in result.stdout
         assert "--max-coverage" in result.stdout
         assert "--strict" in result.stdout
-    
+
     @patch("nicestlog.cli.run_linter")
     def test_lint_default_args(self, mock_linter):
         """Test lint command with default arguments."""
         result = self.runner.invoke(app, ["lint"])
         assert result.exit_code == 0
         mock_linter.assert_called_once_with(".", 5.0, 15.0, False)
-    
+
     @patch("nicestlog.cli.run_linter")
     def test_lint_custom_args(self, mock_linter):
         """Test lint command with custom arguments."""
-        result = self.runner.invoke(app, [
-            "lint", "src/", 
-            "--min-coverage", "10.0", 
-            "--max-coverage", "20.0", 
-            "--strict"
-        ])
+        result = self.runner.invoke(
+            app,
+            [
+                "lint",
+                "src/",
+                "--min-coverage",
+                "10.0",
+                "--max-coverage",
+                "20.0",
+                "--strict",
+            ],
+        )
         assert result.exit_code == 0
         mock_linter.assert_called_once_with("src/", 10.0, 20.0, True)
-    
+
     @patch("nicestlog.linter.lint_directory")
     def test_run_linter_function(self, mock_lint_directory):
         """Test the run_linter function directly."""
         mock_lint_directory.return_value = True
-        
+
         # Test with strict=True (should override coverage values)
         run_linter("/test/path", 8.0, 18.0, True)
-        
+
         mock_lint_directory.assert_called_once_with(
             Path("/test/path"), min_coverage=3.0, max_coverage=10.0
         )
-    
+
     @patch("nicestlog.linter.lint_directory")
     def test_run_linter_function_no_strict(self, mock_lint_directory):
         """Test the run_linter function without strict mode."""
         mock_lint_directory.return_value = True
-        
+
         # Test with strict=False (should use provided values)
         run_linter("/test/path", 8.0, 18.0, False)
-        
+
         mock_lint_directory.assert_called_once_with(
             Path("/test/path"), min_coverage=8.0, max_coverage=18.0
         )
@@ -166,11 +177,11 @@ class TestLintCommand:
 
 class TestDashboardCommand:
     """Test cases for dashboard command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     def test_dashboard_help(self):
         """Test dashboard command help."""
         result = self.runner.invoke(app, ["dashboard", "--help"])
@@ -179,40 +190,39 @@ class TestDashboardCommand:
         assert "--host" in result.stdout
         assert "--port" in result.stdout
         assert "--debug" in result.stdout
-    
+
     @patch("nicestlog.cli.run_dashboard_cmd")
     def test_dashboard_default_args(self, mock_dashboard):
         """Test dashboard command with default arguments."""
         result = self.runner.invoke(app, ["dashboard"])
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("127.0.0.1", 8080, False)
-    
+
     @patch("nicestlog.cli.run_dashboard_cmd")
     def test_dashboard_custom_args(self, mock_dashboard):
         """Test dashboard command with custom arguments."""
-        result = self.runner.invoke(app, [
-            "dashboard", 
-            "--host", "0.0.0.0", 
-            "--port", "9000", 
-            "--debug"
-        ])
+        result = self.runner.invoke(
+            app, ["dashboard", "--host", "0.0.0.0", "--port", "9000", "--debug"]
+        )
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("0.0.0.0", 9000, True)
-    
+
     @patch("nicestlog.web_dashboard.run_dashboard")
     def test_run_dashboard_cmd_function(self, mock_run_dashboard):
         """Test the run_dashboard_cmd function directly."""
         run_dashboard_cmd("localhost", 3000, True)
-        mock_run_dashboard.assert_called_once_with(host="localhost", port=3000, debug=True)
+        mock_run_dashboard.assert_called_once_with(
+            host="localhost", port=3000, debug=True
+        )
 
 
 class TestGenerateServiceCommand:
     """Test cases for generate-service command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     def test_generate_service_help(self):
         """Test generate-service command help."""
         result = self.runner.invoke(app, ["generate-service", "--help"])
@@ -223,80 +233,96 @@ class TestGenerateServiceCommand:
         assert "--user" in result.stdout
         assert "--working-dir" in result.stdout
         assert "--output" in result.stdout
-    
+
     @patch("nicestlog.cli.generate_service_cmd")
     def test_generate_service_required_args(self, mock_generate):
         """Test generate-service command with required arguments."""
-        result = self.runner.invoke(app, [
-            "generate-service", "myapp", "/usr/bin/myapp"
-        ])
+        result = self.runner.invoke(
+            app, ["generate-service", "myapp", "/usr/bin/myapp"]
+        )
         assert result.exit_code == 0
-        mock_generate.assert_called_once_with("myapp", "/usr/bin/myapp", None, None, None)
-    
+        mock_generate.assert_called_once_with(
+            "myapp", "/usr/bin/myapp", None, None, None
+        )
+
     @patch("nicestlog.cli.generate_service_cmd")
     def test_generate_service_all_args(self, mock_generate):
         """Test generate-service command with all arguments."""
-        result = self.runner.invoke(app, [
-            "generate-service", "myapp", "/usr/bin/myapp",
-            "--user", "myuser",
-            "--working-dir", "/opt/myapp",
-            "--output", "/tmp/myapp.service"
-        ])
+        result = self.runner.invoke(
+            app,
+            [
+                "generate-service",
+                "myapp",
+                "/usr/bin/myapp",
+                "--user",
+                "myuser",
+                "--working-dir",
+                "/opt/myapp",
+                "--output",
+                "/tmp/myapp.service",
+            ],
+        )
         assert result.exit_code == 0
         mock_generate.assert_called_once_with(
             "myapp", "/usr/bin/myapp", "myuser", "/opt/myapp", "/tmp/myapp.service"
         )
-    
+
     def test_generate_service_missing_args(self):
         """Test generate-service command with missing required arguments."""
         result = self.runner.invoke(app, ["generate-service"])
         assert result.exit_code != 0
         # Typer error messages can be in stdout or stderr, check both
         error_output = result.stdout + result.stderr
-        assert ("Missing argument" in error_output or "required" in error_output.lower())
-    
+        assert "Missing argument" in error_output or "required" in error_output.lower()
+
     @patch("nicestlog.systemd_integration.create_systemd_service_file")
     @patch("builtins.print")
-    def test_generate_service_cmd_function_stdout(self, mock_print, mock_create_service):
+    def test_generate_service_cmd_function_stdout(
+        self, mock_print, mock_create_service
+    ):
         """Test generate_service_cmd function with stdout output."""
         mock_create_service.return_value = "[Unit]\nDescription=Test Service\n"
-        
+
         generate_service_cmd("test-service", "/bin/test", None, None, None)
-        
+
         mock_create_service.assert_called_once_with(
             service_name="test-service",
             exec_command="/bin/test",
             user=None,
-            working_directory=None
+            working_directory=None,
         )
         mock_print.assert_called_with("[Unit]\nDescription=Test Service\n")
-    
+
     @patch("nicestlog.systemd_integration.create_systemd_service_file")
     @patch("builtins.open", new_callable=mock_open)
     @patch("builtins.print")
-    def test_generate_service_cmd_function_file_output(self, mock_print, mock_file, mock_create_service):
+    def test_generate_service_cmd_function_file_output(
+        self, mock_print, mock_file, mock_create_service
+    ):
         """Test generate_service_cmd function with file output."""
         mock_create_service.return_value = "[Unit]\nDescription=Test Service\n"
-        
-        generate_service_cmd("test-service", "/bin/test", "testuser", "/opt/test", "/tmp/test.service")
-        
+
+        generate_service_cmd(
+            "test-service", "/bin/test", "testuser", "/opt/test", "/tmp/test.service"
+        )
+
         mock_create_service.assert_called_once_with(
             service_name="test-service",
             exec_command="/bin/test",
             user="testuser",
-            working_directory="/opt/test"
+            working_directory="/opt/test",
         )
-        mock_file.assert_called_once_with("/tmp/test.service", 'w')
+        mock_file.assert_called_once_with("/tmp/test.service", "w")
         mock_file().write.assert_called_once_with("[Unit]\nDescription=Test Service\n")
 
 
 class TestJournalCommand:
     """Test cases for journal command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     def test_journal_help(self):
         """Test journal command help."""
         result = self.runner.invoke(app, ["journal", "--help"])
@@ -307,28 +333,37 @@ class TestJournalCommand:
         assert "--follow" in result.stdout
         assert "--since" in result.stdout
         assert "--level" in result.stdout
-    
+
     @patch("nicestlog.cli.run_journal_viewer")
     def test_journal_default_args(self, mock_journal):
         """Test journal command with default arguments."""
         result = self.runner.invoke(app, ["journal"])
         assert result.exit_code == 0
         mock_journal.assert_called_once_with(None, 50, False, None, None)
-    
+
     @patch("nicestlog.cli.run_journal_viewer")
     def test_journal_custom_args(self, mock_journal):
         """Test journal command with custom arguments."""
-        result = self.runner.invoke(app, [
-            "journal",
-            "--unit", "nginx.service",
-            "--lines", "100",
-            "--follow",
-            "--since", "1 hour ago",
-            "--level", "error"
-        ])
+        result = self.runner.invoke(
+            app,
+            [
+                "journal",
+                "--unit",
+                "nginx.service",
+                "--lines",
+                "100",
+                "--follow",
+                "--since",
+                "1 hour ago",
+                "--level",
+                "error",
+            ],
+        )
         assert result.exit_code == 0
-        mock_journal.assert_called_once_with("nginx.service", 100, True, "1 hour ago", "error")
-    
+        mock_journal.assert_called_once_with(
+            "nginx.service", 100, True, "1 hour ago", "error"
+        )
+
     def test_journal_invalid_level(self):
         """Test journal command with invalid level."""
         result = self.runner.invoke(app, ["journal", "--level", "invalid"])
@@ -336,14 +371,14 @@ class TestJournalCommand:
         # Error messages can be in stdout or stderr
         error_output = result.stdout + result.stderr
         assert "Invalid level 'invalid'" in error_output
-    
+
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False)
     @patch("builtins.print")
     def test_run_journal_viewer_no_systemd(self, mock_print):
         """Test run_journal_viewer when systemd is not available."""
         with pytest.raises(SystemExit):
             run_journal_viewer()
-        
+
         # Check that error message was printed
         mock_print.assert_called()
         call_args = mock_print.call_args[0][0]
@@ -352,11 +387,11 @@ class TestJournalCommand:
 
 class TestReviewCommand:
     """Test cases for review command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     def test_review_help(self):
         """Test review command help."""
         result = self.runner.invoke(app, ["review", "--help"])
@@ -364,61 +399,59 @@ class TestReviewCommand:
         assert "Review log quality" in result.stdout
         assert "--format" in result.stdout
         assert "--min-score" in result.stdout
-    
+
     @patch("nicestlog.cli.run_log_reviewer")
     def test_review_required_args(self, mock_reviewer):
         """Test review command with required arguments."""
         result = self.runner.invoke(app, ["review", "/path/to/logs"])
         assert result.exit_code == 0
         mock_reviewer.assert_called_once_with("/path/to/logs", "text", 70.0)
-    
+
     @patch("nicestlog.cli.run_log_reviewer")
     def test_review_custom_args(self, mock_reviewer):
         """Test review command with custom arguments."""
-        result = self.runner.invoke(app, [
-            "review", "/path/to/logs",
-            "--format", "json",
-            "--min-score", "80"
-        ])
+        result = self.runner.invoke(
+            app, ["review", "/path/to/logs", "--format", "json", "--min-score", "80"]
+        )
         assert result.exit_code == 0
         mock_reviewer.assert_called_once_with("/path/to/logs", "json", 80.0)
-    
+
     def test_review_invalid_format(self):
         """Test review command with invalid format."""
-        result = self.runner.invoke(app, [
-            "review", "/path/to/logs", "--format", "invalid"
-        ])
+        result = self.runner.invoke(
+            app, ["review", "/path/to/logs", "--format", "invalid"]
+        )
         assert result.exit_code == 1
         # Error messages can be in stdout or stderr
         error_output = result.stdout + result.stderr
         assert "Invalid format 'invalid'" in error_output
-    
+
     def test_review_missing_path(self):
         """Test review command with missing path argument."""
         result = self.runner.invoke(app, ["review"])
         assert result.exit_code != 0
         # Typer error messages can be in stdout or stderr, check both
         error_output = result.stdout + result.stderr
-        assert ("Missing argument" in error_output or "required" in error_output.lower())
+        assert "Missing argument" in error_output or "required" in error_output.lower()
 
 
 class TestParameterValidation:
     """Test cases for parameter validation."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     def test_lint_invalid_coverage_type(self):
         """Test lint command with invalid coverage type."""
         result = self.runner.invoke(app, ["lint", "--min-coverage", "invalid"])
         assert result.exit_code != 0
-    
+
     def test_dashboard_invalid_port_type(self):
         """Test dashboard command with invalid port type."""
         result = self.runner.invoke(app, ["dashboard", "--port", "invalid"])
         assert result.exit_code != 0
-    
+
     def test_journal_invalid_lines_type(self):
         """Test journal command with invalid lines type."""
         result = self.runner.invoke(app, ["journal", "--lines", "invalid"])

@@ -382,38 +382,32 @@ class TestSelectRenderedString:
     def test_select_console_output(self):
         """Test selecting console output from renderer dict."""
         selector = SelectRenderedString("console")
-        
-        test_dict = {
-            "console": "Console output text",
-            "file": "File output text"
-        }
-        
+
+        test_dict = {"console": "Console output text", "file": "File output text"}
+
         result = selector(None, None, test_dict)
         assert result == "Console output text"
 
     def test_select_file_output(self):
         """Test selecting file output from renderer dict."""
         selector = SelectRenderedString("file")
-        
-        test_dict = {
-            "console": "Console output text",
-            "file": "File output text"
-        }
-        
+
+        test_dict = {"console": "Console output text", "file": "File output text"}
+
         result = selector(None, None, test_dict)
         assert result == "File output text"
 
     def test_string_passthrough(self):
         """Test that string inputs pass through unchanged."""
         selector = SelectRenderedString("console")
-        
+
         result = selector(None, None, "Already a string")
         assert result == "Already a string"
 
     def test_missing_key_fallback(self):
         """Test fallback behavior when key is missing."""
         selector = SelectRenderedString("missing_key")
-        
+
         test_dict = {"other": "value"}
         result = selector(None, None, test_dict)
         assert result == str(test_dict)
@@ -423,44 +417,43 @@ class TestSelectRenderedString:
         import warnings
         import logging
         from io import StringIO
-        
+
         # Capture warnings
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            
+
             # Configure a proper test logging setup
             renderer = ConsoleFileRenderer(min_level="debug")
-            
+
             # Create formatter with SelectRenderedString
             formatter = structlog.stdlib.ProcessorFormatter(
                 foreign_pre_chain=[
                     structlog.stdlib.add_log_level,
                     structlog.stdlib.add_logger_name,
                 ],
-                processors=[
-                    renderer,
-                    SelectRenderedString("console")
-                ]
+                processors=[renderer, SelectRenderedString("console")],
             )
-            
+
             # Create a test handler
             stream = StringIO()
             handler = logging.StreamHandler(stream)
             handler.setFormatter(formatter)
-            
+
             # Create a test logger
             logger = logging.getLogger("test_select_renderer")
             logger.handlers.clear()
             logger.addHandler(handler)
             logger.setLevel(logging.DEBUG)
-            
+
             # Log a message (this should not trigger RuntimeWarning)
             logger.info("Test message for SelectRenderedString")
-            
+
             # Verify no RuntimeWarning was raised
             runtime_warnings = [w for w in w if issubclass(w.category, RuntimeWarning)]
-            assert len(runtime_warnings) == 0, f"Unexpected RuntimeWarning: {runtime_warnings}"
-            
+            assert len(runtime_warnings) == 0, (
+                f"Unexpected RuntimeWarning: {runtime_warnings}"
+            )
+
             # Verify we got output
             output = stream.getvalue()
             assert "Test message for SelectRenderedString" in output

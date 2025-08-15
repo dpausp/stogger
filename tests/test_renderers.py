@@ -1,9 +1,11 @@
 """
 Tests for the renderers.
 """
+
 import pytest
 import json
 from nicestlog.core import ConsoleFileRenderer, JSONRenderer
+
 
 def test_console_renderer_output():
     """Test the output of the ConsoleFileRenderer."""
@@ -19,6 +21,7 @@ def test_console_renderer_output():
     assert "some_value" in output["console"]
     assert "\x1b" not in output["file"]  # No ANSI codes in file output
 
+
 def test_json_renderer_output():
     """Test the output of the JSONRenderer."""
     renderer = JSONRenderer()
@@ -29,14 +32,15 @@ def test_json_renderer_output():
         "some_key": "some_value",
     }
     output = renderer(None, "info", event_dict.copy())
-    
+
     # Both console and file outputs should be valid JSON
     console_json = json.loads(output["console"])
     file_json = json.loads(output["file"])
-    
+
     assert console_json["event"] == "test-event"
     assert console_json["some_key"] == "some_value"
     assert file_json["level"] == "info"
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

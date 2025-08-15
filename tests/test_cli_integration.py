@@ -17,89 +17,92 @@ from nicestlog.cli import app
 
 class TestCliIntegration:
     """Integration tests that run actual CLI commands end-to-end."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
         self.temp_dir = tempfile.mkdtemp()
         self.temp_path = Path(self.temp_dir)
-    
+
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
 
 class TestInitConfigIntegration:
     """Integration tests for init-config command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
         self.temp_dir = tempfile.mkdtemp()
         self.temp_path = Path(self.temp_dir)
-        
+
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
-    
+
     def test_init_config_creates_pyproject_toml(self):
         """Test that init-config actually creates configuration."""
         pyproject_path = self.temp_path / "pyproject.toml"
-        pyproject_path.write_text("[build-system]\nrequires = [\"setuptools\"]\n")
-        
+        pyproject_path.write_text('[build-system]\nrequires = ["setuptools"]\n')
+
         # Mock the interactive input
         with patch("builtins.input") as mock_input:
             mock_input.side_effect = [
                 "y",  # verbose
-                "myapp",  # syslog_identifier  
+                "myapp",  # syslog_identifier
                 "json",  # log_format
                 "y",  # async_logging
                 "n",  # file logging
                 "n",  # translations
                 "y",  # append to file
             ]
-            
+
             # Mock the Path class to return our test file
             with patch("nicestlog.cli.Path") as mock_path_class:
                 mock_path = MagicMock()
                 mock_path_class.return_value = mock_path
                 mock_path.exists.return_value = True
-                
+
                 # Mock the file operations
                 with patch("builtins.open", create=True) as mock_open:
                     mock_file = MagicMock()
                     mock_open.return_value.__enter__.return_value = mock_file
-                    
+
                     result = self.runner.invoke(app, ["init-config"])
-                    
+
                     assert result.exit_code == 0
                     mock_file.write.assert_called_once()
                     written_content = mock_file.write.call_args[0][0]
-                    
+
                     # Verify the configuration content
                     assert "[tool.nicestlog]" in written_content
-                    assert 'verbose = true' in written_content
+                    assert "verbose = true" in written_content
                     assert 'syslog_identifier = "myapp"' in written_content
                     assert 'log_format = "json"' in written_content
-                    assert 'async_logging = true' in written_content
+                    assert "async_logging = true" in written_content
 
 
 class TestLintIntegration:
     """Integration tests for lint command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
         self.temp_dir = tempfile.mkdtemp()
         self.temp_path = Path(self.temp_dir)
-        
+
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
-    
+
     def test_lint_python_file_with_logging(self):
         """Test linting a Python file that has good logging."""
         test_file = self.temp_path / "good_logging.py"
@@ -122,17 +125,20 @@ def main():
     result = process_data([1, 2, 3])
     logging.info(f"Result: {result}")
 ''')
-        
+
         result = self.runner.invoke(app, ["lint", str(test_file)])
-        
+
         # The linter expects a directory, so let's test with directory path
         result = self.runner.invoke(app, ["lint", str(self.temp_path)])
-        
-        # The test file actually has too much logging (35.7% > 15% max), 
+
+        # The test file actually has too much logging (35.7% > 15% max),
         # so it fails with "too much logging" warning
         assert result.exit_code == 1
-        assert ("Possibly too much logging" in result.stdout or "files need logging attention" in result.stdout)
-    
+        assert (
+            "Possibly too much logging" in result.stdout
+            or "files need logging attention" in result.stdout
+        )
+
     def test_lint_python_file_with_good_logging(self):
         """Test linting a Python file that has appropriate logging coverage."""
         test_file = self.temp_path / "good_coverage.py"
@@ -164,13 +170,16 @@ def main():
     formatted = format_result(result)
     return formatted
 ''')
-        
+
         result = self.runner.invoke(app, ["lint", str(self.temp_path)])
-        
+
         # This should have good logging coverage (around 6-10%)
         assert result.exit_code == 0
-        assert ("Good logging coverage" in result.stdout or "All files have appropriate logging coverage" in result.stdout)
-    
+        assert (
+            "Good logging coverage" in result.stdout
+            or "All files have appropriate logging coverage" in result.stdout
+        )
+
     def test_lint_python_file_with_no_logging(self):
         """Test linting a Python file with insufficient logging."""
         test_file = self.temp_path / "bad_logging.py"
@@ -190,19 +199,19 @@ def main():
     result = process_list(data)
     print(f"Final result: {result}")
 ''')
-        
+
         # Test with directory path since linter works on directories
         result = self.runner.invoke(app, ["lint", str(self.temp_path)])
-        
+
         # Should fail due to insufficient logging
         assert result.exit_code == 1
         assert "Too little logging" in result.stdout
-    
+
     def test_lint_directory_with_mixed_files(self):
         """Test linting a directory with both good and bad files."""
         # Create a good file
         good_file = self.temp_path / "good.py"
-        good_file.write_text('''
+        good_file.write_text("""
 import logging
 log = logging.getLogger(__name__)
 
@@ -210,11 +219,11 @@ def good_function():
     log.info("This function has logging")
     log.debug("Debug information")
     return "success"
-''')
-        
-        # Create a bad file  
+""")
+
+        # Create a bad file
         bad_file = self.temp_path / "bad.py"
-        bad_file.write_text('''
+        bad_file.write_text("""
 def bad_function():
     # No logging at all
     return "result"
@@ -223,18 +232,18 @@ def another_bad_function():
     # Still no logging
     value = 42
     return value * 2
-''')
-        
+""")
+
         result = self.runner.invoke(app, ["lint", str(self.temp_path)])
-        
+
         # Should fail overall due to bad file
         assert result.exit_code == 1
         assert "files need logging attention" in result.stdout
-    
+
     def test_lint_with_strict_mode(self):
         """Test lint command with strict coverage requirements."""
         test_file = self.temp_path / "moderate_logging.py"
-        test_file.write_text('''
+        test_file.write_text("""
 import logging
 
 def func1():
@@ -247,40 +256,39 @@ def func2():
 def func3():
     # No logging  
     pass
-''')
-        
+""")
+
         # Normal mode might pass, but strict mode should be more demanding
         result_normal = self.runner.invoke(app, ["lint", str(test_file)])
         result_strict = self.runner.invoke(app, ["lint", str(test_file), "--strict"])
-        
+
         # Strict mode should be more demanding
         assert result_strict.exit_code in [0, 1]  # Could pass or fail, but should run
 
 
 class TestGenerateServiceIntegration:
     """Integration tests for generate-service command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
         self.temp_dir = tempfile.mkdtemp()
         self.temp_path = Path(self.temp_dir)
-        
+
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
-    
+
     def test_generate_service_to_stdout(self):
         """Test generating a systemd service file to stdout."""
-        result = self.runner.invoke(app, [
-            "generate-service", 
-            "test-app", 
-            "/usr/bin/test-app"
-        ])
-        
+        result = self.runner.invoke(
+            app, ["generate-service", "test-app", "/usr/bin/test-app"]
+        )
+
         assert result.exit_code == 0
-        
+
         # Check that service file content is generated
         output = result.stdout
         assert "[Unit]" in output
@@ -289,29 +297,35 @@ class TestGenerateServiceIntegration:
         assert "ExecStart=/usr/bin/test-app" in output
         assert "[Install]" in output
         assert "WantedBy=multi-user.target" in output
-    
+
     def test_generate_service_to_file(self):
         """Test generating a systemd service file to a file."""
         output_file = self.temp_path / "test-service.service"
-        
-        result = self.runner.invoke(app, [
-            "generate-service", 
-            "test-app", 
-            "/usr/bin/test-app",
-            "--user", "testuser",
-            "--working-dir", "/opt/test",
-            "--output", str(output_file)
-        ])
-        
+
+        result = self.runner.invoke(
+            app,
+            [
+                "generate-service",
+                "test-app",
+                "/usr/bin/test-app",
+                "--user",
+                "testuser",
+                "--working-dir",
+                "/opt/test",
+                "--output",
+                str(output_file),
+            ],
+        )
+
         assert result.exit_code == 0
         assert output_file.exists()
-        
+
         content = output_file.read_text()
         assert "[Unit]" in content
         assert "ExecStart=/usr/bin/test-app" in content
         assert "User=testuser" in content
         assert "WorkingDirectory=/opt/test" in content
-        
+
         # Check helpful output messages
         assert "Service file written to" in result.stdout
         assert "Install with: sudo cp" in result.stdout
@@ -320,69 +334,66 @@ class TestGenerateServiceIntegration:
 
 class TestJournalIntegration:
     """Integration tests for journal command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False)
     def test_journal_no_systemd_dependency(self):
         """Test journal command when systemd is not available."""
         result = self.runner.invoke(app, ["journal"])
-        
+
         assert result.exit_code == 1
         error_output = result.stdout + result.stderr
         assert "systemd-python not available" in error_output
-    
+
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True)
     @patch("nicestlog.journal_viewer.JournalViewer")
     def test_journal_with_systemd_available(self, mock_viewer_class):
         """Test journal command when systemd is available."""
         mock_viewer = MagicMock()
         mock_viewer_class.return_value = mock_viewer
-        
+
         # Mock journal entries
         mock_entries = [
             {"MESSAGE": "Test log entry 1", "PRIORITY": "6"},
             {"MESSAGE": "Test log entry 2", "PRIORITY": "4"},
         ]
         mock_viewer.query_journal.return_value = mock_entries
-        mock_viewer.format_entry.side_effect = lambda entry: f"Formatted: {entry['MESSAGE']}"
-        
-        result = self.runner.invoke(app, [
-            "journal", 
-            "--unit", "test.service",
-            "--lines", "10"
-        ])
-        
+        mock_viewer.format_entry.side_effect = (
+            lambda entry: f"Formatted: {entry['MESSAGE']}"
+        )
+
+        result = self.runner.invoke(
+            app, ["journal", "--unit", "test.service", "--lines", "10"]
+        )
+
         assert result.exit_code == 0
         mock_viewer.query_journal.assert_called_once_with(
-            service="test.service",
-            since=None,
-            level=None,
-            lines=10,
-            follow=False
+            service="test.service", since=None, level=None, lines=10, follow=False
         )
 
 
 class TestReviewIntegration:
     """Integration tests for review command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
         self.temp_dir = tempfile.mkdtemp()
         self.temp_path = Path(self.temp_dir)
-        
+
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
-    
+
     def test_review_log_file(self):
         """Test reviewing a single log file."""
         log_file = self.temp_path / "test.log"
-        log_file.write_text('''
+        log_file.write_text("""
 2024-01-01 10:00:00 INFO Starting application
 2024-01-01 10:00:01 DEBUG Loading configuration
 2024-01-01 10:00:02 INFO Configuration loaded successfully
@@ -390,144 +401,143 @@ class TestReviewIntegration:
 2024-01-01 10:00:04 ERROR Database connection failed
 2024-01-01 10:00:05 INFO Retrying database connection
 2024-01-01 10:00:06 INFO Database connected successfully
-''')
-        
+""")
+
         # Mock the reviewer components
         with patch("nicestlog.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
             mock_reviewer = MagicMock()
             mock_reviewer_class.return_value = mock_reviewer
-            
+
             # Mock a report with good score
             mock_report = MagicMock()
             mock_report.overall_score = 85.0
             mock_reviewer.analyze_log_file.return_value = mock_report
-            
+
             with patch("nicestlog.log_reviewer.print_report") as mock_print_report:
                 result = self.runner.invoke(app, ["review", str(log_file)])
-                
+
                 assert result.exit_code == 0
                 mock_reviewer.analyze_log_file.assert_called_once()
                 mock_print_report.assert_called_once_with(mock_report, "text")
-    
+
     def test_review_log_directory(self):
         """Test reviewing a directory of log files."""
         # Create multiple log files
         log1 = self.temp_path / "app.log"
         log1.write_text("2024-01-01 10:00:00 INFO Application started\n")
-        
-        log2 = self.temp_path / "error.log"  
+
+        log2 = self.temp_path / "error.log"
         log2.write_text("2024-01-01 10:00:00 ERROR Something went wrong\n")
-        
+
         with patch("nicestlog.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
             mock_reviewer = MagicMock()
             mock_reviewer_class.return_value = mock_reviewer
-            
+
             # Mock reports with varying scores
             mock_report1 = MagicMock()
             mock_report1.overall_score = 80.0
-            mock_report2 = MagicMock() 
+            mock_report2 = MagicMock()
             mock_report2.overall_score = 75.0
-            
+
             mock_reviewer.analyze_log_file.side_effect = [mock_report1, mock_report2]
-            
+
             with patch("nicestlog.log_reviewer.print_report") as mock_print_report:
-                result = self.runner.invoke(app, [
-                    "review", str(self.temp_path),
-                    "--format", "json",
-                    "--min-score", "70"
-                ])
-                
+                result = self.runner.invoke(
+                    app,
+                    [
+                        "review",
+                        str(self.temp_path),
+                        "--format",
+                        "json",
+                        "--min-score",
+                        "70",
+                    ],
+                )
+
                 assert result.exit_code == 0
                 assert mock_reviewer.analyze_log_file.call_count == 2
-                
+
     def test_review_with_low_score_fails(self):
         """Test that review fails when log quality is below minimum score."""
         log_file = self.temp_path / "bad.log"
         log_file.write_text("Some poorly formatted log content\n")
-        
+
         with patch("nicestlog.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
             mock_reviewer = MagicMock()
             mock_reviewer_class.return_value = mock_reviewer
-            
+
             # Mock a report with low score
             mock_report = MagicMock()
             mock_report.overall_score = 40.0  # Below default minimum of 70
             mock_reviewer.analyze_log_file.return_value = mock_report
-            
+
             with patch("nicestlog.log_reviewer.print_report"):
                 result = self.runner.invoke(app, ["review", str(log_file)])
-                
+
                 assert result.exit_code == 1  # Should fail due to low score
 
 
 class TestDashboardIntegration:
     """Integration tests for dashboard command."""
-    
+
     def setup_method(self):
         """Set up test fixtures."""
         self.runner = CliRunner()
-    
+
     @patch("nicestlog.web_dashboard.run_dashboard")
     def test_dashboard_starts_with_default_settings(self, mock_run_dashboard):
         """Test that dashboard starts with default settings."""
         # Mock the dashboard to avoid actually starting a web server
         mock_run_dashboard.return_value = None
-        
+
         result = self.runner.invoke(app, ["dashboard"])
-        
+
         assert result.exit_code == 0
         mock_run_dashboard.assert_called_once_with(
-            host="127.0.0.1", 
-            port=8080, 
-            debug=False
+            host="127.0.0.1", port=8080, debug=False
         )
-    
+
     @patch("nicestlog.web_dashboard.run_dashboard")
     def test_dashboard_with_custom_settings(self, mock_run_dashboard):
         """Test dashboard with custom host, port, and debug mode."""
         mock_run_dashboard.return_value = None
-        
-        result = self.runner.invoke(app, [
-            "dashboard",
-            "--host", "0.0.0.0",
-            "--port", "9000", 
-            "--debug"
-        ])
-        
+
+        result = self.runner.invoke(
+            app, ["dashboard", "--host", "0.0.0.0", "--port", "9000", "--debug"]
+        )
+
         assert result.exit_code == 0
         mock_run_dashboard.assert_called_once_with(
-            host="0.0.0.0",
-            port=9000,
-            debug=True
+            host="0.0.0.0", port=9000, debug=True
         )
 
 
 class TestRealExecutionIntegration:
     """Test the CLI by actually executing it as a subprocess."""
-    
+
     def test_help_command_subprocess(self):
         """Test running the help command as a real subprocess."""
         result = subprocess.run(
             [sys.executable, "-m", "nicestlog", "--help"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent,
         )
-        
+
         assert result.returncode == 0
         assert "Nicestlog utility" in result.stdout
         # Typer uses "Commands" (with a different format than argparse)
-        assert ("Commands" in result.stdout or "init-config" in result.stdout)
-    
+        assert "Commands" in result.stdout or "init-config" in result.stdout
+
     def test_lint_help_subprocess(self):
         """Test running lint help as a real subprocess."""
         result = subprocess.run(
             [sys.executable, "-m", "nicestlog", "lint", "--help"],
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent
+            cwd=Path(__file__).parent.parent,
         )
-        
+
         assert result.returncode == 0
         assert "Check logging coverage" in result.stdout
         assert "--min-coverage" in result.stdout

@@ -42,20 +42,41 @@ def test_analyze_file_with_functions_and_logs(tmp_path: Path):
 
 def test_check_logging_quality_thresholds():
     # Below min coverage
-    low = linter.LoggingStats(total_lines=10, code_lines=10, log_statements=0, functions=1,
-                              functions_with_logging=0, log_coverage_percent=0.0, function_coverage_percent=0.0)
+    low = linter.LoggingStats(
+        total_lines=10,
+        code_lines=10,
+        log_statements=0,
+        functions=1,
+        functions_with_logging=0,
+        log_coverage_percent=0.0,
+        function_coverage_percent=0.0,
+    )
     issues = linter.check_logging_quality(low, min_coverage=5.0, max_coverage=15.0)
     assert any("Too little logging" in x for x in issues)
 
     # Above max coverage
-    high = linter.LoggingStats(total_lines=10, code_lines=10, log_statements=20, functions=10,
-                               functions_with_logging=10, log_coverage_percent=200.0, function_coverage_percent=100.0)
+    high = linter.LoggingStats(
+        total_lines=10,
+        code_lines=10,
+        log_statements=20,
+        functions=10,
+        functions_with_logging=10,
+        log_coverage_percent=200.0,
+        function_coverage_percent=100.0,
+    )
     issues = linter.check_logging_quality(high, min_coverage=5.0, max_coverage=15.0)
     assert any("Possibly too much" in x for x in issues)
 
     # Good coverage
-    good = linter.LoggingStats(total_lines=10, code_lines=10, log_statements=1, functions=2,
-                               functions_with_logging=1, log_coverage_percent=10.0, function_coverage_percent=50.0)
+    good = linter.LoggingStats(
+        total_lines=10,
+        code_lines=10,
+        log_statements=1,
+        functions=2,
+        functions_with_logging=1,
+        log_coverage_percent=10.0,
+        function_coverage_percent=50.0,
+    )
     issues = linter.check_logging_quality(good, min_coverage=5.0, max_coverage=15.0)
     assert any("Good logging coverage" in x for x in issues)
     assert any("Good function logging coverage" in x for x in issues)
@@ -63,17 +84,23 @@ def test_check_logging_quality_thresholds():
 
 def test_lint_directory_reports_and_aggregates(tmp_path: Path, capsys):
     # Create two files: one okay, one low
-    ok = _write(tmp_path, "ok.py", """
+    ok = _write(
+        tmp_path,
+        "ok.py",
+        """
     import structlog
     log = structlog.get_logger()
     def f():
         log.info("x")
-    """
+    """,
     )
-    low = _write(tmp_path, "low.py", """
+    low = _write(
+        tmp_path,
+        "low.py",
+        """
     def g():
         pass
-    """
+    """,
     )
 
     success = linter.lint_directory(tmp_path, min_coverage=5.0, max_coverage=15.0)

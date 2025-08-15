@@ -15,6 +15,7 @@ import tempfile
 # Import our logging library
 import nicestlog
 
+
 def demonstrate_logging(log):
     """Runs a series of logging examples."""
     log.info("application-started", version="1.0.0")
@@ -48,6 +49,7 @@ def demonstrate_logging(log):
             exc_info=True,
         )
 
+
 def main():
     """Run all demonstration functions."""
     print("Nicestlog Usage Examples")
@@ -69,6 +71,7 @@ language = "en"
 """)
         # Temporarily change directory to where pyproject.toml is
         import os
+
         original_dir = os.getcwd()
         # Create dummy translations dir
         (config_dir / "translations").mkdir()
@@ -83,10 +86,8 @@ language = "en"
         demonstrate_logging(log)
         os.chdir(original_dir)
 
-
     print("\n" + "=" * 50)
     print("All examples completed successfully!")
-
 
     print("\n" + "=" * 50)
     print("All examples completed successfully!")

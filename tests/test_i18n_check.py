@@ -121,13 +121,13 @@ def test_check_translations_missing_in_strict_semantics(tmp_path: Path):
     tfile = trans_dir / "en.toml"
 
     # Missing event-b
-    write(tfile, "event-a = \"A\"\n")
+    write(tfile, 'event-a = "A"\n')
 
     # Simulate strict behavior by checking missing count non-empty
     report = check_translations([src], trans_dir, language="en")
     assert set(report["missing_keys"]) == {"event-b"}
 
     # Now make it complete
-    write(tfile, "event-a = \"A\"\nevent-b = \"B\"\n")
+    write(tfile, 'event-a = "A"\nevent-b = "B"\n')
     report2 = check_translations([src], trans_dir, language="en")
     assert report2["missing_keys"] == []

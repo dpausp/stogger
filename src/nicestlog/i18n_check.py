@@ -5,6 +5,7 @@ This scans Python source files for usages of `_replace_msg` and `_msg_key`
 within structlog logger calls and verifies that the translation file contains
 entries for all detected message keys.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -69,7 +70,9 @@ def load_translation_keys(translation_file: Path) -> Set[str]:
     Any top-level keys that map to non-dict values are considered message entries.
     """
     if toml is None:
-        raise RuntimeError("toml package not available; install 'toml' to use i18n check")
+        raise RuntimeError(
+            "toml package not available; install 'toml' to use i18n check"
+        )
 
     data = toml.load(translation_file)
     keys: Set[str] = set()
@@ -159,7 +162,7 @@ def format_report(report: Dict[str, object]) -> str:
     if "error" in report:
         return (
             f"❌ i18n check failed: {report['error']}\n"
-            f"   Translation file: {report.get('translation_file','<unknown>')}\n"
+            f"   Translation file: {report.get('translation_file', '<unknown>')}\n"
             f"   Required keys detected: {len(report.get('required_keys', []))}\n"
         )
 

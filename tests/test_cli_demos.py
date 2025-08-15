@@ -28,7 +28,9 @@ def test_run_demos_unknown_feature_exits(capsys, monkeypatch):
 
 @patch("nicestlog.cli.structlog.get_logger")
 @patch("nicestlog.cli.nicestlog.init_logging")
-def test_run_demos_basic_invokes_logging(mock_init_logging, mock_get_logger, monkeypatch):
+def test_run_demos_basic_invokes_logging(
+    mock_init_logging, mock_get_logger, monkeypatch
+):
     # Speed up header/separator sleeps
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep))
 
@@ -46,14 +48,23 @@ def test_run_demos_basic_invokes_logging(mock_init_logging, mock_get_logger, mon
 
 def test_run_demos_all_features_dispatch(monkeypatch):
     # Patch all demo functions to simple call counters
-    calls = {name: 0 for name in [
-        "run_basic_demo", "run_i18n_demo", "run_pii_demo", "run_eliot_demo",
-        "run_systemd_demo", "run_async_demo", "run_complete_demo"
-    ]}
+    calls = {
+        name: 0
+        for name in [
+            "run_basic_demo",
+            "run_i18n_demo",
+            "run_pii_demo",
+            "run_eliot_demo",
+            "run_systemd_demo",
+            "run_async_demo",
+            "run_complete_demo",
+        ]
+    }
 
     def _mk_stub(name):
         def _stub():
             calls[name] += 1
+
         return _stub
 
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep))

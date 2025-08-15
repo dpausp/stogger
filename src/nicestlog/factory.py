@@ -71,14 +71,14 @@ def build_renderer(config: NicestLogConfig) -> Any:
 def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     """Configures the standard Python logging library."""
     renderer = build_renderer(config)
-    
+
     # Create separate formatters for console and file handlers
     # Each formatter ends with SelectRenderedString to ensure string output
     console_formatter = structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=processors,
         processors=[renderer, SelectRenderedString("console")],
     )
-    
+
     file_formatter = structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=processors,
         processors=[renderer, SelectRenderedString("file")],
@@ -86,7 +86,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
 
     console_handlers: List[logging.Handler] = []
     file_handlers: List[logging.Handler] = []
-    
+
     if config.logdir:
         try:
             config.logdir.mkdir(parents=True, exist_ok=True)
@@ -109,7 +109,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
 
         log_queue: Queue = Queue(-1)
         queue_handler = QueueHandler(log_queue)
-        
+
         # Combine all handlers for the queue listener
         all_handlers = console_handlers + file_handlers
         listener = QueueListener(log_queue, *all_handlers)
@@ -131,7 +131,9 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
 
     # Set appropriate formatters for each handler type
     for handler in logging.root.handlers:
-        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+        if isinstance(handler, logging.StreamHandler) and not isinstance(
+            handler, logging.FileHandler
+        ):
             # Console/stream handler
             handler.setFormatter(console_formatter)
         elif isinstance(handler, logging.FileHandler):

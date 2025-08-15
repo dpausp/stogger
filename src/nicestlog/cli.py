@@ -1,6 +1,7 @@
 """
 Command-line interface for nicestlog.
 """
+
 import sys
 import time
 from pathlib import Path
@@ -11,10 +12,13 @@ import structlog
 import nicestlog
 import importlib.resources as resources
 
+
 def init_config():
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""
     print("Nicestlog Configuration Wizard")
-    print("This will help you create a `[tool.nicestlog]` section in your pyproject.toml.")
+    print(
+        "This will help you create a `[tool.nicestlog]` section in your pyproject.toml."
+    )
 
     pyproject_path = Path("pyproject.toml")
     if not pyproject_path.exists():
@@ -24,16 +28,25 @@ def init_config():
 
     config = {}
     print("\n--- General Settings ---")
-    config["verbose"] = input("Enable verbose (trace-level) logging? [y/N]: ").lower() == "y"
-    config["syslog_identifier"] = input("Syslog identifier [nicestlog]: ") or "nicestlog"
+    config["verbose"] = (
+        input("Enable verbose (trace-level) logging? [y/N]: ").lower() == "y"
+    )
+    config["syslog_identifier"] = (
+        input("Syslog identifier [nicestlog]: ") or "nicestlog"
+    )
     config["log_format"] = input("Log format (console/json) [console]: ") or "console"
-    config["async_logging"] = input("Enable asynchronous (non-blocking) logging? [y/N]: ").lower() == "y"
+    config["async_logging"] = (
+        input("Enable asynchronous (non-blocking) logging? [y/N]: ").lower() == "y"
+    )
 
     print("\n--- File Logging ---")
     if input("Enable file logging? [y/N]: ").lower() == "y":
         logdir = input("Log directory [logs]: ") or "logs"
         config["logdir"] = logdir
-        config["log_cmd_output"] = input("Log external command output to a separate file? [y/N]: ").lower() == "y"
+        config["log_cmd_output"] = (
+            input("Log external command output to a separate file? [y/N]: ").lower()
+            == "y"
+        )
 
     print("\n--- Translations ---")
     if input("Enable message translations? [y/N]: ").lower() == "y":
@@ -73,7 +86,7 @@ app.add_typer(i18n_app, name="i18n")
 @app.command()
 def docs(ctx: typer.Context):
     """Show all packaged docs"""
-    _show_markdown_files(["README.md", "best_practices.md"]) 
+    _show_markdown_files(["README.md", "best_practices.md"])
 
 
 @app.command("init-config")
@@ -85,9 +98,15 @@ def init_config_cmd():
 @app.command()
 def lint(
     path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
-    min_coverage: Annotated[float, typer.Option(help="Minimum logging coverage %")] = 5.0,
-    max_coverage: Annotated[float, typer.Option(help="Maximum logging coverage %")] = 15.0,
-    strict: Annotated[bool, typer.Option(help="Use stricter coverage requirements")] = False,
+    min_coverage: Annotated[
+        float, typer.Option(help="Minimum logging coverage %")
+    ] = 5.0,
+    max_coverage: Annotated[
+        float, typer.Option(help="Maximum logging coverage %")
+    ] = 15.0,
+    strict: Annotated[
+        bool, typer.Option(help="Use stricter coverage requirements")
+    ] = False,
 ):
     """Check logging coverage in your codebase."""
     run_linter(path, min_coverage, max_coverage, strict)
@@ -107,9 +126,17 @@ def dashboard(
 def generate_service(
     service_name: Annotated[str, typer.Argument(help="Name of the service")],
     exec_command: Annotated[str, typer.Argument(help="Command to execute")],
-    user: Annotated[Optional[str], typer.Option(help="User to run as (default: current user)")] = None,
-    working_dir: Annotated[Optional[str], typer.Option("--working-dir", help="Working directory (default: current dir)")] = None,
-    output: Annotated[Optional[str], typer.Option("-o", "--output", help="Output file (default: stdout)")] = None,
+    user: Annotated[
+        Optional[str], typer.Option(help="User to run as (default: current user)")
+    ] = None,
+    working_dir: Annotated[
+        Optional[str],
+        typer.Option("--working-dir", help="Working directory (default: current dir)"),
+    ] = None,
+    output: Annotated[
+        Optional[str],
+        typer.Option("-o", "--output", help="Output file (default: stdout)"),
+    ] = None,
 ):
     """Generate systemd service file."""
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
@@ -117,15 +144,25 @@ def generate_service(
 
 @app.command()
 def journal(
-    service: Annotated[Optional[str], typer.Option("-u", "--unit", "--service", help="Service to show logs for")] = None,
+    service: Annotated[
+        Optional[str],
+        typer.Option("-u", "--unit", "--service", help="Service to show logs for"),
+    ] = None,
     lines: Annotated[int, typer.Option("-n", "--lines", help="Number of lines")] = 50,
-    follow: Annotated[bool, typer.Option("-f", "--follow", help="Follow new entries")] = False,
-    since: Annotated[Optional[str], typer.Option(help='Show logs since time (e.g., "1 hour ago")')] = None,
+    follow: Annotated[
+        bool, typer.Option("-f", "--follow", help="Follow new entries")
+    ] = False,
+    since: Annotated[
+        Optional[str], typer.Option(help='Show logs since time (e.g., "1 hour ago")')
+    ] = None,
     level: Annotated[Optional[str], typer.Option(help="Minimum log level")] = None,
 ):
     """Beautiful systemd journal viewer."""
-    if level and level not in ['critical', 'error', 'warning', 'info', 'debug']:
-        typer.echo(f"Error: Invalid level '{level}'. Choose from: critical, error, warning, info, debug", err=True)
+    if level and level not in ["critical", "error", "warning", "info", "debug"]:
+        typer.echo(
+            f"Error: Invalid level '{level}'. Choose from: critical, error, warning, info, debug",
+            err=True,
+        )
         raise typer.Exit(1)
     run_journal_viewer(service, lines, follow, since, level)
 
@@ -133,19 +170,27 @@ def journal(
 @app.command()
 def review(
     path: Annotated[str, typer.Argument(help="Log file or directory to review")],
-    format_type: Annotated[str, typer.Option("--format", help="Output format")] = "text",
-    min_score: Annotated[float, typer.Option("--min-score", help="Minimum acceptable score")] = 70.0,
+    format_type: Annotated[
+        str, typer.Option("--format", help="Output format")
+    ] = "text",
+    min_score: Annotated[
+        float, typer.Option("--min-score", help="Minimum acceptable score")
+    ] = 70.0,
 ):
     """Review log quality with Austrian honesty."""
-    if format_type not in ['text', 'json']:
-        typer.echo(f"Error: Invalid format '{format_type}'. Choose from: text, json", err=True)
+    if format_type not in ["text", "json"]:
+        typer.echo(
+            f"Error: Invalid format '{format_type}'. Choose from: text, json", err=True
+        )
         raise typer.Exit(1)
     run_log_reviewer(path, format_type, min_score)
 
 
 @app.command()
 def demo(
-    feature: Annotated[Optional[str], typer.Argument(help="Specific feature to demo")] = None,
+    feature: Annotated[
+        Optional[str], typer.Argument(help="Specific feature to demo")
+    ] = None,
     all_features: Annotated[bool, typer.Option("--all", help="Run all demos")] = False,
 ):
     """Demonstrate nicestlog features with live examples."""
@@ -157,10 +202,13 @@ def _show_markdown_files(filenames: list[str]):
         import sys
         from rich.console import Console
         from rich.markdown import Markdown
+
         console = Console()
         with console.pager():
             for idx, filename in enumerate(filenames):
-                resource_path = resources.files('nicestlog').joinpath(f"_docs/{filename}")
+                resource_path = resources.files("nicestlog").joinpath(
+                    f"_docs/{filename}"
+                )
                 content = resource_path.read_text(encoding="utf-8")
                 md = Markdown(content, code_theme="monokai")
                 console.rule(f"{filename}")
@@ -179,12 +227,28 @@ def main():
 
 @i18n_app.command("check")
 def i18n_check(
-    path: Annotated[str, typer.Argument(help="Path to source (file or directory)")] = ".",
-    translation_dir: Annotated[str, typer.Option(help="Directory containing translation files")] = "translations",
-    language: Annotated[str, typer.Option("-l", "--language", help="Language code to check")] = "en",
-    strict: Annotated[bool, typer.Option(help="Exit with non-zero code if missing keys")] = False,
-    list_missing: Annotated[bool, typer.Option("--list-missing", help="Only list missing keys (one per line)")] = False,
-    fail_on_extra: Annotated[bool, typer.Option("--fail-on-extra", help="Exit non-zero if extra (unused) keys exist")] = False,
+    path: Annotated[
+        str, typer.Argument(help="Path to source (file or directory)")
+    ] = ".",
+    translation_dir: Annotated[
+        str, typer.Option(help="Directory containing translation files")
+    ] = "translations",
+    language: Annotated[
+        str, typer.Option("-l", "--language", help="Language code to check")
+    ] = "en",
+    strict: Annotated[
+        bool, typer.Option(help="Exit with non-zero code if missing keys")
+    ] = False,
+    list_missing: Annotated[
+        bool,
+        typer.Option("--list-missing", help="Only list missing keys (one per line)"),
+    ] = False,
+    fail_on_extra: Annotated[
+        bool,
+        typer.Option(
+            "--fail-on-extra", help="Exit non-zero if extra (unused) keys exist"
+        ),
+    ] = False,
 ):
     """Check that translation file contains entries for all _replace_msg/_msg_key usages.
 
@@ -212,50 +276,61 @@ def i18n_check(
 
     if "error" in report:
         raise typer.Exit(2)
-    if (strict and report.get("missing_keys", [])) or (fail_on_extra and report.get("extra_keys", [])):
+    if (strict and report.get("missing_keys", [])) or (
+        fail_on_extra and report.get("extra_keys", [])
+    ):
         raise typer.Exit(1)
 
 
-def run_linter(path: str = ".", min_coverage: float = 5.0, max_coverage: float = 15.0, strict: bool = False):
+def run_linter(
+    path: str = ".",
+    min_coverage: float = 5.0,
+    max_coverage: float = 15.0,
+    strict: bool = False,
+):
     """Run the logging linter."""
     from .linter import lint_directory
     from pathlib import Path
-    
+
     if strict:
         min_coverage = 3.0
         max_coverage = 10.0
-    
-    success = lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
+
+    success = lint_directory(
+        Path(path), min_coverage=min_coverage, max_coverage=max_coverage
+    )
     if not success:
         sys.exit(1)
+
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
     from .web_dashboard import run_dashboard
-    
+
     run_dashboard(host=host, port=port, debug=debug)
 
+
 def generate_service_cmd(
-    service_name: str, 
-    exec_command: str, 
-    user: Optional[str] = None, 
-    working_dir: Optional[str] = None, 
-    output: Optional[str] = None
+    service_name: str,
+    exec_command: str,
+    user: Optional[str] = None,
+    working_dir: Optional[str] = None,
+    output: Optional[str] = None,
 ):
     """Generate systemd service file."""
     from .systemd_integration import create_systemd_service_file
-    
+
     # Generate service file
     service_content = create_systemd_service_file(
         service_name=service_name,
         exec_command=exec_command,
         user=user,
-        working_directory=working_dir
+        working_directory=working_dir,
     )
-    
+
     # Output
     if output:
-        with open(output, 'w') as f:
+        with open(output, "w") as f:
             f.write(service_content)
         print(f"✅ Service file written to {output}")
         print(f"💡 Install with: sudo cp {output} /etc/systemd/system/")
@@ -264,30 +339,30 @@ def generate_service_cmd(
     else:
         print(service_content)
 
+
 def run_journal_viewer(
     service: Optional[str] = None,
     lines: int = 50,
     follow: bool = False,
     since: Optional[str] = None,
-    level: Optional[str] = None
+    level: Optional[str] = None,
 ):
     """Run the journal viewer."""
     from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
-    
+
     if not SYSTEMD_AVAILABLE:
-        print("Error: systemd-python not available. Install with: pip install systemd-python", file=sys.stderr)
+        print(
+            "Error: systemd-python not available. Install with: pip install systemd-python",
+            file=sys.stderr,
+        )
         sys.exit(1)
-    
+
     # Create viewer and run
     viewer = JournalViewer()
-    
+
     try:
         for entry in viewer.query_journal(
-            service=service,
-            since=since,
-            level=level,
-            lines=lines,
-            follow=follow
+            service=service, since=since, level=level, lines=lines, follow=follow
         ):
             print(viewer.format_entry(entry))
     except KeyboardInterrupt:
@@ -296,40 +371,41 @@ def run_journal_viewer(
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
+
 def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
     """Run the log quality reviewer."""
     from .log_reviewer import LogQualityReviewer, print_report
     from pathlib import Path
-    
+
     reviewer = LogQualityReviewer()
     path = Path(path_str)
-    
+
     if path.is_file():
         report = reviewer.analyze_log_file(path)
         print_report(report, format_type)
-        
+
         if report.overall_score < min_score:
             sys.exit(1)
-    
+
     elif path.is_dir():
-        log_files = list(path.glob('*.log')) + list(path.glob('*.txt'))
+        log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
         if not log_files:
             print("Keine Log-Dateien gefunden!", file=sys.stderr)
             sys.exit(1)
-        
+
         total_score = 0
         for log_file in log_files:
             print(f"\n📁 {log_file.name}:")
             report = reviewer.analyze_log_file(log_file)
             print_report(report, format_type)
             total_score += report.overall_score
-        
+
         avg_score = total_score / len(log_files)
         print(f"\n🎯 Durchschnittliche Qualität: {avg_score:.1f}/100")
-        
+
         if avg_score < min_score:
             sys.exit(1)
-    
+
     else:
         print(f"Pfad nicht gefunden: {path}", file=sys.stderr)
         sys.exit(1)
@@ -338,28 +414,28 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 def run_demos(feature: Optional[str] = None, all_features: bool = False):
     """Run nicestlog feature demonstrations."""
     import time
-    
+
     available_demos = {
         "basic": "Basic structured logging with console output",
-        "i18n": "Internationalization and message translations", 
+        "i18n": "Internationalization and message translations",
         "pii": "PII scrubbing and data protection",
         "eliot": "Eliot integration for action tracing",
         "systemd": "Systemd journal integration",
         "async": "Asynchronous logging performance",
-        "complete": "Complete real-world application example"
+        "complete": "Complete real-world application example",
     }
-    
+
     def print_demo_header(title: str, description: str):
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"🎭 {title}")
         print(f"📝 {description}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         time.sleep(1)
-    
+
     def print_demo_separator():
-        print(f"\n{'-'*40}")
+        print(f"\n{'-' * 40}")
         time.sleep(0.5)
-    
+
     if not feature and not all_features:
         print("🎯 Available nicestlog demos:")
         print()
@@ -370,18 +446,20 @@ def run_demos(feature: Optional[str] = None, all_features: bool = False):
         print("  nicestlog demo basic           # Run specific demo")
         print("  nicestlog demo --all           # Run all demos")
         return
-    
+
     demos_to_run = []
     if all_features:
         demos_to_run = list(available_demos.keys())
     elif feature in available_demos:
         demos_to_run = [feature]
     else:
-        print(f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}")
+        print(
+            f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}"
+        )
         sys.exit(1)
-    
+
     print("🚀 Starting nicestlog demonstrations...")
-    
+
     for demo_name in demos_to_run:
         if demo_name == "basic":
             run_basic_demo()
@@ -397,65 +475,90 @@ def run_demos(feature: Optional[str] = None, all_features: bool = False):
             run_async_demo()
         elif demo_name == "complete":
             run_complete_demo()
-        
+
         if len(demos_to_run) > 1:
             print_demo_separator()
-    
+
     print("\n🎉 Demo complete! Try these features in your own applications.")
 
 
 def print_demo_header(title: str, description: str):
     """Print a formatted demo section header."""
     import time
-    print(f"\n{'='*60}")
+
+    print(f"\n{'=' * 60}")
     print(f"🎭 {title}")
     print(f"📝 {description}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     time.sleep(1)
 
 
 def run_basic_demo():
     """Demonstrate basic nicestlog features."""
-    print_demo_header("Basic Structured Logging", "Console output with beautiful formatting")
-    
+    print_demo_header(
+        "Basic Structured Logging", "Console output with beautiful formatting"
+    )
+
     import nicestlog
     import structlog
-    
+
     # Initialize with console output
     nicestlog.init_logging(verbose=True, syslog_identifier="demo")
     log = structlog.get_logger()
-    
+
     print("📋 Demonstrating different log levels and structured data:")
-    
-    log.info("application-started", 
-             _replace_msg="🚀 Application {name} v{version} started successfully",
-             name="nicestlog-demo", version="1.0.0", pid=12345)
-    
-    log.debug("user-authentication",
-              _replace_msg="🔐 User {username} attempting login from {ip}",
-              username="alice", ip="192.168.1.100", session_id="abc123")
-    
-    log.warning("rate-limit-approaching",
-               _replace_msg="⚠️  Rate limit at {percent}% for user {user_id}",
-               percent=85, user_id=42, requests_remaining=15)
-    
-    log.error("database-connection-failed",
-              _replace_msg="💥 Database connection failed: {error}",
-              error="Connection timeout", host="db.example.com", 
-              retry_count=3, max_retries=5)
-    
-    log.info("api-request-completed",
-             _replace_msg="✅ API request completed in {duration}ms",
-             method="GET", endpoint="/api/users", duration=234,
-             status_code=200, response_size=1024)
+
+    log.info(
+        "application-started",
+        _replace_msg="🚀 Application {name} v{version} started successfully",
+        name="nicestlog-demo",
+        version="1.0.0",
+        pid=12345,
+    )
+
+    log.debug(
+        "user-authentication",
+        _replace_msg="🔐 User {username} attempting login from {ip}",
+        username="alice",
+        ip="192.168.1.100",
+        session_id="abc123",
+    )
+
+    log.warning(
+        "rate-limit-approaching",
+        _replace_msg="⚠️  Rate limit at {percent}% for user {user_id}",
+        percent=85,
+        user_id=42,
+        requests_remaining=15,
+    )
+
+    log.error(
+        "database-connection-failed",
+        _replace_msg="💥 Database connection failed: {error}",
+        error="Connection timeout",
+        host="db.example.com",
+        retry_count=3,
+        max_retries=5,
+    )
+
+    log.info(
+        "api-request-completed",
+        _replace_msg="✅ API request completed in {duration}ms",
+        method="GET",
+        endpoint="/api/users",
+        duration=234,
+        status_code=200,
+        response_size=1024,
+    )
 
 
 def run_i18n_demo():
     """Demonstrate internationalization features."""
     print_demo_header("Internationalization (i18n)", "Multi-language log messages")
-    
+
     try:
         from .i18n import demo_translations
+
         demo_translations()
     except ImportError:
         print("⚠️  i18n demo requires additional setup")
@@ -464,9 +567,10 @@ def run_i18n_demo():
 def run_pii_demo():
     """Demonstrate PII scrubbing."""
     print_demo_header("PII Scrubbing", "Automatic removal of sensitive data")
-    
+
     try:
         from .pii_scrubber import demo_pii_scrubbing
+
         demo_pii_scrubbing()
     except ImportError:
         print("⚠️  PII demo requires additional setup")
@@ -475,9 +579,10 @@ def run_pii_demo():
 def run_eliot_demo():
     """Demonstrate Eliot integration."""
     print_demo_header("Eliot Integration", "Beautiful action tracing and causality")
-    
+
     try:
         from .eliot_integration import demo_eliot_integration
+
         demo_eliot_integration()
     except ImportError:
         print("⚠️  Eliot demo requires: pip install eliot")
@@ -486,9 +591,10 @@ def run_eliot_demo():
 def run_systemd_demo():
     """Demonstrate systemd integration."""
     print_demo_header("Systemd Integration", "Journal logging and service management")
-    
+
     try:
         from .systemd_integration import demo_systemd_integration
+
         demo_systemd_integration()
     except ImportError:
         print("⚠️  Systemd demo requires: pip install systemd-python")
@@ -497,98 +603,119 @@ def run_systemd_demo():
 def run_async_demo():
     """Demonstrate async logging performance."""
     print_demo_header("Async Logging", "Non-blocking high-performance logging")
-    
+
     import nicestlog
     import structlog
     import asyncio
     import time
-    
+
     print("🔄 Comparing sync vs async logging performance...")
-    
+
     # Sync logging
     nicestlog.init_logging(async_logging=False, syslog_identifier="sync-demo")
     log = structlog.get_logger()
-    
+
     start_time = time.time()
     for i in range(100):
         log.info("sync-message", iteration=i, data=f"payload-{i}")
     sync_duration = time.time() - start_time
-    
+
     print(f"⏱️  Sync logging: {sync_duration:.3f}s for 100 messages")
-    
+
     # Async logging
     nicestlog.init_logging(async_logging=True, syslog_identifier="async-demo")
     log = structlog.get_logger()
-    
+
     start_time = time.time()
     for i in range(100):
         log.info("async-message", iteration=i, data=f"payload-{i}")
     async_duration = time.time() - start_time
-    
+
     print(f"⚡ Async logging: {async_duration:.3f}s for 100 messages")
-    print(f"🚀 Speedup: {sync_duration/async_duration:.1f}x faster")
+    print(f"🚀 Speedup: {sync_duration / async_duration:.1f}x faster")
 
 
 def run_complete_demo():
     """Demonstrate a complete real-world application scenario."""
     print_demo_header("Complete Application Example", "Real-world usage patterns")
-    
+
     import nicestlog
     import structlog
     from pathlib import Path
     import tempfile
     import time
-    
+
     # Setup comprehensive logging
     with tempfile.TemporaryDirectory() as temp_dir:
         log_dir = Path(temp_dir)
-        
+
         nicestlog.init_logging(
             verbose=True,
             logdir=log_dir,
             syslog_identifier="webapp",
             async_logging=True,
-            log_cmd_output=True
+            log_cmd_output=True,
         )
-        
+
         log = structlog.get_logger()
-        
+
         print("🌐 Simulating web application with comprehensive logging...")
-        
+
         # Application startup
-        log.info("app-startup",
-                 _replace_msg="🚀 Web application starting on port {port}",
-                 port=8080, version="2.1.0", environment="production")
-        
+        log.info(
+            "app-startup",
+            _replace_msg="🚀 Web application starting on port {port}",
+            port=8080,
+            version="2.1.0",
+            environment="production",
+        )
+
         # Database connection
-        log.info("db-connection",
-                 _replace_msg="🔌 Connected to database {db_name}",
-                 db_name="userdb", host="db.prod.com", pool_size=10)
-        
+        log.info(
+            "db-connection",
+            _replace_msg="🔌 Connected to database {db_name}",
+            db_name="userdb",
+            host="db.prod.com",
+            pool_size=10,
+        )
+
         # User requests
         for i in range(5):
             user_id = 1000 + i
             session_id = f"sess_{i:03d}"
-            
-            log.info("request-start",
-                     _replace_msg="📥 Processing request {request_id}",
-                     request_id=f"req_{i:03d}", user_id=user_id,
-                     session_id=session_id, method="GET", path="/api/profile")
-            
+
+            log.info(
+                "request-start",
+                _replace_msg="📥 Processing request {request_id}",
+                request_id=f"req_{i:03d}",
+                user_id=user_id,
+                session_id=session_id,
+                method="GET",
+                path="/api/profile",
+            )
+
             # Simulate processing time
             time.sleep(0.1)
-            
+
             if i == 3:  # Simulate an error
-                log.error("request-error",
-                          _replace_msg="💥 Request failed: {error}",
-                          request_id=f"req_{i:03d}", error="User not found",
-                          user_id=user_id, status_code=404)
+                log.error(
+                    "request-error",
+                    _replace_msg="💥 Request failed: {error}",
+                    request_id=f"req_{i:03d}",
+                    error="User not found",
+                    user_id=user_id,
+                    status_code=404,
+                )
             else:
-                log.info("request-complete",
-                         _replace_msg="✅ Request completed in {duration}ms",
-                         request_id=f"req_{i:03d}", duration=50 + i*10,
-                         status_code=200, response_size=512)
-        
+                log.info(
+                    "request-complete",
+                    _replace_msg="✅ Request completed in {duration}ms",
+                    request_id=f"req_{i:03d}",
+                    duration=50 + i * 10,
+                    status_code=200,
+                    response_size=512,
+                )
+
         # Show log files created
         log_files = list(log_dir.glob("*.log"))
         if log_files:
@@ -596,13 +723,14 @@ def run_complete_demo():
             for log_file in log_files:
                 size = log_file.stat().st_size
                 print(f"  {log_file.name}: {size} bytes")
-        
+
         print("\n💡 This demonstrates:")
         print("  • Structured logging with meaningful events")
         print("  • File and console output")
         print("  • Request tracing with IDs")
         print("  • Error handling and context")
         print("  • Performance monitoring")
+
 
 if __name__ == "__main__":
     main()

@@ -39,7 +39,9 @@ def test_cli_demo_complete_invokes_function(monkeypatch):
 def test_run_async_demo_behavior(monkeypatch, capsys):
     # speed up sleeps and control time progression
     times = iter([0.0, 0.1, 0.2, 0.25])
-    monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep, time=lambda: next(times)))
+    monkeypatch.setattr(
+        cli, "time", types.SimpleNamespace(sleep=_nosleep, time=lambda: next(times))
+    )
 
     # mock nicestlog init
     monkeypatch.setattr(cli.nicestlog, "init_logging", lambda **kwargs: None)
@@ -57,7 +59,10 @@ def test_run_async_demo_behavior(monkeypatch, capsys):
     assert "Speedup:" in out
 
     # logger.info should be called in both loops
-    assert any(call.args and call.args[0] in ("sync-message", "async-message") for call in mock_log.info.call_args_list)
+    assert any(
+        call.args and call.args[0] in ("sync-message", "async-message")
+        for call in mock_log.info.call_args_list
+    )
 
 
 def test_run_complete_demo_smoke(monkeypatch, capsys):
