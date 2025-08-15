@@ -180,6 +180,10 @@ def lint_directory(
     total_stats = LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0)
 
     print(f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n")
+    
+    if any(python_files):
+        print("📁 MODULE │ LINES:LOGS (COVERAGE%) │ ISSUES")
+        print("─" * 50)
 
     for file_path in python_files:
         # Skip __pycache__ and other irrelevant files
@@ -196,15 +200,22 @@ def lint_directory(
         total_stats.functions += stats.functions
         total_stats.functions_with_logging += stats.functions_with_logging
 
-        if any("❌" in issue or "⚠️" in issue for issue in issues):
+        # Count issues and prepare compact summary
+        error_count = sum(1 for issue in issues if "❌" in issue)
+        warning_count = sum(1 for issue in issues if "⚠️" in issue)
+        
+        if error_count > 0 or warning_count > 0:
             total_issues += 1
-            print(f"📁 {file_path}")
-            print(
-                f"   Lines: {stats.total_lines}, Code: {stats.code_lines}, Logs: {stats.log_statements}"
-            )
-            for issue in issues:
-                print(f"   {issue}")
-            print()
+            # One-line summary per module
+            status_icons = []
+            if error_count > 0:
+                status_icons.append(f"❌{error_count}")
+            if warning_count > 0:
+                status_icons.append(f"⚠️{warning_count}")
+            
+            print(f"📁 {file_path.relative_to(directory)} │ "
+                  f"Lines:{stats.code_lines} Logs:{stats.log_statements} "
+                  f"({stats.log_coverage_percent:.1f}%) │ {' '.join(status_icons)}")
 
     # Overall summary
     if total_stats.code_lines > 0:
