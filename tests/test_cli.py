@@ -269,8 +269,8 @@ class TestGenerateServiceCommand:
         """Test generate-service command with missing required arguments."""
         result = self.runner.invoke(app, ["generate-service"])
         assert result.exit_code != 0
-        # Typer error messages can be in stdout or stderr, check both
-        error_output = result.stdout + result.stderr
+        # Use result.output when stderr is mixed with stdout
+        error_output = result.output
         assert "Missing argument" in error_output or "required" in error_output.lower()
 
     @patch("nicestlog.systemd_integration.create_systemd_service_file")
@@ -366,8 +366,8 @@ class TestJournalCommand:
         """Test journal command with invalid level."""
         result = self.runner.invoke(app, ["journal", "--level", "invalid"])
         assert result.exit_code == 1
-        # Error messages can be in stdout or stderr
-        error_output = result.stdout + result.stderr
+        # Use result.output when stderr is mixed with stdout
+        error_output = result.output
         assert "Invalid level 'invalid'" in error_output
 
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False)
@@ -420,16 +420,16 @@ class TestReviewCommand:
             app, ["review", "/path/to/logs", "--format", "invalid"]
         )
         assert result.exit_code == 1
-        # Error messages can be in stdout or stderr
-        error_output = result.stdout + result.stderr
+        # Use result.output when stderr is mixed with stdout
+        error_output = result.output
         assert "Invalid format 'invalid'" in error_output
 
     def test_review_missing_path(self):
         """Test review command with missing path argument."""
         result = self.runner.invoke(app, ["review"])
         assert result.exit_code != 0
-        # Typer error messages can be in stdout or stderr, check both
-        error_output = result.stdout + result.stderr
+        # Use result.output when stderr is mixed with stdout
+        error_output = result.output
         assert "Missing argument" in error_output or "required" in error_output.lower()
 
 

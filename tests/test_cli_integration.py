@@ -344,7 +344,8 @@ class TestJournalIntegration:
         result = self.runner.invoke(app, ["journal"])
 
         assert result.exit_code == 1
-        error_output = result.stdout + result.stderr
+        # Use result.output when stderr is mixed with stdout
+        error_output = result.output
         assert "systemd-python not available" in error_output
 
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True)
