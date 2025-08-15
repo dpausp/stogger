@@ -200,25 +200,38 @@ def setup_systemd_logging(
     """
     Setup systemd journal logging integration.
 
+    This function prefers the detected runtime environment to decide whether to
+    enable systemd logging. If a systemd environment is detected, it will attach
+    a SystemdJournalHandler even when the systemd-python package is not
+    available; in that case, the handler acts as a no-op but preserves the
+    processor chain shape. If no systemd environment is detected, the function
+    returns False.
+
     Args:
         identifier: SYSLOG_IDENTIFIER for journal entries
         facility: SYSLOG_FACILITY
         structured_fields: Whether to include structured data as journal fields
 
     Returns:
-        True if systemd logging was successfully configured
+        True if systemd logging was successfully configured, otherwise False
     """
+    env_info = detect_systemd_environment()
+
+    # If we don't appear to be running under systemd and journal isn't available,
+    # don't configure anything.
+    if not (env_info.get("running_under_systemd") or env_info.get("journal_available")):
+        return False
+
+    # If systemd-python isn't available, warn but still install a no-op handler so
+    # tests and processor wiring continue to work.
     if not SYSTEMD_AVAILABLE:
         print(
             "systemd-python not available. Install with: pip install systemd-python",
             file=sys.stderr,
         )
-        return False
-
-    env_info = detect_systemd_environment()
 
     # Use detected service name if no identifier provided
-    if not identifier and env_info["service_name"]:
+    if not identifier and env_info.get("service_name"):
         identifier = env_info["service_name"]
 
     handler = SystemdJournalHandler(identifier=identifier, facility=facility)
@@ -227,7 +240,7 @@ def setup_systemd_logging(
     current_config = structlog.get_config()
     processors = list(current_config.get("processors", []))
 
-    # Insert before any renderers
+    # Insert before any renderers; if there are no processors, this inserts at 0.
     processors.insert(-1, handler)
 
     structlog.configure(
