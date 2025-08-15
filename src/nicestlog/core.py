@@ -176,16 +176,12 @@ class JSONRenderer:
 
 
 def add_pid(_, __, event_dict):
-    pid = os.getpid()
-    log.debug("adding-pid-to-event", pid=pid)
-    event_dict["pid"] = pid
+    event_dict["pid"] = os.getpid()
     return event_dict
 
 
 def add_caller_info(_, __, event_dict):
     frame = sys._getframe(5)
-    log.debug("adding-caller-info", filename=frame.f_code.co_filename, 
-                function=frame.f_code.co_name, line=frame.f_lineno)
     event_dict.update(
         {
             "code_file": frame.f_code.co_filename,
@@ -199,10 +195,8 @@ def add_caller_info(_, __, event_dict):
 def process_exc_info(_, __, event_dict):
     if exc_info := event_dict.get("exc_info"):
         if isinstance(exc_info, BaseException):
-            log.debug("processing-exception-object", exc_type=type(exc_info).__name__)
             event_dict["exc_info"] = (type(exc_info), exc_info, exc_info.__traceback__)
         elif not isinstance(exc_info, tuple):
-            log.debug("getting-current-exception-info")
             event_dict["exc_info"] = sys.exc_info()
     return event_dict
 
