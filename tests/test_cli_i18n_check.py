@@ -3,7 +3,6 @@ import subprocess
 import sys
 import textwrap
 
-import pytest
 
 
 def run_cli(args, cwd=None):

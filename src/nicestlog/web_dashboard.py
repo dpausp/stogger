@@ -4,15 +4,13 @@ Simple Flask + HTMX web dashboard for live log viewing.
 No async bullshit, just good old Flask with HTMX for live updates.
 """
 
-import json
 import queue
 import threading
 import time
 from datetime import datetime
 from typing import Dict, List, Any
-from pathlib import Path
 
-from flask import Flask, render_template_string, jsonify, request
+from flask import Flask, render_template_string, request
 import structlog
 
 # Simple in-memory log storage

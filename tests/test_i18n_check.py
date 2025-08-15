@@ -1,7 +1,6 @@
 import textwrap
 from pathlib import Path
 
-import pytest
 
 from nicestlog.i18n_check import (
     find_required_translation_keys,

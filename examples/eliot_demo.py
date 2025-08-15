@@ -57,7 +57,7 @@ def simulate_api_request():
 
         # Cache operations
         with log_action("cache_operations"):
-            cache_key = f"user:42:profile"
+            cache_key = "user:42:profile"
 
             with log_action("cache_invalidate", key=cache_key):
                 log_message(message_type="cache_deleted", ttl_remaining=120)

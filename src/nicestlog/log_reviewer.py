@@ -6,11 +6,10 @@ Reviews log quality, structure, and usefulness with Austrian directness.
 
 import re
 import json
-import ast
 from typing import Dict, List, Any, Tuple, Optional
 from dataclasses import dataclass
 from pathlib import Path
-from collections import Counter, defaultdict
+from collections import Counter
 
 
 @dataclass
@@ -235,7 +234,6 @@ class LogQualityReviewer:
             return 0
 
         score = 0
-        max_score = 100
 
         # Structured logging (40 points)
         if stats["total_lines"] > 0:
@@ -463,21 +461,21 @@ def print_report(report: LogQualityReport, format_type: str = "text"):
     print(verdict_messages.get(report.overall_verdict, "🤷 Keine Ahnung..."))
 
     if report.issues:
-        print(f"\n❌ Probleme:")
+        print("\n❌ Probleme:")
         for issue in report.issues:
             print(f"   {issue}")
 
     if report.good_practices:
-        print(f"\n✅ Gut gemacht:")
+        print("\n✅ Gut gemacht:")
         for practice in report.good_practices:
             print(f"   {practice}")
 
     if report.suggestions:
-        print(f"\n💡 Verbesserungsvorschläge:")
+        print("\n💡 Verbesserungsvorschläge:")
         for suggestion in report.suggestions:
             print(f"   {suggestion}")
 
-    print(f"\n📊 Statistiken:")
+    print("\n📊 Statistiken:")
     print(f"   Zeilen gesamt: {report.stats['total_lines']}")
     print(f"   Strukturiert: {report.stats['structured_lines']}")
     print(f"   Unstrukturiert: {report.stats['unstructured_lines']}")

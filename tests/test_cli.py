@@ -5,7 +5,6 @@ Comprehensive tests for the CLI module functionality.
 import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
-import sys
 
 from nicestlog.cli import (
     main,
@@ -14,7 +13,6 @@ from nicestlog.cli import (
     run_dashboard_cmd,
     generate_service_cmd,
     run_journal_viewer,
-    run_log_reviewer,
     app,
 )
 from typer.testing import CliRunner

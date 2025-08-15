@@ -1,6 +1,5 @@
 import types
 from unittest.mock import Mock
-import pytest
 from typer.testing import CliRunner
 
 import nicestlog.cli as cli

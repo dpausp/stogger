@@ -4,11 +4,9 @@ Eliot integration for nicestlog - Beautiful human-readable action tracing.
 Combines Eliot's powerful action tracking with nicestlog's beautiful output.
 """
 
-import json
 import sys
 from typing import Any, Dict, Optional, TextIO
 from datetime import datetime
-from contextlib import contextmanager
 
 try:
     from eliot import start_action, Action, log_message

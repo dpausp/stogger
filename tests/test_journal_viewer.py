@@ -2,11 +2,8 @@
 Tests for journal_viewer module.
 """
 
-import json
-import sys
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from io import StringIO
 
 from src.nicestlog.journal_viewer import JournalEntry, JournalViewer
@@ -71,7 +68,7 @@ class TestJournalViewer:
         """Test initialization when systemd is unavailable."""
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False):
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
-                viewer = JournalViewer()
+                JournalViewer()
 
                 assert "Warning: systemd-python not available" in mock_stderr.getvalue()
 

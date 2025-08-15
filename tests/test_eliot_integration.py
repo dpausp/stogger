@@ -3,7 +3,6 @@ Tests for eliot_integration module.
 """
 
 import io
-import json
 import sys
 import pytest
 from unittest.mock import Mock, patch, MagicMock

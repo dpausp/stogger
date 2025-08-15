@@ -5,8 +5,7 @@ Automatically detects and redacts sensitive information from log messages.
 """
 
 import re
-import json
-from typing import Any, Dict, List, Pattern, Union
+from typing import Any, Dict, List
 
 
 class PIIScrubber:
@@ -243,7 +242,7 @@ def demo_pii_scrubbing():
         print(f"   Note:   {test['expected']}")
 
     # Test dictionary scrubbing
-    print(f"\n📋 Dictionary scrubbing:")
+    print("\n📋 Dictionary scrubbing:")
     test_dict = {
         "user_id": 12345,
         "email": "user@example.com",
@@ -257,8 +256,8 @@ def demo_pii_scrubbing():
     scrubbed_dict = scrubber.scrub_dict(test_dict)
     print(f"   Output: {scrubbed_dict}")
 
-    print(f"\n🎉 PII scrubbing demo complete!")
-    print(f"💡 Use: processors=[create_pii_processor(), ...] in structlog.configure()")
+    print("\n🎉 PII scrubbing demo complete!")
+    print("💡 Use: processors=[create_pii_processor(), ...] in structlog.configure()")
 
 
 if __name__ == "__main__":

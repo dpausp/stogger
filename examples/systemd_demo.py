@@ -9,7 +9,7 @@ import os
 import time
 import nicestlog
 import structlog
-from nicestlog import detect_systemd_environment, setup_systemd_logging
+from nicestlog import detect_systemd_environment
 
 
 def demo_systemd_features():
@@ -19,7 +19,7 @@ def demo_systemd_features():
 
     # Check systemd environment
     env_info = detect_systemd_environment()
-    print(f"🔍 Environment Detection:")
+    print("🔍 Environment Detection:")
     print(f"   Running under systemd: {env_info['running_under_systemd']}")
     print(f"   Journal available: {env_info['journal_available']}")
     print(f"   Service name: {env_info['service_name'] or 'Not detected'}")
@@ -27,7 +27,7 @@ def demo_systemd_features():
     print(f"   Invocation ID: {env_info['invocation_id'] or 'Not set'}")
 
     # Initialize logging with systemd support
-    print(f"\n📝 Setting up logging...")
+    print("\n📝 Setting up logging...")
     nicestlog.init_logging(
         verbose=True,
         syslog_identifier="systemd-demo",
@@ -37,7 +37,7 @@ def demo_systemd_features():
 
     log = structlog.get_logger("systemd_demo")
 
-    print(f"\n🚀 Generating test logs for systemd...")
+    print("\n🚀 Generating test logs for systemd...")
 
     # Application startup logs
     log.info(
@@ -89,16 +89,16 @@ def demo_systemd_features():
         failover_time_ms=2500,
     )
 
-    print(f"\n✅ Logs sent to systemd journal!")
-    print(f"💡 View with: journalctl -f SYSLOG_IDENTIFIER=systemd-demo")
-    print(f"💡 Filter errors: journalctl SYSLOG_IDENTIFIER=systemd-demo PRIORITY=3")
-    print(f"💡 Follow live: journalctl -f -u your-service-name")
+    print("\n✅ Logs sent to systemd journal!")
+    print("💡 View with: journalctl -f SYSLOG_IDENTIFIER=systemd-demo")
+    print("💡 Filter errors: journalctl SYSLOG_IDENTIFIER=systemd-demo PRIORITY=3")
+    print("💡 Follow live: journalctl -f -u your-service-name")
 
 
 def show_systemd_commands():
     """Show useful systemd commands for log management."""
-    print(f"\n📚 Useful systemd/journalctl commands:")
-    print(f"=" * 60)
+    print("\n📚 Useful systemd/journalctl commands:")
+    print("=" * 60)
 
     commands = [
         ("View all logs for a service", "journalctl -u myapp.service"),
@@ -124,8 +124,8 @@ def show_systemd_commands():
 
 def generate_example_service():
     """Generate an example systemd service file."""
-    print(f"\n📄 Example systemd service file generation:")
-    print(f"=" * 60)
+    print("\n📄 Example systemd service file generation:")
+    print("=" * 60)
 
     from nicestlog.systemd_integration import create_systemd_service_file
 
@@ -145,18 +145,18 @@ def generate_example_service():
 
     print(service_content)
 
-    print(f"💾 Save this as: /etc/systemd/system/my-web-app.service")
-    print(f"🔄 Then run:")
-    print(f"   sudo systemctl daemon-reload")
-    print(f"   sudo systemctl enable my-web-app")
-    print(f"   sudo systemctl start my-web-app")
-    print(f"   sudo systemctl status my-web-app")
+    print("💾 Save this as: /etc/systemd/system/my-web-app.service")
+    print("🔄 Then run:")
+    print("   sudo systemctl daemon-reload")
+    print("   sudo systemctl enable my-web-app")
+    print("   sudo systemctl start my-web-app")
+    print("   sudo systemctl status my-web-app")
 
 
 def show_production_tips():
     """Show production deployment tips."""
-    print(f"\n🏭 Production Deployment Tips:")
-    print(f"=" * 60)
+    print("\n🏭 Production Deployment Tips:")
+    print("=" * 60)
 
     tips = [
         "🔒 Use dedicated user accounts for services (not root!)",
@@ -174,12 +174,12 @@ def show_production_tips():
     for tip in tips:
         print(f"   {tip}")
 
-    print(f"\n🎯 nicestlog makes all of this easier with:")
-    print(f"   ✅ Automatic systemd detection and integration")
-    print(f"   ✅ Proper structured logging with systemd fields")
-    print(f"   ✅ Service file generation with best practices")
-    print(f"   ✅ PII scrubbing for compliance")
-    print(f"   ✅ Web dashboard for real-time monitoring")
+    print("\n🎯 nicestlog makes all of this easier with:")
+    print("   ✅ Automatic systemd detection and integration")
+    print("   ✅ Proper structured logging with systemd fields")
+    print("   ✅ Service file generation with best practices")
+    print("   ✅ PII scrubbing for compliance")
+    print("   ✅ Web dashboard for real-time monitoring")
 
 
 if __name__ == "__main__":
@@ -188,5 +188,5 @@ if __name__ == "__main__":
     generate_example_service()
     show_production_tips()
 
-    print(f"\n🎉 Systemd integration demo complete!")
-    print(f"💡 Try: uv run python -m nicestlog generate-service my-app 'python app.py'")
+    print("\n🎉 Systemd integration demo complete!")
+    print("💡 Try: uv run python -m nicestlog generate-service my-app 'python app.py'")

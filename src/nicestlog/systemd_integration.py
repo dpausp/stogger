@@ -8,7 +8,7 @@ import os
 import sys
 import socket
 import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, List
 from datetime import datetime
 import structlog
 
@@ -64,7 +64,7 @@ class SystemdJournalHandler:
         message = event_dict.get("event", "")
         level = event_dict.get("level", "info")
         logger_name = event_dict.get("logger", "root")
-        timestamp = event_dict.get("timestamp")
+        event_dict.get("timestamp")
 
         # Build journal fields (systemd uses uppercase field names)
         journal_fields = {
@@ -447,7 +447,7 @@ def demo_systemd_integration():
         print("💡 Install with: pip install systemd-python")
 
     # Generate service file example
-    print(f"\n📄 Example systemd service file:")
+    print("\n📄 Example systemd service file:")
     service_file = create_systemd_service_file(
         service_name="my-python-app",
         exec_command="/usr/bin/python3 /opt/myapp/main.py",

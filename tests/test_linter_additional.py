@@ -1,6 +1,5 @@
 from pathlib import Path
 import textwrap
-import tempfile
 
 import nicestlog.linter as linter
 
@@ -84,7 +83,7 @@ def test_check_logging_quality_thresholds():
 
 def test_lint_directory_reports_and_aggregates(tmp_path: Path, capsys):
     # Create two files: one okay, one low
-    ok = _write(
+    _write(
         tmp_path,
         "ok.py",
         """
@@ -94,7 +93,7 @@ def test_lint_directory_reports_and_aggregates(tmp_path: Path, capsys):
         log.info("x")
     """,
     )
-    low = _write(
+    _write(
         tmp_path,
         "low.py",
         """

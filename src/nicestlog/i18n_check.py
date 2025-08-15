@@ -10,8 +10,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Iterable, Set, Tuple, Dict, List
-import re
-import sys
 
 try:
     import toml

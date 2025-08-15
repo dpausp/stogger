@@ -5,7 +5,7 @@ Tests for log_reviewer module.
 import json
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, patch
 from io import StringIO
 
 from src.nicestlog.log_reviewer import LogQualityReport, LogQualityReviewer
@@ -605,7 +605,7 @@ class TestCLIFunctions:
                 mock_reviewer.analyze_log_file.return_value = mock_report
 
                 with patch("src.nicestlog.log_reviewer.print_report") as mock_print:
-                    with patch("builtins.print") as mock_builtin_print:
+                    with patch("builtins.print"):
                         from src.nicestlog.log_reviewer import review_logs_cli
 
                         review_logs_cli()

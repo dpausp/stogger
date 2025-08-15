@@ -5,7 +5,6 @@ These tests actually run the commands with real functionality.
 
 import pytest
 import tempfile
-import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 import subprocess
@@ -259,7 +258,7 @@ def func3():
 """)
 
         # Normal mode might pass, but strict mode should be more demanding
-        result_normal = self.runner.invoke(app, ["lint", str(test_file)])
+        self.runner.invoke(app, ["lint", str(test_file)])
         result_strict = self.runner.invoke(app, ["lint", str(test_file), "--strict"])
 
         # Strict mode should be more demanding
@@ -441,7 +440,7 @@ class TestReviewIntegration:
 
             mock_reviewer.analyze_log_file.side_effect = [mock_report1, mock_report2]
 
-            with patch("nicestlog.log_reviewer.print_report") as mock_print_report:
+            with patch("nicestlog.log_reviewer.print_report"):
                 result = self.runner.invoke(
                     app,
                     [

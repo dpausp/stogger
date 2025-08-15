@@ -413,7 +413,6 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 
 def run_demos(feature: Optional[str] = None, all_features: bool = False):
     """Run nicestlog feature demonstrations."""
-    import time
 
     available_demos = {
         "basic": "Basic structured logging with console output",
@@ -484,7 +483,6 @@ def run_demos(feature: Optional[str] = None, all_features: bool = False):
 
 def print_demo_header(title: str, description: str):
     """Print a formatted demo section header."""
-    import time
 
     print(f"\n{'=' * 60}")
     print(f"🎭 {title}")
@@ -499,8 +497,6 @@ def run_basic_demo():
         "Basic Structured Logging", "Console output with beautiful formatting"
     )
 
-    import nicestlog
-    import structlog
 
     # Initialize with console output
     nicestlog.init_logging(verbose=True, syslog_identifier="demo")
@@ -604,9 +600,6 @@ def run_async_demo():
     """Demonstrate async logging performance."""
     print_demo_header("Async Logging", "Non-blocking high-performance logging")
 
-    import nicestlog
-    import structlog
-    import asyncio
     import time
 
     print("🔄 Comparing sync vs async logging performance...")
@@ -639,8 +632,6 @@ def run_complete_demo():
     """Demonstrate a complete real-world application scenario."""
     print_demo_header("Complete Application Example", "Real-world usage patterns")
 
-    import nicestlog
-    import structlog
     from pathlib import Path
     import tempfile
     import time

@@ -7,7 +7,6 @@ import json
 import os
 import string
 import sys
-from datetime import datetime
 from typing import Any
 
 import structlog

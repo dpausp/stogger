@@ -5,9 +5,6 @@ This script demonstrates various logging patterns and best practices
 using the new nicestlog API.
 """
 
-import sys
-import time
-import subprocess
 from pathlib import Path
 import structlog
 import tempfile

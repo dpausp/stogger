@@ -8,7 +8,7 @@ import ast
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Set
+from typing import List
 from dataclasses import dataclass
 
 
@@ -135,12 +135,12 @@ def check_logging_quality(
         issues.append(
             f"❌ Too little logging! {stats.log_coverage_percent:.1f}% coverage (minimum: {min_coverage}%)"
         )
-        issues.append(f"   Add more log.info(), log.debug(), or log.error() statements")
+        issues.append("   Add more log.info(), log.debug(), or log.error() statements")
     elif stats.log_coverage_percent > max_coverage:
         issues.append(
             f"⚠️  Possibly too much logging! {stats.log_coverage_percent:.1f}% coverage (maximum: {max_coverage}%)"
         )
-        issues.append(f"   Consider reducing log verbosity or using higher log levels")
+        issues.append("   Consider reducing log verbosity or using higher log levels")
     else:
         issues.append(f"✅ Good logging coverage: {stats.log_coverage_percent:.1f}%")
 
@@ -151,7 +151,7 @@ def check_logging_quality(
                 f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%"
             )
             issues.append(
-                f"   Consider adding logging to more functions (aim for 30-70%)"
+                "   Consider adding logging to more functions (aim for 30-70%)"
             )
         elif stats.function_coverage_percent > 90:
             issues.append(

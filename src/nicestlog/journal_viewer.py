@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 # Keep a reference to the real datetime class for type checks when tests patch the module symbol
 _REAL_DATETIME = datetime
-from typing import Dict, Any, List, Optional, Iterator
+from typing import Dict, Any, Iterator
 from dataclasses import dataclass
 
 try:

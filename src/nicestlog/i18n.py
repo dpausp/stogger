@@ -4,8 +4,6 @@ Internationalization support for nicestlog.
 Supports Austrian, Swiss German, and other dialects because why not!
 """
 
-import os
-import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 import structlog
@@ -223,7 +221,7 @@ def demo_translations():
         print(f"   Quality: {translator.get('verdict_leiwand', 'quality')}")
         print(f"   Goodbye: {translator.get('goodbye', 'general')}")
 
-    print(f"\n🎉 Austrian Shortcuts:")
+    print("\n🎉 Austrian Shortcuts:")
     print(f"   {oida('das funktioniert')}")
     print(f"   {leiwand('Translation system')}")
     print(f"   {arsch('Broken code')}")
