@@ -41,15 +41,15 @@ Configuration is in `pyproject.toml`:
 - logging is configured on console to go to stderr.
 
 ```python
-logger.info("userscan-finished", _replace_msg="Scan finished in {seconds} seconds", duration=duration, structured_data=value)
-logger.debug("cache-hit", operation="scan", name=name)
-logger.warn("missing-config-value", _replace_msg="Config: no value for {key}", key=key)
+log.info("userscan-finished", _replace_msg="Scan finished in {seconds} seconds", duration=duration, structured_data=value)
+log.debug("cache-hit", operation="scan", name=name)
+log.warn("missing-config-value", _replace_msg="Config: no value for {key}", key=key)
 ```
 
 ### Error Handling
 
 - Log timing for long operations
-- Log exceptions: `logger.error("cmd-call-error", username="bl", exc_info=True)`
+- Log exceptions: `log.error("cmd-call-error", username="bl", exc_info=True)`
 - Use `typer.Exit(1)` for CLI errors
 - Structured error context in logs
 

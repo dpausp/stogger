@@ -30,7 +30,7 @@ class NicestlogTranslator:
         self.translations: Dict[str, Any] = {}
         self.fallback_translations: Dict[str, Any] = {}
 
-        log.debug("initializing_translator", language=language)
+        log.debug("initializing-translator", language=language)
         self._load_translations()
 
     def _load_translations(self):
@@ -42,10 +42,10 @@ class NicestlogTranslator:
         if fallback_file.exists() and toml:
             try:
                 self.fallback_translations = toml.load(fallback_file)
-                log.debug("loaded_fallback_translations", file=str(fallback_file))
+                log.debug("loaded-fallback-translations", file=str(fallback_file))
             except Exception as e:
                 log.warning(
-                    "failed_to_load_fallback", file=str(fallback_file), error=str(e)
+                    "failed-to-load-fallback", file=str(fallback_file), error=str(e)
                 )
 
         # Load requested language
@@ -54,21 +54,21 @@ class NicestlogTranslator:
             try:
                 self.translations = toml.load(lang_file)
                 log.info(
-                    "loaded_translations",
+                    "loaded-translations",
                     language=self.language,
                     file=str(lang_file),
                     keys_loaded=len(self.translations),
                 )
             except Exception as e:
                 log.error(
-                    "failed_to_load_translations",
+                    "failed-to-load-translations",
                     language=self.language,
                     file=str(lang_file),
                     error=str(e),
                 )
         else:
             log.warning(
-                "translation_file_not_found",
+                "translation-file-not-found",
                 language=self.language,
                 file=str(lang_file),
                 fallback="en",
@@ -87,7 +87,7 @@ class NicestlogTranslator:
             Translated string with variables substituted
         """
         log.debug(
-            "getting_translation", key=key, section=section, language=self.language
+            "getting-translation", key=key, section=section, language=self.language
         )
 
         # Try to get from current language
