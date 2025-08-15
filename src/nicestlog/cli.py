@@ -212,6 +212,26 @@ def demo(
     """Demonstrate nicestlog features with live examples."""
     run_demos(feature, all_features)
 
+@app.command()
+def assistant(
+    path: Annotated[str, typer.Argument(help="Path to directory to migrate")],
+    output: Annotated[
+        Optional[str], typer.Option("-o", "--output", help="Output directory")
+    ] = None,
+    translations: Annotated[
+        Optional[str], typer.Option("-t", "--translations", help="Translations file name")
+    ] = "log_messages.json",
+):
+    """Automatically migrate print and logging statements to structlog."""
+    from .assistant import migrate_directory
+    from pathlib import Path
+
+    input_dir = Path(path)
+    output_dir = Path(output) if output else None
+    translations_file = translations
+
+    migrate_directory(input_dir, output_dir, translations_file)
+
 
 def _show_markdown_files(filenames: list[str]):
     try:
