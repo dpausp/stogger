@@ -12,6 +12,9 @@ from typing import Any
 import structlog
 
 from .config import NicestLogConfig
+
+# Get a logger for this module
+logger = structlog.get_logger(__name__)
 # Import moved to avoid circular import
 
 try:
@@ -41,6 +44,7 @@ else:
 
 class PartialFormatter(string.Formatter):
     def __init__(self, missing="<missing>", bad_format="<bad format>"):
+        logger.debug("initializing-partial-formatter", missing=missing, bad_format=bad_format)
         self.missing = missing
         self.bad_format = bad_format
 
@@ -48,19 +52,23 @@ class PartialFormatter(string.Formatter):
         try:
             return super().get_field(field_name, args, kwargs)
         except (KeyError, AttributeError):
+            logger.debug("field-not-found", field_name=field_name)
             return None, field_name
 
     def format_field(self, value, format_spec):
         if value is None:
+            logger.debug("using-missing-placeholder", format_spec=format_spec)
             return self.missing
         try:
             return super().format_field(value, format_spec)
         except ValueError:
+            logger.warning("bad-format-spec", value=value, format_spec=format_spec)
             return self.bad_format
 
 
 class TranslationProcessor:
     def __init__(self, translations):
+        logger.info("initializing-translation-processor", translation_count=len(translations))
         self.translations = translations
         self.formatter = PartialFormatter()
 
@@ -68,9 +76,13 @@ class TranslationProcessor:
         msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
         template = self.translations.get(msg_key)
         if template:
+            logger.debug("applying-translation", msg_key=msg_key, template=template)
             event_dict["event"] = self.formatter.format(template, **event_dict)
         elif replace_msg := event_dict.pop("_replace_msg", None):
+            logger.debug("applying-replacement-message", replace_msg=replace_msg)
             event_dict["event"] = self.formatter.format(replace_msg, **event_dict)
+        else:
+            logger.debug("no-translation-found", msg_key=msg_key)
         return event_dict
 
 
@@ -85,11 +97,15 @@ class ConsoleFileRenderer:
     def __init__(
         self, min_level="info", show_caller_info=False, pad_event=_EVENT_WIDTH
     ):
+        logger.info("initializing-console-renderer", min_level=min_level, 
+                   show_caller_info=show_caller_info, pad_event=pad_event)
         self.min_level_idx = self.LEVELS.index(min_level.lower())
         self.show_caller_info = show_caller_info
         if colorama is None:
+            logger.warning("colorama-not-available", renderer=self.__class__.__name__)
             print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
         if sys.stdout.isatty() and colorama:
+            logger.debug("initializing-colorama")
             colorama.init()
         self._level_to_color = {
             "critical": RED,
@@ -101,6 +117,7 @@ class ConsoleFileRenderer:
 
     def __call__(self, _, __, event_dict):
         if self.LEVELS.index(event_dict["level"]) > self.min_level_idx:
+            logger.debug("dropping-event-below-min-level", level=event_dict["level"], min_level_idx=self.min_level_idx)
             raise structlog.DropEvent
 
         # Console output with colors
@@ -148,6 +165,7 @@ class JSONRenderer:
     """JSON renderer for structured logging output."""
 
     def __init__(self, min_level="info"):
+        logger.info("initializing-json-renderer", min_level=min_level)
         self.min_level_idx = ConsoleFileRenderer.LEVELS.index(min_level.lower())
 
     def __call__(self, _, __, event_dict):
@@ -158,12 +176,16 @@ class JSONRenderer:
 
 
 def add_pid(_, __, event_dict):
-    event_dict["pid"] = os.getpid()
+    pid = os.getpid()
+    logger.debug("adding-pid-to-event", pid=pid)
+    event_dict["pid"] = pid
     return event_dict
 
 
 def add_caller_info(_, __, event_dict):
     frame = sys._getframe(5)
+    logger.debug("adding-caller-info", filename=frame.f_code.co_filename, 
+                function=frame.f_code.co_name, line=frame.f_lineno)
     event_dict.update(
         {
             "code_file": frame.f_code.co_filename,
@@ -177,8 +199,10 @@ def add_caller_info(_, __, event_dict):
 def process_exc_info(_, __, event_dict):
     if exc_info := event_dict.get("exc_info"):
         if isinstance(exc_info, BaseException):
+            logger.debug("processing-exception-object", exc_type=type(exc_info).__name__)
             event_dict["exc_info"] = (type(exc_info), exc_info, exc_info.__traceback__)
         elif not isinstance(exc_info, tuple):
+            logger.debug("getting-current-exception-info")
             event_dict["exc_info"] = sys.exc_info()
     return event_dict
 
@@ -228,9 +252,11 @@ def init_logging(**kwargs: Any):
     # Import here to avoid circular import
     from .factory import build_shared_processors, configure_stdlib_logging
 
+    logger.info("initializing-nicestlog", config_kwargs=list(kwargs.keys()))
     config = NicestLogConfig(**kwargs)
 
     shared_processors = build_shared_processors(config)
+    logger.debug("built-shared-processors", processor_count=len(shared_processors))
 
     structlog.configure(
         processors=[
@@ -241,8 +267,10 @@ def init_logging(**kwargs: Any):
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
     )
+    logger.debug("configured-structlog")
 
     configure_stdlib_logging(config, shared_processors)
+    logger.info("logging-initialization-complete")
 
 
 def logging_initialized():
