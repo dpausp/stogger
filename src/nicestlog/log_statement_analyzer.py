@@ -171,9 +171,36 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         if method == "debug" and "_replace_msg" in magic_args:
             issues.append("debug_with_replace_msg")
         
+        # Check for too many keyword arguments (complexity warning)
+        non_magic_kwargs = {k: v for k, v in kwargs.items() if k not in self.magic_args}
+        if len(non_magic_kwargs) > 7:
+            issues.append(f"too_many_kwargs ({len(non_magic_kwargs)}>7)")
+        
         # Check for proper structured data
         if event_id and not kwargs and "_replace_msg" not in magic_args:
             issues.append("no_structured_data")
+        
+        # Check for inconsistent log levels with event severity
+        if method == "debug" and event_id and any(word in event_id.lower() 
+                                                 for word in ["error", "fail", "critical", "fatal"]):
+            issues.append("debug_for_error_event")
+        
+        if method in ["error", "critical"] and event_id and any(word in event_id.lower() 
+                                                               for word in ["debug", "trace", "info"]):
+            issues.append("error_level_for_info_event")
+        
+        # Check for password/secret leakage in kwargs
+        sensitive_patterns = {
+            "password", "passwd", "secret", "token", "auth_key", "auth_token", 
+            "api_key", "api_token", "credential", "private_key", "session_key"
+        }
+        for kwarg_key in kwargs.keys():
+            if kwarg_key.lower() in sensitive_patterns:
+                issues.append(f"potential_secret_leak ({kwarg_key})")
+        
+        # Check for very long event IDs (readability)
+        if event_id and len(event_id) > 50:
+            issues.append(f"event_id_too_long ({len(event_id)}>50)")
         
         return issues
 
