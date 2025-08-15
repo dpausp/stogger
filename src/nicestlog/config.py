@@ -27,9 +27,9 @@ class NicestLogConfig:
         log = logging.getLogger(__name__)
 
         config = self._load_config()
-        log.debug(f"Loaded config from file: {config}")
+        log.debug("config-loaded-from-file", config_keys=list(config.keys()), config_size=len(config))
         config.update(kwargs)
-        log.debug(f"Final config after kwargs: {config}")
+        log.debug("config-merged-with-kwargs", final_config_keys=list(config.keys()), kwargs_applied=list(kwargs.keys()))
 
         self.verbose: bool = config.get("verbose", False)
         self.logdir: Optional[Path] = (
@@ -58,18 +58,24 @@ class NicestLogConfig:
         log = logging.getLogger(__name__)
 
         pyproject_path = Path.cwd() / "pyproject.toml"
-        log.debug(f"Looking for config in: {pyproject_path}")
+        log.debug("searching-for-config", path=str(pyproject_path), exists=pyproject_path.is_file())
 
         if not pyproject_path.is_file():
-            log.info("No pyproject.toml found, using defaults")
+            log.info("no-pyproject-found", path=str(pyproject_path), fallback="defaults")
             return {}
         try:
             with pyproject_path.open("rb") as f:
                 config = tomllib.load(f)
             nicest_config = config.get("tool", {}).get("nicestlog", {})
-            log.info(f"Loaded nicestlog config with {len(nicest_config)} settings")
+            log.info("config-loaded-successfully", 
+                    file=str(pyproject_path), 
+                    settings_count=len(nicest_config),
+                    settings=list(nicest_config.keys()))
             return nicest_config
         except (tomllib.TOMLDecodeError, Exception) as e:
-            log.error(f"Error decoding pyproject.toml: {e}")
+            log.error("config-loading-failed", 
+                     file=str(pyproject_path), 
+                     error=str(e), 
+                     error_type=type(e).__name__)
             print(f"Error decoding pyproject.toml: {e}", file=sys.stderr)
             return {}

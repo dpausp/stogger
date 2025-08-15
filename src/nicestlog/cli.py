@@ -552,10 +552,10 @@ def run_basic_demo():
 
     log.debug(
         "user-authentication",
-        _replace_msg="🔐 User {username} attempting login from {ip}",
         username="alice",
         ip="192.168.1.100",
         session_id="abc123",
+        action="login_attempt"
     )
 
     log.warning(

@@ -152,7 +152,7 @@ def init_i18n(language: str = "en") -> NicestlogTranslator:
     """Initialize internationalization."""
     global _translator
 
-    log.info("initializing_i18n", language=language)
+    log.info("initializing-i18n", language=language)
     _translator = NicestlogTranslator(language)
     return _translator
 
@@ -162,7 +162,7 @@ def get_translator() -> NicestlogTranslator:
     global _translator
 
     if _translator is None:
-        log.debug("auto_initializing_translator")
+        log.debug("auto-initializing-translator", fallback_language="en")
         _translator = NicestlogTranslator()
 
     return _translator

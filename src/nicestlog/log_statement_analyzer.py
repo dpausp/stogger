@@ -125,8 +125,8 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         if not event_id:
             return "none"
         
-        # dash-case: all lowercase with hyphens
-        if re.match(r'^[a-z]+(-[a-z]+)*$', event_id):
+        # dash-case: all lowercase with hyphens (allow numbers)
+        if re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', event_id):
             return "dash-case"
         
         # snake_case: all lowercase with underscores
