@@ -1,4 +1,19 @@
 # English translations for nicestlog
+
+# Event translations for all _replace_msg usages
+"application-started" = "Application {name} v{version} started successfully"
+"user-authentication" = "User {username} attempting login from {ip}"
+"rate-limit-approaching" = "Rate limit at {percent}% for user {user_id}"
+"database-connection-failed" = "Database connection failed: {error}"
+"api-request-completed" = "API request completed in {duration}ms"
+
+"app-startup" = "Web application starting on port {port}"
+"db-connection" = "Connected to database {db_name}"
+"request-start" = "Processing request {request_id}"
+"request-error" = "Request failed: {error}"
+"request-complete" = "Request completed in {duration}ms"
+
+# Existing sample keys (kept for completeness)
 "user-login" = "User {username} logged in from {ip}"
 
 "command-failed" = """
