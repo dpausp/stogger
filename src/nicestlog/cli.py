@@ -48,6 +48,10 @@ def init_config():
             == "y"
         )
 
+    print("\n--- Source Directory ---")
+    src_dir = input("Source directory [src]: ") or "src"
+    config["src_dir"] = src_dir
+
     print("\n--- Translations ---")
     if input("Enable message translations? [y/N]: ").lower() == "y":
         trans_dir = input("Translations directory [translations]: ") or "translations"

@@ -49,6 +49,7 @@ class NicestLogConfig:
         self.pii_redaction_text: str = config.get("pii_redaction_text", "[REDACTED]")
         self.enable_systemd: bool = config.get("enable_systemd", True)
         self.systemd_facility: str = config.get("systemd_facility", None)
+        self.src_dir: str = config.get("src_dir", "src")
 
     def _load_config(self) -> Dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""

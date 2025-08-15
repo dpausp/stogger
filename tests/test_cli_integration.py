@@ -58,6 +58,7 @@ class TestInitConfigIntegration:
                 "json",  # log_format
                 "y",  # async_logging
                 "n",  # file logging
+                "src",  # source directory
                 "n",  # translations
                 "y",  # append to file
             ]

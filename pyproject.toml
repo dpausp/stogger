@@ -27,6 +27,10 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 
+[tool.nicestlog]
+# Source directory (default: "src")
+src_dir = "src"
+
 [dependency-groups]
 dev = [
     "hatch>=1.14.1",
