@@ -12,9 +12,13 @@ import structlog
 import nicestlog
 import importlib.resources as resources
 
+# Get a logger for this module
+log = structlog.get_logger(__name__)
+
 
 def init_config():
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""
+    log.info("starting-config-wizard")
     print("Nicestlog Configuration Wizard")
     print(
         "This will help you create a `[tool.nicestlog]` section in your pyproject.toml."
@@ -22,6 +26,7 @@ def init_config():
 
     pyproject_path = Path("pyproject.toml")
     if not pyproject_path.exists():
+        log.error("pyproject-not-found", path=str(pyproject_path.resolve()))
         print(f"Error: {pyproject_path.resolve()} not found.", file=sys.stderr)
         print("Please run this command in the root of your project.", file=sys.stderr)
         sys.exit(1)
@@ -325,10 +330,13 @@ def run_linter(
     strict: bool = False,
 ):
     """Run the logging linter."""
+    log.info("starting-linter", path=path, min_coverage=min_coverage, max_coverage=max_coverage, strict=strict)
+    
     from .linter import lint_directory
     from pathlib import Path
 
     if strict:
+        log.debug("applying-strict-mode", old_min=min_coverage, old_max=max_coverage)
         min_coverage = 3.0
         max_coverage = 10.0
 
@@ -338,11 +346,16 @@ def run_linter(
     )
 
     if not success:
+        log.error("linter-failed", path=path)
         sys.exit(1)
+    else:
+        log.info("linter-completed-successfully", path=path)
 
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
+    log.info("starting-web-dashboard", host=host, port=port, debug=debug)
+    
     from .web_dashboard import run_dashboard
 
     run_dashboard(host=host, port=port, debug=debug)
@@ -356,6 +369,9 @@ def generate_service_cmd(
     output: Optional[str] = None,
 ):
     """Generate systemd service file."""
+    log.info("generating-systemd-service", service_name=service_name, exec_command=exec_command,
+            user=user, working_dir=working_dir, output=output)
+    
     from .systemd_integration import create_systemd_service_file
 
     # Generate service file
@@ -386,9 +402,12 @@ def run_journal_viewer(
     level: Optional[str] = None,
 ):
     """Run the journal viewer."""
+    log.info("starting-journal-viewer", service=service, lines=lines, follow=follow, since=since, level=level)
+    
     from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
 
     if not SYSTEMD_AVAILABLE:
+        log.error("systemd-not-available")
         print(
             "Error: systemd-python not available. Install with: pip install systemd-python",
             file=sys.stderr,
@@ -451,6 +470,7 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 
 def run_demos(feature: Optional[str] = None, all_features: bool = False):
     """Run nicestlog feature demonstrations."""
+    log.info("starting-demos", feature=feature, all_features=all_features)
 
     available_demos = {
         "basic": "Basic structured logging with console output",
