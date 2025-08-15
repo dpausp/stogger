@@ -20,6 +20,7 @@ from .core import (
     JSONRenderer,
     process_exc_info,
     SelectRenderedString,
+    SimpleConsoleRenderer,
     TranslationProcessor,
 )
 
@@ -75,6 +76,11 @@ def build_renderer(config: NicestLogConfig) -> Any:
     if config.log_format == "json":
         renderer = JSONRenderer(min_level="debug" if config.verbose else "info")
         log.info("json-renderer-created", min_level="debug" if config.verbose else "info")
+    elif config.log_format == "simple":
+        renderer = SimpleConsoleRenderer(
+            min_level="debug" if config.verbose else "info",
+        )
+        log.info("simple-console-renderer-created", min_level="debug" if config.verbose else "info")
     else:
         renderer = ConsoleFileRenderer(
             min_level="debug" if config.verbose else "info",
@@ -92,16 +98,27 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     renderer = build_renderer(config)
 
     # Create separate formatters for console and file handlers
-    # Each formatter ends with SelectRenderedString to ensure string output
-    console_formatter = structlog.stdlib.ProcessorFormatter(
-        foreign_pre_chain=processors,
-        processors=[renderer, SelectRenderedString("console")],
-    )
+    # For SimpleConsoleRenderer, we don't need SelectRenderedString since it returns a string directly
+    if config.log_format == "simple":
+        console_formatter = structlog.stdlib.ProcessorFormatter(
+            foreign_pre_chain=processors,
+            processors=[renderer],
+        )
+        file_formatter = structlog.stdlib.ProcessorFormatter(
+            foreign_pre_chain=processors,
+            processors=[renderer],
+        )
+    else:
+        # Each formatter ends with SelectRenderedString to ensure string output
+        console_formatter = structlog.stdlib.ProcessorFormatter(
+            foreign_pre_chain=processors,
+            processors=[renderer, SelectRenderedString("console")],
+        )
 
-    file_formatter = structlog.stdlib.ProcessorFormatter(
-        foreign_pre_chain=processors,
-        processors=[renderer, SelectRenderedString("file")],
-    )
+        file_formatter = structlog.stdlib.ProcessorFormatter(
+            foreign_pre_chain=processors,
+            processors=[renderer, SelectRenderedString("file")],
+        )
 
     console_handlers: List[logging.Handler] = []
     file_handlers: List[logging.Handler] = []

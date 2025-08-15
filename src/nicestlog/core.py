@@ -74,13 +74,22 @@ class TranslationProcessor:
 
     def __call__(self, _, __, event_dict):
         msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
+        
+        # Store original event name before any translation
+        if "_original_event" not in event_dict:
+            event_dict["_original_event"] = event_dict.get("event")
+        
         template = self.translations.get(msg_key)
         if template:
             log.debug("applying-translation", msg_key=msg_key, template=template)
-            event_dict["event"] = self.formatter.format(template, **event_dict)
+            translated_msg = self.formatter.format(template, **event_dict)
+            event_dict["_translated_msg"] = translated_msg
+            event_dict["event"] = translated_msg  # Keep for compatibility
         elif replace_msg := event_dict.pop("_replace_msg", None):
             log.debug("applying-replacement-message", replace_msg=replace_msg)
-            event_dict["event"] = self.formatter.format(replace_msg, **event_dict)
+            translated_msg = self.formatter.format(replace_msg, **event_dict)
+            event_dict["_translated_msg"] = translated_msg
+            event_dict["event"] = translated_msg  # Keep for compatibility
         else:
             log.debug("no-translation-found", msg_key=msg_key)
         return event_dict
@@ -101,6 +110,7 @@ class ConsoleFileRenderer:
                    show_caller_info=show_caller_info, pad_event=pad_event)
         self.min_level_idx = self.LEVELS.index(min_level.lower())
         self.show_caller_info = show_caller_info
+        self.pad_event = pad_event
         if colorama is None:
             log.warning("colorama-not-available", renderer=self.__class__.__name__)
             print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
@@ -159,6 +169,67 @@ class ConsoleFileRenderer:
         )
 
         return {"console": console_sio.getvalue(), "file": file_sio.getvalue()}
+
+
+class SimpleConsoleRenderer:
+    """
+    Simple console renderer that matches the exact format:
+    2025-08-16T01:32:44.804383 I lock-try                       Looks like another management command is running
+    2025-08-16T01:33:06.429060 D register-system-profile-command cmd='nix-env'
+    """
+    LEVELS = ["critical", "error", "warning", "info", "debug", "trace"]
+
+    def __init__(self, min_level="info", pad_event=_EVENT_WIDTH):
+        log.info("initializing-simple-console-renderer", min_level=min_level, pad_event=pad_event)
+        self.min_level_idx = self.LEVELS.index(min_level.lower())
+        self.pad_event = pad_event
+
+    def __call__(self, _, __, event_dict):
+        if self.LEVELS.index(event_dict["level"]) > self.min_level_idx:
+            log.debug("dropping-event-below-min-level", level=event_dict["level"], min_level_idx=self.min_level_idx)
+            raise structlog.DropEvent
+
+        # Format timestamp without 'Z' suffix
+        ts = event_dict.get("timestamp", "notimestamp")
+        if ts.endswith('Z'):
+            ts = ts[:-1]
+
+        # Get level as single uppercase letter
+        level = event_dict.get("level")
+        level_char = level[0].upper()
+
+        # Get event name (original event, not translated message)
+        original_event = event_dict.get("_original_event") or event_dict.get("event")
+        
+        # Check if we have a translated/replaced message
+        translated_msg = None
+        if "_translated_msg" in event_dict:
+            translated_msg = event_dict["_translated_msg"]
+        elif "_replace_msg" in event_dict:
+            # This shouldn't happen here as TranslationProcessor should handle it
+            # but keeping as fallback
+            translated_msg = event_dict["_replace_msg"]
+
+        # Determine what to show after the event name
+        if translated_msg:
+            # Show translated message
+            message_part = translated_msg
+        else:
+            # Show structured data, excluding internal fields
+            extra_data = {
+                k: v for k, v in event_dict.items()
+                if k not in ["timestamp", "level", "event", "logger", "_original_event", "_translated_msg", 
+                           "_from_structlog", "_record", "pid", "code_file", "code_func", "code_lineno"]
+            }
+            if extra_data:
+                message_part = " ".join(f"{k}={repr(v)}" for k, v in sorted(extra_data.items()))
+            else:
+                message_part = ""
+
+        # Build the output line
+        output = f"{ts} {level_char} {_pad(original_event, self.pad_event)} {message_part}".rstrip()
+        
+        return output
 
 
 class JSONRenderer:
