@@ -13,6 +13,7 @@ import toml
 from pathlib import Path
 from typing import List
 from dataclasses import dataclass
+from colorama import init as colorama_init, Fore, Style
 
 from .log_statement_analyzer import analyze_file as analyze_log_statements, LogAnalysisResult
 
@@ -312,7 +313,8 @@ def lint_directory(
         }
         print(toml.dumps(report))
     else:
-        # Human-friendly table output
+        # Human-friendly table output with subtle colors
+        colorama_init(autoreset=True)
         # Determine dynamic column widths
         module_width = max([len("MODULE")] + [len(r["module"]) for r in rows])
         lines_width = max(len("LINES"), *(len(str(r["lines"])) for r in rows))
@@ -321,31 +323,42 @@ def lint_directory(
         issues_width = len("ISSUES")
         primary_width = max(len("SUMMARY"), *(len(r["primary"]) for r in rows))
 
+        h_module = Fore.CYAN + Style.BRIGHT + "MODULE" + Style.RESET_ALL
+        h_lines = Fore.CYAN + Style.BRIGHT + "LINES" + Style.RESET_ALL
+        h_logs = Fore.CYAN + Style.BRIGHT + "LOGS" + Style.RESET_ALL
+        h_cov = Fore.CYAN + Style.BRIGHT + "COVERAGE" + Style.RESET_ALL
+        h_issues = Fore.CYAN + Style.BRIGHT + "ISSUES" + Style.RESET_ALL
+        h_summary = Fore.CYAN + Style.BRIGHT + "SUMMARY" + Style.RESET_ALL
+
         header = (
-            f"{'MODULE'.ljust(module_width)}  "
-            f"{'LINES'.rjust(lines_width)}  "
-            f"{'LOGS'.rjust(logs_width)}  "
-            f"{'COVERAGE'.rjust(cov_width)}  "
-            f"{'ISSUES'.rjust(issues_width)}  "
-            f"{'SUMMARY'.ljust(primary_width)}"
+            f"{h_module.ljust(module_width + (len(h_module)-len('MODULE')))}  "
+            f"{h_lines.rjust(lines_width + (len(h_lines)-len('LINES')))}  "
+            f"{h_logs.rjust(logs_width + (len(h_logs)-len('LOGS')))}  "
+            f"{h_cov.rjust(cov_width + (len(h_cov)-len('COVERAGE')))}  "
+            f"{h_issues.rjust(issues_width + (len(h_issues)-len('ISSUES')))}  "
+            f"{h_summary.ljust(primary_width + (len(h_summary)-len('SUMMARY')))}"
         )
-        sep = "-" * len(header)
+        sep = "-" * (module_width + lines_width + logs_width + cov_width + issues_width + primary_width + 10)
         print(header)
         print(sep)
         for r in rows:
             issues_txt = []
             if r["errors"]:
-                issues_txt.append(f"E{r['errors']}")
+                issues_txt.append(Fore.RED + f"E{r['errors']}" + Style.RESET_ALL)
             if r["warnings"]:
-                issues_txt.append(f"W{r['warnings']}")
+                issues_txt.append(Fore.YELLOW + f"W{r['warnings']}" + Style.RESET_ALL)
             issues_cell = " ".join(issues_txt)
             coverage_txt = f"{r['coverage']:.1f}%"
+            cov_colored = (
+                Fore.GREEN + coverage_txt + Style.RESET_ALL if r["coverage"] >= 5.0 and r["coverage"] <= 15.0
+                else (Fore.RED + coverage_txt + Style.RESET_ALL if r["coverage"] < 5.0 else Fore.YELLOW + coverage_txt + Style.RESET_ALL)
+            )
             print(
                 f"{r['module'].ljust(module_width)}  "
                 f"{str(r['lines']).rjust(lines_width)}  "
                 f"{str(r['logs']).rjust(logs_width)}  "
-                f"{coverage_txt.rjust(cov_width)}  "
-                f"{issues_cell.rjust(issues_width)}  "
+                f"{cov_colored.rjust(cov_width + (len(cov_colored)-len(coverage_txt)))}  "
+                f"{issues_cell.rjust(issues_width + (len(issues_cell)-len(' '.join(issues_txt))))}  "
                 f"{r['primary'].ljust(primary_width)}"
             )
 

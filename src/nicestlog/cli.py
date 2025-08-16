@@ -345,6 +345,25 @@ def run_linter(
     strict: bool = False,
 ):
     """Run the logging linter."""
+    # Ensure logging is initialized to avoid ugly default formatting
+    try:
+        if not nicestlog.logging_initialized():
+            from .config import SimpleFormatSettings
+            nicestlog.init_logging(
+                simple_format_settings=SimpleFormatSettings(
+                    show_logger_brackets=False,
+                    show_pid=False,
+                    show_code_info=False,
+                    timestamp_format="iso_no_z",
+                    pad_event_width=28,
+                ),
+                log_format="simple",
+                log_to_console=True,
+            )
+    except Exception:
+        # Fail silently; linter output still works without structured logging
+        pass
+
     log.info("starting-linter", path=path, min_coverage=min_coverage, max_coverage=max_coverage, strict=strict)
     
     from .linter import lint_directory
@@ -375,6 +394,8 @@ def run_linter(
     )
 
     if not success:
+        # Use clean console message instead of raw error log line to avoid ugly output
+        print("Linting failed: files need logging attention.")
         log.error("linter-failed", path=path)
         sys.exit(1)
     else:
