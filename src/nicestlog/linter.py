@@ -264,9 +264,6 @@ def lint_directory(
         # Count issues
         error_count = sum(1 for issue in issues if "❌" in issue)
         warning_count = sum(1 for issue in issues if "⚠️" in issue)
-        # Collect detailed messages for legend
-        error_msgs = [i for i in issues if "❌" in i]
-        warning_msgs = [i for i in issues if "⚠️" in i]
 
         # Add log statement issues
         statement_issues = 0
@@ -276,9 +273,6 @@ def lint_directory(
             statement_issues = sum(len(s.issues) for s in log_analysis.statements)
             if statement_issues > 0:
                 error_count += 1  # reflect statement problems as errors
-                error_msgs.append(
-                    f"Log statement issues: {statement_issues} issues in {total_statements} statements"
-                )
 
         if error_count > 0 or warning_count > 0:
             total_issues += 1
@@ -294,8 +288,6 @@ def lint_directory(
                 "primary": primary_issue_text,
                 "statements": total_statements,
                 "statement_issues": statement_issues,
-                "error_msgs": error_msgs,
-                "warning_msgs": warning_msgs,
             }
         )
 
@@ -392,21 +384,17 @@ def lint_directory(
                 f"{r['primary'].ljust(primary_width)}"
             )
 
-        # Issue legend per file: map E#/W# to concrete messages
+        # Global issue legend: what E#/W# counts refer to and categories
         print()
         legend_title = Fore.CYAN + Style.BRIGHT + "ISSUE LEGEND" + Style.RESET_ALL
         print(legend_title)
-        for r in rows:
-            if r.get("errors", 0) or r.get("warnings", 0):
-                print(f"- {r['module']}")
-                # Errors (E1, E2, ...)
-                e_msgs = r.get("error_msgs", []) or []
-                for idx, msg in enumerate(e_msgs, start=1):
-                    print("  " + Fore.RED + f"E{idx}" + Style.RESET_ALL + f": {msg}")
-                # Warnings (W1, W2, ...)
-                w_msgs = r.get("warning_msgs", []) or []
-                for idx, msg in enumerate(w_msgs, start=1):
-                    print("  " + Fore.YELLOW + f"W{idx}" + Style.RESET_ALL + f": {msg}")
+        print("  " + Fore.RED + "E#" + Style.RESET_ALL + " = number of error-level findings; categories:")
+        print("    " + Fore.RED + "E1" + Style.RESET_ALL + ": Too little logging")
+        print("    " + Fore.RED + "E2" + Style.RESET_ALL + ": Too few functions have logging")
+        print("    " + Fore.RED + "E3" + Style.RESET_ALL + ": Log statement issues")
+        print("  " + Fore.YELLOW + "W#" + Style.RESET_ALL + " = number of warning-level findings; categories:")
+        print("    " + Fore.YELLOW + "W1" + Style.RESET_ALL + ": Possibly too much logging")
+        print("    " + Fore.YELLOW + "W2" + Style.RESET_ALL + ": Almost every function logs")
 
     if output_format not in {"json", "toml"}:
         print("=" * 60)
