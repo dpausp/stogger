@@ -15,10 +15,10 @@ import nicestlog
 
 def demonstrate_logging(log):
     """Runs a series of logging examples."""
-    log.info("application-started", version="1.0.0")
-    log.debug("Debug information", component="main")
-    log.warning("This is a warning", threshold=80, current=85)
-    log.error("An error occurred", error_code=404)
+    log.info("application-started", name="MyApp", version="1.0.0")
+    log.debug("user-authentication", action="login_attempt", username="alice", ip="192.168.1.1", session_id="sess_123")
+    log.warning("rate-limit-approaching", percent=85, user_id=123)
+    log.error("database-connection-failed", error="Connection timeout")
 
     # Structured logging with translated messages
     log.info(
@@ -34,6 +34,7 @@ def demonstrate_logging(log):
     # Bound logger for context
     request_log = log.bind(request_id="req-12345", user_id=456)
     request_log.info("request-started", method="POST")
+    request_log.info("api-request-completed", duration=150)
     request_log.info("request-completed", status_code=201)
 
     # Error handling
@@ -73,8 +74,13 @@ language = "en"
         # Create dummy translations dir
         (config_dir / "translations").mkdir()
         with open(config_dir / "translations" / "en.toml", "w") as f:
+            f.write('application-started = "🚀 Application {name} v{version} started successfully"\n')
             f.write('user-login = "LOGIN: User {username} logged in from {ip}"\n')
             f.write('command-failed = "The command failed!"\n')
+            f.write('user-authentication = "🔐 User authentication attempt"\n')
+            f.write('rate-limit-approaching = "⚠  Rate limit at {percent}% for user {user_id}"\n')
+            f.write('database-connection-failed = "💥 Database connection failed: {error}"\n')
+            f.write('api-request-completed = "✅ API request completed in {duration}ms"\n')
 
         os.chdir(config_dir)
         print(f"\n=== Logging configured from {pyproject_path} ===")

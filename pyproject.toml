@@ -13,6 +13,7 @@ dependencies = [
     "rich>=13.0",
     "toml>=0.10.2",
     "click<8.2",
+    "colorama>=0.4.6",
 ]
 
 [project.optional-dependencies]

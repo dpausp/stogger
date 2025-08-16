@@ -44,7 +44,7 @@ else:
 
 class PartialFormatter(string.Formatter):
     def __init__(self, missing="<missing>", bad_format="<bad format>"):
-        log.debug("initializing-partial-formatter", missing=missing, bad_format=bad_format)
+        # Don't log during initialization to avoid recursion
         self.missing = missing
         self.bad_format = bad_format
 
@@ -52,17 +52,17 @@ class PartialFormatter(string.Formatter):
         try:
             return super().get_field(field_name, args, kwargs)
         except (KeyError, AttributeError):
-            log.debug("field-not-found", field_name=field_name)
+            # Don't log during formatting to avoid recursion
             return None, field_name
 
     def format_field(self, value, format_spec):
         if value is None:
-            log.debug("using-missing-placeholder", format_spec=format_spec)
+            # Don't log during formatting to avoid recursion
             return self.missing
         try:
             return super().format_field(value, format_spec)
         except ValueError:
-            log.warning("bad-format-spec", value=value, format_spec=format_spec)
+            # Don't log during formatting to avoid recursion
             return self.bad_format
 
 
@@ -81,17 +81,16 @@ class TranslationProcessor:
         
         template = self.translations.get(msg_key)
         if template:
-            log.debug("applying-translation", msg_key=msg_key, template=template)
+            # Don't log during translation to avoid recursion
             translated_msg = self.formatter.format(template, **event_dict)
             event_dict["_translated_msg"] = translated_msg
             event_dict["event"] = translated_msg  # Keep for compatibility
         elif replace_msg := event_dict.pop("_replace_msg", None):
-            log.debug("applying-replacement-message", replace_msg=replace_msg)
+            # Don't log during translation to avoid recursion
             translated_msg = self.formatter.format(replace_msg, **event_dict)
             event_dict["_translated_msg"] = translated_msg
             event_dict["event"] = translated_msg  # Keep for compatibility
-        else:
-            log.debug("no-translation-found", msg_key=msg_key)
+        # No logging for "no translation found" to avoid recursion
         return event_dict
 
 
