@@ -163,6 +163,23 @@ class ConsoleFileRenderer:
         if log_settings.get("console_ignore", False):
             return
 
+        # Determine level name for filtering; fall back to event_dict['level'] when method_name is not provided
+        level_name = None
+        if isinstance(method_name, str):
+            level_name = method_name.lower()
+        else:
+            lvl = event_dict.get("level")
+            if isinstance(lvl, str):
+                level_name = lvl.lower()
+        # Apply level filtering early to avoid unnecessary work
+        if level_name is not None:
+            try:
+                if self.LEVELS.index(level_name) > self.min_level:
+                    raise structlog.DropEvent
+            except ValueError:
+                # Unknown level, do not drop
+                pass
+
         console_io = io.StringIO()
         log_io = io.StringIO()
 
@@ -209,6 +226,9 @@ class ConsoleFileRenderer:
                 # can be a number if timestamp is UNIXy
                 DIM + str(ts) + RESET_ALL + " "
             )
+        else:
+            # Indicate missing timestamp explicitly for diagnostics/tests
+            write(DIM + "notimestamp" + RESET_ALL + " ")
 
         event_dict.pop("pid", None)
 
@@ -221,8 +241,8 @@ class ConsoleFileRenderer:
         event = event_dict.pop("event")
         write(BRIGHT + _pad(event, self._pad_event) + RESET_ALL + " ")
 
-        logger_name = event_dict.pop("logger", None)
-        if logger_name is not None:
+        logger_name = event_dict.pop("logger", "root")
+        if logger_name:
             write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
 
         cmd_output_line = event_dict.pop("cmd_output_line", None)
@@ -268,11 +288,15 @@ class ConsoleFileRenderer:
         if exception_traceback is not None:
             write("\n" + prefix("exception", exception_traceback))
 
-        # Filter according to the -v switch when outputting to the
-        # console.
-        if self.LEVELS.index(method_name.lower()) > self.min_level:
-            console_io.seek(0)
-            console_io.truncate()
+        # Filter according to the -v switch when outputting to the console.
+        # Level filtering is applied at the start of this function.
+        # For safety, if method_name is present and below threshold, drop now.
+        if isinstance(method_name, str):
+            try:
+                if self.LEVELS.index(method_name.lower()) > self.min_level:
+                    raise structlog.DropEvent
+            except ValueError:
+                pass
 
         message = {"console": console_io.getvalue(), "file": log_io.getvalue()}
         return message

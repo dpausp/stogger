@@ -239,6 +239,11 @@ def lint_directory(
                   f"Lines:{stats.code_lines} Logs:{stats.log_statements} "
                   f"({stats.log_coverage_percent:.1f}%){stmt_summary} │ {' '.join(status_icons)}")
             
+            # Also print a concise primary issue line to aid CLI tests and UX
+            primary_issue = next((i for i in issues if i.startswith("❌") or i.startswith("⚠️")), None)
+            if primary_issue:
+                print(f"   {primary_issue}")
+            
             # Show detailed statement analysis if verbose
             if verbose and log_analysis and log_analysis.total_statements > 0:
                 for stmt in log_analysis.statements:
