@@ -9,6 +9,7 @@ import argparse
 import sys
 import os
 import json
+import toml
 from pathlib import Path
 from typing import List
 from dataclasses import dataclass
@@ -294,6 +295,22 @@ def lint_directory(
             },
         }
         print(json.dumps(report, ensure_ascii=False))
+    elif output_format == "toml":
+        # Machine-readable TOML output
+        report = {
+            "files": rows,
+            "summary": {
+                "total_files": len(python_files),
+                "files_with_issues": total_issues,
+                "total_code_lines": total_stats.code_lines,
+                "total_log_statements": total_stats.log_statements,
+                "overall_logging_coverage": round(total_stats.log_coverage_percent, 1),
+                "functions": total_stats.functions,
+                "functions_with_logging": total_stats.functions_with_logging,
+                "function_logging_coverage": round(total_stats.function_coverage_percent, 1),
+            },
+        }
+        print(toml.dumps(report))
     else:
         # Human-friendly table output
         # Determine dynamic column widths

@@ -125,8 +125,8 @@ def lint(
     """Check logging coverage in your codebase."""
     # Allow selecting a machine-readable output via env var without changing function signatures
     fmt = (output_format or "table").lower()
-    if fmt not in {"table", "json"}:
-        typer.echo("Error: Invalid format. Choose 'table' or 'json'", err=True)
+    if fmt not in {"table", "json", "toml"}:
+        typer.echo("Error: Invalid format. Choose 'table', 'json' or 'toml'", err=True)
         raise typer.Exit(1)
     os.environ["NICESTLOG_LINTER_FORMAT"] = fmt
 
