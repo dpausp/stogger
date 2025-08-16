@@ -7,6 +7,8 @@ Like a politeness compiler, but for log statements!
 import ast
 import argparse
 import sys
+import os
+import json
 from pathlib import Path
 from typing import List
 from dataclasses import dataclass
@@ -193,11 +195,13 @@ def lint_directory(
     total_issues = 0
     total_stats = LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0)
 
+    # Allow machine-readable output via environment variable
+    output_format = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
+
     print(f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n")
-    
-    if any(python_files):
-        print("📁 MODULE │ LINES:LOGS (COVERAGE%) │ ISSUES")
-        print("─" * 50)
+
+    # Collect per-file data first so we can render a clean table
+    rows: List[dict] = []
 
     for file_path in python_files:
         # Skip hidden files (dirs already excluded above)
@@ -219,51 +223,51 @@ def lint_directory(
         if analyze_statements:
             log_analysis = analyze_log_statements(file_path, prefer_dash_case=not allow_snake_case)
 
-        # Count issues and prepare compact summary
+        # Determine primary issue label (text only, no emojis)
+        primary_issue_text = ""
+        if issues:
+            for i in issues:
+                if "Too little logging" in i:
+                    primary_issue_text = "Too little logging"
+                    break
+                if "Possibly too much logging" in i:
+                    primary_issue_text = "Possibly too much logging"
+                    break
+                if "Good logging coverage" in i:
+                    primary_issue_text = "Good logging coverage"
+                    break
+
+        # Count issues
         error_count = sum(1 for issue in issues if "❌" in issue)
         warning_count = sum(1 for issue in issues if "⚠️" in issue)
-        
+
         # Add log statement issues
         statement_issues = 0
+        total_statements = 0
         if log_analysis and log_analysis.total_statements > 0:
+            total_statements = log_analysis.total_statements
             statement_issues = sum(len(s.issues) for s in log_analysis.statements)
             if statement_issues > 0:
-                error_count += 1  # Add one error indicator for statement issues
-        
+                error_count += 1  # reflect statement problems as errors
+
         if error_count > 0 or warning_count > 0:
             total_issues += 1
-            # One-line summary per module
-            status_icons = []
-            if error_count > 0:
-                status_icons.append(f"❌{error_count}")
-            if warning_count > 0:
-                status_icons.append(f"⚠️{warning_count}")
-            
-            # Add statement analysis summary
-            stmt_summary = ""
-            if log_analysis and log_analysis.total_statements > 0:
-                stmt_summary = f" │ Stmts:{log_analysis.total_statements}"
-                if statement_issues > 0:
-                    stmt_summary += f"({statement_issues}❌)"
-            
-            print(f"📁 {file_path.relative_to(directory)} │ "
-                  f"Lines:{stats.code_lines} Logs:{stats.log_statements} "
-                  f"({stats.log_coverage_percent:.1f}%){stmt_summary} │ {' '.join(status_icons)}")
-            
-            # Also print a concise primary issue line to aid CLI tests and UX
-            primary_issue = next((i for i in issues if i.startswith("❌") or i.startswith("⚠️")), None)
-            if primary_issue:
-                print(f"   {primary_issue}")
-            
-            # Show detailed statement analysis if verbose
-            if verbose and log_analysis and log_analysis.total_statements > 0:
-                for stmt in log_analysis.statements:
-                    if stmt.issues:
-                        issues_str = ', '.join(stmt.issues)
-                        event_str = f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
-                        print(f"    L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}")
 
-    # Overall summary
+        rows.append(
+            {
+                "module": str(file_path.relative_to(directory)),
+                "lines": stats.code_lines,
+                "logs": stats.log_statements,
+                "coverage": stats.log_coverage_percent,
+                "errors": error_count,
+                "warnings": warning_count,
+                "primary": primary_issue_text,
+                "statements": total_statements,
+                "statement_issues": statement_issues,
+            }
+        )
+
+    # Overall summary (compute percentages)
     if total_stats.code_lines > 0:
         total_stats.log_coverage_percent = (
             total_stats.log_statements / total_stats.code_lines * 100
@@ -273,6 +277,60 @@ def lint_directory(
             if total_stats.functions > 0
             else 0
         )
+
+    if output_format == "json":
+        # Machine-readable JSON output
+        report = {
+            "files": rows,
+            "summary": {
+                "total_files": len(python_files),
+                "files_with_issues": total_issues,
+                "total_code_lines": total_stats.code_lines,
+                "total_log_statements": total_stats.log_statements,
+                "overall_logging_coverage": round(total_stats.log_coverage_percent, 1),
+                "functions": total_stats.functions,
+                "functions_with_logging": total_stats.functions_with_logging,
+                "function_logging_coverage": round(total_stats.function_coverage_percent, 1),
+            },
+        }
+        print(json.dumps(report, ensure_ascii=False))
+    else:
+        # Human-friendly table output
+        # Determine dynamic column widths
+        module_width = max([len("MODULE")] + [len(r["module"]) for r in rows])
+        lines_width = max(len("LINES"), *(len(str(r["lines"])) for r in rows))
+        logs_width = max(len("LOGS"), *(len(str(r["logs"])) for r in rows))
+        cov_width = max(len("COVERAGE"), *(len(f"{r['coverage']:.1f}%") for r in rows))
+        issues_width = len("ISSUES")
+        primary_width = max(len("SUMMARY"), *(len(r["primary"]) for r in rows))
+
+        header = (
+            f"{'MODULE'.ljust(module_width)}  "
+            f"{'LINES'.rjust(lines_width)}  "
+            f"{'LOGS'.rjust(logs_width)}  "
+            f"{'COVERAGE'.rjust(cov_width)}  "
+            f"{'ISSUES'.rjust(issues_width)}  "
+            f"{'SUMMARY'.ljust(primary_width)}"
+        )
+        sep = "-" * len(header)
+        print(header)
+        print(sep)
+        for r in rows:
+            issues_txt = []
+            if r["errors"]:
+                issues_txt.append(f"E{r['errors']}")
+            if r["warnings"]:
+                issues_txt.append(f"W{r['warnings']}")
+            issues_cell = " ".join(issues_txt)
+            coverage_txt = f"{r['coverage']:.1f}%"
+            print(
+                f"{r['module'].ljust(module_width)}  "
+                f"{str(r['lines']).rjust(lines_width)}  "
+                f"{str(r['logs']).rjust(logs_width)}  "
+                f"{coverage_txt.rjust(cov_width)}  "
+                f"{issues_cell.rjust(issues_width)}  "
+                f"{r['primary'].ljust(primary_width)}"
+            )
 
     print("=" * 60)
     print("📊 OVERALL LOGGING QUALITY REPORT")

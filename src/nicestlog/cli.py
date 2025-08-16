@@ -4,6 +4,7 @@ Command-line interface for nicestlog.
 
 import sys
 import time
+import os
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -116,8 +117,19 @@ def lint(
     strict: Annotated[
         bool, typer.Option(help="Use stricter coverage requirements")
     ] = False,
+    output_format: Annotated[
+        str,
+        typer.Option("--format", help="Output format: table or json"),
+    ] = "table",
 ):
     """Check logging coverage in your codebase."""
+    # Allow selecting a machine-readable output via env var without changing function signatures
+    fmt = (output_format or "table").lower()
+    if fmt not in {"table", "json"}:
+        typer.echo("Error: Invalid format. Choose 'table' or 'json'", err=True)
+        raise typer.Exit(1)
+    os.environ["NICESTLOG_LINTER_FORMAT"] = fmt
+
     # Keep CLI behavior simple and pass the path as provided.
     # This matches test expectations (default "." and raw values).
     run_linter(path, min_coverage, max_coverage, strict)
