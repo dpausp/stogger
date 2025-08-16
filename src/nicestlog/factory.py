@@ -79,6 +79,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
     elif config.log_format == "simple":
         renderer = SimpleConsoleRenderer(
             min_level="debug" if config.verbose else "info",
+            settings=config.simple_format_settings
         )
         log.info("simple-console-renderer-created", min_level="debug" if config.verbose else "info")
     else:

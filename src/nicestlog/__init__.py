@@ -6,7 +6,7 @@ development and production environments with support for console, file, and
 systemd journal output.
 """
 
-from .config import NicestLogConfig
+from .config import NicestLogConfig, SimpleFormatSettings
 from .core import init_logging, logging_initialized
 from .factory import build_shared_processors, configure_stdlib_logging
 from .cli import main
@@ -32,6 +32,7 @@ __all__ = [
     "main",
     "lint_main",
     "NicestLogConfig",
+    "SimpleFormatSettings",
     "build_shared_processors",
     "configure_stdlib_logging",
     "setup_eliot_logging",

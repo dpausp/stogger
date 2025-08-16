@@ -179,20 +179,35 @@ class SimpleConsoleRenderer:
     """
     LEVELS = ["critical", "error", "warning", "info", "debug", "trace"]
 
-    def __init__(self, min_level="info", pad_event=_EVENT_WIDTH):
-        log.info("initializing-simple-console-renderer", min_level=min_level, pad_event=pad_event)
+    def __init__(self, min_level="info", settings=None):
+        from .config import SimpleFormatSettings
+        
+        if settings is None:
+            settings = SimpleFormatSettings()
+        
+        log.info("initializing-simple-console-renderer", 
+                min_level=min_level, 
+                show_logger_brackets=settings.show_logger_brackets,
+                show_pid=settings.show_pid,
+                show_code_info=settings.show_code_info,
+                timestamp_format=settings.timestamp_format,
+                pad_event_width=settings.pad_event_width)
+        
         self.min_level_idx = self.LEVELS.index(min_level.lower())
-        self.pad_event = pad_event
+        self.settings = settings
 
     def __call__(self, _, __, event_dict):
         if self.LEVELS.index(event_dict["level"]) > self.min_level_idx:
             log.debug("dropping-event-below-min-level", level=event_dict["level"], min_level_idx=self.min_level_idx)
             raise structlog.DropEvent
 
-        # Format timestamp without 'Z' suffix
+        # Format timestamp based on settings
         ts = event_dict.get("timestamp", "notimestamp")
-        if ts.endswith('Z'):
+        if self.settings.timestamp_format == "iso_no_z" and ts.endswith('Z'):
             ts = ts[:-1]
+        elif self.settings.timestamp_format == "custom" and self.settings.custom_timestamp_format:
+            # TODO: Implement custom timestamp formatting
+            pass
 
         # Get level as single uppercase letter
         level = event_dict.get("level")
@@ -210,16 +225,25 @@ class SimpleConsoleRenderer:
             # but keeping as fallback
             translated_msg = event_dict["_replace_msg"]
 
+        # Build excluded fields list based on settings
+        excluded_fields = ["timestamp", "level", "event", "_original_event", "_translated_msg", "_from_structlog", "_record"]
+        
+        if not self.settings.show_pid:
+            excluded_fields.append("pid")
+        if not self.settings.show_code_info:
+            excluded_fields.extend(["code_file", "code_func", "code_lineno"])
+        if not self.settings.show_logger_brackets:
+            excluded_fields.append("logger")
+
         # Determine what to show after the event name
         if translated_msg:
             # Show translated message
             message_part = translated_msg
         else:
-            # Show structured data, excluding internal fields
+            # Show structured data, excluding fields based on settings
             extra_data = {
                 k: v for k, v in event_dict.items()
-                if k not in ["timestamp", "level", "event", "logger", "_original_event", "_translated_msg", 
-                           "_from_structlog", "_record", "pid", "code_file", "code_func", "code_lineno"]
+                if k not in excluded_fields
             }
             if extra_data:
                 message_part = " ".join(f"{k}={repr(v)}" for k, v in sorted(extra_data.items()))
@@ -227,7 +251,17 @@ class SimpleConsoleRenderer:
                 message_part = ""
 
         # Build the output line
-        output = f"{ts} {level_char} {_pad(original_event, self.pad_event)} {message_part}".rstrip()
+        output_parts = [ts, level_char, _pad(original_event, self.settings.pad_event_width)]
+        
+        # Add logger brackets if enabled
+        if self.settings.show_logger_brackets:
+            logger_name = event_dict.get("logger", "root")
+            output_parts.append(f"[{logger_name}]")
+        
+        if message_part:
+            output_parts.append(message_part)
+        
+        output = " ".join(output_parts)
         
         return output
 
@@ -313,9 +347,32 @@ class SelectRenderedString:
         return str(event_dict)
 
 
-def init_logging(**kwargs: Any):
+def init_logging(simple_format_settings=None, **kwargs: Any):
+    """
+    Initialize nicestlog with optional simple format settings.
+    
+    Args:
+        simple_format_settings: SimpleFormatSettings instance or dict with settings
+        **kwargs: Other configuration options
+    """
     # Import here to avoid circular import
     from .factory import build_shared_processors, configure_stdlib_logging
+    from .config import SimpleFormatSettings
+
+    # Handle simple_format_settings parameter
+    if simple_format_settings is not None:
+        if isinstance(simple_format_settings, dict):
+            kwargs["simple_format"] = simple_format_settings
+        elif isinstance(simple_format_settings, SimpleFormatSettings):
+            # Convert to dict for config
+            kwargs["simple_format"] = {
+                "show_logger_brackets": simple_format_settings.show_logger_brackets,
+                "show_pid": simple_format_settings.show_pid,
+                "show_code_info": simple_format_settings.show_code_info,
+                "timestamp_format": simple_format_settings.timestamp_format,
+                "custom_timestamp_format": simple_format_settings.custom_timestamp_format,
+                "pad_event_width": simple_format_settings.pad_event_width,
+            }
 
     log.info("initializing-nicestlog", config_kwargs=list(kwargs.keys()))
     config = NicestLogConfig(**kwargs)
