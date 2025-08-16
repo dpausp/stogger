@@ -393,13 +393,16 @@ def run_linter(
         scan_path, min_coverage=min_coverage, max_coverage=max_coverage
     )
 
+    # When output format is machine-readable, avoid extra console noise
+    fmt = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
     if not success:
-        # Use clean console message instead of raw error log line to avoid ugly output
-        print("Linting failed: files need logging attention.")
+        if fmt not in {"json", "toml"}:
+            print("Linting failed: files need logging attention.")
         log.error("linter-failed", path=path)
         sys.exit(1)
     else:
-        log.info("linter-completed-successfully", path=path)
+        if fmt not in {"json", "toml"}:
+            log.info("linter-completed-successfully", path=path)
 
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):

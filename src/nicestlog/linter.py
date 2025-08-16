@@ -191,7 +191,28 @@ def lint_directory(
     ]
 
     if not python_files:
-        print("No Python files found in the specified directory!")
+        if os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower() in {"json", "toml"}:
+            # Emit empty machine-readable report
+            report = {
+                "files": [],
+                "summary": {
+                    "total_files": 0,
+                    "files_with_issues": 0,
+                    "total_code_lines": 0,
+                    "total_log_statements": 0,
+                    "overall_logging_coverage": 0.0,
+                    "functions": 0,
+                    "functions_with_logging": 0,
+                    "function_logging_coverage": 0.0,
+                },
+            }
+            fmt = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
+            if fmt == "json":
+                print(json.dumps(report, ensure_ascii=False))
+            else:
+                print(toml.dumps(report))
+        else:
+            print("No Python files found in the specified directory!")
         return True
 
     total_issues = 0
@@ -200,7 +221,8 @@ def lint_directory(
     # Allow machine-readable output via environment variable
     output_format = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
 
-    print(f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n")
+    if output_format not in {"json", "toml"}:
+        print(f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n")
 
     # Collect per-file data first so we can render a clean table
     rows: List[dict] = []
@@ -362,22 +384,34 @@ def lint_directory(
                 f"{r['primary'].ljust(primary_width)}"
             )
 
-    print("=" * 60)
-    print("📊 OVERALL LOGGING QUALITY REPORT")
-    print("=" * 60)
-    print(f"Total files analyzed: {len(python_files)}")
-    print(f"Total code lines: {total_stats.code_lines}")
-    print(f"Total log statements: {total_stats.log_statements}")
-    print(f"Overall logging coverage: {total_stats.log_coverage_percent:.1f}%")
-    print(
-        f"Functions with logging: {total_stats.functions_with_logging}/{total_stats.functions} ({total_stats.function_coverage_percent:.1f}%)"
-    )
+        # Legend explaining issue counters
+        print()
+        legend_title = Fore.CYAN + Style.BRIGHT + "LEGEND" + Style.RESET_ALL
+        print(legend_title)
+        print("  " + Fore.RED + "E#" + Style.RESET_ALL + " - number of error-level findings (❌) in the file")
+        print("      includes: Too little logging; Too few functions have logging; log statement issues")
+        print("  " + Fore.YELLOW + "W#" + Style.RESET_ALL + " - number of warning-level findings (⚠️) in the file")
+        print("      includes: Possibly too much logging; Almost every function logs")
+
+    if output_format not in {"json", "toml"}:
+        print("=" * 60)
+        print("📊 OVERALL LOGGING QUALITY REPORT")
+        print("=" * 60)
+        print(f"Total files analyzed: {len(python_files)}")
+        print(f"Total code lines: {total_stats.code_lines}")
+        print(f"Total log statements: {total_stats.log_statements}")
+        print(f"Overall logging coverage: {total_stats.log_coverage_percent:.1f}%")
+        print(
+            f"Functions with logging: {total_stats.functions_with_logging}/{total_stats.functions} ({total_stats.function_coverage_percent:.1f}%)"
+        )
 
     if total_issues == 0:
-        print("\n🎉 All files have appropriate logging coverage! Well done!")
+        if output_format not in {"json", "toml"}:
+            print("\n🎉 All files have appropriate logging coverage! Well done!")
         return True
     else:
-        print(f"\n💥 {total_issues} files need logging attention!")
+        if output_format not in {"json", "toml"}:
+            print(f"\n💥 {total_issues} files need logging attention!")
         return False
 
 

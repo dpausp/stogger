@@ -294,7 +294,7 @@ class ConsoleFileRenderer:
         if isinstance(method_name, str):
             try:
                 if self.LEVELS.index(method_name.lower()) > self.min_level:
-                    raise structlog.DropEvent
+                    return ""
             except ValueError:
                 pass
 
@@ -352,7 +352,9 @@ class SimpleConsoleRenderer:
     def __call__(self, logger, method_name, event_dict):
         # Filter according to the -v switch
         if self.LEVELS.index(method_name.lower()) > self.min_level:
-            raise structlog.DropEvent
+            # For stdlib ProcessorFormatter, raising DropEvent can bubble up via logging handlers.
+            # Return empty string to drop quietly in that context.
+            return ""
 
         console_io = io.StringIO()
         log_io = io.StringIO()
