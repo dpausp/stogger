@@ -533,6 +533,7 @@ def run_demos(feature: Optional[str] = None, all_features: bool = False):
         "systemd": "Systemd journal integration",
         "async": "Asynchronous logging performance",
         "complete": "Complete real-world application example",
+        "lint": "Lint demo with two bad modules triggering all checks",
     }
 
     def print_demo_header(title: str, description: str):
@@ -585,6 +586,8 @@ def run_demos(feature: Optional[str] = None, all_features: bool = False):
             run_async_demo()
         elif demo_name == "complete":
             run_complete_demo()
+        elif demo_name == "lint":
+            run_lint_demo()
 
         if len(demos_to_run) > 1:
             print_demo_separator()
@@ -759,15 +762,15 @@ def run_async_demo():
 def run_complete_demo():
     """Demonstrate a complete real-world application scenario."""
     print_demo_header("Complete Application Example", "Real-world usage patterns")
-
+    
     from pathlib import Path
     import tempfile
     import time
-
+    
     # Setup comprehensive logging
     with tempfile.TemporaryDirectory() as temp_dir:
         log_dir = Path(temp_dir)
-
+    
         nicestlog.init_logging(
             verbose=True,
             logdir=log_dir,
@@ -775,11 +778,11 @@ def run_complete_demo():
             async_logging=True,
             log_cmd_output=True,
         )
-
+    
         log = structlog.get_logger()
-
+    
         print("🌐 Simulating web application with comprehensive logging...")
-
+    
         # Application startup
         log.info(
             "app-startup",
@@ -788,7 +791,7 @@ def run_complete_demo():
             version="2.1.0",
             environment="production",
         )
-
+    
         # Database connection
         log.info(
             "db-connection",
@@ -797,12 +800,12 @@ def run_complete_demo():
             host="db.prod.com",
             pool_size=10,
         )
-
+    
         # User requests
         for i in range(5):
             user_id = 1000 + i
             session_id = f"sess_{i:03d}"
-
+    
             log.info(
                 "request-start",
                 _replace_msg="📥 Processing request {request_id}",
@@ -812,10 +815,10 @@ def run_complete_demo():
                 method="GET",
                 path="/api/profile",
             )
-
+    
             # Simulate processing time
             time.sleep(0.1)
-
+    
             if i == 3:  # Simulate an error
                 log.error(
                     "request-error",
@@ -834,7 +837,7 @@ def run_complete_demo():
                     status_code=200,
                     response_size=512,
                 )
-
+    
         # Show log files created
         log_files = list(log_dir.glob("*.log"))
         if log_files:
@@ -842,13 +845,141 @@ def run_complete_demo():
             for log_file in log_files:
                 size = log_file.stat().st_size
                 print(f"  {log_file.name}: {size} bytes")
-
+    
         print("\n💡 This demonstrates:")
         print("  • Structured logging with meaningful events")
         print("  • File and console output")
         print("  • Request tracing with IDs")
         print("  • Error handling and context")
         print("  • Performance monitoring")
+
+
+def run_lint_demo():
+    """Demonstrate linter findings with two intentionally bad modules."""
+    print_demo_header("Lint Demo", "Two modules that trigger all linter checks")
+
+    import tempfile
+    from pathlib import Path
+
+    # Create a temporary project with two problematic modules
+    with tempfile.TemporaryDirectory() as tmpdir:
+        proj = Path(tmpdir)
+        (proj / "pkg").mkdir()
+
+        # Module 1: Too little logging and too few functions with logging
+        bad_mod1 = (proj / "pkg" / "bad_module_one.py")
+        bad_mod1.write_text(
+            """
+import structlog
+log = structlog.get_logger("bad1")
+
+# Many functions without any logging to trigger E1 and E2
+
+def a1():
+    x = 1 + 1
+    return x
+
+def a2():
+    for i in range(5):
+        pass
+
+def a3():
+    return sum([1,2,3])
+
+def a4():
+    return "ok"
+
+def a5():
+    v = 42
+    return v
+
+def a6():
+    return 0
+
+def a7():
+    return 0
+
+def a8():
+    return 0
+
+def a9():
+    return 0
+
+def a10():
+    return 0
+
+def a11():
+    return 0
+
+def a12():
+    return 0
+
+def a13():
+    return 0
+
+def a14():
+    return 0
+
+def a15():
+    return 0
+
+# Only one function with logging (single string argument, no structured data)
+
+def logged_one():
+    log.info("just a message")
+""",
+            encoding="utf-8",
+        )
+
+        # Module 2: Too much logging and almost every function logs + statement issues
+        bad_mod2 = (proj / "pkg" / "bad_module_two.py")
+        bad_mod2.write_text(
+            """
+import structlog
+log = structlog.get_logger("bad2")
+
+# Many tiny functions all logging to trigger W1 and W2
+
+def f1():
+    log.info("f1-start", user="alice")
+
+def f2():
+    log.debug(f"errorHappened-{1}")
+
+def f3():
+    log.error("user-info-update")
+
+def f4():
+    log.info("many-kwargs", a=1,b=2,c=3,d=4,e=5,f=6,g=7,h=8)
+
+def f5():
+    log.info("user-login", password="secret", token="abc")
+
+def f6():
+    log.info("ok")
+
+def f7():
+    log.info("ok2")
+
+def f8():
+    log.info("ok3")
+
+def f9():
+    log.info("ok4")
+
+def f10():
+    log.info("ok5")
+
+# very long event id
+log.info("this-is-a-very-very-very-very-very-very-long-event-id-that-is-definitely-too-long")
+""",
+            encoding="utf-8",
+        )
+
+        # Run the linter on the temporary project
+        print("\n🧪 Running linter on demo project...\n")
+        from .linter import lint_directory
+        lint_directory(proj, min_coverage=5.0, max_coverage=15.0, analyze_statements=True)
 
 
 if __name__ == "__main__":
