@@ -610,6 +610,10 @@ def run_i18n_demo():
     """Demonstrate internationalization features."""
     print_demo_header("Internationalization (i18n)", "Multi-language log messages")
 
+    # Ensure nicestlog is initialized so structlog output uses our renderers
+    # Verbose=True to show debug messages from the translator as well
+    nicestlog.init_logging(verbose=True, syslog_identifier="i18n-demo")
+
     try:
         from .i18n import demo_translations
 

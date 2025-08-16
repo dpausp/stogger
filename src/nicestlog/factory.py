@@ -145,16 +145,24 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
         log.warning("no-logging-handlers-configured")
         return
 
+    # Prepare combined handler list and assign formatters before activation
+    all_handlers = console_handlers + file_handlers
+    for handler in all_handlers:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            handler.setFormatter(console_formatter)
+        elif isinstance(handler, logging.FileHandler):
+            handler.setFormatter(file_formatter)
+        else:
+            handler.setFormatter(console_formatter)
+
     if config.async_logging:
-        log.info("enabling-async-logging", handler_count=len(console_handlers) + len(file_handlers))
+        log.info("enabling-async-logging", handler_count=len(all_handlers))
         from logging.handlers import QueueHandler, QueueListener
         from queue import Queue
 
         log_queue: Queue = Queue(-1)
         queue_handler = QueueHandler(log_queue)
 
-        # Combine all handlers for the queue listener
-        all_handlers = console_handlers + file_handlers
         log.debug("starting-queue-listener", handler_count=len(all_handlers))
         listener = QueueListener(log_queue, *all_handlers)
         listener.start()
@@ -162,12 +170,11 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
         root_logger = logging.getLogger()
         root_logger.addHandler(queue_handler)
         root_logger.setLevel(logging.DEBUG)
-        for handler in root_logger.handlers:
+        for handler in list(root_logger.handlers):
             if handler is not queue_handler:
                 root_logger.removeHandler(handler)
         log.info("async-logging-configured")
     else:
-        all_handlers = console_handlers + file_handlers
         log.debug("configuring-sync-logging", handler_count=len(all_handlers))
         logging.basicConfig(
             level=logging.DEBUG,
@@ -176,22 +183,4 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
         )
         log.info("sync-logging-configured")
 
-    # Set appropriate formatters for each handler type
-    log.debug("setting-handler-formatters", handler_count=len(logging.root.handlers))
-    for handler in logging.root.handlers:
-        if isinstance(handler, logging.StreamHandler) and not isinstance(
-            handler, logging.FileHandler
-        ):
-            # Console/stream handler
-            handler.setFormatter(console_formatter)
-            log.debug("console-formatter-set", handler_type=type(handler).__name__)
-        elif isinstance(handler, logging.FileHandler):
-            # File handler
-            handler.setFormatter(file_formatter)
-            log.debug("file-formatter-set", handler_type=type(handler).__name__)
-        else:
-            # Fallback to console formatter for other handler types
-            handler.setFormatter(console_formatter)
-            log.debug("fallback-formatter-set", handler_type=type(handler).__name__)
-    
     log.info("stdlib-logging-configuration-complete")
