@@ -610,9 +610,22 @@ def run_i18n_demo():
     """Demonstrate internationalization features."""
     print_demo_header("Internationalization (i18n)", "Multi-language log messages")
 
+    # Load config to optionally honor translation_dir and language from pyproject.toml
+    try:
+        from .config import NicestLogConfig
+        cfg = NicestLogConfig()
+    except Exception:
+        cfg = None
+
+    init_kwargs = {"verbose": True, "syslog_identifier": "i18n-demo"}
+    if cfg and cfg.translation_dir:
+        init_kwargs["translation_dir"] = str(cfg.translation_dir)
+    if cfg and cfg.language:
+        init_kwargs["language"] = cfg.language
+
     # Ensure nicestlog is initialized so structlog output uses our renderers
     # Verbose=True to show debug messages from the translator as well
-    nicestlog.init_logging(verbose=True, syslog_identifier="i18n-demo")
+    nicestlog.init_logging(**init_kwargs)
 
     try:
         from .i18n import demo_translations

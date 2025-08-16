@@ -35,7 +35,16 @@ class NicestlogTranslator:
 
     def _load_translations(self):
         """Load translation files."""
-        translations_dir = Path(__file__).parent.parent.parent / "translations"
+        # Prefer configured translation_dir from pyproject.toml if available
+        try:
+            from .config import NicestLogConfig
+            cfg = NicestLogConfig()
+            if cfg.translation_dir:
+                translations_dir = Path(cfg.translation_dir)
+            else:
+                translations_dir = Path(__file__).parent.parent.parent / "translations"
+        except Exception:
+            translations_dir = Path(__file__).parent.parent.parent / "translations"
 
         # Load fallback (English)
         fallback_file = translations_dir / "en.toml"
