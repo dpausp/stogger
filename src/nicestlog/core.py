@@ -280,11 +280,20 @@ class ConsoleFileRenderer:
 
 class SimpleConsoleRenderer:
     """
-    Simple console renderer that matches the exact format:
-    2025-08-16T01:32:44.804383 I lock-try                       Looks like another management command is running
-    2025-08-16T01:33:06.429060 D register-system-profile-command cmd='nix-env'
+    Simple console renderer that produces clean format with colors:
+    2025-08-16T02:33:01.617569 D system-build-command           cmd='nix-build...'
+    2025-08-16T02:33:01.623929 I system-build-started           Nix build command started with PID: 184437
     """
-    LEVELS = ["critical", "error", "warning", "info", "debug", "trace"]
+    LEVELS = [
+        "alert",
+        "critical", 
+        "error",
+        "warn",
+        "warning",
+        "info",
+        "debug",
+        "trace",
+    ]
 
     def __init__(self, min_level="info", settings=None):
         from .config import SimpleFormatSettings
@@ -292,85 +301,124 @@ class SimpleConsoleRenderer:
         if settings is None:
             settings = SimpleFormatSettings()
         
-        log.info("initializing-simple-console-renderer", 
-                min_level=min_level, 
-                show_logger_brackets=settings.show_logger_brackets,
-                show_pid=settings.show_pid,
-                show_code_info=settings.show_code_info,
-                timestamp_format=settings.timestamp_format,
-                pad_event_width=settings.pad_event_width)
-        
-        self.min_level_idx = self.LEVELS.index(min_level.lower())
+        self.min_level = self.LEVELS.index(min_level.lower())
         self.settings = settings
+        
+        if colorama is None:
+            print(
+                _MISSING.format(who=self.__class__.__name__, package="colorama")
+            )
+        if sys.stdout.isatty():
+            colorama.init()
 
-    def __call__(self, _, __, event_dict):
-        if self.LEVELS.index(event_dict["level"]) > self.min_level_idx:
-            log.debug("dropping-event-below-min-level", level=event_dict["level"], min_level_idx=self.min_level_idx)
+        self._level_to_color = {
+            "alert": RED,
+            "critical": RED,
+            "error": RED,
+            "warn": YELLOW,
+            "warning": YELLOW,
+            "info": GREEN,
+            "debug": GREEN,
+            "trace": GREEN,
+            "notset": BACKRED,
+        }
+        for key in self._level_to_color.keys():
+            self._level_to_color[key] += BRIGHT
+
+    def __call__(self, logger, method_name, event_dict):
+        # Filter according to the -v switch
+        if self.LEVELS.index(method_name.lower()) > self.min_level:
             raise structlog.DropEvent
 
-        # Format timestamp based on settings
-        ts = event_dict.get("timestamp", "notimestamp")
-        if self.settings.timestamp_format == "iso_no_z" and ts.endswith('Z'):
-            ts = ts[:-1]
-        elif self.settings.timestamp_format == "custom" and self.settings.custom_timestamp_format:
-            # TODO: Implement custom timestamp formatting
-            pass
+        console_io = io.StringIO()
+        log_io = io.StringIO()
 
-        # Get level as single uppercase letter
-        level = event_dict.get("level")
-        level_char = level[0].upper()
+        def write(line):
+            console_io.write(line)
+            if RESET_ALL:
+                for SYMB in [
+                    RESET_ALL,
+                    BRIGHT,
+                    DIM,
+                    RED,
+                    BACKRED,
+                    BLUE,
+                    CYAN,
+                    MAGENTA,
+                    YELLOW,
+                    GREEN,
+                ]:
+                    line = line.replace(SYMB, "")
+            log_io.write(line)
 
-        # Get event name (original event, not translated message)
-        original_event = event_dict.get("_original_event") or event_dict.get("event")
-        
-        # Check if we have a translated/replaced message
-        translated_msg = None
-        if "_translated_msg" in event_dict:
-            translated_msg = event_dict["_translated_msg"]
-        elif "_replace_msg" in event_dict:
-            # This shouldn't happen here as TranslationProcessor should handle it
-            # but keeping as fallback
-            translated_msg = event_dict["_replace_msg"]
-
-        # Build excluded fields list based on settings
-        excluded_fields = ["timestamp", "level", "event", "_original_event", "_translated_msg", "_from_structlog", "_record"]
-        
-        if not self.settings.show_pid:
-            excluded_fields.append("pid")
-        if not self.settings.show_code_info:
-            excluded_fields.extend(["code_file", "code_func", "code_lineno"])
-        if not self.settings.show_logger_brackets:
-            excluded_fields.append("logger")
-
-        # Determine what to show after the event name
-        if translated_msg:
-            # Show translated message
-            message_part = translated_msg
+        # Handle _replace_msg
+        replace_msg = event_dict.pop("_replace_msg", None)
+        if replace_msg:
+            formatter = PartialFormatter()
+            formatted_replace_msg = formatter.format(replace_msg, **event_dict)
         else:
-            # Show structured data, excluding fields based on settings
-            extra_data = {
-                k: v for k, v in event_dict.items()
-                if k not in excluded_fields
-            }
-            if extra_data:
-                message_part = " ".join(f"{k}={repr(v)}" for k, v in sorted(extra_data.items()))
-            else:
-                message_part = ""
+            formatted_replace_msg = None
 
-        # Build the output line
-        output_parts = [ts, level_char, _pad(original_event, self.settings.pad_event_width)]
+        # Remove internal fields and caller info if not needed
+        if not self.settings.show_code_info:
+            event_dict.pop("code_file", None)
+            event_dict.pop("code_func", None)
+            event_dict.pop("code_lineno", None)
+            event_dict.pop("code_module", None)
         
-        # Add logger brackets if enabled
-        if self.settings.show_logger_brackets:
-            logger_name = event_dict.get("logger", "root")
-            output_parts.append(f"[{logger_name}]")
-        
-        if message_part:
-            output_parts.append(message_part)
-        
-        output = " ".join(output_parts)
-        
-        return output
+        # Remove internal structlog fields
+        event_dict.pop("_from_structlog", None)
+        event_dict.pop("_original_event", None)
+        event_dict.pop("_record", None)
+        event_dict.pop("_translated_msg", None)
+        event_dict.pop("_log_settings", None)
+
+        # Format timestamp
+        ts = event_dict.pop("timestamp", None)
+        if ts is not None:
+            if self.settings.timestamp_format == "iso_no_z" and str(ts).endswith('Z'):
+                ts = str(ts)[:-1]
+            write(DIM + str(ts) + RESET_ALL + " ")
+
+        # Remove PID if not wanted
+        if not self.settings.show_pid:
+            event_dict.pop("pid", None)
+
+        # Format level
+        level = event_dict.pop("level", None)
+        if level is not None:
+            write(
+                self._level_to_color[level] + level[0].upper() + RESET_ALL + " "
+            )
+
+        # Format event name
+        event = event_dict.pop("event")
+        write(BRIGHT + _pad(event, self.settings.pad_event_width) + RESET_ALL + " ")
+
+        # Handle logger brackets
+        logger_name = event_dict.pop("logger", None)
+        if self.settings.show_logger_brackets and logger_name is not None:
+            write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
+
+        # Show either formatted replace message or structured data
+        if formatted_replace_msg:
+            write(formatted_replace_msg)
+        else:
+            write(
+                " ".join(
+                    CYAN
+                    + key
+                    + RESET_ALL
+                    + "="
+                    + MAGENTA
+                    + repr(event_dict[key])
+                    + RESET_ALL
+                    for key in sorted(event_dict.keys())
+                )
+            )
+
+        # Return only the console output as string (no file output for simple renderer)
+        return console_io.getvalue()
 
 
 class JSONRenderer:

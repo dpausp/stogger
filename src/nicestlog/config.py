@@ -55,7 +55,7 @@ class NicestLogConfig:
             Path(config["translation_dir"]) if config.get("translation_dir") else None
         )
         self.language: str = config.get("language", "en")
-        self.log_format: str = config.get("log_format", "console")
+        self.log_format: str = config.get("log_format", "simple")
         self.async_logging: bool = config.get("async_logging", False)
         self.enable_pii_scrubbing: bool = config.get("enable_pii_scrubbing", True)
         self.pii_redaction_text: str = config.get("pii_redaction_text", "[REDACTED]")
