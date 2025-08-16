@@ -99,75 +99,183 @@ def _pad(s, length):
     return s + " " * (missing if missing > 0 else 0)
 
 
+def prefix(name, s):
+    """Add a prefix to each line of a multi-line string."""
+    if not s:
+        return ""
+    lines = s.split('\n')
+    if name:
+        prefix_str = f"{name}: "
+    else:
+        prefix_str = ""
+    return '\n'.join(prefix_str + line for line in lines)
+
+
 class ConsoleFileRenderer:
-    LEVELS = ["critical", "error", "warning", "info", "debug", "trace"]
+    """
+    Render `event_dict` nicely aligned, in colors, and ordered with
+    specific knowledge about fc.agent structures.
+    """
+
+    LEVELS = [
+        "alert",
+        "critical", 
+        "error",
+        "warn",
+        "warning",
+        "info",
+        "debug",
+        "trace",
+    ]
 
     def __init__(
         self, min_level="info", show_caller_info=False, pad_event=_EVENT_WIDTH
     ):
-        log.info("initializing-console-renderer", min_level=min_level, 
-                   show_caller_info=show_caller_info, pad_event=pad_event)
-        self.min_level_idx = self.LEVELS.index(min_level.lower())
+        self.min_level = self.LEVELS.index(min_level.lower())
         self.show_caller_info = show_caller_info
-        self.pad_event = pad_event
         if colorama is None:
-            log.warning("colorama-not-available", renderer=self.__class__.__name__)
-            print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
-        if sys.stdout.isatty() and colorama:
-            log.debug("initializing-colorama")
+            print(
+                _MISSING.format(who=self.__class__.__name__, package="colorama")
+            )
+        if sys.stdout.isatty():
             colorama.init()
+
+        self._pad_event = pad_event
         self._level_to_color = {
+            "alert": RED,
             "critical": RED,
             "error": RED,
+            "warn": YELLOW,
             "warning": YELLOW,
             "info": GREEN,
             "debug": GREEN,
+            "trace": GREEN,
+            "notset": BACKRED,
         }
-
-    def __call__(self, _, __, event_dict):
-        if self.LEVELS.index(event_dict["level"]) > self.min_level_idx:
-            log.debug("dropping-event-below-min-level", level=event_dict["level"], min_level_idx=self.min_level_idx)
-            raise structlog.DropEvent
-
-        # Console output with colors
-        console_sio = io.StringIO()
-        ts = event_dict.get("timestamp", "notimestamp")
-        console_sio.write(f"{DIM}{ts}{RESET_ALL} ")
-
-        level = event_dict.get("level")
-        console_sio.write(
-            f"{self._level_to_color.get(level, '')}{level[0].upper()}{RESET_ALL} "
+        for key in self._level_to_color.keys():
+            self._level_to_color[key] += BRIGHT
+        self._longest_level = len(
+            max(self._level_to_color.keys(), key=lambda e: len(e))
         )
 
-        event = event_dict.get("event")
-        console_sio.write(f"{BRIGHT}{_pad(event, _EVENT_WIDTH)}{RESET_ALL} ")
+    def __call__(self, logger, method_name, event_dict):
+        log_settings = event_dict.pop("_log_settings", {})
+        if log_settings.get("console_ignore", False):
+            return
 
-        logger_name = event_dict.get("logger", "root")
-        console_sio.write(f"[{BLUE}{BRIGHT}{logger_name}{RESET_ALL}] ")
+        console_io = io.StringIO()
+        log_io = io.StringIO()
 
-        console_sio.write(
-            " ".join(
-                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
-                for k, v in sorted(event_dict.items())
-                if k not in ["timestamp", "level", "event", "logger"]
+        def write(line):
+            console_io.write(line)
+            if RESET_ALL:
+                for SYMB in [
+                    RESET_ALL,
+                    BRIGHT,
+                    DIM,
+                    RED,
+                    BACKRED,
+                    BLUE,
+                    CYAN,
+                    MAGENTA,
+                    YELLOW,
+                    GREEN,
+                ]:
+                    line = line.replace(SYMB, "")
+            log_io.write(line)
+
+        replace_msg = event_dict.pop("_replace_msg", None)
+        if replace_msg:
+            formatter = PartialFormatter()
+            formatted_replace_msg = formatter.format(replace_msg, **event_dict)
+        else:
+            formatted_replace_msg = None
+
+        if not self.show_caller_info:
+            event_dict.pop("code_file", None)
+            event_dict.pop("code_func", None)
+            event_dict.pop("code_lineno", None)
+            event_dict.pop("code_module", None)
+        
+        # Remove internal structlog fields
+        event_dict.pop("_from_structlog", None)
+        event_dict.pop("_original_event", None)
+        event_dict.pop("_record", None)
+        event_dict.pop("_translated_msg", None)
+
+        ts = event_dict.pop("timestamp", None)
+        if ts is not None:
+            write(
+                # can be a number if timestamp is UNIXy
+                DIM + str(ts) + RESET_ALL + " "
             )
-        )
 
-        # File output without colors
-        file_sio = io.StringIO()
-        file_sio.write(f"{ts} ")
-        file_sio.write(f"{level[0].upper()} ")
-        file_sio.write(f"{_pad(event, _EVENT_WIDTH)} ")
-        file_sio.write(f"[{logger_name}] ")
-        file_sio.write(
-            " ".join(
-                f"{k}={repr(v)}"
-                for k, v in sorted(event_dict.items())
-                if k not in ["timestamp", "level", "event", "logger"]
+        event_dict.pop("pid", None)
+
+        level = event_dict.pop("level", None)
+        if level is not None:
+            write(
+                self._level_to_color[level] + level[0].upper() + RESET_ALL + " "
             )
-        )
 
-        return {"console": console_sio.getvalue(), "file": file_sio.getvalue()}
+        event = event_dict.pop("event")
+        write(BRIGHT + _pad(event, self._pad_event) + RESET_ALL + " ")
+
+        logger_name = event_dict.pop("logger", None)
+        if logger_name is not None:
+            write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
+
+        cmd_output_line = event_dict.pop("cmd_output_line", None)
+        output = event_dict.pop("_output", None)
+        stdout = event_dict.pop("stdout", None)
+        stderr = event_dict.pop("stderr", None)
+        stack = event_dict.pop("stack", None)
+        exception_traceback = event_dict.pop("exception_traceback", None)
+
+        if formatted_replace_msg:
+            write(formatted_replace_msg)
+        else:
+            write(
+                " ".join(
+                    CYAN
+                    + key
+                    + RESET_ALL
+                    + "="
+                    + MAGENTA
+                    + repr(event_dict[key])
+                    + RESET_ALL
+                    for key in sorted(event_dict.keys())
+                )
+            )
+
+        if cmd_output_line is not None:
+            write(DIM + "> " + cmd_output_line + RESET_ALL)
+
+        if output is not None:
+            write("\n" + prefix("", "\n" + output + "\n") + RESET_ALL)
+
+        if stdout is not None:
+            write("\n" + DIM + prefix("out", "\n" + stdout + "\n") + RESET_ALL)
+
+        if stderr is not None:
+            write("\n" + prefix("err", "\n" + stderr + "\n") + RESET_ALL)
+
+        if stack is not None:
+            write("\n" + prefix("stack", stack))
+            if exception_traceback is not None:
+                write("\n" + "=" * 79 + "\n")
+
+        if exception_traceback is not None:
+            write("\n" + prefix("exception", exception_traceback))
+
+        # Filter according to the -v switch when outputting to the
+        # console.
+        if self.LEVELS.index(method_name.lower()) > self.min_level:
+            console_io.seek(0)
+            console_io.truncate()
+
+        message = {"console": console_io.getvalue(), "file": log_io.getvalue()}
+        return message
 
 
 class SimpleConsoleRenderer:
