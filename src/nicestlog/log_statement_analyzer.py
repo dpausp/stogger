@@ -305,7 +305,15 @@ def main():
             result = analyze_file(path, prefer_dash_case=not args.allow_snake_case)
             print_analysis_summary(result, args.verbose)
     else:
-        python_files = list(path.rglob("*.py"))
+        EXCLUDE_DIRS = {
+            ".venv", "venv", "__pycache__", ".git", ".tox", ".nox",
+            ".mypy_cache", ".pytest_cache", ".ruff_cache", ".direnv",
+            "node_modules", "build", "dist", ".eggs"
+        }
+        python_files = [
+            p for p in path.rglob("*.py")
+            if not any(part in EXCLUDE_DIRS for part in p.parts)
+        ]
         total_files = 0
         total_statements = 0
         total_issues = 0

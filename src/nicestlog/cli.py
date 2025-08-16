@@ -292,7 +292,20 @@ def i18n_check(
         typer.echo(f"Error importing i18n check: {e}", err=True)
         raise typer.Exit(1)
 
-    report = check_translations([Path(path)], Path(translation_dir), language)
+    # Determine source paths: if user passed ".", prefer configured src_dir if present
+    source_root = Path(path)
+    if path == ".":
+        try:
+            from .config import NicestLogConfig
+            cfg = NicestLogConfig()
+            if cfg.src_dir:
+                candidate = Path(cfg.src_dir)
+                if candidate.exists():
+                    source_root = candidate
+        except Exception:
+            pass
+
+    report = check_translations([source_root], Path(translation_dir), language)
 
     if list_missing:
         missing = report.get("missing_keys", [])
@@ -330,9 +343,23 @@ def run_linter(
         min_coverage = 3.0
         max_coverage = 10.0
 
-    # Run the linter on the specified directory
+    # Determine directory to scan. If user passed ".", prefer configured src_dir if present
+    scan_path = Path(path)
+    if path == ".":
+        try:
+            from .config import NicestLogConfig
+            cfg = NicestLogConfig()
+            if cfg.src_dir:
+                candidate = Path(cfg.src_dir)
+                # Use configured src_dir if it exists; otherwise keep '.'
+                if candidate.exists():
+                    scan_path = candidate
+        except Exception:
+            pass
+
+    # Run the linter on the determined directory
     success = lint_directory(
-        Path(path), min_coverage=min_coverage, max_coverage=max_coverage
+        scan_path, min_coverage=min_coverage, max_coverage=max_coverage
     )
 
     if not success:

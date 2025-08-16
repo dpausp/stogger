@@ -24,6 +24,13 @@ from ._regexes import (
     DEBUG_WITH_REPLACE as _DEBUG_WITH_REPLACE,
 )
 
+# Excluded directories when scanning for Python files
+EXCLUDE_DIRS = {
+    ".venv", "venv", "__pycache__", ".git", ".tox", ".nox",
+    ".mypy_cache", ".pytest_cache", ".ruff_cache", ".direnv",
+    "node_modules", "build", "dist", ".eggs"
+}
+
 
 def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str]]:
     """Scan Python files for keys required by the TranslationProcessor.
@@ -38,7 +45,10 @@ def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set
         if root.is_file() and root.suffix == ".py":
             py_files = [root]
         else:
-            py_files = list(root.rglob("*.py"))
+            py_files = [
+                p for p in root.rglob("*.py")
+                if not any(part in EXCLUDE_DIRS for part in p.parts)
+            ]
 
         for file in py_files:
             try:
@@ -125,7 +135,10 @@ def check_translations(
         if root.is_file() and root.suffix == ".py":
             py_files = [root]
         else:
-            py_files = list(root.rglob("*.py"))
+            py_files = [
+                p for p in root.rglob("*.py")
+                if not any(part in EXCLUDE_DIRS for part in p.parts)
+            ]
         for file in py_files:
             try:
                 text = file.read_text(encoding="utf-8")

@@ -171,9 +171,20 @@ def lint_directory(
     directory: Path, min_coverage: float = 5.0, max_coverage: float = 15.0,
     analyze_statements: bool = False, verbose: bool = False, allow_snake_case: bool = False
 ) -> bool:
-    """Lint all Python files in a directory and its subdirectories."""
-    # Recursively find all Python files in the directory
-    python_files = list(directory.rglob("*.py"))
+    """Lint all Python files in a directory and its subdirectories.
+
+    Excludes common virtual env, cache and VCS directories (e.g., .venv, venv, __pycache__, .git).
+    """
+    # Recursively find all Python files in the directory, excluding unwanted dirs
+    EXCLUDE_DIRS = {
+        ".venv", "venv", "__pycache__", ".git", ".tox", ".nox",
+        ".mypy_cache", ".pytest_cache", ".ruff_cache", ".direnv",
+        "node_modules", "build", "dist", ".eggs"
+    }
+    python_files = [
+        p for p in directory.rglob("*.py")
+        if not any(part in EXCLUDE_DIRS for part in p.parts)
+    ]
 
     if not python_files:
         print("No Python files found in the specified directory!")
@@ -189,8 +200,8 @@ def lint_directory(
         print("─" * 50)
 
     for file_path in python_files:
-        # Skip __pycache__ and other irrelevant files
-        if "__pycache__" in str(file_path) or file_path.name.startswith("."):
+        # Skip hidden files (dirs already excluded above)
+        if file_path.name.startswith("."):
             continue
 
         stats = analyze_file(file_path)
