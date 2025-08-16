@@ -560,7 +560,8 @@ def run_demos(feature: Optional[str] = None, all_features: bool = False):
 
     demos_to_run = []
     if all_features:
-        demos_to_run = list(available_demos.keys())
+        # Run all core demos, but skip heavy/side-effect demos like 'lint'
+        demos_to_run = [k for k in available_demos.keys() if k != "lint"]
     elif feature in available_demos:
         demos_to_run = [feature]
     else:

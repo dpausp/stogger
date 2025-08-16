@@ -14,7 +14,7 @@ def main():
     # Get logger with short, clean name
     log = structlog.get_logger("demo")
     
-    # Clean, short syntax examples
+    # Clean, short syntax examples (good demo patterns)
     log.info("app-starting", version="1.0.0", component="main")
     log.debug("config-loaded", settings_count=42)
     

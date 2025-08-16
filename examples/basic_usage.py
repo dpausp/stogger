@@ -14,6 +14,7 @@ import nicestlog
 
 
 def demonstrate_logging(log):
+    """Runs a series of logging examples that reflect best practices."""
     """Runs a series of logging examples."""
     log.info("application-started", name="MyApp", version="1.0.0")
     log.debug("user-authentication", action="login_attempt", username="alice", ip="192.168.1.1", session_id="sess_123")
