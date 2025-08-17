@@ -342,7 +342,16 @@ def lint_directory(
         lines_width = max(len("LINES"), *(len(str(r["lines"])) for r in rows))
         logs_width = max(len("LOGS"), *(len(str(r["logs"])) for r in rows))
         cov_width = max(len("COVERAGE"), *(len(f"{r['coverage']:.1f}%") for r in rows))
-        issues_width = len("ISSUES")
+        # Compute width for ISSUES based on visible content (E#/W#), ignoring ANSI codes
+        issues_plain_list = []
+        for r in rows:
+            parts = []
+            if r["errors"]:
+                parts.append(f"E{r['errors']}")
+            if r["warnings"]:
+                parts.append(f"W{r['warnings']}")
+            issues_plain_list.append(" ".join(parts))
+        issues_width = max(len("ISSUES"), *(len(s) for s in issues_plain_list))
         primary_width = max(len("SUMMARY"), *(len(r["primary"]) for r in rows))
 
         h_module = Fore.CYAN + Style.BRIGHT + "MODULE" + Style.RESET_ALL
@@ -375,12 +384,24 @@ def lint_directory(
                 Fore.GREEN + coverage_txt + Style.RESET_ALL if r["coverage"] >= 5.0 and r["coverage"] <= 15.0
                 else (Fore.RED + coverage_txt + Style.RESET_ALL if r["coverage"] < 5.0 else Fore.YELLOW + coverage_txt + Style.RESET_ALL)
             )
+            # Right-pad issues cell based on visible length (strip ANSI)
+            def visible_len(s: str) -> int:
+                # naive removal of color codes we add
+                return (
+                    len(s)
+                    - s.count(Style.RESET_ALL) * len(Style.RESET_ALL)
+                    - s.count(Fore.RED) * len(Fore.RED)
+                    - s.count(Fore.YELLOW) * len(Fore.YELLOW)
+                )
+            pad = issues_width - visible_len(issues_cell)
+            issues_padded = issues_cell + (" " * max(0, pad))
+
             print(
                 f"{r['module'].ljust(module_width)}  "
                 f"{str(r['lines']).rjust(lines_width)}  "
                 f"{str(r['logs']).rjust(logs_width)}  "
                 f"{cov_colored.rjust(cov_width + (len(cov_colored)-len(coverage_txt)))}  "
-                f"{issues_cell.rjust(issues_width + (len(issues_cell)-len(' '.join(issues_txt))))}  "
+                f"{issues_padded}  "
                 f"{r['primary'].ljust(primary_width)}"
             )
 
