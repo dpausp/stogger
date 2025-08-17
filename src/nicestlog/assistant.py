@@ -16,6 +16,7 @@ import ast
 import difflib
 import re
 import unicodedata
+import string
 
 
 @dataclass
@@ -39,7 +40,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             if ch.isalnum():
                 out.append(ch)
                 prev_sep = False
-            elif ch in "-_ \/.:,;|()[]{}+*#'\"!?@%$^&`~":
+            elif ch in "-_ /.:,;|()[]{}+*#'\"!?@%$^&`~":
                 if not prev_sep:
                     out.append("-")
                     prev_sep = True
@@ -96,44 +97,63 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             pass
         return node
 
-    def visit_Call(self, node: ast.Call) -> ast.AST:
-        # Transform print(...) -> log.info(<event> or with _replace_msg)
-        if isinstance(node.func, ast.Name) and node.func.id == "print":
-            self.changed = True
-            new_func = ast.Attribute(value=ast.Name(id="log", ctx=ast.Load()), attr="info", ctx=ast.Load())
+    def visit_call_build_print(self, node: ast.Call) -> ast.AST:
+        self.changed = True
+        new_func = ast.Attribute(
+            value=ast.Name(id="log", ctx=ast.Load()),
+            attr="info",
+            ctx=ast.Load(),
+        )
 
-            # Try to derive a reasonable event id from the first string literal, else generic
-            event_arg: Optional[str] = None
-            if node.args:
-                event_arg = self.derive_event_from_literal(node.args[0])
-            event = event_arg if (event_arg and self.is_simple_event(event_arg)) else "print-output"
+        # Determine event id
+        event_arg: Optional[str] = None
+        if node.args:
+            event_arg = self.derive_event_from_literal(node.args[0])
+        event = event_arg if (event_arg and self.is_simple_event(event_arg)) else "print-output"
 
-            keywords: List[ast.keyword] = []
+        keywords: List[ast.keyword] = []
 
-            # If we had a string literal as first arg and there are more args, keep it via _replace_msg
-            if isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
-                keywords.append(ast.keyword(arg="_replace_msg", value=node.args[0]))
-                remaining_args = node.args[1:]
+        # Build _replace_msg and remaining args mapping
+        lit_first = (
+            bool(node.args)
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        )
+        if lit_first:
+            original = node.args[0].value  # type: ignore[assignment]
+            remaining_args = node.args[1:]
+            placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
+            msg = original + ((" " + " ".join(placeholders)) if placeholders else "")
+            keywords.append(ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg)))
+        else:
+            remaining_args = node.args
+            if remaining_args:
+                placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
+                msg = " ".join(placeholders)
+                keywords.append(ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg)))
+
+        # Map positional args a0, a1, ...
+        for idx, a in enumerate(remaining_args):
+            keywords.append(ast.keyword(arg=f"a{idx}", value=a))
+
+        # Preserve print kwargs under namespaced keys
+        for kw in node.keywords or []:
+            if kw.arg is None:
+                keywords.append(ast.keyword(arg="print_kwargs", value=kw.value))
             else:
-                remaining_args = node.args
+                keywords.append(ast.keyword(arg=f"print_{kw.arg}", value=kw.value))
 
-            # Map positional args into fields a0, a1, ... to avoid tuple dumps
-            for idx, a in enumerate(remaining_args):
-                keywords.append(ast.keyword(arg=f"a{idx}", value=a))
+        new_call = ast.Call(
+            func=new_func,
+            args=[ast.Constant(value=event)],
+            keywords=keywords,
+        )
+        return ast.copy_location(new_call, node)
 
-            # Preserve print kwargs under namespaced keys
-            for kw in node.keywords or []:
-                if kw.arg is None:
-                    keywords.append(ast.keyword(arg="print_kwargs", value=kw.value))
-                else:
-                    keywords.append(ast.keyword(arg=f"print_{kw.arg}", value=kw.value))
-
-            new_call = ast.Call(
-                func=new_func,
-                args=[ast.Constant(value=event)],
-                keywords=keywords,
-            )
-            return ast.copy_location(new_call, node)
+    def visit_Call(self, node: ast.Call) -> ast.AST:
+        # Transform print(...) -> log.info(<event>, _replace_msg="... {a0} {a1}", a0=..., a1=...)
+        if isinstance(node.func, ast.Name) and node.func.id == "print":
+            return self.visit_call_build_print(node)
         return self.generic_visit(node)
 
     def ensure_imports_and_logger(self, tree: ast.Module) -> ast.Module:
@@ -156,8 +176,10 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
 def migrate_file(content: str) -> Tuple[str, bool]:
     tree = ast.parse(content)
     transformer = PrintToStructlogTransformer()
-    transformer.visit(tree)
+    tree = transformer.visit(tree)
+    ast.fix_missing_locations(tree)
     tree = transformer.ensure_imports_and_logger(tree)
+    ast.fix_missing_locations(tree)
     try:
         new_code = ast.unparse(tree)
     except Exception:
