@@ -141,7 +141,20 @@ def check_translations(
             "required_keys": sorted(required_keys),
         }
 
-    # Collect debug calls that use _replace_msg to warn, but do not require translation
+    # Collect debug-level events that use _replace_msg.
+    #
+    # Rationale:
+    # - nicestlog does not require translations for debug-level messages.
+    # - We still want to report these debug events (for visibility), but
+    #   exclude them from the required translation coverage. Therefore we
+    #   collect their event names in `debug_events` and remove them from
+    #   `required_keys` below.
+    # - This scanning pass is separate from `find_required_translation_keys`
+    #   to keep concerns clear. It could be merged into a single pass in the
+    #   future to avoid duplicate file reads. See TODO just below.
+    #
+    # TODO: Consider refactoring to return (event_keys, msg_keys, debug_events)
+    #       from a single scanning function to reduce IO.
     debug_with_replace: Set[str] = set()
     debug_events: Set[str] = set()
     for root in source_paths:
@@ -198,7 +211,7 @@ def check_translations(
     }
 
 
-def format_report(report: Dict[str, object]) -> str:
+def format_report(report: Dict[str, object], include_debug: bool = True) -> str:
     # If --list-missing is requested via env/flag, handled in CLI wrapper.
     # This function returns the pretty report.
 
@@ -239,11 +252,12 @@ def format_report(report: Dict[str, object]) -> str:
         for k in extra:
             lines.append(f"  - {k}")
 
-    dbg = report.get("debug_with_replace_events", [])  # type: ignore[assignment]
-    if dbg:
-        lines.append("\n⚠️ Debug events using _replace_msg (ignored for coverage):")
-        for k in dbg:
-            lines.append(f"  - {k}")
+    if include_debug:
+        dbg = report.get("debug_with_replace_events", [])  # type: ignore[assignment]
+        if dbg:
+            lines.append("\n⚠️ Debug events using _replace_msg (ignored for coverage):")
+            for k in dbg:
+                lines.append(f"  - {k}")
 
     return "\n".join(lines)
 

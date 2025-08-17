@@ -437,6 +437,13 @@ def i18n_check(
         bool,
         typer.Option("--list-missing", help="Only list missing keys (one per line)"),
     ] = False,
+    concise: Annotated[
+        bool,
+        typer.Option(
+            "--concise",
+            help="Only show grouped missing translations by level; suppress other sections",
+        ),
+    ] = False,
     fail_on_extra: Annotated[
         bool,
         typer.Option(
@@ -469,7 +476,12 @@ def i18n_check(
             raise typer.Exit(1)
         raise typer.Exit(0)
 
-    typer.echo(format_report(report))
+    # In concise mode, surface only the grouped missing summary to keep output tight
+    if concise:
+        from .i18n_check import format_report as _fmt
+        print(_fmt(report, include_debug=False))
+    else:
+        typer.echo(format_report(report))
 
     if "error" in report:
         raise typer.Exit(2)
