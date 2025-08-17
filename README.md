@@ -61,6 +61,32 @@ log.info("Starting application", component="main")
 
 For more examples and best practices, see the [documentation](docs/best_practices.md).
 
+## CLI Docs Viewer
+
+Use the built-in docs viewer to read project docs with colorized Markdown rendering.
+
+```bash
+# Show all docs (prefers local README.md + docs/*.md, falls back to packaged)
+uv run nicestlog docs
+
+# Show a specific doc by filename
+uv run nicestlog docs README.md
+
+# Use a glob pattern
+uv run nicestlog docs 'docs/*.md'
+
+# Disable pager (useful in CI or when piping output)
+uv run nicestlog docs --no-pager
+```
+
+Behavior:
+- Prefers local files: ./README.md and ./docs/*.md
+- Falls back to packaged docs when installed as a package
+- Supports selecting a specific file or glob pattern
+- Pager can be disabled via --no-pager
+- Uses Rich markdown rendering (with a code theme) for a pleasant reading experience
+
+
 ## i18n check (translation coverage)
 
 Use the built-in CLI to verify that your translation files contain entries for all messages used in your source code.

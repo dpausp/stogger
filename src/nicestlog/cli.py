@@ -94,9 +94,23 @@ app.add_typer(i18n_app, name="i18n")
 
 
 @app.command()
-def docs(ctx: typer.Context):
-    """Show project docs with colors. Prefer local files, fallback to packaged docs."""
-    _show_docs_interactive()
+def docs(
+    ctx: typer.Context,
+    target: Annotated[
+        Optional[str],
+        typer.Argument(help="Specific file or glob to show (e.g., README.md or docs/*.md)")
+    ] = None,
+    no_pager: Annotated[
+        bool, typer.Option("--no-pager", help="Print directly without pager")
+    ] = False,
+):
+    """Show project docs with colors. Prefer local files, fallback to packaged docs.
+
+    - Without arguments: shows README.md and docs/*.md if present, else packaged docs.
+    - With TARGET: filter docs by file name or glob pattern (e.g., README.md, best_*.md).
+    - Use --no-pager to disable the pager (useful in CI or piping output).
+    """
+    _show_docs_interactive(target=target, use_pager=not no_pager)
 
 
 @app.command("init-config")
@@ -263,11 +277,17 @@ def _show_markdown_files(filenames: list[str]):
         raise typer.Exit(1)
 
 
-def _show_docs_interactive():
-    """Render docs with Rich, preferring local files and falling back to packaged ones."""
+def _show_docs_interactive(target: Optional[str] = None, use_pager: bool = True):
+    """Render docs with Rich, preferring local files and falling back to packaged ones.
+
+    Args:
+        target: Optional file name or glob pattern to filter which docs to render.
+        use_pager: If True, use a pager; otherwise print directly.
+    """
     from pathlib import Path
     from rich.console import Console
     from rich.markdown import Markdown
+    from contextlib import nullcontext
 
     console = Console()
 
@@ -280,10 +300,23 @@ def _show_docs_interactive():
     if docs_dir.exists() and docs_dir.is_dir():
         local_files.extend(sorted(docs_dir.glob("*.md")))
 
+    # If a target is provided, filter local files by that pattern; if no local match, try globbing within docs
+    if target:
+        # If target is an existing path, use it directly
+        tpath = Path(target)
+        if tpath.exists():
+            local_files = [tpath]
+        else:
+            local_files = [p for p in local_files if Path(p).match(target)] or []
+            # If still empty and looks like a docs glob, search in docs dir
+            if not local_files and docs_dir.exists():
+                local_files = sorted(docs_dir.glob(target))
+
     def _render_paths(paths: list[Path]) -> bool:
         if not paths:
             return False
-        with console.pager():
+        ctx = console.pager() if use_pager else nullcontext()
+        with ctx:
             for idx, p in enumerate(paths):
                 try:
                     content = p.read_text(encoding="utf-8")
@@ -296,15 +329,19 @@ def _show_docs_interactive():
                     console.print()
         return True
 
+    # Try local files
     if _render_paths(local_files):
         return
 
     # Fallback: render packaged docs from nicestlog/_docs
     try:
         docs_root = resources.files("nicestlog").joinpath("_docs")
-        packaged_files = [
-            p for p in docs_root.iterdir() if p.name.endswith(".md")
-        ]
+        packaged_files = [p for p in docs_root.iterdir() if p.name.endswith(".md")]
+        # Filter packaged by target if provided
+        if target:
+            packaged_files = [
+                p for p in packaged_files if p.name == target or p.name.endswith(target) or p.match(target)
+            ]
         # Prefer README.md first
         packaged_files_sorted = sorted(
             packaged_files,
@@ -312,7 +349,8 @@ def _show_docs_interactive():
         )
         if not packaged_files_sorted:
             raise FileNotFoundError("No packaged docs found")
-        with console.pager():
+        ctx = console.pager() if use_pager else nullcontext()
+        with ctx:
             for idx, p in enumerate(packaged_files_sorted):
                 content = p.read_text(encoding="utf-8")
                 console.rule(f"{p.name}", style="bold blue")
