@@ -252,24 +252,56 @@ def demo(
 
 @app.command()
 def assistant(
-    path: Annotated[str, typer.Argument(help="Path to directory to migrate")],
+    path: Annotated[
+        Optional[str],
+        typer.Argument(help="Path to directory to migrate (default: src_dir from config or .)")
+    ] = None,
     output: Annotated[
-        Optional[str], typer.Option("-o", "--output", help="Output directory")
+        Optional[str], typer.Option("-o", "--output", help="Output directory (mirror tree)")
     ] = None,
     translations: Annotated[
         Optional[str],
-        typer.Option("-t", "--translations", help="Translations file name"),
+        typer.Option("-t", "--translations", help="Translations file name (reserved)"),
     ] = "log_messages.json",
+    write: Annotated[
+        bool,
+        typer.Option(
+            "--write/--dry-run",
+            help="Apply changes to files (default: dry-run shows unified diff)",
+        ),
+    ] = False,
 ):
-    """Automatically migrate print and logging statements to structlog."""
+    """Automatically migrate print statements to structlog.
+
+    Default is dry-run (no file changes), showing unified diffs per changed file.
+    If PATH is omitted, resolves like other commands: prefer configured src_dir; else '.'.
+    """
     from .assistant import migrate_directory
     from pathlib import Path
 
-    input_dir = Path(path)
-    output_dir = Path(output) if output else None
-    translations_file = translations
+    # Resolve input directory similar to lint/i18n
+    if path is None:
+        # try config src_dir
+        input_dir = _resolve_source_root(".")
+    else:
+        input_dir = _resolve_source_root(path)
 
-    migrate_directory(input_dir, output_dir, translations_file)
+    output_dir = Path(output) if output else None
+
+    result = migrate_directory(input_dir, output_dir, translations, dry_run=not write)
+
+    # Show diffs in dry-run
+    if not write and result.diffs:
+        import sys
+        from rich.console import Console
+        console = Console(file=sys.stdout)
+        for p, diff in result.diffs.items():
+            console.rule(p)
+            console.print("".join(diff))
+
+    typer.echo(
+        f"Processed {result.files_processed} files. Transformed: {result.files_transformed}{' (dry-run)' if not write else ''}."
+    )
 
 
 def _show_markdown_files(filenames: list[str]):

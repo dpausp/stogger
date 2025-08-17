@@ -9,16 +9,18 @@ It intentionally avoids complex logging-module rewrites for safety.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
 import ast
+import difflib
 
 
 @dataclass
 class MigrationResult:
     files_processed: int = 0
     files_transformed: int = 0
+    diffs: Dict[str, List[str]] = field(default_factory=dict)  # path -> unified diff lines
 
 
 class PrintToStructlogTransformer(ast.NodeTransformer):
@@ -106,7 +108,12 @@ def migrate_file(content: str) -> Tuple[str, bool]:
     return new_code, transformer.changed
 
 
-def migrate_directory(input_dir: Path, output_dir: Optional[Path], translations_file: str = "log_messages.json") -> MigrationResult:
+def migrate_directory(
+    input_dir: Path,
+    output_dir: Optional[Path],
+    translations_file: str = "log_messages.json",
+    dry_run: bool = True,
+) -> MigrationResult:
     """Migrate Python files under input_dir. Writes to output_dir if provided, else in-place.
 
     translations_file is currently unused but kept for CLI compatibility and future enhancements.
@@ -130,21 +137,30 @@ def migrate_directory(input_dir: Path, output_dir: Optional[Path], translations_
         new_code, changed = migrate_file(original)
         result.files_processed += 1
         if not changed:
-            # Copy file as-is when writing to a different output dir
-            target_path = py if output_dir is None else (output_dir / py.relative_to(input_dir))
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            if output_dir is None:
-                # in-place: only write if different to avoid touching timestamps
-                if new_code != original:
-                    target_path.write_text(new_code, encoding="utf-8")
-            else:
+            # No transformation; in dry-run collect no diff. When writing to separate dir, still mirror original.
+            if output_dir is not None and not dry_run:
+                target_path = output_dir / py.relative_to(input_dir)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_text(original, encoding="utf-8")
             continue
 
-        # Write transformed code
-        target_path = py if output_dir is None else (output_dir / py.relative_to(input_dir))
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        target_path.write_text(new_code, encoding="utf-8")
-        result.files_transformed += 1
+        # If changed, record diff
+        if changed:
+            diff_lines = list(
+                difflib.unified_diff(
+                    original.splitlines(keepends=True),
+                    new_code.splitlines(keepends=True),
+                    fromfile=str(py),
+                    tofile=str(py),
+                )
+            )
+            result.diffs[str(py)] = diff_lines
+
+        # Write transformed code only if not dry-run
+        if not dry_run:
+            target_path = py if output_dir is None else (output_dir / py.relative_to(input_dir))
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            target_path.write_text(new_code, encoding="utf-8")
+            result.files_transformed += 1
 
     return result
