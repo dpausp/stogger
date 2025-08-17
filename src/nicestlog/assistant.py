@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Optional, Tuple, Dict, List
 import ast
 import difflib
+import re
+import unicodedata
 
 
 @dataclass
@@ -24,6 +26,41 @@ class MigrationResult:
 
 
 class PrintToStructlogTransformer(ast.NodeTransformer):
+    SIMPLE_EVENT_RE = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
+
+    @staticmethod
+    def slugify(text: str) -> str:
+        # Normalize unicode, lower-case, keep alnum, convert spaces and punctuation to '-'
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+        text = text.lower()
+        out = []
+        prev_sep = False
+        for ch in text:
+            if ch.isalnum():
+                out.append(ch)
+                prev_sep = False
+            elif ch in "-_ \/.:,;|()[]{}+*#'\"!?@%$^&`~":
+                if not prev_sep:
+                    out.append("-")
+                    prev_sep = True
+            # else drop
+        slug = "".join(out).strip("-")
+        slug = re.sub(r"-+", "-", slug)
+        if not slug:
+            slug = "event"
+        return slug
+
+    @staticmethod
+    def derive_event_from_literal(arg: ast.AST) -> Optional[str]:
+        if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+            candidate = PrintToStructlogTransformer.slugify(arg.value)
+            return candidate
+        return None
+
+    @staticmethod
+    def is_simple_event(s: str) -> bool:
+        return bool(PrintToStructlogTransformer.SIMPLE_EVENT_RE.match(s))
+
     def __init__(self) -> None:
         super().__init__()
         self.import_structlog_present = False
@@ -60,21 +97,42 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         return node
 
     def visit_Call(self, node: ast.Call) -> ast.AST:
-        # Transform print(...) -> log.info("print-output", items=[<args as-is>], **kwargs)
+        # Transform print(...) -> log.info(<event> or with _replace_msg)
         if isinstance(node.func, ast.Name) and node.func.id == "print":
             self.changed = True
             new_func = ast.Attribute(value=ast.Name(id="log", ctx=ast.Load()), attr="info", ctx=ast.Load())
-            # Build items=[...] from positional args
-            items_list = ast.List(elts=[ast.copy_location(a, a) for a in node.args], ctx=ast.Load())
-            new_keywords = [ast.keyword(arg="items", value=items_list)]
-            # preserve existing keyword args by nesting under kw_<name> to avoid collisions
+
+            # Try to derive a reasonable event id from the first string literal, else generic
+            event_arg: Optional[str] = None
+            if node.args:
+                event_arg = self.derive_event_from_literal(node.args[0])
+            event = event_arg if (event_arg and self.is_simple_event(event_arg)) else "print-output"
+
+            keywords: List[ast.keyword] = []
+
+            # If we had a string literal as first arg and there are more args, keep it via _replace_msg
+            if isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                keywords.append(ast.keyword(arg="_replace_msg", value=node.args[0]))
+                remaining_args = node.args[1:]
+            else:
+                remaining_args = node.args
+
+            # Map positional args into fields a0, a1, ... to avoid tuple dumps
+            for idx, a in enumerate(remaining_args):
+                keywords.append(ast.keyword(arg=f"a{idx}", value=a))
+
+            # Preserve print kwargs under namespaced keys
             for kw in node.keywords or []:
                 if kw.arg is None:
-                    # print supports **kwargs; preserve as passthrough dictionary
-                    new_keywords.append(ast.keyword(arg="print_kwargs", value=kw.value))
+                    keywords.append(ast.keyword(arg="print_kwargs", value=kw.value))
                 else:
-                    new_keywords.append(ast.keyword(arg=f"print_{kw.arg}", value=kw.value))
-            new_call = ast.Call(func=new_func, args=[ast.Constant(value="print-output")], keywords=new_keywords)
+                    keywords.append(ast.keyword(arg=f"print_{kw.arg}", value=kw.value))
+
+            new_call = ast.Call(
+                func=new_func,
+                args=[ast.Constant(value=event)],
+                keywords=keywords,
+            )
             return ast.copy_location(new_call, node)
         return self.generic_visit(node)
 
