@@ -1,5 +1,4 @@
 import textwrap
-from pathlib import Path
 from typer.testing import CliRunner
 
 import nicestlog.cli as cli
@@ -64,8 +63,8 @@ def test_run_i18n_demo_passes_config_to_init(tmp_path, monkeypatch):
     )
 
     # Minimal en/at toml to avoid noisy warnings in demo
-    (trans / "en.toml").write_text("[setup]\nwelcome=\"EN\"\n", encoding="utf-8")
-    (trans / "at.toml").write_text("[setup]\nwelcome=\"AT\"\n", encoding="utf-8")
+    (trans / "en.toml").write_text('[setup]\nwelcome="EN"\n', encoding="utf-8")
+    (trans / "at.toml").write_text('[setup]\nwelcome="AT"\n', encoding="utf-8")
 
     # Capture args provided to nicestlog.init_logging
     called = {"kwargs": None}
@@ -75,7 +74,9 @@ def test_run_i18n_demo_passes_config_to_init(tmp_path, monkeypatch):
         # no-op
         return None
 
-    monkeypatch.setattr(cli, "time", type("T", (), {"sleep": staticmethod(lambda *_: None)})())
+    monkeypatch.setattr(
+        cli, "time", type("T", (), {"sleep": staticmethod(lambda *_: None)})()
+    )
     monkeypatch.setattr(cli.nicestlog, "init_logging", fake_init_logging)
 
     # Change into temp project and invoke CLI

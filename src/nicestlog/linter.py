@@ -15,7 +15,9 @@ from typing import List
 from dataclasses import dataclass
 from colorama import init as colorama_init, Fore, Style
 
-from .log_statement_analyzer import analyze_file as analyze_log_statements, LogAnalysisResult
+from .log_statement_analyzer import (
+    analyze_file as analyze_log_statements,
+)
 
 
 @dataclass
@@ -172,8 +174,12 @@ def check_logging_quality(
 
 
 def lint_directory(
-    directory: Path, min_coverage: float = 5.0, max_coverage: float = 15.0,
-    analyze_statements: bool = False, verbose: bool = False, allow_snake_case: bool = False
+    directory: Path,
+    min_coverage: float = 5.0,
+    max_coverage: float = 15.0,
+    analyze_statements: bool = False,
+    verbose: bool = False,
+    allow_snake_case: bool = False,
 ) -> bool:
     """Lint all Python files in a directory and its subdirectories.
 
@@ -181,12 +187,24 @@ def lint_directory(
     """
     # Recursively find all Python files in the directory, excluding unwanted dirs
     EXCLUDE_DIRS = {
-        ".venv", "venv", "__pycache__", ".git", ".tox", ".nox",
-        ".mypy_cache", ".pytest_cache", ".ruff_cache", ".direnv",
-        "node_modules", "build", "dist", ".eggs"
+        ".venv",
+        "venv",
+        "__pycache__",
+        ".git",
+        ".tox",
+        ".nox",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".direnv",
+        "node_modules",
+        "build",
+        "dist",
+        ".eggs",
     }
     python_files = [
-        p for p in directory.rglob("*.py")
+        p
+        for p in directory.rglob("*.py")
         if not any(part in EXCLUDE_DIRS for part in p.parts)
     ]
 
@@ -222,7 +240,9 @@ def lint_directory(
     output_format = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
 
     if output_format not in {"json", "toml"}:
-        print(f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n")
+        print(
+            f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n"
+        )
 
     # Collect per-file data first so we can render a clean table
     rows: List[dict] = []
@@ -245,7 +265,9 @@ def lint_directory(
         # Analyze log statements if requested
         log_analysis = None
         if analyze_statements:
-            log_analysis = analyze_log_statements(file_path, prefer_dash_case=not allow_snake_case)
+            log_analysis = analyze_log_statements(
+                file_path, prefer_dash_case=not allow_snake_case
+            )
 
         # Determine primary issue label (text only, no emojis)
         primary_issue_text = ""
@@ -314,7 +336,9 @@ def lint_directory(
                 "overall_logging_coverage": round(total_stats.log_coverage_percent, 1),
                 "functions": total_stats.functions,
                 "functions_with_logging": total_stats.functions_with_logging,
-                "function_logging_coverage": round(total_stats.function_coverage_percent, 1),
+                "function_logging_coverage": round(
+                    total_stats.function_coverage_percent, 1
+                ),
             },
         }
         print(json.dumps(report, ensure_ascii=False))
@@ -330,7 +354,9 @@ def lint_directory(
                 "overall_logging_coverage": round(total_stats.log_coverage_percent, 1),
                 "functions": total_stats.functions,
                 "functions_with_logging": total_stats.functions_with_logging,
-                "function_logging_coverage": round(total_stats.function_coverage_percent, 1),
+                "function_logging_coverage": round(
+                    total_stats.function_coverage_percent, 1
+                ),
             },
         }
         print(toml.dumps(report))
@@ -362,14 +388,22 @@ def lint_directory(
         h_summary = Fore.CYAN + Style.BRIGHT + "SUMMARY" + Style.RESET_ALL
 
         header = (
-            f"{h_module.ljust(module_width + (len(h_module)-len('MODULE')))}  "
-            f"{h_lines.rjust(lines_width + (len(h_lines)-len('LINES')))}  "
-            f"{h_logs.rjust(logs_width + (len(h_logs)-len('LOGS')))}  "
-            f"{h_cov.rjust(cov_width + (len(h_cov)-len('COVERAGE')))}  "
-            f"{h_issues.rjust(issues_width + (len(h_issues)-len('ISSUES')))}  "
-            f"{h_summary.ljust(primary_width + (len(h_summary)-len('SUMMARY')))}"
+            f"{h_module.ljust(module_width + (len(h_module) - len('MODULE')))}  "
+            f"{h_lines.rjust(lines_width + (len(h_lines) - len('LINES')))}  "
+            f"{h_logs.rjust(logs_width + (len(h_logs) - len('LOGS')))}  "
+            f"{h_cov.rjust(cov_width + (len(h_cov) - len('COVERAGE')))}  "
+            f"{h_issues.rjust(issues_width + (len(h_issues) - len('ISSUES')))}  "
+            f"{h_summary.ljust(primary_width + (len(h_summary) - len('SUMMARY')))}"
         )
-        sep = "-" * (module_width + lines_width + logs_width + cov_width + issues_width + primary_width + 10)
+        sep = "-" * (
+            module_width
+            + lines_width
+            + logs_width
+            + cov_width
+            + issues_width
+            + primary_width
+            + 10
+        )
         print(header)
         print(sep)
         for r in rows:
@@ -381,9 +415,15 @@ def lint_directory(
             issues_cell = " ".join(issues_txt)
             coverage_txt = f"{r['coverage']:.1f}%"
             cov_colored = (
-                Fore.GREEN + coverage_txt + Style.RESET_ALL if r["coverage"] >= 5.0 and r["coverage"] <= 15.0
-                else (Fore.RED + coverage_txt + Style.RESET_ALL if r["coverage"] < 5.0 else Fore.YELLOW + coverage_txt + Style.RESET_ALL)
+                Fore.GREEN + coverage_txt + Style.RESET_ALL
+                if r["coverage"] >= 5.0 and r["coverage"] <= 15.0
+                else (
+                    Fore.RED + coverage_txt + Style.RESET_ALL
+                    if r["coverage"] < 5.0
+                    else Fore.YELLOW + coverage_txt + Style.RESET_ALL
+                )
             )
+
             # Right-pad issues cell based on visible length (strip ANSI)
             def visible_len(s: str) -> int:
                 # naive removal of color codes we add
@@ -393,6 +433,7 @@ def lint_directory(
                     - s.count(Fore.RED) * len(Fore.RED)
                     - s.count(Fore.YELLOW) * len(Fore.YELLOW)
                 )
+
             pad = issues_width - visible_len(issues_cell)
             issues_padded = issues_cell + (" " * max(0, pad))
 
@@ -400,7 +441,7 @@ def lint_directory(
                 f"{r['module'].ljust(module_width)}  "
                 f"{str(r['lines']).rjust(lines_width)}  "
                 f"{str(r['logs']).rjust(logs_width)}  "
-                f"{cov_colored.rjust(cov_width + (len(cov_colored)-len(coverage_txt)))}  "
+                f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
                 f"{issues_padded}  "
                 f"{r['primary'].ljust(primary_width)}"
             )
@@ -409,13 +450,43 @@ def lint_directory(
         print()
         legend_title = Fore.CYAN + Style.BRIGHT + "ISSUE LEGEND" + Style.RESET_ALL
         print(legend_title)
-        print("  " + Fore.RED + "E#" + Style.RESET_ALL + " = number of error-level findings; categories:")
+        print(
+            "  "
+            + Fore.RED
+            + "E#"
+            + Style.RESET_ALL
+            + " = number of error-level findings; categories:"
+        )
         print("    " + Fore.RED + "E1" + Style.RESET_ALL + ": Too little logging")
-        print("    " + Fore.RED + "E2" + Style.RESET_ALL + ": Too few functions have logging")
+        print(
+            "    "
+            + Fore.RED
+            + "E2"
+            + Style.RESET_ALL
+            + ": Too few functions have logging"
+        )
         print("    " + Fore.RED + "E3" + Style.RESET_ALL + ": Log statement issues")
-        print("  " + Fore.YELLOW + "W#" + Style.RESET_ALL + " = number of warning-level findings; categories:")
-        print("    " + Fore.YELLOW + "W1" + Style.RESET_ALL + ": Possibly too much logging")
-        print("    " + Fore.YELLOW + "W2" + Style.RESET_ALL + ": Almost every function logs")
+        print(
+            "  "
+            + Fore.YELLOW
+            + "W#"
+            + Style.RESET_ALL
+            + " = number of warning-level findings; categories:"
+        )
+        print(
+            "    "
+            + Fore.YELLOW
+            + "W1"
+            + Style.RESET_ALL
+            + ": Possibly too much logging"
+        )
+        print(
+            "    "
+            + Fore.YELLOW
+            + "W2"
+            + Style.RESET_ALL
+            + ": Almost every function logs"
+        )
 
     if output_format not in {"json", "toml"}:
         print("=" * 60)
@@ -502,24 +573,38 @@ def main():
         print(f"📁 {path}")
         for issue in issues:
             print(f"   {issue}")
-        
+
         # Analyze statements for single file if requested
         if args.analyze_statements:
-            log_analysis = analyze_log_statements(path, prefer_dash_case=not args.allow_snake_case)
+            log_analysis = analyze_log_statements(
+                path, prefer_dash_case=not args.allow_snake_case
+            )
             if log_analysis.total_statements > 0:
                 statement_issues = sum(len(s.issues) for s in log_analysis.statements)
-                print(f"   Log statements: {log_analysis.total_statements} ({statement_issues} issues)")
+                print(
+                    f"   Log statements: {log_analysis.total_statements} ({statement_issues} issues)"
+                )
                 if args.verbose:
                     for stmt in log_analysis.statements:
                         if stmt.issues:
-                            issues_str = ', '.join(stmt.issues)
-                            event_str = f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
-                            print(f"     L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}")
-        
+                            issues_str = ", ".join(stmt.issues)
+                            event_str = (
+                                f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
+                            )
+                            print(
+                                f"     L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}"
+                            )
+
         success = not any("❌" in issue for issue in issues)
     else:
-        success = lint_directory(path, args.min_coverage, args.max_coverage, 
-                                args.analyze_statements, args.verbose, args.allow_snake_case)
+        success = lint_directory(
+            path,
+            args.min_coverage,
+            args.max_coverage,
+            args.analyze_statements,
+            args.verbose,
+            args.allow_snake_case,
+        )
 
     sys.exit(0 if success else 1)
 

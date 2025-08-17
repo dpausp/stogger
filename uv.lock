@@ -788,11 +788,13 @@ dev = [
     { name = "hatch" },
     { name = "mypy" },
     { name = "pre-commit" },
-    { name = "ruff" },
     { name = "types-colorama" },
 ]
 ipython = [
     { name = "ipython" },
+]
+ruff = [
+    { name = "ruff" },
 ]
 test = [
     { name = "pytest" },
@@ -819,10 +821,10 @@ dev = [
     { name = "hatch", specifier = ">=1.14.1" },
     { name = "mypy", specifier = ">=1.14.1" },
     { name = "pre-commit", specifier = ">=3.5.0" },
-    { name = "ruff", specifier = ">=0.12.7" },
     { name = "types-colorama", specifier = ">=0.4.0" },
 ]
 ipython = [{ name = "ipython", specifier = ">=9.4.0" }]
+ruff = [{ name = "ruff", specifier = ">=0.12.7" }]
 test = [
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-cov", specifier = ">=4.0.0" },

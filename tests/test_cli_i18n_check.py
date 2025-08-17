@@ -4,7 +4,6 @@ import sys
 import textwrap
 
 
-
 def run_cli(args, cwd=None):
     exe = [sys.executable, "-m", "nicestlog", "i18n", "check"]
     return subprocess.run(exe + args, cwd=cwd, capture_output=True, text=True)

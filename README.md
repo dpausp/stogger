@@ -77,6 +77,15 @@ uv run nicestlog docs 'docs/*.md'
 
 # Disable pager (useful in CI or when piping output)
 uv run nicestlog docs --no-pager
+
+# List available docs (no rendering)
+uv run nicestlog docs --list
+
+# Filter by text content
+uv run nicestlog docs --search "best practice"
+
+# Change code block theme
+uv run nicestlog docs --theme github
 ```
 
 Behavior:

@@ -29,9 +29,12 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
     """
     Builds processors that are shared between sync and async modes.
     """
-    log.debug("building-shared-processors", pii_scrubbing=config.enable_pii_scrubbing, 
-             translation_dir=str(config.translation_dir) if config.translation_dir else None)
-    
+    log.debug(
+        "building-shared-processors",
+        pii_scrubbing=config.enable_pii_scrubbing,
+        translation_dir=str(config.translation_dir) if config.translation_dir else None,
+    )
+
     processors = [
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
@@ -53,13 +56,23 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
     if config.translation_dir:
         try:
             translation_file = config.translation_dir / f"{config.language}.toml"
-            log.debug("loading-translations", file=str(translation_file), language=config.language)
+            log.debug(
+                "loading-translations",
+                file=str(translation_file),
+                language=config.language,
+            )
             with open(translation_file, "r") as f:
                 translations = toml.load(f)
-            log.info("translations-loaded", translation_count=len(translations), language=config.language)
+            log.info(
+                "translations-loaded",
+                translation_count=len(translations),
+                language=config.language,
+            )
             processors.append(TranslationProcessor(translations))
         except (IOError, toml.TomlDecodeError) as e:
-            log.warning("translation-load-failed", file=str(translation_file), error=str(e))
+            log.warning(
+                "translation-load-failed", file=str(translation_file), error=str(e)
+            )
             print(
                 f"Warning: failed to load translations from {translation_file}: {e}",
                 file=sys.stderr,
@@ -70,32 +83,47 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
 
 def build_renderer(config: NicestLogConfig) -> Any:
     """Builds the final renderer based on the log format."""
-    log.debug("building-renderer", format=config.log_format, verbose=config.verbose, 
-             show_caller_info=config.show_caller_info)
-    
+    log.debug(
+        "building-renderer",
+        format=config.log_format,
+        verbose=config.verbose,
+        show_caller_info=config.show_caller_info,
+    )
+
     if config.log_format == "json":
         renderer = JSONRenderer(min_level="debug" if config.verbose else "info")
-        log.info("json-renderer-created", min_level="debug" if config.verbose else "info")
+        log.info(
+            "json-renderer-created", min_level="debug" if config.verbose else "info"
+        )
     elif config.log_format == "simple":
         renderer = SimpleConsoleRenderer(
             min_level="debug" if config.verbose else "info",
-            settings=config.simple_format_settings
+            settings=config.simple_format_settings,
         )
-        log.info("simple-console-renderer-created", min_level="debug" if config.verbose else "info")
+        log.info(
+            "simple-console-renderer-created",
+            min_level="debug" if config.verbose else "info",
+        )
     else:
         renderer = ConsoleFileRenderer(
             min_level="debug" if config.verbose else "info",
             show_caller_info=config.show_caller_info,
         )
-        log.info("console-renderer-created", min_level="debug" if config.verbose else "info")
+        log.info(
+            "console-renderer-created", min_level="debug" if config.verbose else "info"
+        )
     return renderer
 
 
 def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     """Configures the standard Python logging library."""
-    log.info("configuring-stdlib-logging", logdir=str(config.logdir) if config.logdir else None,
-            log_to_console=config.log_to_console, async_logging=config.async_logging)
-    
+    log.info(
+        "configuring-stdlib-logging",
+        logdir=str(config.logdir) if config.logdir else None,
+        log_to_console=config.log_to_console,
+        async_logging=config.async_logging,
+    )
+
     renderer = build_renderer(config)
 
     # Create separate formatters for console and file handlers
@@ -133,7 +161,9 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
             file_handlers.append(file_handler)
             log.info("file-logging-enabled", log_file=str(log_file))
         except (IOError, PermissionError) as e:
-            log.error("file-logging-setup-failed", logdir=str(config.logdir), error=str(e))
+            log.error(
+                "file-logging-setup-failed", logdir=str(config.logdir), error=str(e)
+            )
             print(f"Warning: failed to set up file logging: {e}", file=sys.stderr)
 
     if config.log_to_console:
@@ -148,7 +178,9 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     # Prepare combined handler list and assign formatters before activation
     all_handlers = console_handlers + file_handlers
     for handler in all_handlers:
-        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+        if isinstance(handler, logging.StreamHandler) and not isinstance(
+            handler, logging.FileHandler
+        ):
             handler.setFormatter(console_formatter)
         elif isinstance(handler, logging.FileHandler):
             handler.setFormatter(file_formatter)

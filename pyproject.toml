@@ -45,11 +45,13 @@ dev = [
     "hatch>=1.14.1",
     "mypy>=1.14.1",
     "pre-commit>=3.5.0",
-    "ruff>=0.12.7",
     "types-colorama>=0.4.0",
 ]
 ipython = [
     "ipython>=9.4.0",
+]
+ruff = [
+    "ruff>=0.12.7",
 ]
 test = [
     "pytest>=7.0.0",

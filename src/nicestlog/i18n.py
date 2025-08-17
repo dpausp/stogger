@@ -38,6 +38,7 @@ class NicestlogTranslator:
         # Prefer configured translation_dir from pyproject.toml if available
         try:
             from .config import NicestLogConfig
+
             cfg = NicestLogConfig()
             if cfg.translation_dir:
                 translations_dir = Path(cfg.translation_dir)

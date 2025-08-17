@@ -13,6 +13,7 @@ import tomllib
 @dataclass
 class SimpleFormatSettings:
     """Settings for the simple console format renderer."""
+
     show_logger_brackets: bool = False
     show_pid: bool = False
     show_code_info: bool = False
@@ -62,7 +63,7 @@ class NicestLogConfig:
         self.enable_systemd: bool = config.get("enable_systemd", True)
         self.systemd_facility: str = config.get("systemd_facility", None)
         self.src_dir: str = config.get("src_dir", "src")
-        
+
         # Simple format settings
         simple_settings = config.get("simple_format", {})
         self.simple_format_settings = SimpleFormatSettings(
@@ -71,7 +72,7 @@ class NicestLogConfig:
             show_code_info=simple_settings.get("show_code_info", False),
             timestamp_format=simple_settings.get("timestamp_format", "iso_no_z"),
             custom_timestamp_format=simple_settings.get("custom_timestamp_format"),
-            pad_event_width=simple_settings.get("pad_event_width", 30)
+            pad_event_width=simple_settings.get("pad_event_width", 30),
         )
 
     def _load_config(self) -> Dict[str, Any]:
@@ -81,7 +82,9 @@ class NicestLogConfig:
         log = logging.getLogger(__name__)
 
         pyproject_path = Path.cwd() / "pyproject.toml"
-        log.debug(f"searching-for-config: {pyproject_path} (exists: {pyproject_path.is_file()})")
+        log.debug(
+            f"searching-for-config: {pyproject_path} (exists: {pyproject_path.is_file()})"
+        )
 
         if not pyproject_path.is_file():
             log.info(f"no-pyproject-found: {pyproject_path}, using defaults")
@@ -90,7 +93,9 @@ class NicestLogConfig:
             with pyproject_path.open("rb") as f:
                 config = tomllib.load(f)
             nicest_config = config.get("tool", {}).get("nicestlog", {})
-            log.info(f"config-loaded-successfully: {pyproject_path} with {len(nicest_config)} settings")
+            log.info(
+                f"config-loaded-successfully: {pyproject_path} with {len(nicest_config)} settings"
+            )
             return nicest_config
         except (tomllib.TOMLDecodeError, Exception) as e:
             log.error(f"config-loading-failed: {pyproject_path} - {e}")

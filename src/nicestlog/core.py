@@ -68,17 +68,19 @@ class PartialFormatter(string.Formatter):
 
 class TranslationProcessor:
     def __init__(self, translations):
-        log.info("initializing-translation-processor", translation_count=len(translations))
+        log.info(
+            "initializing-translation-processor", translation_count=len(translations)
+        )
         self.translations = translations
         self.formatter = PartialFormatter()
 
     def __call__(self, _, __, event_dict):
         msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
-        
+
         # Store original event name before any translation
         if "_original_event" not in event_dict:
             event_dict["_original_event"] = event_dict.get("event")
-        
+
         template = self.translations.get(msg_key)
         if template:
             # Don't log during translation to avoid recursion
@@ -103,12 +105,12 @@ def prefix(name, s):
     """Add a prefix to each line of a multi-line string."""
     if not s:
         return ""
-    lines = s.split('\n')
+    lines = s.split("\n")
     if name:
         prefix_str = f"{name}: "
     else:
         prefix_str = ""
-    return '\n'.join(prefix_str + line for line in lines)
+    return "\n".join(prefix_str + line for line in lines)
 
 
 class ConsoleFileRenderer:
@@ -119,7 +121,7 @@ class ConsoleFileRenderer:
 
     LEVELS = [
         "alert",
-        "critical", 
+        "critical",
         "error",
         "warn",
         "warning",
@@ -134,9 +136,7 @@ class ConsoleFileRenderer:
         self.min_level = self.LEVELS.index(min_level.lower())
         self.show_caller_info = show_caller_info
         if colorama is None:
-            print(
-                _MISSING.format(who=self.__class__.__name__, package="colorama")
-            )
+            print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
         if sys.stdout.isatty():
             colorama.init()
 
@@ -213,7 +213,7 @@ class ConsoleFileRenderer:
             event_dict.pop("code_func", None)
             event_dict.pop("code_lineno", None)
             event_dict.pop("code_module", None)
-        
+
         # Remove internal structlog fields
         event_dict.pop("_from_structlog", None)
         event_dict.pop("_original_event", None)
@@ -234,9 +234,7 @@ class ConsoleFileRenderer:
 
         level = event_dict.pop("level", None)
         if level is not None:
-            write(
-                self._level_to_color[level] + level[0].upper() + RESET_ALL + " "
-            )
+            write(self._level_to_color[level] + level[0].upper() + RESET_ALL + " ")
 
         event = event_dict.pop("event")
         write(BRIGHT + _pad(event, self._pad_event) + RESET_ALL + " ")
@@ -308,9 +306,10 @@ class SimpleConsoleRenderer:
     2025-08-16T02:33:01.617569 D system-build-command           cmd='nix-build...'
     2025-08-16T02:33:01.623929 I system-build-started           Nix build command started with PID: 184437
     """
+
     LEVELS = [
         "alert",
-        "critical", 
+        "critical",
         "error",
         "warn",
         "warning",
@@ -321,17 +320,15 @@ class SimpleConsoleRenderer:
 
     def __init__(self, min_level="info", settings=None):
         from .config import SimpleFormatSettings
-        
+
         if settings is None:
             settings = SimpleFormatSettings()
-        
+
         self.min_level = self.LEVELS.index(min_level.lower())
         self.settings = settings
-        
+
         if colorama is None:
-            print(
-                _MISSING.format(who=self.__class__.__name__, package="colorama")
-            )
+            print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
         if sys.stdout.isatty():
             colorama.init()
 
@@ -391,7 +388,7 @@ class SimpleConsoleRenderer:
             event_dict.pop("code_func", None)
             event_dict.pop("code_lineno", None)
             event_dict.pop("code_module", None)
-        
+
         # Remove internal structlog fields
         event_dict.pop("_from_structlog", None)
         event_dict.pop("_original_event", None)
@@ -402,7 +399,7 @@ class SimpleConsoleRenderer:
         # Format timestamp
         ts = event_dict.pop("timestamp", None)
         if ts is not None:
-            if self.settings.timestamp_format == "iso_no_z" and str(ts).endswith('Z'):
+            if self.settings.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
                 ts = str(ts)[:-1]
             write(DIM + str(ts) + RESET_ALL + " ")
 
@@ -413,9 +410,7 @@ class SimpleConsoleRenderer:
         # Format level
         level = event_dict.pop("level", None)
         if level is not None:
-            write(
-                self._level_to_color[level] + level[0].upper() + RESET_ALL + " "
-            )
+            write(self._level_to_color[level] + level[0].upper() + RESET_ALL + " ")
 
         # Format event name
         event = event_dict.pop("event")
@@ -531,7 +526,7 @@ class SelectRenderedString:
 def init_logging(simple_format_settings=None, **kwargs: Any):
     """
     Initialize nicestlog with optional simple format settings.
-    
+
     Args:
         simple_format_settings: SimpleFormatSettings instance or dict with settings
         **kwargs: Other configuration options

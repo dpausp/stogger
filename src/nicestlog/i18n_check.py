@@ -26,9 +26,20 @@ from ._regexes import (
 
 # Excluded directories when scanning for Python files
 EXCLUDE_DIRS = {
-    ".venv", "venv", "__pycache__", ".git", ".tox", ".nox",
-    ".mypy_cache", ".pytest_cache", ".ruff_cache", ".direnv",
-    "node_modules", "build", "dist", ".eggs"
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".git",
+    ".tox",
+    ".nox",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".direnv",
+    "node_modules",
+    "build",
+    "dist",
+    ".eggs",
 }
 
 
@@ -46,7 +57,8 @@ def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set
             py_files = [root]
         else:
             py_files = [
-                p for p in root.rglob("*.py")
+                p
+                for p in root.rglob("*.py")
                 if not any(part in EXCLUDE_DIRS for part in p.parts)
             ]
 
@@ -136,7 +148,8 @@ def check_translations(
             py_files = [root]
         else:
             py_files = [
-                p for p in root.rglob("*.py")
+                p
+                for p in root.rglob("*.py")
                 if not any(part in EXCLUDE_DIRS for part in p.parts)
             ]
         for file in py_files:

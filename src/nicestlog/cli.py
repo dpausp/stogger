@@ -98,10 +98,21 @@ def docs(
     ctx: typer.Context,
     target: Annotated[
         Optional[str],
-        typer.Argument(help="Specific file or glob to show (e.g., README.md or docs/*.md)")
+        typer.Argument(
+            help="Specific file or glob to show (e.g., README.md or docs/*.md)"
+        ),
     ] = None,
     no_pager: Annotated[
         bool, typer.Option("--no-pager", help="Print directly without pager")
+    ] = False,
+    search: Annotated[
+        Optional[str], typer.Option("--search", help="Only show docs containing this text")
+    ] = None,
+    theme: Annotated[
+        str, typer.Option("--theme", help="Rich code theme for Markdown blocks")
+    ] = "monokai",
+    list_only: Annotated[
+        bool, typer.Option("--list", help="List available docs and exit")
     ] = False,
 ):
     """Show project docs with colors. Prefer local files, fallback to packaged docs.
@@ -109,8 +120,13 @@ def docs(
     - Without arguments: shows README.md and docs/*.md if present, else packaged docs.
     - With TARGET: filter docs by file name or glob pattern (e.g., README.md, best_*.md).
     - Use --no-pager to disable the pager (useful in CI or piping output).
+    - Use --list to list available docs (local and packaged) and exit.
+    - Use --search to only show docs containing a given text.
+    - Use --theme to select code block color theme (default: monokai).
     """
-    _show_docs_interactive(target=target, use_pager=not no_pager)
+    _show_docs_interactive(
+        target=target, use_pager=not no_pager, search=search, theme=theme, list_only=list_only
+    )
 
 
 @app.command("init-config")
@@ -233,6 +249,7 @@ def demo(
     """Demonstrate nicestlog features with live examples."""
     run_demos(feature, all_features)
 
+
 @app.command()
 def assistant(
     path: Annotated[str, typer.Argument(help="Path to directory to migrate")],
@@ -240,7 +257,8 @@ def assistant(
         Optional[str], typer.Option("-o", "--output", help="Output directory")
     ] = None,
     translations: Annotated[
-        Optional[str], typer.Option("-t", "--translations", help="Translations file name")
+        Optional[str],
+        typer.Option("-t", "--translations", help="Translations file name"),
     ] = "log_messages.json",
 ):
     """Automatically migrate print and logging statements to structlog."""
@@ -277,12 +295,21 @@ def _show_markdown_files(filenames: list[str]):
         raise typer.Exit(1)
 
 
-def _show_docs_interactive(target: Optional[str] = None, use_pager: bool = True):
+def _show_docs_interactive(
+    target: Optional[str] = None,
+    use_pager: bool = True,
+    search: Optional[str] = None,
+    theme: str = "monokai",
+    list_only: bool = False,
+):
     """Render docs with Rich, preferring local files and falling back to packaged ones.
 
     Args:
         target: Optional file name or glob pattern to filter which docs to render.
         use_pager: If True, use a pager; otherwise print directly.
+        search: If provided, only show docs containing this substring (case-insensitive).
+        theme: Code block theme name for Rich Markdown rendering.
+        list_only: If True, only list available docs and exit.
     """
     from pathlib import Path
     from rich.console import Console
@@ -312,20 +339,39 @@ def _show_docs_interactive(target: Optional[str] = None, use_pager: bool = True)
             if not local_files and docs_dir.exists():
                 local_files = sorted(docs_dir.glob(target))
 
+    def _list_paths(paths: list[Path]) -> bool:
+        if not paths:
+            return False
+        for p in paths:
+            console.print(f"- {p}")
+        return True
+
     def _render_paths(paths: list[Path]) -> bool:
         if not paths:
             return False
+        # Apply search filter if provided
+        sel = []
+        for p in paths:
+            try:
+                content = p.read_text(encoding="utf-8")
+            except Exception as e:  # pragma: no cover - unlikely
+                typer.echo(f"Skipping {p}: {e}", err=True)
+                continue
+            if search and (search.lower() not in content.lower()):
+                continue
+            sel.append((p, content))
+        if not sel:
+            return False
+        if list_only:
+            for p, _ in sel:
+                console.print(f"- {p}")
+            return True
         ctx = console.pager() if use_pager else nullcontext()
         with ctx:
-            for idx, p in enumerate(paths):
-                try:
-                    content = p.read_text(encoding="utf-8")
-                except Exception as e:  # pragma: no cover - unlikely
-                    typer.echo(f"Skipping {p}: {e}", err=True)
-                    continue
+            for idx, (p, content) in enumerate(sel):
                 console.rule(f"{p.name}", style="bold blue")
-                console.print(Markdown(content, code_theme="monokai"))
-                if idx < len(paths) - 1:
+                console.print(Markdown(content, code_theme=theme))
+                if idx < len(sel) - 1:
                     console.print()
         return True
 
@@ -340,7 +386,9 @@ def _show_docs_interactive(target: Optional[str] = None, use_pager: bool = True)
         # Filter packaged by target if provided
         if target:
             packaged_files = [
-                p for p in packaged_files if p.name == target or p.name.endswith(target) or p.match(target)
+                p
+                for p in packaged_files
+                if p.name == target or p.name.endswith(target) or p.match(target)
             ]
         # Prefer README.md first
         packaged_files_sorted = sorted(
@@ -349,12 +397,17 @@ def _show_docs_interactive(target: Optional[str] = None, use_pager: bool = True)
         )
         if not packaged_files_sorted:
             raise FileNotFoundError("No packaged docs found")
+        if list_only:
+            _list_paths(packaged_files_sorted)
+            return
         ctx = console.pager() if use_pager else nullcontext()
         with ctx:
             for idx, p in enumerate(packaged_files_sorted):
                 content = p.read_text(encoding="utf-8")
+                if search and (search.lower() not in content.lower()):
+                    continue
                 console.rule(f"{p.name}", style="bold blue")
-                console.print(Markdown(content, code_theme="monokai"))
+                console.print(Markdown(content, code_theme=theme))
                 if idx < len(packaged_files_sorted) - 1:
                     console.print()
     except Exception:
@@ -407,6 +460,7 @@ def i18n_check(
     if path == ".":
         try:
             from .config import NicestLogConfig
+
             cfg = NicestLogConfig()
             if cfg.src_dir:
                 candidate = Path(cfg.src_dir)
@@ -447,6 +501,7 @@ def run_linter(
     try:
         if not nicestlog.logging_initialized():
             from .config import SimpleFormatSettings
+
             nicestlog.init_logging(
                 simple_format_settings=SimpleFormatSettings(
                     show_logger_brackets=False,
@@ -462,8 +517,14 @@ def run_linter(
         # Fail silently; linter output still works without structured logging
         pass
 
-    log.info("starting-linter", path=path, min_coverage=min_coverage, max_coverage=max_coverage, strict=strict)
-    
+    log.info(
+        "starting-linter",
+        path=path,
+        min_coverage=min_coverage,
+        max_coverage=max_coverage,
+        strict=strict,
+    )
+
     from .linter import lint_directory
     from pathlib import Path
 
@@ -477,6 +538,7 @@ def run_linter(
     if path == ".":
         try:
             from .config import NicestLogConfig
+
             cfg = NicestLogConfig()
             if cfg.src_dir:
                 candidate = Path(cfg.src_dir)
@@ -506,7 +568,7 @@ def run_linter(
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
     log.info("starting-web-dashboard", host=host, port=port, debug=debug)
-    
+
     from .web_dashboard import run_dashboard
 
     run_dashboard(host=host, port=port, debug=debug)
@@ -520,9 +582,15 @@ def generate_service_cmd(
     output: Optional[str] = None,
 ):
     """Generate systemd service file."""
-    log.info("generating-systemd-service", service_name=service_name, exec_command=exec_command,
-            user=user, working_dir=working_dir, output=output)
-    
+    log.info(
+        "generating-systemd-service",
+        service_name=service_name,
+        exec_command=exec_command,
+        user=user,
+        working_dir=working_dir,
+        output=output,
+    )
+
     from .systemd_integration import create_systemd_service_file
 
     # Generate service file
@@ -553,8 +621,15 @@ def run_journal_viewer(
     level: Optional[str] = None,
 ):
     """Run the journal viewer."""
-    log.info("starting-journal-viewer", service=service, lines=lines, follow=follow, since=since, level=level)
-    
+    log.info(
+        "starting-journal-viewer",
+        service=service,
+        lines=lines,
+        follow=follow,
+        since=since,
+        level=level,
+    )
+
     from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
 
     if not SYSTEMD_AVAILABLE:
@@ -710,7 +785,6 @@ def run_basic_demo():
         "Basic Structured Logging", "Console output with beautiful formatting"
     )
 
-
     # Initialize with console output
     nicestlog.init_logging(verbose=True, syslog_identifier="demo")
     log = structlog.get_logger()
@@ -730,7 +804,7 @@ def run_basic_demo():
         username="alice",
         ip="192.168.1.100",
         session_id="abc123",
-        action="login_attempt"
+        action="login_attempt",
     )
 
     log.warning(
@@ -768,6 +842,7 @@ def run_i18n_demo():
     # Load config to optionally honor translation_dir and language from pyproject.toml
     try:
         from .config import NicestLogConfig
+
         cfg = NicestLogConfig()
     except Exception:
         cfg = None
@@ -861,15 +936,15 @@ def run_async_demo():
 def run_complete_demo():
     """Demonstrate a complete real-world application scenario."""
     print_demo_header("Complete Application Example", "Real-world usage patterns")
-    
+
     from pathlib import Path
     import tempfile
     import time
-    
+
     # Setup comprehensive logging
     with tempfile.TemporaryDirectory() as temp_dir:
         log_dir = Path(temp_dir)
-    
+
         nicestlog.init_logging(
             verbose=True,
             logdir=log_dir,
@@ -877,11 +952,11 @@ def run_complete_demo():
             async_logging=True,
             log_cmd_output=True,
         )
-    
+
         log = structlog.get_logger()
-    
+
         print("🌐 Simulating web application with comprehensive logging...")
-    
+
         # Application startup
         log.info(
             "app-startup",
@@ -890,7 +965,7 @@ def run_complete_demo():
             version="2.1.0",
             environment="production",
         )
-    
+
         # Database connection
         log.info(
             "db-connection",
@@ -899,12 +974,12 @@ def run_complete_demo():
             host="db.prod.com",
             pool_size=10,
         )
-    
+
         # User requests
         for i in range(5):
             user_id = 1000 + i
             session_id = f"sess_{i:03d}"
-    
+
             log.info(
                 "request-start",
                 _replace_msg="📥 Processing request {request_id}",
@@ -914,10 +989,10 @@ def run_complete_demo():
                 method="GET",
                 path="/api/profile",
             )
-    
+
             # Simulate processing time
             time.sleep(0.1)
-    
+
             if i == 3:  # Simulate an error
                 log.error(
                     "request-error",
@@ -936,7 +1011,7 @@ def run_complete_demo():
                     status_code=200,
                     response_size=512,
                 )
-    
+
         # Show log files created
         log_files = list(log_dir.glob("*.log"))
         if log_files:
@@ -944,7 +1019,7 @@ def run_complete_demo():
             for log_file in log_files:
                 size = log_file.stat().st_size
                 print(f"  {log_file.name}: {size} bytes")
-    
+
         print("\n💡 This demonstrates:")
         print("  • Structured logging with meaningful events")
         print("  • File and console output")
@@ -966,7 +1041,7 @@ def run_lint_demo():
         (proj / "pkg").mkdir()
 
         # Module 1: Too little logging and too few functions with logging
-        bad_mod1 = (proj / "pkg" / "bad_module_one.py")
+        bad_mod1 = proj / "pkg" / "bad_module_one.py"
         bad_mod1.write_text(
             """
 import structlog
@@ -1031,7 +1106,7 @@ def logged_one():
         )
 
         # Module 2: Too much logging and almost every function logs + statement issues
-        bad_mod2 = (proj / "pkg" / "bad_module_two.py")
+        bad_mod2 = proj / "pkg" / "bad_module_two.py"
         bad_mod2.write_text(
             """
 import structlog
@@ -1078,7 +1153,10 @@ log.info("this-is-a-very-very-very-very-very-very-long-event-id-that-is-definite
         # Run the linter on the temporary project
         print("\n🧪 Running linter on demo project...\n")
         from .linter import lint_directory
-        lint_directory(proj, min_coverage=5.0, max_coverage=15.0, analyze_statements=True)
+
+        lint_directory(
+            proj, min_coverage=5.0, max_coverage=15.0, analyze_statements=True
+        )
 
 
 if __name__ == "__main__":
