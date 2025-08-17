@@ -95,8 +95,8 @@ app.add_typer(i18n_app, name="i18n")
 
 @app.command()
 def docs(ctx: typer.Context):
-    """Show all packaged docs"""
-    _show_markdown_files(["README.md", "best_practices.md"])
+    """Show project docs with colors. Prefer local files, fallback to packaged docs."""
+    _show_docs_interactive()
 
 
 @app.command("init-config")
@@ -260,7 +260,67 @@ def _show_markdown_files(filenames: list[str]):
                     console.print()
     except (FileNotFoundError, ModuleNotFoundError):
         typer.echo("Documentation not found.", err=True)
-        raise
+        raise typer.Exit(1)
+
+
+def _show_docs_interactive():
+    """Render docs with Rich, preferring local files and falling back to packaged ones."""
+    from pathlib import Path
+    from rich.console import Console
+    from rich.markdown import Markdown
+
+    console = Console()
+
+    # Collect local docs first (README.md and docs/*.md)
+    local_files: list[Path] = []
+    readme = Path("README.md")
+    if readme.exists():
+        local_files.append(readme)
+    docs_dir = Path("docs")
+    if docs_dir.exists() and docs_dir.is_dir():
+        local_files.extend(sorted(docs_dir.glob("*.md")))
+
+    def _render_paths(paths: list[Path]) -> bool:
+        if not paths:
+            return False
+        with console.pager():
+            for idx, p in enumerate(paths):
+                try:
+                    content = p.read_text(encoding="utf-8")
+                except Exception as e:  # pragma: no cover - unlikely
+                    typer.echo(f"Skipping {p}: {e}", err=True)
+                    continue
+                console.rule(f"{p.name}", style="bold blue")
+                console.print(Markdown(content, code_theme="monokai"))
+                if idx < len(paths) - 1:
+                    console.print()
+        return True
+
+    if _render_paths(local_files):
+        return
+
+    # Fallback: render packaged docs from nicestlog/_docs
+    try:
+        docs_root = resources.files("nicestlog").joinpath("_docs")
+        packaged_files = [
+            p for p in docs_root.iterdir() if p.name.endswith(".md")
+        ]
+        # Prefer README.md first
+        packaged_files_sorted = sorted(
+            packaged_files,
+            key=lambda p: (p.name != "README.md", p.name.lower()),
+        )
+        if not packaged_files_sorted:
+            raise FileNotFoundError("No packaged docs found")
+        with console.pager():
+            for idx, p in enumerate(packaged_files_sorted):
+                content = p.read_text(encoding="utf-8")
+                console.rule(f"{p.name}", style="bold blue")
+                console.print(Markdown(content, code_theme="monokai"))
+                if idx < len(packaged_files_sorted) - 1:
+                    console.print()
+    except Exception:
+        typer.echo("Documentation not found.", err=True)
         raise typer.Exit(1)
 
 
