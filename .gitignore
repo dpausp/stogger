@@ -7,5 +7,8 @@ wheels/
 *.egg-info
 src/nicestlog/_docs
 
+# doit cache
+.doit.db
+
 # Virtual environments
 .venv

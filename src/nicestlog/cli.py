@@ -455,19 +455,8 @@ def i18n_check(
         typer.echo(f"Error importing i18n check: {e}", err=True)
         raise typer.Exit(1)
 
-    # Determine source paths: if user passed ".", prefer configured src_dir if present
-    source_root = Path(path)
-    if path == ".":
-        try:
-            from .config import NicestLogConfig
-
-            cfg = NicestLogConfig()
-            if cfg.src_dir:
-                candidate = Path(cfg.src_dir)
-                if candidate.exists():
-                    source_root = candidate
-        except Exception:
-            pass
+    # Resolve source root like lint
+    source_root = _resolve_source_root(path)
 
     report = check_translations([source_root], Path(translation_dir), language)
 
@@ -488,6 +477,27 @@ def i18n_check(
         fail_on_extra and report.get("extra_keys", [])
     ):
         raise typer.Exit(1)
+
+
+def _resolve_source_root(path: str) -> Path:
+    """Resolve the source root path similar to lint semantics.
+
+    If path == '.', prefer configured src_dir from NicestLogConfig if it exists.
+    Otherwise, return the given path as Path.
+    """
+    source_root = Path(path)
+    if path == ".":
+        try:
+            from .config import NicestLogConfig
+
+            cfg = NicestLogConfig()
+            if cfg.src_dir:
+                candidate = Path(cfg.src_dir)
+                if candidate.exists():
+                    source_root = candidate
+        except Exception:
+            pass
+    return source_root
 
 
 def run_linter(
@@ -533,20 +543,8 @@ def run_linter(
         min_coverage = 3.0
         max_coverage = 10.0
 
-    # Determine directory to scan. If user passed ".", prefer configured src_dir if present
-    scan_path = Path(path)
-    if path == ".":
-        try:
-            from .config import NicestLogConfig
-
-            cfg = NicestLogConfig()
-            if cfg.src_dir:
-                candidate = Path(cfg.src_dir)
-                # Use configured src_dir if it exists; otherwise keep '.'
-                if candidate.exists():
-                    scan_path = candidate
-        except Exception:
-            pass
+    # Determine directory to scan using shared resolver
+    scan_path = _resolve_source_root(path)
 
     # Run the linter on the determined directory
     success = lint_directory(

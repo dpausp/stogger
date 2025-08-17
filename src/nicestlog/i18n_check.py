@@ -115,6 +115,7 @@ def check_translations(
       - required_keys: set[str]
       - translation_keys: set[str]
       - missing_keys: list[str]
+      - missing_by_level: dict[str, list[str]]
       - extra_keys: list[str]
       - translation_file: str
       - msg_keys_found: set[str]
@@ -168,10 +169,28 @@ def check_translations(
     missing = sorted(k for k in required_keys if k not in translation_keys)
     extra = sorted(k for k in translation_keys if k not in required_keys)
 
+    # Derive missing_by_level using a simple heuristic on key names
+    # Group keys as INFO (default), WARNING (contains 'warn'), ERROR/CRITICAL (contains 'error'/'critical')
+    def key_level(name: str) -> str:
+        lower = name.lower()
+        if any(x in lower for x in ["critical", "fatal"]):
+            return "CRITICAL"
+        if "error" in lower or "fail" in lower:
+            return "ERROR"
+        if "warn" in lower:
+            return "WARNING"
+        # default info-ish
+        return "INFO"
+
+    missing_by_level: Dict[str, List[str]] = {"INFO": [], "WARNING": [], "ERROR": [], "CRITICAL": []}
+    for k in missing:
+        missing_by_level[key_level(k)].append(k)
+
     return {
         "required_keys": sorted(required_keys),
         "translation_keys": sorted(translation_keys),
         "missing_keys": missing,
+        "missing_by_level": {lvl: sorted(v) for lvl, v in missing_by_level.items()},
         "extra_keys": extra,
         "translation_file": str(translation_file),
         "msg_keys_found": sorted(msg_keys),
@@ -203,8 +222,15 @@ def format_report(report: Dict[str, object]) -> str:
 
     if missing:
         lines.append("\n❗ Missing keys:")
-        for k in missing:
-            lines.append(f"  - {k}")
+        # Grouped by level for better insight
+        mbl: Dict[str, List[str]] = report.get("missing_by_level", {})  # type: ignore[assignment]
+        for level in ["INFO", "WARNING", "ERROR", "CRITICAL"]:
+            keys = mbl.get(level, []) if isinstance(mbl, dict) else []
+            if not keys:
+                continue
+            lines.append(f"  {level}:")
+            for k in keys:
+                lines.append(f"    - {k}")
     else:
         lines.append("\n✅ No missing keys detected.")
 
