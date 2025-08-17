@@ -408,7 +408,7 @@ def review_logs_cli():
     elif path.is_dir():
         log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
         if not log_files:
-            print("Keine Log-Dateien gefunden!", file=sys.stderr)
+            print("No log files found!", file=sys.stderr)
             sys.exit(1)
 
         total_score = 0
@@ -425,7 +425,7 @@ def review_logs_cli():
             sys.exit(1)
 
     else:
-        print(f"Pfad nicht gefunden: {path}", file=sys.stderr)
+        print(f"Path not found: {path}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -458,7 +458,7 @@ def print_report(report: LogQualityReport, format_type: str = "text"):
         "arsch": "💩 Komplett arsch! Des ghört neu gmacht!",
     }
 
-    print(verdict_messages.get(report.overall_verdict, "🤷 Keine Ahnung..."))
+    print(verdict_messages.get(report.overall_verdict, "🤷 No idea..."))
 
     if report.issues:
         print("\n❌ Probleme:")

@@ -1,32 +1,32 @@
-# Log Statement Issues (aktuell erkannt)
+# Log Statement Issues (currently detected)
 
-Der AST-basierte Analyzer (`LogStatementAnalyzer`) erkennt aktuell folgende "log statement issues" in Python-Log-Aufrufen (z. B. `log.info(...)`, `log.debug(...)`, ...):
+The AST-based analyzer (`LogStatementAnalyzer`) currently detects the following "log statement issues" in Python log calls (e.g., `log.info(...)`, `log.debug(...)`, ...):
 
 - missing_event_id
-  - Es wurde keine Event-ID (erstes String-Argument) gefunden.
+    - No event ID (first string argument) found.
 - event_id_not_dash_case (found: X)
-  - Die Event-ID ist nicht im bevorzugten dash-case (z. B. snake_case, camelCase, PascalCase, invalid). Konfiguration: standardmäßig wird dash-case bevorzugt.
+    - Event ID is not in preferred dash-case (e.g., snake_case, camelCase, PascalCase, invalid). Configuration: prefers dash-case by default.
 - single_string_argument
-  - Es gibt genau ein (String-)Argument und weder Keyword-Argumente noch Magic-Args. Anti-Pattern: fehlende strukturierte Daten.
+    - Exactly one (string) argument and neither keyword arguments nor magic args. Anti-pattern: missing structured data.
 - fstring_in_event_id
-  - Die Event-ID enthält `{` oder `}` (f-String/Template in der ID).
+    - Event ID contains `{` or `}` (f-string/template in the ID).
 - debug_with_replace_msg
-  - `log.debug(...)` wird zusammen mit `_replace_msg` verwendet (meist nicht erforderlich).
+    - `log.debug(...)` used together with `_replace_msg` (usually not needed).
 - too_many_kwargs (n>7)
-  - Es gibt mehr als 7 normale Keyword-Argumente (ohne Magic-Args): zu komplex/umfangreich.
+    - More than 7 regular keyword arguments (excluding magic args): too complex/verbose.
 - no_structured_data
-  - Es ist eine Event-ID vorhanden, aber keine Keyword-Argumente und kein `_replace_msg` – es fehlen strukturierte Daten.
+    - Event ID present, but no keyword arguments and no `_replace_msg` — structured data missing.
 - debug_for_error_event
-  - `debug`-Level wird für Event-IDs verwendet, die auf Fehler hindeuten (beinhaltet Wörter wie "error", "fail", "critical", "fatal").
+    - `debug` level used for event IDs that sound like errors (contains words like "error", "fail", "critical", "fatal").
 - error_level_for_info_event
-  - `error`/`critical`-Level, obwohl die Event-ID eher nach Info/Debug aussieht (beinhaltet "debug", "trace", "info").
+    - `error`/`critical` level while event ID looks like info/debug (contains "debug", "trace", "info").
 - potential_secret_leak (key)
-  - Ein Keyword-Name wirkt sensibel (z. B. `password`, `secret`, `token`, `api_key`, `private_key`, ...). Hinweis auf mögliche Geheimnis-/Credential-Leaks.
+    - Keyword name appears sensitive (e.g., `password`, `secret`, `token`, `api_key`, `private_key`, ...). Hint at possible secret/credential leaks.
 - event_id_too_long (len>50)
-  - Die Event-ID ist länger als 50 Zeichen.
+    - Event ID is longer than 50 characters.
 
-Weitere Details:
-- Magic-Args, die erkannt werden: `_replace_msg`, `exc_info`, `_structured`, `_level`, `_name`.
-- Metriken wie `dash_case_violations`, `single_string_args` und `magic_args_usage` werden zusätzlich erhoben.
+Further details:
+- Magic args recognized: `_replace_msg`, `exc_info`, `_structured`, `_level`, `_name`. 
+- Metrics like `dash_case_violations`, `single_string_args`, and `magic_args_usage` are also tracked.
 
-Diese Liste spiegelt den aktuellen Stand im Analyzer (`src/nicestlog/log_statement_analyzer.py`) wider.
+This list reflects the current state of the analyzer (`src/nicestlog/log_statement_analyzer.py`).

@@ -259,7 +259,7 @@ def _show_markdown_files(filenames: list[str]):
                 if idx < len(filenames) - 1:
                     console.print()
     except (FileNotFoundError, ModuleNotFoundError):
-        typer.echo("Dokumentation nicht gefunden.", err=True)
+        typer.echo("Documentation not found.", err=True)
         raise
         raise typer.Exit(1)
 
@@ -500,7 +500,7 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
     elif path.is_dir():
         log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
         if not log_files:
-            print("Keine Log-Dateien gefunden!", file=sys.stderr)
+            print("No log files found!", file=sys.stderr)
             sys.exit(1)
 
         total_score = 0
@@ -517,7 +517,7 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
             sys.exit(1)
 
     else:
-        print(f"Pfad nicht gefunden: {path}", file=sys.stderr)
+        print(f"Path not found: {path}", file=sys.stderr)
         sys.exit(1)
 
 
