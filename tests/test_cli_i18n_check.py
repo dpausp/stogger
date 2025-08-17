@@ -68,7 +68,7 @@ def test_cli_i18n_list_missing_and_strict(tmp_path: Path):
 
     # Non-listing run should print a report and return 0
     r4 = run_cli(
-        [str(src), "--translation-dir", str(trans), "-l", "en"], cwd=str(Path.cwd())
+        [str(src), "--translation-dir", str(trans), "-l", "en", "--verbose"], cwd=str(Path.cwd())
     )
     assert r4.returncode == 0
     assert "No missing keys" in r4.stdout

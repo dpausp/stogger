@@ -476,8 +476,8 @@ def i18n_check(
             raise typer.Exit(1)
         raise typer.Exit(0)
 
-    # Always show full report by default (including debug section). --verbose is reserved for future extra detail.
-    typer.echo(format_report(report, include_debug=True))
+    # Default: hide debug section; show it only with --verbose
+    typer.echo(format_report(report, include_debug=verbose))
 
     if "error" in report:
         raise typer.Exit(2)
