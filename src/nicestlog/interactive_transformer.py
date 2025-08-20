@@ -24,6 +24,7 @@ from .advanced_assistant import (
     TransformationResult,
     CodeAnalysisResult,
 )
+from .live_editor import LiveCodeEditor, EditSession
 
 log = structlog.get_logger("nicestlog.interactive_transformer")
 console = Console()
@@ -38,6 +39,7 @@ class UserChoice(Enum):
     QUIT = "q"
     SKIP_FILE = "s"
     PREVIEW = "p"
+    EDIT = "e"
 
 
 @dataclass
@@ -53,6 +55,12 @@ class TransformationProposal:
     context_before: List[str]
     context_after: List[str]
     node_type: str
+    user_edited: bool = False
+    edit_history: List[str] = None
+
+    def __post_init__(self):
+        if self.edit_history is None:
+            self.edit_history = []
 
 
 @dataclass
@@ -65,6 +73,12 @@ class InteractiveSession:
     skipped_files: int = 0
     auto_accept_all: bool = False
     quit_requested: bool = False
+    edited: int = 0
+    edit_sessions: List[EditSession] = None
+
+    def __post_init__(self):
+        if self.edit_sessions is None:
+            self.edit_sessions = []
 
 
 class InteractiveTransformer:
@@ -76,18 +90,29 @@ class InteractiveTransformer:
     """
 
     def __init__(
-        self, assistant: Optional[AdvancedAssistant] = None, context_lines: int = 3
+        self,
+        assistant: Optional[AdvancedAssistant] = None,
+        context_lines: int = 3,
+        enable_live_editing: bool = True,
+        use_external_editor: bool = False,
     ):
         self.assistant = assistant or AdvancedAssistant(verbose=True)
         self.context_lines = context_lines
         self.session = InteractiveSession()
+        self.enable_live_editing = enable_live_editing
+        self.live_editor = (
+            LiveCodeEditor(use_external_editor=use_external_editor)
+            if enable_live_editing
+            else None
+        )
 
         log.info(
             "interactive-transformer-initialized",
-            _replace_msg="🎯 Interactive Transformer initialized with {patterns} patterns",
+            _replace_msg="🎯 Interactive Transformer initialized with {patterns} patterns (live editing: {live_editing})",
             patterns=len([p for p in self.assistant.patterns if p.enabled]),
             context_lines=context_lines,
             session_id=self.assistant.session_id,
+            live_editing=enable_live_editing,
         )
 
     def transform_file_interactive(self, file_path: Path) -> TransformationResult:
@@ -154,6 +179,50 @@ class InteractiveTransformer:
                         remaining_count=len(proposals) - i,
                     )
                     break
+
+                elif choice == UserChoice.EDIT and self.enable_live_editing:
+                    # Live edit the transformation
+                    edited_code, accepted, edit_session = (
+                        self.live_editor.edit_transformation(
+                            proposal.original_code,
+                            proposal.transformed_code,
+                            proposal.pattern_name,
+                            str(proposal.file_path),
+                            proposal.line_number,
+                        )
+                    )
+
+                    # Update proposal with edited code
+                    proposal.transformed_code = edited_code
+                    proposal.user_edited = True
+                    proposal.edit_history.append(
+                        f"Live edited: {edit_session.edit_steps}"
+                    )
+
+                    # Store edit session
+                    self.session.edit_sessions.append(edit_session)
+                    self.session.edited += 1
+
+                    if accepted:
+                        accepted_proposals.append(proposal)
+                        self.session.accepted += 1
+                        log.info(
+                            "transformation-edited-and-accepted",
+                            _replace_msg="🔥 Transformation edited and accepted at {file_path}:{line}",
+                            file_path=str(proposal.file_path),
+                            line=proposal.line_number,
+                            pattern=proposal.pattern_name,
+                            edit_steps=len(edit_session.edit_steps),
+                        )
+                    else:
+                        self.session.rejected += 1
+                        log.info(
+                            "transformation-edited-but-rejected",
+                            _replace_msg="🔥 Transformation edited but rejected at {file_path}:{line}",
+                            file_path=str(proposal.file_path),
+                            line=proposal.line_number,
+                            pattern=proposal.pattern_name,
+                        )
 
                 elif choice == UserChoice.NO:
                     self.session.rejected += 1
@@ -469,6 +538,8 @@ class InteractiveTransformer:
 • Proposals accepted: {self.session.accepted}
 • Proposals rejected: {self.session.rejected}
 • Files skipped: {self.session.skipped_files}
+• 🔥 Live edits made: {self.session.edited}
+• Edit sessions recorded: {len(self.session.edit_sessions)}
 """
 
         if self.session.quit_requested:
@@ -491,8 +562,39 @@ class InteractiveTransformer:
             accepted=self.session.accepted,
             rejected=self.session.rejected,
             skipped_files=self.session.skipped_files,
+            edited=self.session.edited,
+            edit_sessions=len(self.session.edit_sessions),
             quit_requested=self.session.quit_requested,
         )
+
+        # Save edit sessions for machine learning if any were created
+        if self.session.edit_sessions and self.live_editor:
+            from pathlib import Path
+            import time
+
+            timestamp = int(time.time())
+            edit_log_path = Path(f"nicestlog_edit_sessions_{timestamp}.json")
+            self.live_editor.edit_sessions = self.session.edit_sessions
+            self.live_editor.save_edit_sessions(edit_log_path)
+
+            # Show learning insights
+            insights = self.live_editor.get_learning_insights()
+            if insights:
+                console.print("\n🧠 [bold blue]Learning Insights:[/bold blue]")
+                console.print(f"• Acceptance rate: {insights['acceptance_rate']:.1%}")
+                console.print(
+                    f"• Avg edit duration: {insights['avg_edit_duration']:.1f}s"
+                )
+                console.print(
+                    f"• Avg edits per session: {insights['avg_edits_per_session']:.1f}"
+                )
+
+                if insights["common_edit_patterns"]:
+                    console.print("• Common patterns:")
+                    for pattern in insights["common_edit_patterns"]:
+                        console.print(f"  - {pattern}")
+
+                console.print(f"\n💾 Edit data saved to: [cyan]{edit_log_path}[/cyan]")
 
     def _apply_transformations(
         self,
