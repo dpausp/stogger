@@ -23,6 +23,9 @@ from .advanced_assistant import (
     TransformationResult,
     CodeAnalysisResult,
 )
+from .interactive_transformer import (
+    InteractiveTransformer,
+)
 
 # Initialize logging and console
 console = Console()
@@ -77,6 +80,12 @@ def transform_command(
     dry_run: bool = typer.Option(
         True, "--dry-run/--apply", help="Preview changes without applying"
     ),
+    interactive: bool = typer.Option(
+        False,
+        "--interactive",
+        "-i",
+        help="Interactive mode with user confirmation (amber-style)",
+    ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose logging"
     ),
@@ -88,6 +97,9 @@ def transform_command(
     ),
     disable_patterns: Optional[List[str]] = typer.Option(
         None, "--disable", help="Disable specific patterns"
+    ),
+    context_lines: int = typer.Option(
+        3, "--context", "-c", help="Number of context lines to show in interactive mode"
     ),
 ):
     """
@@ -120,13 +132,68 @@ def transform_command(
                     pattern.enabled = False
                     console.print(f"❌ Disabled pattern: [red]{pattern_name}[/red]")
 
-    if path.is_file():
+    if interactive:
+        _transform_interactive(assistant, path, pattern, context_lines)
+    elif path.is_file():
         _transform_single_file(assistant, path, dry_run)
     elif path.is_dir():
         _transform_directory(assistant, path, pattern, dry_run)
     else:
         console.print(f"❌ [red]Error:[/red] Path {path} does not exist")
         raise typer.Exit(1)
+
+
+@app.command("interactive")
+def interactive_command(
+    path: Path = typer.Argument(..., help="Python file or directory to transform"),
+    pattern: str = typer.Option(
+        "*.py", "--pattern", "-p", help="File pattern for directories"
+    ),
+    context_lines: int = typer.Option(
+        3, "--context", "-c", help="Number of context lines to show"
+    ),
+    enable_patterns: Optional[List[str]] = typer.Option(
+        None, "--enable", help="Enable specific patterns"
+    ),
+    disable_patterns: Optional[List[str]] = typer.Option(
+        None, "--disable", help="Disable specific patterns"
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
+):
+    """
+    🎯 Interactive code transformation (amber-style).
+
+    Transform code with user confirmation for each change.
+    Shows context and asks [Y]es/[n]o/[a]ll/[q]uit for each transformation.
+    """
+    console.print(
+        Panel.fit(
+            "🎯 [bold blue]Interactive Code Transformation[/bold blue]\n"
+            "[dim]Amber-style search & replace with user confirmation[/dim]",
+            subtitle=f"Target: {path}",
+        )
+    )
+
+    assistant = AdvancedAssistant(verbose=verbose)
+
+    # Configure patterns
+    if enable_patterns:
+        for pattern_name in enable_patterns:
+            for pattern in assistant.patterns:
+                if pattern.name == pattern_name:
+                    pattern.enabled = True
+                    console.print(f"✅ Enabled pattern: [green]{pattern_name}[/green]")
+
+    if disable_patterns:
+        for pattern_name in disable_patterns:
+            for pattern in assistant.patterns:
+                if pattern.name == pattern_name:
+                    pattern.enabled = False
+                    console.print(f"❌ Disabled pattern: [red]{pattern_name}[/red]")
+
+    _transform_interactive(assistant, path, pattern, context_lines)
 
 
 @app.command("patterns")
@@ -457,6 +524,52 @@ def _display_directory_transformation(
     )
 
     console.print(table)
+
+
+def _transform_interactive(
+    assistant: AdvancedAssistant, path: Path, pattern: str, context_lines: int
+):
+    """Transform files using interactive mode (amber-style)."""
+    console.print(
+        Panel.fit(
+            "🎯 [bold blue]Interactive Transformation Mode[/bold blue]\n"
+            "[dim]Amber-style search & replace with user confirmation[/dim]",
+            subtitle=f"Target: {path}",
+        )
+    )
+
+    try:
+        transformer = InteractiveTransformer(assistant, context_lines=context_lines)
+
+        if path.is_file():
+            result = transformer.transform_file_interactive(path)
+            if result.success and result.changes_made:
+                console.print(
+                    f"✅ [green]Applied {len(result.changes_made)} changes to {path}[/green]"
+                )
+            elif result.success:
+                console.print(f"ℹ️ [blue]No changes made to {path}[/blue]")
+            else:
+                console.print(f"❌ [red]Failed to transform {path}[/red]")
+
+        elif path.is_dir():
+            results = transformer.transform_directory_interactive(path, pattern)
+            successful = sum(1 for r in results if r.success)
+            total_changes = sum(len(r.changes_made) for r in results)
+            console.print(
+                f"✅ [green]Processed {successful}/{len(results)} files with {total_changes} total changes[/green]"
+            )
+
+        else:
+            console.print(f"❌ [red]Error:[/red] Path {path} does not exist")
+            raise typer.Exit(1)
+
+    except KeyboardInterrupt:
+        console.print("\n🛑 [yellow]Transformation cancelled by user[/yellow]")
+        raise typer.Exit(0)
+    except Exception as e:
+        console.print(f"❌ [red]Error in interactive transformation:[/red] {e}")
+        raise typer.Exit(1)
 
 
 def _display_patterns(patterns: List[ASTPattern], show_details: bool):

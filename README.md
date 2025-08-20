@@ -149,6 +149,9 @@ nicestlog ast analyze my_script.py --verbose
 # Transform code with comprehensive logging
 nicestlog ast transform src/ --dry-run --pattern "*.py"
 
+# 🎯 NEW: Interactive transformation (amber-style)
+nicestlog ast interactive my_script.py --verbose
+
 # List available transformation patterns
 nicestlog ast patterns --list --details
 ```
@@ -156,9 +159,17 @@ nicestlog ast patterns --list --details
 **Key Features:**
 - 🔍 **Deep AST Analysis** - Comprehensive code structure analysis
 - 🔄 **Pattern-Based Transformations** - Convert print() to structured logging
+- 🎯 **Interactive Mode** - Amber-style search & replace with user confirmation
 - 📊 **Performance Metrics** - Detailed timing and analysis data
 - 🛡️ **Safety Features** - Dry-run mode, backups, rollback capabilities
 - 📝 **Extensive Logging** - Every operation logged with structured data
+
+**Interactive Mode Example:**
+```
+./my_script.py:15              print("Processing data")
+        ->                     log.info("print-message", _replace_msg="Processing data")
+Replace? [Y]es/[n]o/[a]ll/[p]review/[s]kip file/[q]uit:
+```
 
 See [Advanced Assistant Documentation](docs/advanced_assistant.md) for complete details.
 
