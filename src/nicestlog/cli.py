@@ -92,6 +92,24 @@ app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
 i18n_app = typer.Typer(help="Internationalization utilities")
 app.add_typer(i18n_app, name="i18n")
 
+# Add advanced assistant commands
+try:
+    from .cli_advanced import app as advanced_app
+
+    app.add_typer(
+        advanced_app, name="ast", help="🚀 Advanced AST analysis and transformation"
+    )
+    log.debug(
+        "advanced-ast-commands-loaded",
+        _replace_msg="🚀 Advanced AST commands loaded successfully",
+    )
+except ImportError as e:
+    log.warning(
+        "advanced-ast-commands-unavailable",
+        _replace_msg="⚠️ Advanced AST commands unavailable: {error}",
+        error=str(e),
+    )
+
 
 @app.command()
 def docs(
@@ -106,7 +124,8 @@ def docs(
         bool, typer.Option("--no-pager", help="Print directly without pager")
     ] = False,
     search: Annotated[
-        Optional[str], typer.Option("--search", help="Only show docs containing this text")
+        Optional[str],
+        typer.Option("--search", help="Only show docs containing this text"),
     ] = None,
     theme: Annotated[
         str, typer.Option("--theme", help="Rich code theme for Markdown blocks")
@@ -125,7 +144,11 @@ def docs(
     - Use --theme to select code block color theme (default: monokai).
     """
     _show_docs_interactive(
-        target=target, use_pager=not no_pager, search=search, theme=theme, list_only=list_only
+        target=target,
+        use_pager=not no_pager,
+        search=search,
+        theme=theme,
+        list_only=list_only,
     )
 
 
@@ -254,10 +277,13 @@ def demo(
 def assistant(
     path: Annotated[
         Optional[str],
-        typer.Argument(help="Path to directory to migrate (default: src_dir from config or .)")
+        typer.Argument(
+            help="Path to directory to migrate (default: src_dir from config or .)"
+        ),
     ] = None,
     output: Annotated[
-        Optional[str], typer.Option("-o", "--output", help="Output directory (mirror tree)")
+        Optional[str],
+        typer.Option("-o", "--output", help="Output directory (mirror tree)"),
     ] = None,
     translations: Annotated[
         Optional[str],
@@ -294,6 +320,7 @@ def assistant(
     if not write and result.diffs:
         import sys
         from rich.console import Console
+
         console = Console(file=sys.stdout)
         for p, diff in result.diffs.items():
             console.rule(p)
@@ -306,7 +333,6 @@ def assistant(
 
 def _show_markdown_files(filenames: list[str]):
     try:
-        import sys
         from rich.console import Console
         from rich.markdown import Markdown
 
@@ -576,7 +602,6 @@ def run_linter(
     )
 
     from .linter import lint_directory
-    from pathlib import Path
 
     if strict:
         log.debug("applying-strict-mode", old_min=min_coverage, old_max=max_coverage)

@@ -138,6 +138,30 @@ jobs:
 ```
 
 
+## 🚀 Advanced AST Assistant
+
+nicestlog now includes a revolutionary **Advanced AST Assistant** for sophisticated code analysis and transformation:
+
+```bash
+# Analyze Python code structure and patterns
+nicestlog ast analyze my_script.py --verbose
+
+# Transform code with comprehensive logging
+nicestlog ast transform src/ --dry-run --pattern "*.py"
+
+# List available transformation patterns
+nicestlog ast patterns --list --details
+```
+
+**Key Features:**
+- 🔍 **Deep AST Analysis** - Comprehensive code structure analysis
+- 🔄 **Pattern-Based Transformations** - Convert print() to structured logging
+- 📊 **Performance Metrics** - Detailed timing and analysis data
+- 🛡️ **Safety Features** - Dry-run mode, backups, rollback capabilities
+- 📝 **Extensive Logging** - Every operation logged with structured data
+
+See [Advanced Assistant Documentation](docs/advanced_assistant.md) for complete details.
+
 ## License
 
 MIT License
