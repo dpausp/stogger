@@ -27,7 +27,7 @@ def main():
 
     # Error example
     try:
-        result = 10 / 0
+        pass
     except ZeroDivisionError:
         log.error("division-error", operation="calculate", exc_info=True)
 

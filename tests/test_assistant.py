@@ -1,5 +1,4 @@
 import textwrap
-from pathlib import Path
 import re
 
 from nicestlog.assistant import migrate_file
