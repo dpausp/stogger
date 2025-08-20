@@ -99,16 +99,12 @@ try:
     app.add_typer(
         advanced_app, name="ast", help="🚀 Advanced AST analysis and transformation"
     )
-    log.debug(
-        "advanced-ast-commands-loaded",
-        _replace_msg="🚀 Advanced AST commands loaded successfully",
-    )
-except ImportError as e:
-    log.warning(
-        "advanced-ast-commands-unavailable",
-        _replace_msg="⚠️ Advanced AST commands unavailable: {error}",
-        error=str(e),
-    )
+    # Note: Debug logging moved to when commands are actually used to avoid
+    # interfering with CLI output in tests
+except ImportError:
+    # Note: Warning logging moved to when commands are actually used to avoid
+    # interfering with CLI output in tests
+    pass
 
 
 @app.command()
