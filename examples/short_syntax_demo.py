@@ -23,7 +23,7 @@ def main():
     for i in range(3):
         log.debug("processing-item", item_id=i, status="active")
 
-    log.info("processing-complete", items_processed=3)
+    log.debug("processing-complete", items_processed=3)
 
     # Error example
     try:

@@ -355,7 +355,7 @@ def main():
         demo_custom_patterns()
         demo_performance_metrics()
 
-        log.info(
+        log.debug(
             "demo-completed",
             _replace_msg="✅ All demonstrations completed successfully!",
             sections_completed=4,
