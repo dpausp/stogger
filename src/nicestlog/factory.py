@@ -47,7 +47,7 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
 
     # Add PII scrubbing if enabled
     if config.enable_pii_scrubbing:
-        log.info("enabling-pii-scrubbing", redaction_text=config.pii_redaction_text)
+        log.debug("enabling-pii-scrubbing", redaction_text=config.pii_redaction_text)
         from .pii_scrubber import create_pii_processor
 
         processors.append(
@@ -92,7 +92,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
 
     if config.log_format == "json":
         renderer = JSONRenderer(min_level="debug" if config.verbose else "info")
-        log.info(
+        log.debug(
             "json-renderer-created", min_level="debug" if config.verbose else "info"
         )
     elif config.log_format == "simple":
@@ -100,7 +100,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
             min_level="debug" if config.verbose else "info",
             settings=config.simple_format_settings,
         )
-        log.info(
+        log.debug(
             "simple-console-renderer-created",
             min_level="debug" if config.verbose else "info",
         )
@@ -109,7 +109,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
             min_level="debug" if config.verbose else "info",
             show_caller_info=config.show_caller_info,
         )
-        log.info(
+        log.debug(
             "console-renderer-created", min_level="debug" if config.verbose else "info"
         )
     return renderer
@@ -117,7 +117,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
 
 def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     """Configures the standard Python logging library."""
-    log.info(
+    log.debug(
         "configuring-stdlib-logging",
         logdir=str(config.logdir) if config.logdir else None,
         log_to_console=config.log_to_console,
@@ -159,7 +159,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
             log.debug("creating-file-handler", log_file=str(log_file))
             file_handler = logging.FileHandler(log_file)
             file_handlers.append(file_handler)
-            log.info("file-logging-enabled", log_file=str(log_file))
+            log.debug("file-logging-enabled", log_file=str(log_file))
         except (IOError, PermissionError) as e:
             log.error(
                 "file-logging-setup-failed", logdir=str(config.logdir), error=str(e)
@@ -169,7 +169,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     if config.log_to_console:
         log.debug("creating-console-handler")
         console_handlers.append(logging.StreamHandler())
-        log.info("console-logging-enabled")
+        log.debug("console-logging-enabled")
 
     if not console_handlers and not file_handlers:
         log.warning("no-logging-handlers-configured")
@@ -188,7 +188,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
             handler.setFormatter(console_formatter)
 
     if config.async_logging:
-        log.info("enabling-async-logging", handler_count=len(all_handlers))
+        log.debug("enabling-async-logging", handler_count=len(all_handlers))
         from logging.handlers import QueueHandler, QueueListener
         from queue import Queue
 
@@ -205,7 +205,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
         for handler in list(root_logger.handlers):
             if handler is not queue_handler:
                 root_logger.removeHandler(handler)
-        log.info("async-logging-configured")
+        log.debug("async-logging-configured")
     else:
         log.debug("configuring-sync-logging", handler_count=len(all_handlers))
         logging.basicConfig(
@@ -213,6 +213,6 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
             handlers=all_handlers,
             force=True,  # Override existing config
         )
-        log.info("sync-logging-configured")
+        log.debug("sync-logging-configured")
 
-    log.info("stdlib-logging-configuration-complete")
+    log.debug("stdlib-logging-configuration-complete")

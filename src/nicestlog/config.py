@@ -87,7 +87,7 @@ class NicestLogConfig:
         )
 
         if not pyproject_path.is_file():
-            log.info(f"no-pyproject-found: {pyproject_path}, using defaults")
+            log.debug(f"no-pyproject-found: {pyproject_path}, using defaults")
             return {}
         try:
             with pyproject_path.open("rb") as f:

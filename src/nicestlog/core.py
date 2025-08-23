@@ -446,7 +446,7 @@ class JSONRenderer:
     """JSON renderer for structured logging output."""
 
     def __init__(self, min_level="info"):
-        log.info("initializing-json-renderer", min_level=min_level)
+        log.debug("initializing-json-renderer", min_level=min_level)
         self.min_level_idx = ConsoleFileRenderer.LEVELS.index(min_level.lower())
 
     def __call__(self, _, __, event_dict):
@@ -550,7 +550,7 @@ def init_logging(simple_format_settings=None, **kwargs: Any):
                 "pad_event_width": simple_format_settings.pad_event_width,
             }
 
-    log.info("initializing-nicestlog", config_kwargs=list(kwargs.keys()))
+    log.debug("initializing-nicestlog", config_kwargs=list(kwargs.keys()))
     config = NicestLogConfig(**kwargs)
 
     shared_processors = build_shared_processors(config)
@@ -568,7 +568,7 @@ def init_logging(simple_format_settings=None, **kwargs: Any):
     log.debug("configured-structlog")
 
     configure_stdlib_logging(config, shared_processors)
-    log.info("logging-initialization-complete")
+    log.debug("logging-initialization-complete")
 
 
 def logging_initialized():

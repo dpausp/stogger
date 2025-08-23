@@ -19,7 +19,7 @@ log = structlog.get_logger(__name__)
 
 def init_config():
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""
-    log.info("starting-config-wizard")
+    log.debug("starting-config-wizard")
     print("Nicestlog Configuration Wizard")
     print(
         "This will help you create a `[tool.nicestlog]` section in your pyproject.toml."
@@ -621,12 +621,12 @@ def run_linter(
         sys.exit(1)
     else:
         if fmt not in {"json", "toml"}:
-            log.info("linter-completed-successfully", path=path)
+            log.debug("linter-completed-successfully", path=path)
 
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
-    log.info("starting-web-dashboard", host=host, port=port, debug=debug)
+    log.debug("starting-web-dashboard", host=host, port=port, debug=debug)
 
     from .web_dashboard import run_dashboard
 
@@ -755,7 +755,7 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 
 def run_demos(feature: Optional[str] = None, all_features: bool = False):
     """Run nicestlog feature demonstrations."""
-    log.info("starting-demos", feature=feature, all_features=all_features)
+    log.debug("starting-demos", feature=feature, all_features=all_features)
 
     available_demos = {
         "basic": "Basic structured logging with console output",
