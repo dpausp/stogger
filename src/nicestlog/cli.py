@@ -89,16 +89,20 @@ def init_config():
 
 app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
 
+# Create tools subgroup for low-level utilities
+tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")
+app.add_typer(tools_app, name="tools")
+
 # Sub-app for i18n related commands
 i18n_app = typer.Typer(help="Internationalization utilities")
 app.add_typer(i18n_app, name="i18n")
 
-# Add advanced assistant commands
+# Add advanced assistant commands to tools subgroup
 try:
     from .cli_advanced import app as advanced_app
 
-    app.add_typer(
-        advanced_app, name="ast", help="🚀 Advanced AST analysis and transformation"
+    tools_app.add_typer(
+        advanced_app, name="ast", help="🔬 Advanced AST analysis and transformation"
     )
     # Note: Debug logging moved to when commands are actually used to avoid
     # interfering with CLI output in tests
@@ -149,7 +153,7 @@ def docs(
     )
 
 
-@app.command("init-config")
+@tools_app.command("init-config")
 def init_config_cmd():
     """Create a default configuration in pyproject.toml."""
     init_config()
@@ -262,6 +266,534 @@ def check(
 
 
 @app.command()
+def fix(
+    path: Annotated[str, typer.Argument(help="Path to fix")] = ".",
+    levels: Annotated[bool, typer.Option("--levels/--no-levels", help="Fix logging levels")] = True,
+    dry_run: Annotated[bool, typer.Option("--dry-run/--apply", help="Preview changes without applying")] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", help="Interactive mode with confirmations")] = False,
+):
+    """🔧 Auto-fix nicestlog issues (ruff-style for existing nicestlog users)."""
+    log.debug("starting-fix", path=path, levels=levels, dry_run=dry_run, interactive=interactive)
+    
+    if dry_run:
+        print("🔍 " + Fore.CYAN + Style.BRIGHT + "DRY RUN MODE - PREVIEW ONLY" + Style.RESET_ALL)
+    else:
+        print("🔧 " + Fore.CYAN + Style.BRIGHT + "FIXING NICESTLOG ISSUES" + Style.RESET_ALL)
+    print()
+    
+    fixes_applied = 0
+    
+    # Fix logging levels
+    if levels:
+        print("📝 Fixing logging levels...")
+        try:
+            from .linter import analyze_file
+            
+            path_obj = Path(path)
+            if path_obj.is_file() and path_obj.suffix == '.py':
+                files_to_fix = [path_obj]
+            else:
+                files_to_fix = list(path_obj.rglob("*.py"))
+            
+            for file_path in files_to_fix:
+                stats, level_issues = analyze_file(file_path)
+                
+                if level_issues:
+                    print(f"   📄 {file_path.relative_to(Path('.'))}")
+                    
+                    if dry_run:
+                        for issue in level_issues:
+                            print(f"      Line {issue.line_no}: {issue.current_level} → {issue.suggested_level}")
+                            print(f"      Event: {issue.event_name}")
+                    else:
+                        # Apply fixes
+                        content = file_path.read_text(encoding='utf-8')
+                        original_content = content
+                        
+                        for issue in level_issues:
+                            # Simple string replacement for logging level fixes
+                            old_call = f'log.{issue.current_level}("{issue.event_name}"'
+                            new_call = f'log.{issue.suggested_level}("{issue.event_name}"'
+                            
+                            if old_call in content:
+                                content = content.replace(old_call, new_call)
+                                print(f"      ✅ Fixed line {issue.line_no}: {issue.current_level} → {issue.suggested_level}")
+                                fixes_applied += 1
+                        
+                        if content != original_content:
+                            if interactive:
+                                response = input(f"      Apply {len(level_issues)} fixes to {file_path.name}? [Y/n]: ")
+                                if response.lower() in ['', 'y', 'yes']:
+                                    file_path.write_text(content, encoding='utf-8')
+                                else:
+                                    print(f"      ⏭️  Skipped {file_path.name}")
+                            else:
+                                file_path.write_text(content, encoding='utf-8')
+            
+        except Exception as e:
+            print(f"❌ Logging level fixes failed: {e}")
+    
+    print()
+    
+    # Summary
+    if dry_run:
+        print("🔍 " + Fore.BLUE + Style.BRIGHT + "DRY RUN COMPLETE" + Style.RESET_ALL)
+        print("Run without --dry-run to apply fixes.")
+    elif fixes_applied > 0:
+        print("✅ " + Fore.GREEN + Style.BRIGHT + f"APPLIED {fixes_applied} FIXES" + Style.RESET_ALL)
+        print("Run 'nicestlog check' to verify fixes.")
+    else:
+        print("✅ " + Fore.GREEN + Style.BRIGHT + "NO FIXES NEEDED" + Style.RESET_ALL)
+
+
+@app.command()
+def migrate(
+    path: Annotated[str, typer.Argument(help="Path to migrate")] = ".",
+    from_type: Annotated[str, typer.Option("--from", help="Migration source: print, logging")] = "print",
+    dry_run: Annotated[bool, typer.Option("--dry-run/--apply", help="Preview changes without applying")] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", help="Interactive migration with guidance")] = False,
+):
+    """🚀 Migrate code to nicestlog (for new nicestlog adopters)."""
+    log.debug("starting-migration", path=path, from_type=from_type, dry_run=dry_run, interactive=interactive)
+    
+    if dry_run:
+        print("🔍 " + Fore.CYAN + Style.BRIGHT + "MIGRATION PREVIEW" + Style.RESET_ALL)
+    else:
+        print("🚀 " + Fore.CYAN + Style.BRIGHT + f"MIGRATING FROM {from_type.upper()}" + Style.RESET_ALL)
+    print()
+    
+    if from_type == "print":
+        print("📝 Migrating print() statements to log.info()...")
+        try:
+            # Use existing AST transform functionality
+            from .cli_advanced import migrate_prints_to_structlog
+            
+            path_obj = Path(path)
+            if path_obj.is_file() and path_obj.suffix == '.py':
+                files_to_migrate = [path_obj]
+            else:
+                files_to_migrate = list(path_obj.rglob("*.py"))
+            
+            migrations_applied = 0
+            
+            for file_path in files_to_migrate:
+                print(f"   📄 {file_path.relative_to(Path('.'))}")
+                
+                if dry_run:
+                    # Just show what would be migrated
+                    content = file_path.read_text(encoding='utf-8')
+                    print_count = content.count('print(')
+                    if print_count > 0:
+                        print(f"      Would migrate {print_count} print() statements")
+                else:
+                    # Apply migration using AST transform
+                    if interactive:
+                        response = input(f"      Migrate print() statements in {file_path.name}? [Y/n]: ")
+                        if response.lower() not in ['', 'y', 'yes']:
+                            print(f"      ⏭️  Skipped {file_path.name}")
+                            continue
+                    
+                    # Use the existing print migration functionality
+                    result = migrate_prints_to_structlog(file_path, dry_run=False)
+                    if result and result.get('changes_made', 0) > 0:
+                        changes = result['changes_made']
+                        print(f"      ✅ Migrated {changes} print() statements")
+                        migrations_applied += changes
+                    else:
+                        print(f"      ℹ️  No print() statements found")
+            
+            print()
+            
+            if dry_run:
+                print("🔍 " + Fore.BLUE + Style.BRIGHT + "MIGRATION PREVIEW COMPLETE" + Style.RESET_ALL)
+                print("Run without --dry-run to apply migration.")
+            elif migrations_applied > 0:
+                print("✅ " + Fore.GREEN + Style.BRIGHT + f"MIGRATED {migrations_applied} STATEMENTS" + Style.RESET_ALL)
+                print("Next steps:")
+                print("  1. Run 'nicestlog tools init-config' to set up configuration")
+                print("  2. Add 'import nicestlog; nicestlog.init_logging()' to your main module")
+                print("  3. Run 'nicestlog check' to verify migration")
+            else:
+                print("✅ " + Fore.GREEN + Style.BRIGHT + "NO PRINT STATEMENTS FOUND" + Style.RESET_ALL)
+                
+        except Exception as e:
+            print(f"❌ Print migration failed: {e}")
+            print("Note: Make sure you have the advanced AST tools available")
+    
+    elif from_type == "logging":
+        print("📝 Migrating stdlib logging to structlog...")
+        print("⚠️  This migration type is not yet implemented.")
+        print("For now, please:")
+        print("  1. Replace 'import logging' with 'import structlog'")
+        print("  2. Replace 'logging.getLogger(__name__)' with 'structlog.get_logger(__name__)'")
+        print("  3. Run 'nicestlog migrate --from=print' to handle any remaining print() statements")
+    
+    else:
+        print(f"❌ Unknown migration type: {from_type}")
+        print("Supported types: print, logging")
+
+
+@app.command()
+def fix(
+    path: Annotated[str, typer.Argument(help="Path to fix")] = ".",
+    levels: Annotated[bool, typer.Option("--levels/--no-levels", help="Fix logging levels")] = True,
+    patterns: Annotated[bool, typer.Option("--patterns/--no-patterns", help="Fix log patterns")] = True,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Preview changes without applying")] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", help="Confirm each change")] = False,
+    all_fixes: Annotated[bool, typer.Option("--all", help="Apply all available fixes")] = False,
+):
+    """🔧 Auto-fix nicestlog issues (ruff-style)."""
+    log.debug("starting-fix-command", path=path, levels=levels, patterns=patterns, dry_run=dry_run, interactive=interactive)
+    
+    if all_fixes:
+        levels = patterns = True
+    
+    print("🔧 " + Fore.CYAN + Style.BRIGHT + "NICESTLOG AUTO-FIX" + Style.RESET_ALL)
+    if dry_run:
+        print("📋 " + Fore.YELLOW + "DRY RUN MODE - No changes will be applied" + Style.RESET_ALL)
+    print()
+    
+    fixes_applied = 0
+    issues_found = 0
+    
+    # Fix logging levels
+    if levels:
+        print("🎯 " + Fore.BLUE + "Fixing logging levels..." + Style.RESET_ALL)
+        level_fixes = _fix_logging_levels(Path(path), dry_run, interactive)
+        fixes_applied += level_fixes
+        if level_fixes > 0:
+            print(f"   ✅ Fixed {level_fixes} logging level issues")
+        else:
+            print("   ℹ️  No logging level issues found")
+        print()
+    
+    # Fix patterns (placeholder for now)
+    if patterns:
+        print("🎯 " + Fore.BLUE + "Fixing log patterns..." + Style.RESET_ALL)
+        print("   ℹ️  Pattern fixes not yet implemented")
+        print()
+    
+    # Summary
+    if fixes_applied > 0:
+        if dry_run:
+            print(f"📋 " + Fore.YELLOW + f"Would fix {fixes_applied} issues" + Style.RESET_ALL)
+            print("Run without --dry-run to apply changes")
+        else:
+            print(f"✅ " + Fore.GREEN + f"Successfully fixed {fixes_applied} issues!" + Style.RESET_ALL)
+    else:
+        print("✨ " + Fore.GREEN + "No issues found - code looks great!" + Style.RESET_ALL)
+
+
+def _fix_logging_levels(path: Path, dry_run: bool, interactive: bool) -> int:
+    """Fix logging level issues. Returns number of fixes applied."""
+    from .linter import analyze_file, LoggingLevelIssue
+    
+    fixes_applied = 0
+    
+    if path.is_file() and path.suffix == '.py':
+        files_to_check = [path]
+    else:
+        files_to_check = list(path.rglob("*.py"))
+    
+    for file_path in files_to_check:
+        try:
+            stats, level_issues = analyze_file(file_path)
+            
+            if not level_issues:
+                continue
+                
+            print(f"📄 {file_path.relative_to(path if path.is_dir() else path.parent)}")
+            
+            for issue in level_issues:
+                # Read file content
+                content = file_path.read_text(encoding='utf-8')
+                lines = content.splitlines()
+                
+                if issue.line_no > len(lines):
+                    continue
+                    
+                old_line = lines[issue.line_no - 1]
+                new_line = old_line.replace(f'log.{issue.current_level}(', f'log.{issue.suggested_level}(')
+                
+                print(f"   Line {issue.line_no}: {issue.reason}")
+                print(f"   - {Fore.RED}{old_line.strip()}{Style.RESET_ALL}")
+                print(f"   + {Fore.GREEN}{new_line.strip()}{Style.RESET_ALL}")
+                
+                should_apply = True
+                if interactive and not dry_run:
+                    response = typer.prompt("Apply this fix? [Y/n/a/q]", default="Y")
+                    if response.lower() in ['n', 'no']:
+                        should_apply = False
+                    elif response.lower() in ['q', 'quit']:
+                        return fixes_applied
+                    elif response.lower() in ['a', 'all']:
+                        interactive = False  # Apply all remaining
+                
+                if should_apply and not dry_run:
+                    # Apply the fix
+                    lines[issue.line_no - 1] = new_line
+                    file_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+                    fixes_applied += 1
+                elif should_apply and dry_run:
+                    fixes_applied += 1
+                    
+                print()
+                
+        except Exception as e:
+            print(f"   ❌ Error processing {file_path}: {e}")
+    
+    return fixes_applied
+
+
+@app.command()
+def migrate(
+    path: Annotated[str, typer.Argument(help="Path to migrate")] = ".",
+    from_source: Annotated[str, typer.Option("--from", help="Migration source: print, logging")] = "print",
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Preview changes without applying")] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", help="Step-by-step guidance")] = False,
+    setup_config: Annotated[bool, typer.Option("--setup-config/--no-setup-config", help="Setup nicestlog configuration")] = True,
+):
+    """🚀 Migrate to nicestlog from print() or stdlib logging."""
+    log.debug("starting-migrate-command", path=path, from_source=from_source, dry_run=dry_run, interactive=interactive)
+    
+    print("🚀 " + Fore.CYAN + Style.BRIGHT + "NICESTLOG MIGRATION ASSISTANT" + Style.RESET_ALL)
+    if dry_run:
+        print("📋 " + Fore.YELLOW + "DRY RUN MODE - No changes will be applied" + Style.RESET_ALL)
+    print()
+    
+    migrations_applied = 0
+    
+    # Setup configuration first if requested
+    if setup_config and not dry_run:
+        print("⚙️ " + Fore.BLUE + "Setting up nicestlog configuration..." + Style.RESET_ALL)
+        config_created = _setup_migration_config(Path(path), interactive)
+        if config_created:
+            print("   ✅ Configuration created")
+        else:
+            print("   ℹ️  Configuration already exists or skipped")
+        print()
+    
+    # Migrate based on source
+    if from_source == "print":
+        print("🔄 " + Fore.BLUE + "Migrating print() statements to log.info()..." + Style.RESET_ALL)
+        print_migrations = _migrate_print_statements(Path(path), dry_run, interactive)
+        migrations_applied += print_migrations
+        if print_migrations > 0:
+            print(f"   ✅ Migrated {print_migrations} print() statements")
+        else:
+            print("   ℹ️  No print() statements found")
+        print()
+        
+    elif from_source == "logging":
+        print("🔄 " + Fore.BLUE + "Migrating stdlib logging to structlog..." + Style.RESET_ALL)
+        print("   ℹ️  Stdlib logging migration not yet implemented")
+        print()
+    
+    # Summary
+    if migrations_applied > 0:
+        if dry_run:
+            print(f"📋 " + Fore.YELLOW + f"Would migrate {migrations_applied} statements" + Style.RESET_ALL)
+            print("Run without --dry-run to apply changes")
+        else:
+            print(f"✅ " + Fore.GREEN + f"Successfully migrated {migrations_applied} statements!" + Style.RESET_ALL)
+            print()
+            print("🎯 " + Fore.CYAN + "Next steps:" + Style.RESET_ALL)
+            print("   1. Run 'nicestlog check' to verify migration")
+            print("   2. Run 'nicestlog fix' to clean up any issues")
+            print("   3. Test your application with the new logging")
+    else:
+        print("✨ " + Fore.GREEN + "No migration needed - code already looks great!" + Style.RESET_ALL)
+
+
+def _setup_migration_config(path: Path, interactive: bool) -> bool:
+    """Setup basic nicestlog configuration. Returns True if config was created."""
+    # Look for existing config
+    config_files = ["pyproject.toml", "nicestlog.toml", ".nicestlog.toml"]
+    
+    for config_file in config_files:
+        if (path / config_file).exists():
+            if interactive:
+                overwrite = typer.confirm(f"Configuration file {config_file} exists. Overwrite?")
+                if not overwrite:
+                    return False
+            else:
+                return False  # Don't overwrite existing config
+    
+    # Create basic pyproject.toml section
+    pyproject_path = path / "pyproject.toml"
+    
+    basic_config = """
+[tool.nicestlog]
+verbose = false
+log_to_console = true
+simple_format = true
+
+[tool.nicestlog.simple_format_settings]
+min_level = "info"
+"""
+    
+    if pyproject_path.exists():
+        # Append to existing pyproject.toml
+        content = pyproject_path.read_text()
+        if "[tool.nicestlog]" not in content:
+            content += basic_config
+            pyproject_path.write_text(content)
+            return True
+    else:
+        # Create new pyproject.toml
+        pyproject_path.write_text(basic_config.strip())
+        return True
+    
+    return False
+
+
+def _migrate_print_statements(path: Path, dry_run: bool, interactive: bool) -> int:
+    """Migrate print() statements to log.info(). Returns number of migrations applied."""
+    # Use existing AST transform functionality
+    try:
+        from .advanced_assistant import AdvancedASTAnalyzer
+        
+        migrations_applied = 0
+        
+        if path.is_file() and path.suffix == '.py':
+            files_to_migrate = [path]
+        else:
+            files_to_migrate = list(path.rglob("*.py"))
+        
+        for file_path in files_to_migrate:
+            try:
+                # Read file content
+                content = file_path.read_text(encoding='utf-8')
+                
+                # Simple print() detection and replacement
+                import re
+                print_pattern = r'print\s*\('
+                print_matches = list(re.finditer(print_pattern, content))
+                
+                if not print_matches:
+                    continue
+                
+                print(f"📄 {file_path.relative_to(path if path.is_dir() else path.parent)}")
+                
+                # Process each print statement
+                lines = content.splitlines()
+                modified_lines = []
+                
+                for i, line in enumerate(lines):
+                    if re.search(print_pattern, line):
+                        # Simple transformation: print(...) -> log.info(...)
+                        # This is a basic implementation - could be enhanced with AST
+                        old_line = line
+                        new_line = re.sub(r'print\s*\(', 'log.info(', line)
+                        
+                        print(f"   Line {i+1}: Converting print() to log.info()")
+                        print(f"   - {Fore.RED}{old_line.strip()}{Style.RESET_ALL}")
+                        print(f"   + {Fore.GREEN}{new_line.strip()}{Style.RESET_ALL}")
+                        
+                        should_apply = True
+                        if interactive and not dry_run:
+                            response = typer.prompt("Apply this migration? [Y/n/a/q]", default="Y")
+                            if response.lower() in ['n', 'no']:
+                                should_apply = False
+                                new_line = old_line  # Keep original
+                            elif response.lower() in ['q', 'quit']:
+                                return migrations_applied
+                            elif response.lower() in ['a', 'all']:
+                                interactive = False  # Apply all remaining
+                        
+                        if should_apply:
+                            modified_lines.append(new_line)
+                            if not dry_run:
+                                migrations_applied += 1
+                            elif dry_run:
+                                migrations_applied += 1
+                        else:
+                            modified_lines.append(old_line)
+                        
+                        print()
+                    else:
+                        modified_lines.append(line)
+                
+                # Write back modified content
+                if not dry_run and migrations_applied > 0:
+                    # Add structlog import if not present
+                    modified_content = '\n'.join(modified_lines)
+                    if 'import structlog' not in modified_content and 'log.info(' in modified_content:
+                        # Add import at the top
+                        import_line = "import structlog\n"
+                        if modified_content.startswith('"""') or modified_content.startswith("'''"):
+                            # Find end of docstring
+                            lines = modified_content.split('\n')
+                            for idx, line in enumerate(lines):
+                                if line.strip().endswith('"""') or line.strip().endswith("'''"):
+                                    lines.insert(idx + 1, "import structlog")
+                                    lines.insert(idx + 2, "log = structlog.get_logger()")
+                                    break
+                        else:
+                            modified_content = "import structlog\nlog = structlog.get_logger()\n\n" + modified_content
+                    
+                    file_path.write_text(modified_content, encoding='utf-8')
+                
+            except Exception as e:
+                print(f"   ❌ Error processing {file_path}: {e}")
+        
+        return migrations_applied
+        
+    except ImportError:
+        print("   ❌ AST transformation not available")
+        return 0
+
+
+@app.command()
+def tools():
+    """🛠️ Low-level utilities and advanced operations."""
+    # This will be a command group
+    pass
+
+
+# Create tools subcommand group
+tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced operations")
+app.add_typer(tools_app, name="tools")
+
+
+@tools_app.command("ast")
+def tools_ast():
+    """🔬 Advanced AST operations (analyze, transform, interactive, patterns)."""
+    # Redirect to existing AST functionality
+    from .cli_advanced import app as ast_app
+    # For now, just show help - full integration would require more work
+    print("🔬 " + Fore.CYAN + Style.BRIGHT + "AST OPERATIONS" + Style.RESET_ALL)
+    print()
+    print("Available AST operations:")
+    print("  nicestlog tools ast analyze      - Deep code analysis")
+    print("  nicestlog tools ast transform    - Code transformation")
+    print("  nicestlog tools ast interactive  - Interactive editing")
+    print("  nicestlog tools ast patterns     - Pattern management")
+    print()
+    print("Note: Use 'nicestlog ast' for now (will be moved to tools in next version)")
+
+
+@tools_app.command("init-config")
+def tools_init_config():
+    """⚙️ Initialize nicestlog configuration."""
+    # Call existing init-config functionality
+    init_config()
+
+
+@tools_app.command("generate-service")
+def tools_generate_service(
+    service_name: Annotated[str, typer.Argument(help="Name of the service")],
+    script_path: Annotated[str, typer.Argument(help="Path to the Python script")],
+    user: Annotated[str, typer.Option(help="User to run the service as")] = "www-data",
+    working_directory: Annotated[str, typer.Option(help="Working directory")] = "/opt",
+    description: Annotated[str, typer.Option(help="Service description")] = "Python service with nicestlog",
+):
+    """🔧 Generate systemd service file."""
+    # Call existing generate-service functionality
+    generate_service(service_name, script_path, user, working_directory, description)
+
+
+@app.command()
 def lint(
     path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
     min_coverage: Annotated[
@@ -301,7 +833,7 @@ def dashboard(
     run_dashboard_cmd(host, port, debug)
 
 
-@app.command("generate-service")
+@tools_app.command("generate-service")
 def generate_service(
     service_name: Annotated[str, typer.Argument(help="Name of the service")],
     exec_command: Annotated[str, typer.Argument(help="Command to execute")],
@@ -696,7 +1228,7 @@ def run_linter(
         # Fail silently; linter output still works without structured logging
         pass
 
-    log.info(
+    log.debug(
         "starting-linter",
         path=path,
         min_coverage=min_coverage,
@@ -787,7 +1319,7 @@ def run_journal_viewer(
     level: Optional[str] = None,
 ):
     """Run the journal viewer."""
-    log.info(
+    log.debug(
         "starting-journal-viewer",
         service=service,
         lines=lines,
@@ -990,7 +1522,7 @@ def run_basic_demo():
         max_retries=5,
     )
 
-    log.info(
+    log.debug(
         "api-request-completed",
         _replace_msg="✅ API request completed in {duration}ms",
         method="GET",
@@ -1169,7 +1701,7 @@ def run_complete_demo():
                     status_code=404,
                 )
             else:
-                log.info(
+                log.debug(
                     "request-complete",
                     _replace_msg="✅ Request completed in {duration}ms",
                     request_id=f"req_{i:03d}",

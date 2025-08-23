@@ -131,7 +131,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
         self.transformation_suggestions: List[str] = []
         self.current_depth = 0
 
-        log.info(
+        log.debug(
             "ast-analyzer-initialized",
             _replace_msg="🔍 AST Analyzer initialized for {file_path}",
             file_path=str(file_path),
@@ -176,7 +176,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             transformation_suggestions=self.transformation_suggestions.copy(),
         )
 
-        log.info(
+        log.debug(
             "analysis-completed",
             _replace_msg="✅ AST analysis completed for {file_path} in {duration:.2f}s",
             file_path=str(self.file_path),
@@ -350,7 +350,7 @@ class AdvancedTransformer(ast.NodeTransformer):
         self.changes_made: List[str] = []
         self.transformation_id = hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
 
-        log.info(
+        log.debug(
             "transformer-initialized",
             _replace_msg="🔄 Advanced Transformer initialized with {pattern_count} patterns",
             pattern_count=len(self.patterns),
@@ -376,7 +376,7 @@ class AdvancedTransformer(ast.NodeTransformer):
         # Finalize metrics
         self.metrics.end_time = time.time()
 
-        log.info(
+        log.debug(
             "transformation-completed",
             _replace_msg="✅ Transformation {transformation_id} completed in {duration:.2f}s",
             transformation_id=self.transformation_id,
@@ -456,7 +456,7 @@ class AdvancedAssistant:
         # Initialize default patterns
         self._initialize_default_patterns()
 
-        log.info(
+        log.debug(
             "assistant-initialized",
             _replace_msg="🎯 Advanced Assistant initialized (session: {session_id})",
             session_id=self.session_id,
@@ -584,7 +584,7 @@ class AdvancedAssistant:
             analyzer = AdvancedASTAnalyzer(file_path)
             result = analyzer.analyze(tree)
 
-            log.info(
+            log.debug(
                 "file-analysis-completed",
                 _replace_msg="✅ Analysis completed for {file_path}",
                 file_path=str(file_path),
@@ -661,7 +661,7 @@ class AdvancedAssistant:
                     changes_count=len(transformer.changes_made),
                 )
 
-            log.info(
+            log.debug(
                 "file-transformation-completed",
                 _replace_msg="✅ Transformation completed for {file_path}",
                 file_path=str(file_path),
@@ -725,7 +725,7 @@ class AdvancedAssistant:
         successful = sum(1 for r in results if r.success)
         total_changes = sum(len(r.changes_made) for r in results)
 
-        log.info(
+        log.debug(
             "directory-transformation-completed",
             _replace_msg="✅ Directory transformation completed: {successful}/{total} files, {changes} changes",
             successful=successful,

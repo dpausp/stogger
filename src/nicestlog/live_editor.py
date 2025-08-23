@@ -52,7 +52,7 @@ class LiveCodeEditor:
         self.use_external_editor = use_external_editor
         self.edit_sessions: List[EditSession] = []
 
-        log.info(
+        log.debug(
             "live-editor-initialized",
             _replace_msg="🔥 Live Code Editor initialized (external: {external})",
             external=use_external_editor,

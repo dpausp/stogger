@@ -63,7 +63,7 @@ class NicestlogTranslator:
         if lang_file.exists() and toml:
             try:
                 self.translations = toml.load(lang_file)
-                log.info(
+                log.debug(
                     "loaded-translations",
                     language=self.language,
                     file=str(lang_file),

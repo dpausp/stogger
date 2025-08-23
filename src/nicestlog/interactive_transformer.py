@@ -106,7 +106,7 @@ class InteractiveTransformer:
             else None
         )
 
-        log.info(
+        log.debug(
             "interactive-transformer-initialized",
             _replace_msg="🎯 Interactive Transformer initialized with {patterns} patterns (live editing: {live_editing})",
             patterns=len([p for p in self.assistant.patterns if p.enabled]),
@@ -553,7 +553,7 @@ class InteractiveTransformer:
             )
         )
 
-        log.info(
+        log.debug(
             "interactive-session-completed",
             _replace_msg="✅ Interactive session completed",
             files_processed=len(results),

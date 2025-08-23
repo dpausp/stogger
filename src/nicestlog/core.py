@@ -68,7 +68,7 @@ class PartialFormatter(string.Formatter):
 
 class TranslationProcessor:
     def __init__(self, translations):
-        log.info(
+        log.debug(
             "initializing-translation-processor", translation_count=len(translations)
         )
         self.translations = translations
