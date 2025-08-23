@@ -74,7 +74,7 @@ class TestInitConfigIntegration:
                     mock_file = MagicMock()
                     mock_open.return_value.__enter__.return_value = mock_file
 
-                    result = self.runner.invoke(app, ["init-config"])
+                    result = self.runner.invoke(app, ["tools", "init-config"])
 
                     assert result.exit_code == 0
                     mock_file.write.assert_called_once()
@@ -284,7 +284,7 @@ class TestGenerateServiceIntegration:
     def test_generate_service_to_stdout(self):
         """Test generating a systemd service file to stdout."""
         result = self.runner.invoke(
-            app, ["generate-service", "test-app", "/usr/bin/test-app"]
+            app, ["tools", "generate-service", "test-app", "/usr/bin/test-app"]
         )
 
         assert result.exit_code == 0
@@ -305,6 +305,7 @@ class TestGenerateServiceIntegration:
         result = self.runner.invoke(
             app,
             [
+                "tools",
                 "generate-service",
                 "test-app",
                 "/usr/bin/test-app",

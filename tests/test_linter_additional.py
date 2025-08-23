@@ -12,7 +12,7 @@ def _write(tmp: Path, name: str, content: str) -> Path:
 
 def test_analyze_file_empty(tmp_path: Path):
     p = _write(tmp_path, "empty.py", "\n\n# just a comment\n")
-    stats = linter.analyze_file(p)
+    stats, level_issues = linter.analyze_file(p)
     assert stats.code_lines == 0
     assert stats.log_statements == 0
 
@@ -32,7 +32,7 @@ def test_analyze_file_with_functions_and_logs(tmp_path: Path):
         log.debug("x")
     """
     p = _write(tmp_path, "with_logs.py", code)
-    stats = linter.analyze_file(p)
+    stats, level_issues = linter.analyze_file(p)
     assert stats.functions == 3
     assert stats.functions_with_logging == 2
     assert stats.log_statements == 2

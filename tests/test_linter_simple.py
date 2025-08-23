@@ -48,7 +48,7 @@ def another_function():
             f.flush()
 
             try:
-                stats = analyze_file(Path(f.name))
+                stats, level_issues = analyze_file(Path(f.name))
                 assert stats.total_lines > 0
                 assert stats.log_statements > 0
                 assert stats.functions >= 2

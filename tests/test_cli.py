@@ -61,10 +61,10 @@ class TestInitConfig:
 class TestMainFunction:
     """Test cases for main function."""
 
-    @patch("sys.argv", ["nicestlog", "init-config"])
+    @patch("sys.argv", ["nicestlog", "tools", "init-config"])
     @patch("nicestlog.cli.init_config")
     def test_main_init_config_subcommand(self, mock_init_config):
-        """Test main function with init-config subcommand."""
+        """Test main function with tools init-config subcommand."""
         with pytest.raises(SystemExit) as exc_info:
             main()
         # Typer exits with code 0 on successful command execution
@@ -90,22 +90,22 @@ class TestTyperCliRunner:
         result = self.runner.invoke(app, ["--help"])
         assert result.exit_code == 0
         assert "Nicestlog utility" in result.stdout
-        assert "init-config" in result.stdout
+        assert "tools" in result.stdout
         assert "lint" in result.stdout
         assert "dashboard" in result.stdout
 
     @patch("nicestlog.cli.init_config")
     def test_init_config_command(self, mock_init_config):
-        """Test init-config command via CliRunner."""
-        result = self.runner.invoke(app, ["init-config"])
+        """Test tools init-config command via CliRunner."""
+        result = self.runner.invoke(app, ["tools", "init-config"])
         assert result.exit_code == 0
         mock_init_config.assert_called_once()
 
     def test_init_config_help(self):
-        """Test init-config help."""
-        result = self.runner.invoke(app, ["init-config", "--help"])
+        """Test tools init-config help."""
+        result = self.runner.invoke(app, ["tools", "init-config", "--help"])
         assert result.exit_code == 0
-        assert "Create a default configuration" in result.stdout
+        assert "Initialize nicestlog configuration" in result.stdout
 
 
 class TestLintCommand:
@@ -223,8 +223,8 @@ class TestGenerateServiceCommand:
         self.runner = CliRunner()
 
     def test_generate_service_help(self):
-        """Test generate-service command help."""
-        result = self.runner.invoke(app, ["generate-service", "--help"])
+        """Test tools generate-service command help."""
+        result = self.runner.invoke(app, ["tools", "generate-service", "--help"])
         assert result.exit_code == 0
         assert "Generate systemd service file" in result.stdout
         assert "service_name" in result.stdout
@@ -235,9 +235,9 @@ class TestGenerateServiceCommand:
 
     @patch("nicestlog.cli.generate_service_cmd")
     def test_generate_service_required_args(self, mock_generate):
-        """Test generate-service command with required arguments."""
+        """Test tools generate-service command with required arguments."""
         result = self.runner.invoke(
-            app, ["generate-service", "myapp", "/usr/bin/myapp"]
+            app, ["tools", "generate-service", "myapp", "/usr/bin/myapp"]
         )
         assert result.exit_code == 0
         mock_generate.assert_called_once_with(
@@ -246,10 +246,11 @@ class TestGenerateServiceCommand:
 
     @patch("nicestlog.cli.generate_service_cmd")
     def test_generate_service_all_args(self, mock_generate):
-        """Test generate-service command with all arguments."""
+        """Test tools generate-service command with all arguments."""
         result = self.runner.invoke(
             app,
             [
+                "tools",
                 "generate-service",
                 "myapp",
                 "/usr/bin/myapp",
@@ -267,8 +268,8 @@ class TestGenerateServiceCommand:
         )
 
     def test_generate_service_missing_args(self):
-        """Test generate-service command with missing required arguments."""
-        result = self.runner.invoke(app, ["generate-service"])
+        """Test tools generate-service command with missing required arguments."""
+        result = self.runner.invoke(app, ["tools", "generate-service"])
         assert result.exit_code != 0
         # Use result.output when stderr is mixed with stdout
         error_output = result.output
