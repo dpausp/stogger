@@ -179,8 +179,29 @@ def check(
         print("🔍 " + Fore.CYAN + Style.BRIGHT + "CHECKING LOGGING COVERAGE & LEVELS" + Style.RESET_ALL)
         print()
         try:
-            from .linter import lint_directory
-            lint_directory(Path(path), min_coverage, max_coverage, output_format)
+            from .linter import lint_directory, analyze_file
+            
+            path_obj = Path(path)
+            if path_obj.is_file() and path_obj.suffix == '.py':
+                # Handle single file
+                stats, level_issues = analyze_file(path_obj)
+                print(f"📄 Analyzing {path_obj.name}:")
+                print(f"   Lines: {stats.total_lines}, Code: {stats.code_lines}")
+                print(f"   Log statements: {stats.log_statements}")
+                print(f"   Coverage: {stats.log_coverage_percent:.1f}%")
+                
+                if level_issues:
+                    print(f"\n🔧 LOGGING LEVEL ISSUES DETECTED")
+                    for issue in level_issues:
+                        print(f"   Line {issue.line_no}: {issue.current_level} → {issue.suggested_level}")
+                        print(f"   Event: {issue.event_name}")
+                        print(f"   Reason: {issue.reason}")
+                    issues_found = True
+                else:
+                    print("   ✅ No logging level issues found")
+            else:
+                # Handle directory
+                lint_directory(path_obj, min_coverage, max_coverage, output_format)
             print()
         except Exception as e:
             print(f"❌ Linting failed: {e}")
