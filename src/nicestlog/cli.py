@@ -702,14 +702,205 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 
 
 def run_demos(feature: Optional[str] = None, all_features: bool = False):
-    """Run demos."""
-    console.print("🎬 [bold blue]Nicestlog Demos[/bold blue]")
-    if feature:
-        console.print(f"Running demo for: {feature}")
-    elif all_features:
-        console.print("Running all feature demos")
+    """Run nicestlog feature demonstrations."""
+    log.debug("starting-demos", feature=feature, all_features=all_features)
+
+    available_demos = {
+        "basic": "Basic structured logging with console output",
+        "i18n": "Internationalization and message translations",
+        "pii": "PII scrubbing and data protection",
+        "eliot": "Eliot integration for action tracing",
+        "systemd": "Systemd journal integration",
+        "async": "Asynchronous logging performance",
+        "complete": "Complete real-world application example",
+        "lint": "Lint demo with two bad modules triggering all checks",
+    }
+
+    def print_demo_separator():
+        print(f"\n{'-' * 40}")
+        time.sleep(0.5)
+
+    if not feature and not all_features:
+        print("🎯 Available nicestlog demos:")
+        print()
+        for demo_name, description in available_demos.items():
+            print(f"  {demo_name:12} - {description}")
+        print()
+        print("Usage:")
+        print("  nicestlog demo basic           # Run specific demo")
+        print("  nicestlog demo --all           # Run all demos")
+        return
+
+    demos_to_run = []
+    if all_features:
+        # Run all core demos, but skip heavy/side-effect demos like 'lint'
+        demos_to_run = [k for k in available_demos.keys() if k != "lint"]
+    elif feature in available_demos:
+        demos_to_run = [feature]
     else:
-        console.print("Available demos: basic, advanced, ast, linting")
+        print(
+            f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}"
+        )
+        sys.exit(1)
+
+    print("🚀 Starting nicestlog demonstrations...")
+
+    for demo_name in demos_to_run:
+        if demo_name == "basic":
+            run_basic_demo()
+        elif demo_name == "i18n":
+            run_i18n_demo()
+        elif demo_name == "pii":
+            run_pii_demo()
+        elif demo_name == "eliot":
+            run_eliot_demo()
+        elif demo_name == "systemd":
+            run_systemd_demo()
+        elif demo_name == "async":
+            run_async_demo()
+        elif demo_name == "complete":
+            run_complete_demo()
+        elif demo_name == "lint":
+            run_lint_demo()
+
+        if len(demos_to_run) > 1:
+            print_demo_separator()
+
+    print("\n🎉 Demo complete! Try these features in your own applications.")
+
+
+def print_demo_header(title: str, description: str):
+    """Print a formatted demo section header."""
+    print(f"\n{'=' * 60}")
+    print(f"🎭 {title}")
+    print(f"📝 {description}")
+    print(f"{'=' * 60}")
+    time.sleep(1)
+
+
+def run_basic_demo():
+    """Demonstrate basic nicestlog features."""
+    print_demo_header(
+        "Basic Structured Logging", "Console output with beautiful formatting"
+    )
+
+    # Initialize with console output
+    nicestlog.init_logging(verbose=True, syslog_identifier="demo")
+    log = structlog.get_logger()
+
+    print("📋 Demonstrating different log levels and structured data:")
+
+    log.info(
+        "application-started",
+        _replace_msg="🚀 Application {name} v{version} started successfully",
+        name="nicestlog-demo",
+        version="1.0.0",
+        pid=12345,
+    )
+
+    log.debug(
+        "user-authentication",
+        username="alice",
+        ip="192.168.1.100",
+        session_id="abc123",
+        action="login_attempt",
+    )
+
+    log.warning(
+        "rate-limit-approaching",
+        _replace_msg="⚠️  Rate limit at {percent}% for user {user_id}",
+        percent=85,
+        user_id=42,
+        requests_remaining=15,
+    )
+
+    log.error(
+        "database-connection-failed",
+        _replace_msg="💥 Database connection failed: {error}",
+        error="Connection timeout",
+        host="db.example.com",
+        retry_count=3,
+        max_retries=5,
+    )
+
+    log.debug(
+        "api-request-completed",
+        _replace_msg="✅ API request completed in {duration}ms",
+        method="GET",
+        endpoint="/api/users",
+        duration=234,
+        status_code=200,
+        response_size=1024,
+    )
+
+
+def run_i18n_demo():
+    """Demonstrate internationalization features."""
+    print_demo_header("Internationalization (i18n)", "Multi-language log messages")
+
+    # Load config to optionally honor translation_dir and language from pyproject.toml
+    try:
+        from .config import NicestLogConfig
+        cfg = NicestLogConfig()
+    except Exception:
+        cfg = None
+
+    init_kwargs = {"verbose": True, "syslog_identifier": "i18n-demo"}
+    if cfg and cfg.translation_dir:
+        init_kwargs["translation_dir"] = str(cfg.translation_dir)
+    if cfg and cfg.language:
+        init_kwargs["language"] = cfg.language
+
+    # Ensure nicestlog is initialized so structlog output uses our renderers
+    nicestlog.init_logging(**init_kwargs)
+    log = structlog.get_logger()
+
+    print("🌍 Demonstrating translated log messages:")
+    log.info("user-login", username="alice", session_id="abc123")
+    log.warning("rate-limit-exceeded", user_id=42, limit=100)
+    log.error("database-error", error_code="DB001", table="users")
+
+
+def run_pii_demo():
+    """Demonstrate PII scrubbing features."""
+    print_demo_header("PII Scrubbing", "Automatic removal of sensitive data")
+    
+    nicestlog.init_logging(verbose=True, syslog_identifier="pii-demo")
+    log = structlog.get_logger()
+    
+    print("🔒 Demonstrating PII scrubbing:")
+    log.info("user-data", email="user@example.com", password="secret123", ssn="123-45-6789")
+    log.debug("api-call", token="Bearer abc123def456", api_key="sk_live_abc123")
+
+
+def run_eliot_demo():
+    """Demonstrate Eliot integration."""
+    print_demo_header("Eliot Integration", "Action tracing and structured logging")
+    print("📊 Eliot integration demo - structured action tracing")
+
+
+def run_systemd_demo():
+    """Demonstrate systemd integration."""
+    print_demo_header("Systemd Integration", "Journal logging and service integration")
+    print("🔧 Systemd integration demo - journal logging")
+
+
+def run_async_demo():
+    """Demonstrate async logging."""
+    print_demo_header("Async Logging", "Non-blocking high-performance logging")
+    print("⚡ Async logging demo - high performance logging")
+
+
+def run_complete_demo():
+    """Demonstrate complete application example."""
+    print_demo_header("Complete Example", "Real-world application logging patterns")
+    print("🏗️ Complete application demo - comprehensive logging")
+
+
+def run_lint_demo():
+    """Demonstrate linting functionality."""
+    print_demo_header("Linting Demo", "Code quality analysis and suggestions")
+    print("🔍 Linting demo - analyzing code quality")
 
 
 def main():
