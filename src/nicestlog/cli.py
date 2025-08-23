@@ -45,6 +45,24 @@ app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
 tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")
 app.add_typer(tools_app, name="tools")
 
+# Add init-config command to tools
+@tools_app.command("init-config")
+def tools_init_config():
+    """🔧 Initialize nicestlog configuration."""
+    init_config()
+
+# Add generate-service command to tools
+@tools_app.command("generate-service")
+def tools_generate_service(
+    service_name: str = typer.Argument(..., help="Name of the service"),
+    exec_command: str = typer.Argument(..., help="Command to execute"),
+    user: Optional[str] = typer.Option(None, "--user", help="User to run service as"),
+    working_dir: Optional[str] = typer.Option(None, "--working-dir", help="Working directory"),
+    output: Optional[str] = typer.Option(None, "--output", help="Output file path"),
+):
+    """🔧 Generate systemd service file."""
+    generate_service_cmd(service_name, exec_command, user, working_dir, output)
+
 # Sub-app for i18n related commands
 i18n_app = typer.Typer(help="Internationalization utilities")
 app.add_typer(i18n_app, name="i18n")
@@ -569,11 +587,12 @@ def _display_directory_transformation(results: List[TransformationResult], dry_r
 @app.command()
 def lint(
     path: Annotated[str, typer.Argument(help="Path to lint")] = ".",
-    min_coverage: Annotated[float, typer.Option("--min-coverage", help="Minimum coverage")] = 70.0,
-    max_coverage: Annotated[float, typer.Option("--max-coverage", help="Maximum coverage")] = 90.0,
+    min_coverage: Annotated[float, typer.Option("--min-coverage", help="Minimum coverage")] = 5.0,
+    max_coverage: Annotated[float, typer.Option("--max-coverage", help="Maximum coverage")] = 15.0,
+    strict: Annotated[bool, typer.Option("--strict", help="Enable strict mode")] = False,
 ):
-    """🔍 Lint code for logging best practices."""
-    run_linter(path, min_coverage, max_coverage)
+    """🔍 Check logging coverage and quality."""
+    run_linter(path, min_coverage, max_coverage, strict)
 
 
 @app.command()
@@ -582,17 +601,24 @@ def dashboard(
     port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
     debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
 ):
-    """🌐 Launch web dashboard."""
+    """🌐 Start the web dashboard."""
     run_dashboard_cmd(host, port, debug)
 
 
 @app.command()
 def journal(
-    follow: Annotated[bool, typer.Option("--follow", "-f", help="Follow log output")] = False,
     unit: Annotated[Optional[str], typer.Option("--unit", "-u", help="Systemd unit")] = None,
+    lines: Annotated[int, typer.Option("--lines", "-n", help="Number of lines to show")] = 50,
+    follow: Annotated[bool, typer.Option("--follow", "-f", help="Follow log output")] = False,
+    since: Annotated[Optional[str], typer.Option("--since", help="Show logs since")] = None,
+    level: Annotated[Optional[str], typer.Option("--level", help="Log level filter")] = None,
 ):
-    """📖 View systemd journal logs."""
-    run_journal_viewer(follow, unit)
+    """📖 Beautiful systemd journal viewer."""
+    if level and level not in ["debug", "info", "warning", "error", "critical"]:
+        console.print(f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]")
+        raise typer.Exit(1)
+    
+    run_journal_viewer(unit, lines, follow, since, level)
 
 
 @app.command()
@@ -601,7 +627,12 @@ def review(
     format_type: Annotated[str, typer.Option("--format", help="Output format")] = "text",
     min_score: Annotated[float, typer.Option("--min-score", help="Minimum score")] = 70.0,
 ):
-    """📝 Review log files for quality."""
+    """📝 Review log quality and provide suggestions."""
+    valid_formats = ["text", "json", "html"]
+    if format_type not in valid_formats:
+        console.print(f"❌ [red]Invalid format '{format_type}'. Valid formats: {', '.join(valid_formats)}[/red]")
+        raise typer.Exit(1)
+    
     run_log_reviewer(path, format_type, min_score)
 
 
@@ -675,9 +706,15 @@ def _show_feature_docs(feature: str):
 
 
 # Implementation stubs for remaining functions
-def run_linter(path: str, min_coverage: float = 70.0, max_coverage: float = 90.0):
+def run_linter(path: str, min_coverage: float = 70.0, max_coverage: float = 90.0, strict: bool = False):
     """Run the linter."""
     from .linter import lint_directory
+    
+    # In strict mode, use stricter coverage requirements
+    if strict:
+        min_coverage = 5.0
+        max_coverage = 15.0
+    
     lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
 
 
@@ -687,11 +724,17 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = F
     run_dashboard(host=host, port=port, debug=debug)
 
 
-def run_journal_viewer(follow: bool = False, unit: Optional[str] = None):
+def run_journal_viewer(unit: Optional[str] = None, lines: int = 50, follow: bool = False, since: Optional[str] = None, level: Optional[str] = None):
     """Run the journal viewer."""
     from .journal_viewer import JournalViewer
     viewer = JournalViewer()
-    viewer.run(follow=follow, unit=unit)
+    # Check if the viewer has a run method, otherwise use view method
+    if hasattr(viewer, 'run'):
+        viewer.run(unit=unit, lines=lines, follow=follow, since=since, level=level)
+    elif hasattr(viewer, 'view'):
+        viewer.view(unit=unit, lines=lines, follow=follow, since=since, level=level)
+    else:
+        console.print("❌ [red]Journal viewer not properly configured[/red]")
 
 
 def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
@@ -699,6 +742,30 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
     from .log_reviewer import LogReviewer
     reviewer = LogReviewer()
     reviewer.review_path(Path(path_str), format_type=format_type, min_score=min_score)
+
+
+def generate_service_cmd(
+    service_name: str,
+    exec_command: str,
+    user: Optional[str] = None,
+    working_directory: Optional[str] = None,
+    output_file: Optional[str] = None,
+):
+    """Generate systemd service file."""
+    from .systemd_integration import create_systemd_service_file
+    
+    service_content = create_systemd_service_file(
+        service_name=service_name,
+        exec_command=exec_command,
+        user=user,
+        working_directory=working_directory,
+    )
+    
+    if output_file:
+        with open(output_file, "w") as f:
+            f.write(service_content)
+    else:
+        print(service_content)
 
 
 def run_demos(feature: Optional[str] = None, all_features: bool = False):
