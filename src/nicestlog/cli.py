@@ -800,7 +800,9 @@ def run_linter(path: str, min_coverage: float = 70.0, max_coverage: float = 90.0
         min_coverage = 3.0
         max_coverage = 10.0
     
-    lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
+    success = lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
+    if not success:
+        raise typer.Exit(1)
 
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):

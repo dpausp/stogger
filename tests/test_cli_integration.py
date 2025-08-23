@@ -63,29 +63,24 @@ class TestInitConfigIntegration:
                 "y",  # append to file
             ]
 
-            # Mock the Path class to return our test file
-            with patch("nicestlog.cli.Path") as mock_path_class:
-                mock_path = MagicMock()
-                mock_path_class.return_value = mock_path
-                mock_path.exists.return_value = True
-
-                # Mock the file operations
-                with patch("builtins.open", create=True) as mock_open:
-                    mock_file = MagicMock()
-                    mock_open.return_value.__enter__.return_value = mock_file
-
-                    result = self.runner.invoke(app, ["tools", "init-config"])
-
-                    assert result.exit_code == 0
-                    mock_file.write.assert_called_once()
-                    written_content = mock_file.write.call_args[0][0]
-
-                    # Verify the configuration content
-                    assert "[tool.nicestlog]" in written_content
-                    assert "verbose = true" in written_content
-                    assert 'syslog_identifier = "myapp"' in written_content
-                    assert 'log_format = "json"' in written_content
-                    assert "async_logging = true" in written_content
+            # Change to the temp directory to run the command
+            import os
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(self.temp_path)
+                result = self.runner.invoke(app, ["tools", "init-config"])
+                
+                assert result.exit_code == 0
+                
+                # Check that the pyproject.toml was updated
+                updated_content = pyproject_path.read_text()
+                assert "[tool.nicestlog]" in updated_content
+                assert "verbose = true" in updated_content
+                assert 'syslog_identifier = "myapp"' in updated_content
+                assert 'log_format = "json"' in updated_content
+                assert "async_logging = true" in updated_content
+            finally:
+                os.chdir(original_cwd)
 
 
 class TestLintIntegration:
@@ -131,8 +126,8 @@ def main():
         # The linter expects a directory, so let's test with directory path
         result = self.runner.invoke(app, ["lint", str(self.temp_path)])
 
-        # The test file actually has too much logging (35.7% > 15% max),
-        # so it fails with "too much logging" warning
+        # The test file has 14.3% coverage which is within good range (5-15%),
+        # but it has warnings about "possibly too much logging", so it should fail
         assert result.exit_code == 1
         assert (
             "Possibly too much logging" in result.stdout
