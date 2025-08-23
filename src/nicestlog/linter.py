@@ -363,6 +363,7 @@ def lint_directory(
 
     # Collect per-file data first so we can render a clean table
     rows: List[dict] = []
+    all_level_issues = []  # Store all level issues for detailed display
 
     for file_path in python_files:
         # Skip hidden files (dirs already excluded above)
@@ -406,6 +407,10 @@ def lint_directory(
         
         # Add level issues to warning count
         warning_count += len(level_issues)
+        
+        # Store level issues for detailed display
+        for issue in level_issues:
+            all_level_issues.append((file_path.relative_to(directory), issue))
 
         # Add log statement issues
         statement_issues = 0
@@ -607,6 +612,28 @@ def lint_directory(
             + Style.RESET_ALL
             + ": Almost every function logs"
         )
+        print(
+            "    "
+            + Fore.YELLOW
+            + "W3"
+            + Style.RESET_ALL
+            + ": Inappropriate logging levels (library internal operations using INFO)"
+        )
+
+        # Display detailed level issues if any found
+        if all_level_issues:
+            print()
+            level_issues_title = Fore.YELLOW + Style.BRIGHT + "🔧 LOGGING LEVEL ISSUES DETECTED" + Style.RESET_ALL
+            print(level_issues_title)
+            print("The following log.info() calls should be log.debug() for library internal operations:")
+            print()
+            
+            for file_path, issue in all_level_issues:
+                print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
+                print(f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({repr(issue.event_name)}){Style.RESET_ALL}")
+                print(f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({repr(issue.event_name)}){Style.RESET_ALL}")
+                print(f"   Reason: {issue.reason}")
+                print()
 
     if output_format not in {"json", "toml"}:
         print("=" * 60)
