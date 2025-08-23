@@ -350,14 +350,15 @@ def fix(
 def migrate(
     path: Annotated[str, typer.Argument(help="Path to migrate")] = ".",
     from_type: Annotated[str, typer.Option("--from", help="Migration source: print, logging")] = "print",
-    dry_run: Annotated[bool, typer.Option("--dry-run/--apply", help="Preview changes without applying")] = False,
+    no_dry_run: Annotated[bool, typer.Option("--no-dry-run", help="Actually apply changes (default: dry-run preview)")] = False,
     interactive: Annotated[bool, typer.Option("--interactive", help="Interactive migration with guidance")] = False,
 ):
     """🚀 Migrate code to nicestlog (for new nicestlog adopters)."""
+    dry_run = not no_dry_run  # Invert logic: dry-run is now the default
     log.debug("starting-migration", path=path, from_type=from_type, dry_run=dry_run, interactive=interactive)
     
     if dry_run:
-        print("🔍 " + Fore.CYAN + Style.BRIGHT + "MIGRATION PREVIEW" + Style.RESET_ALL)
+        print("🔍 " + Fore.CYAN + Style.BRIGHT + "MIGRATION PREVIEW (DRY-RUN)" + Style.RESET_ALL)
     else:
         print("🚀 " + Fore.CYAN + Style.BRIGHT + f"MIGRATING FROM {from_type.upper()}" + Style.RESET_ALL)
     print()
@@ -549,11 +550,12 @@ def _fix_logging_levels(path: Path, dry_run: bool, interactive: bool) -> int:
 def migrate(
     path: Annotated[str, typer.Argument(help="Path to migrate")] = ".",
     from_source: Annotated[str, typer.Option("--from", help="Migration source: print, logging")] = "print",
-    dry_run: Annotated[bool, typer.Option("--dry-run", help="Preview changes without applying")] = False,
+    no_dry_run: Annotated[bool, typer.Option("--no-dry-run", help="Actually apply changes (default: dry-run preview)")] = False,
     interactive: Annotated[bool, typer.Option("--interactive", help="Step-by-step guidance")] = False,
     setup_config: Annotated[bool, typer.Option("--setup-config/--no-setup-config", help="Setup nicestlog configuration")] = True,
 ):
     """🚀 Migrate to nicestlog from print() or stdlib logging."""
+    dry_run = not no_dry_run  # Invert logic: dry-run is now the default
     log.debug("starting-migrate-command", path=path, from_source=from_source, dry_run=dry_run, interactive=interactive)
     
     print("🚀 " + Fore.CYAN + Style.BRIGHT + "NICESTLOG MIGRATION ASSISTANT" + Style.RESET_ALL)
