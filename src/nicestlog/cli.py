@@ -756,21 +756,65 @@ tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced operation
 app.add_typer(tools_app, name="tools")
 
 
-@tools_app.command("ast")
-def tools_ast():
-    """🔬 Advanced AST operations (analyze, transform, interactive, patterns)."""
-    # Redirect to existing AST functionality
-    from .cli_advanced import app as ast_app
-    # For now, just show help - full integration would require more work
-    print("🔬 " + Fore.CYAN + Style.BRIGHT + "AST OPERATIONS" + Style.RESET_ALL)
-    print()
-    print("Available AST operations:")
-    print("  nicestlog tools ast analyze      - Deep code analysis")
-    print("  nicestlog tools ast transform    - Code transformation")
-    print("  nicestlog tools ast interactive  - Interactive editing")
-    print("  nicestlog tools ast patterns     - Pattern management")
-    print()
-    print("Note: Use 'nicestlog ast' for now (will be moved to tools in next version)")
+# Import AST functionality and add as subcommands
+from .cli_advanced import (
+    analyze_command,
+    transform_command, 
+    interactive_command,
+    patterns_command
+)
+
+# Create AST subcommand group under tools
+ast_app = typer.Typer(help="🔬 Advanced AST operations")
+tools_app.add_typer(ast_app, name="ast")
+
+# Add AST subcommands with correct signatures
+@ast_app.command("analyze")
+def tools_ast_analyze(
+    path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
+    verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
+    json_output: Annotated[bool, typer.Option("--json", help="JSON output")] = False,
+    pattern: Annotated[str, typer.Option("--pattern", help="File pattern")] = "*.py",
+):
+    """🔍 Deep code analysis using AST."""
+    from pathlib import Path
+    analyze_command(Path(path), verbose, json_output, pattern)
+
+
+@ast_app.command("transform") 
+def tools_ast_transform(
+    path: Annotated[str, typer.Argument(help="Path to transform")] = ".",
+    dry_run: Annotated[bool, typer.Option("--dry-run/--apply", help="Preview changes without applying")] = True,
+    interactive: Annotated[bool, typer.Option("--interactive", help="Interactive mode")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
+    pattern: Annotated[str, typer.Option("--pattern", help="File pattern")] = "*.py",
+    enable_patterns: Annotated[str, typer.Option("--enable", help="Enable specific patterns")] = None,
+    disable_patterns: Annotated[str, typer.Option("--disable", help="Disable specific patterns")] = None,
+):
+    """🔄 Transform code using AST patterns."""
+    from pathlib import Path
+    enable_list = [enable_patterns] if enable_patterns else None
+    disable_list = [disable_patterns] if disable_patterns else None
+    transform_command(Path(path), dry_run, interactive, verbose, pattern, enable_list, disable_list)
+
+
+@ast_app.command("interactive")
+def tools_ast_interactive(
+    path: Annotated[str, typer.Argument(help="Path for interactive transformation")] = ".",
+    verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
+):
+    """🎯 Interactive code transformation (Amber-style)."""
+    from pathlib import Path
+    interactive_command(Path(path), verbose)
+
+
+@ast_app.command("patterns")
+def tools_ast_patterns(
+    list_all: Annotated[bool, typer.Option("--list", help="List available patterns")] = False,
+    show_details: Annotated[bool, typer.Option("--details", help="Show detailed information")] = False,
+):
+    """⚙️ Manage transformation patterns."""
+    patterns_command(list_all, show_details)
 
 
 @tools_app.command("init-config")
