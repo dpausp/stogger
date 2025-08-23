@@ -132,13 +132,13 @@ def check_translations(
             return {
                 "error": f"Failed to load translation file: {e}",
                 "translation_file": str(translation_file),
-                "required_keys": sorted(required_keys),
+                "required_keys": sorted(event_keys),
             }
     else:
         return {
             "error": "Translation file not found",
             "translation_file": str(translation_file),
-            "required_keys": sorted(required_keys),
+            "required_keys": sorted(event_keys),
         }
 
     # Collect debug-level events that use _replace_msg.
@@ -195,7 +195,12 @@ def check_translations(
         # default info-ish
         return "INFO"
 
-    missing_by_level: Dict[str, List[str]] = {"INFO": [], "WARNING": [], "ERROR": [], "CRITICAL": []}
+    missing_by_level: Dict[str, List[str]] = {
+        "INFO": [],
+        "WARNING": [],
+        "ERROR": [],
+        "CRITICAL": [],
+    }
     for k in missing:
         missing_by_level[key_level(k)].append(k)
 

@@ -40,7 +40,7 @@ def task_python_syntax():
 def task_typecheck():
     """Run mypy type checker"""
     return uv_actions(
-        "mypy",
+        "mypy src/",
         verbosity=2,
     )
 

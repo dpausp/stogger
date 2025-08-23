@@ -363,15 +363,21 @@ def get_log_stats():
         logs = recent_logs.copy()
 
     total_logs = len(logs)
-    error_count = len([l for l in logs if l["level"] in ["error", "critical"]])
-    warning_count = len([l for l in logs if l["level"] == "warning"])
+    error_count = len(
+        [log_entry for log_entry in logs if log_entry["level"] in ["error", "critical"]]
+    )
+    warning_count = len(
+        [log_entry for log_entry in logs if log_entry["level"] == "warning"]
+    )
 
     # Calculate logs per minute (rough estimate)
     if logs:
         recent_logs_1min = [
-            l
-            for l in logs
-            if (datetime.now() - datetime.fromisoformat(l["timestamp"])).total_seconds()
+            log_entry
+            for log_entry in logs
+            if (
+                datetime.now() - datetime.fromisoformat(log_entry["timestamp"])
+            ).total_seconds()
             < 60
         ]
         logs_per_minute = len(recent_logs_1min)

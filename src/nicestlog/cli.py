@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import sys
 import time
-import os
 from pathlib import Path
 from typing import Annotated, Optional, List
 
@@ -17,7 +16,6 @@ import typer
 import structlog
 import nicestlog
 import importlib.resources as resources
-from colorama import Fore, Style
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -45,11 +43,13 @@ app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
 tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")
 app.add_typer(tools_app, name="tools")
 
+
 # Add init-config command to tools
 @tools_app.command("init-config")
 def tools_init_config():
     """🔧 Initialize nicestlog configuration."""
     init_config()
+
 
 # Add generate-service command to tools
 @tools_app.command("generate-service")
@@ -57,48 +57,65 @@ def tools_generate_service(
     service_name: str = typer.Argument(..., help="Name of the service"),
     exec_command: str = typer.Argument(..., help="Command to execute"),
     user: Optional[str] = typer.Option(None, "--user", help="User to run service as"),
-    working_dir: Optional[str] = typer.Option(None, "--working-dir", help="Working directory"),
+    working_dir: Optional[str] = typer.Option(
+        None, "--working-dir", help="Working directory"
+    ),
     output: Optional[str] = typer.Option(None, "--output", help="Output file path"),
 ):
     """🔧 Generate systemd service file."""
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
+
 # Sub-app for i18n related commands
 i18n_app = typer.Typer(help="Internationalization utilities")
 app.add_typer(i18n_app, name="i18n")
+
 
 # Add i18n check command
 @i18n_app.command("check")
 def i18n_check(
     src_dir: str = typer.Argument(..., help="Source directory to check"),
-    translation_dir: Optional[str] = typer.Option(None, "--translation-dir", help="Translation directory"),
-    language: Annotated[str, typer.Option("-l", "--language", help="Language code")] = "en",
-    list_missing: Annotated[bool, typer.Option("--list-missing", help="List missing translations")] = False,
-    fail_on_extra: Annotated[bool, typer.Option("--fail-on-extra", help="Fail on extra translations")] = False,
-    strict: Annotated[bool, typer.Option("--strict", help="Strict mode - fail on any missing translations")] = False,
+    translation_dir: Optional[str] = typer.Option(
+        None, "--translation-dir", help="Translation directory"
+    ),
+    language: Annotated[
+        str, typer.Option("-l", "--language", help="Language code")
+    ] = "en",
+    list_missing: Annotated[
+        bool, typer.Option("--list-missing", help="List missing translations")
+    ] = False,
+    fail_on_extra: Annotated[
+        bool, typer.Option("--fail-on-extra", help="Fail on extra translations")
+    ] = False,
+    strict: Annotated[
+        bool,
+        typer.Option("--strict", help="Strict mode - fail on any missing translations"),
+    ] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
 ):
     """🌍 Check translation completeness and quality."""
     from .i18n_check import check_translations
-    
+
     try:
         # Convert src_dir to Path and get all Python files
         src_path = Path(src_dir)
         source_paths = list(src_path.glob("**/*.py"))
-        
+
         # Use translation_dir or default
-        trans_dir = Path(translation_dir) if translation_dir else src_path.parent / "translations"
-        
-        result = check_translations(
-            source_paths=source_paths,
-            translation_dir=trans_dir,
-            language=language
+        trans_dir = (
+            Path(translation_dir)
+            if translation_dir
+            else src_path.parent / "translations"
         )
-        
+
+        result = check_translations(
+            source_paths=source_paths, translation_dir=trans_dir, language=language
+        )
+
         # Handle list_missing and fail_on_extra logic
         missing_keys = result.get("missing_keys", [])
         extra_keys = result.get("extra_keys", [])
-        
+
         if list_missing:
             for key in missing_keys:
                 print(key)
@@ -110,13 +127,13 @@ def i18n_check(
                 sys.exit(1)
             # Otherwise, exit successfully even if there are missing keys
             return
-        
+
         # Normal mode: print report if verbose or if there are issues
         if verbose or missing_keys or extra_keys:
             print(f"Translation check for language: {language}")
             print(f"Translation file: {result.get('translation_file', 'N/A')}")
             print(f"Required keys: {len(result.get('required_keys', []))}")
-            
+
             if missing_keys:
                 print(f"Missing keys: {len(missing_keys)}")
                 print("Missing translations:")
@@ -124,7 +141,7 @@ def i18n_check(
                     print(f"  - {key}")
             else:
                 print("No missing keys")
-                    
+
             if extra_keys:
                 print(f"Extra keys: {len(extra_keys)}")
                 print("Extra translations:")
@@ -132,22 +149,23 @@ def i18n_check(
                     print(f"  - {key}")
             elif verbose:
                 print("No extra keys")
-                
+
             # Show debug events if present
-            debug_events = result.get('debug_with_replace_events', [])
+            debug_events = result.get("debug_with_replace_events", [])
             if debug_events and verbose:
                 print("Debug events using _replace_msg (ignored for coverage):")
                 for key in debug_events:
                     print(f"  - {key}")
-        
+
         # Normal mode: fail if there are missing keys or extra keys (when fail_on_extra is set)
         has_errors = bool(missing_keys) or (fail_on_extra and bool(extra_keys))
         if has_errors:
             sys.exit(1)
-            
+
     except Exception as e:
         console.print(f"❌ [red]Error checking translations: {e}[/red]")
         sys.exit(2)
+
 
 # Create AST subcommand group under tools
 ast_app = typer.Typer(help="🔬 Advanced AST analysis and transformation")
@@ -233,7 +251,8 @@ def docs(
         bool, typer.Option("--interactive", "-i", help="Interactive docs browser")
     ] = False,
     feature: Annotated[
-        Optional[str], typer.Option("--feature", "-f", help="Show docs for specific feature")
+        Optional[str],
+        typer.Option("--feature", "-f", help="Show docs for specific feature"),
     ] = None,
 ):
     """📚 Show documentation and examples."""
@@ -242,11 +261,13 @@ def docs(
     elif feature:
         _show_feature_docs(feature)
     else:
-        _show_markdown_files([
-            "README.md",
-            "docs/user_guide/getting_started.md",
-            "docs/user_guide/best_practices.md"
-        ])
+        _show_markdown_files(
+            [
+                "README.md",
+                "docs/user_guide/getting_started.md",
+                "docs/user_guide/best_practices.md",
+            ]
+        )
 
 
 @app.command("init")
@@ -259,17 +280,21 @@ def init_config_cmd():
 def check(
     path: Annotated[str, typer.Argument(help="Path to check")] = ".",
     fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
-    interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive mode")] = False,
-    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be fixed")] = False,
+    interactive: Annotated[
+        bool, typer.Option("--interactive", "-i", help="Interactive mode")
+    ] = False,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Show what would be fixed")
+    ] = False,
 ):
     """🔍 Check code for logging best practices."""
     from .linter import lint_directory
-    
+
     path_obj = Path(path)
     if not path_obj.exists():
         print(f"❌ Path {path} does not exist", file=sys.stderr)
         sys.exit(1)
-    
+
     if fix:
         if interactive:
             print("🔧 Interactive fixing mode")
@@ -277,7 +302,7 @@ def check(
             print("🔍 Dry run mode - showing what would be fixed")
         else:
             print("🔧 Auto-fixing issues")
-    
+
     lint_directory(path_obj, fix=fix, interactive=interactive, dry_run=dry_run)
 
 
@@ -415,9 +440,7 @@ def ast_patterns(
 
 
 # Helper functions for AST operations
-def _analyze_single_file(
-    assistant: AdvancedAssistant, path: Path, json_output: bool
-):
+def _analyze_single_file(assistant: AdvancedAssistant, path: Path, json_output: bool):
     """Analyze a single Python file."""
     with Progress(
         SpinnerColumn(),
@@ -430,6 +453,7 @@ def _analyze_single_file(
 
     if json_output:
         import json
+
         console.print(json.dumps(result.to_dict(), indent=2))
     else:
         _display_analysis_result(result)
@@ -439,8 +463,7 @@ def _analyze_directory(
     assistant: AdvancedAssistant, path: Path, pattern: str, json_output: bool
 ):
     """Analyze all Python files in a directory."""
-    import glob
-    
+
     files = list(path.glob(pattern))
     if not files:
         console.print(f"❌ [red]No files matching pattern '{pattern}' found in {path}")
@@ -461,6 +484,7 @@ def _analyze_directory(
 
     if json_output:
         import json
+
         console.print(json.dumps([r.to_dict() for r in results], indent=2))
     else:
         _display_directory_analysis(results)
@@ -483,11 +507,14 @@ def _transform_single_file(
 
 
 def _transform_directory(
-    assistant: AdvancedAssistant, path: Path, pattern: str, dry_run: bool, interactive: bool
+    assistant: AdvancedAssistant,
+    path: Path,
+    pattern: str,
+    dry_run: bool,
+    interactive: bool,
 ):
     """Transform all Python files in a directory."""
-    import glob
-    
+
     files = list(path.glob(pattern))
     if not files:
         console.print(f"❌ [red]No files matching pattern '{pattern}' found in {path}")
@@ -501,7 +528,9 @@ def _transform_directory(
     ) as progress:
         for file_path in files:
             if file_path.is_file():
-                task = progress.add_task(f"Transforming {file_path.name}...", total=None)
+                task = progress.add_task(
+                    f"Transforming {file_path.name}...", total=None
+                )
                 result = assistant.transform_file(file_path, dry_run=dry_run)
                 results.append(result)
                 progress.remove_task(task)
@@ -540,30 +569,32 @@ def _display_patterns(patterns: List[ASTPattern], show_details: bool):
 
 def _display_analysis_result(result: CodeAnalysisResult):
     """Display analysis results for a single file."""
-    console.print(f"\n📊 [bold blue]Analysis Results for {result.file_path}[/bold blue]")
-    
+    console.print(
+        f"\n📊 [bold blue]Analysis Results for {result.file_path}[/bold blue]"
+    )
+
     # Basic metrics
     metrics_table = Table(title="📈 Code Metrics")
     metrics_table.add_column("Metric", style="cyan")
     metrics_table.add_column("Value", style="green", justify="right")
-    
+
     metrics_table.add_row("Lines of Code", str(result.lines_of_code))
     metrics_table.add_row("Functions", str(result.function_count))
     metrics_table.add_row("Classes", str(result.class_count))
     metrics_table.add_row("Complexity Score", f"{result.complexity_score:.2f}")
-    
+
     console.print(metrics_table)
-    
+
     # Issues found
     if result.issues:
         issues_table = Table(title="⚠️ Issues Found")
         issues_table.add_column("Type", style="red")
         issues_table.add_column("Line", style="yellow", justify="right")
         issues_table.add_column("Description", style="white")
-        
+
         for issue in result.issues:
             issues_table.add_row(issue.type, str(issue.line), issue.description)
-        
+
         console.print(issues_table)
     else:
         console.print("✅ [green]No issues found![/green]")
@@ -572,22 +603,26 @@ def _display_analysis_result(result: CodeAnalysisResult):
 def _display_transformation_result(result: TransformationResult, dry_run: bool):
     """Display transformation results for a single file."""
     mode = "Preview" if dry_run else "Applied"
-    console.print(f"\n🔄 [bold green]Transformation {mode} for {result.file_path}[/bold green]")
-    
+    console.print(
+        f"\n🔄 [bold green]Transformation {mode} for {result.file_path}[/bold green]"
+    )
+
     if result.changes_made:
         changes_table = Table(title=f"📝 Changes {mode}")
         changes_table.add_column("Pattern", style="cyan")
         changes_table.add_column("Line", style="yellow", justify="right")
         changes_table.add_column("Change", style="green")
-        
+
         for change in result.changes:
             changes_table.add_row(change.pattern, str(change.line), change.description)
-        
+
         console.print(changes_table)
-        
+
         if result.transformed_code and dry_run:
             console.print("\n📄 [bold]Transformed Code Preview:[/bold]")
-            syntax = Syntax(result.transformed_code, "python", theme="monokai", line_numbers=True)
+            syntax = Syntax(
+                result.transformed_code, "python", theme="monokai", line_numbers=True
+            )
             console.print(syntax)
     else:
         console.print("ℹ️ [blue]No changes needed[/blue]")
@@ -595,8 +630,8 @@ def _display_transformation_result(result: TransformationResult, dry_run: bool):
 
 def _display_directory_analysis(results: List[CodeAnalysisResult]):
     """Display analysis results for multiple files."""
-    console.print(f"\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
-    
+    console.print("\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
+
     summary_table = Table(title="📈 Summary Statistics")
     summary_table.add_column("File", style="cyan")
     summary_table.add_column("LOC", style="green", justify="right")
@@ -604,27 +639,27 @@ def _display_directory_analysis(results: List[CodeAnalysisResult]):
     summary_table.add_column("Classes", style="magenta", justify="right")
     summary_table.add_column("Complexity", style="red", justify="right")
     summary_table.add_column("Issues", style="yellow", justify="right")
-    
+
     total_loc = 0
     total_functions = 0
     total_classes = 0
     total_issues = 0
-    
+
     for result in results:
         total_loc += result.lines_of_code
         total_functions += result.function_count
         total_classes += result.class_count
         total_issues += len(result.issues)
-        
+
         summary_table.add_row(
             result.file_path.name,
             str(result.lines_of_code),
             str(result.function_count),
             str(result.class_count),
             f"{result.complexity_score:.1f}",
-            str(len(result.issues))
+            str(len(result.issues)),
         )
-    
+
     # Add totals row
     summary_table.add_row(
         "[bold]TOTAL[/bold]",
@@ -632,35 +667,33 @@ def _display_directory_analysis(results: List[CodeAnalysisResult]):
         f"[bold]{total_functions}[/bold]",
         f"[bold]{total_classes}[/bold]",
         "[bold]-[/bold]",
-        f"[bold]{total_issues}[/bold]"
+        f"[bold]{total_issues}[/bold]",
     )
-    
+
     console.print(summary_table)
 
 
-def _display_directory_transformation(results: List[TransformationResult], dry_run: bool):
+def _display_directory_transformation(
+    results: List[TransformationResult], dry_run: bool
+):
     """Display transformation results for multiple files."""
     mode = "Preview" if dry_run else "Applied"
     console.print(f"\n🔄 [bold green]Directory Transformation {mode}[/bold green]")
-    
-    summary_table = Table(title=f"📝 Transformation Summary")
+
+    summary_table = Table(title="📝 Transformation Summary")
     summary_table.add_column("File", style="cyan")
     summary_table.add_column("Changes", style="green", justify="right")
     summary_table.add_column("Status", style="blue")
-    
+
     total_changes = 0
-    
+
     for result in results:
         changes_count = len(result.changes)
         total_changes += changes_count
         status = "✅ Modified" if result.changes_made else "ℹ️ No changes"
-        
-        summary_table.add_row(
-            result.file_path.name,
-            str(changes_count),
-            status
-        )
-    
+
+        summary_table.add_row(result.file_path.name, str(changes_count), status)
+
     console.print(summary_table)
     console.print(f"\n📊 [bold]Total changes {mode.lower()}: {total_changes}[/bold]")
 
@@ -669,9 +702,15 @@ def _display_directory_transformation(results: List[TransformationResult], dry_r
 @app.command()
 def lint(
     path: Annotated[str, typer.Argument(help="Path to lint")] = ".",
-    min_coverage: Annotated[float, typer.Option("--min-coverage", help="Minimum coverage")] = 5.0,
-    max_coverage: Annotated[float, typer.Option("--max-coverage", help="Maximum coverage")] = 15.0,
-    strict: Annotated[bool, typer.Option("--strict", help="Enable strict mode")] = False,
+    min_coverage: Annotated[
+        float, typer.Option("--min-coverage", help="Minimum coverage")
+    ] = 5.0,
+    max_coverage: Annotated[
+        float, typer.Option("--max-coverage", help="Maximum coverage")
+    ] = 15.0,
+    strict: Annotated[
+        bool, typer.Option("--strict", help="Enable strict mode")
+    ] = False,
 ):
     """🔍 Check logging coverage and quality."""
     run_linter(path, min_coverage, max_coverage, strict)
@@ -689,40 +728,64 @@ def dashboard(
 
 @app.command()
 def journal(
-    unit: Annotated[Optional[str], typer.Option("--unit", "-u", help="Systemd unit")] = None,
-    lines: Annotated[int, typer.Option("--lines", "-n", help="Number of lines to show")] = 50,
-    follow: Annotated[bool, typer.Option("--follow", "-f", help="Follow log output")] = False,
-    since: Annotated[Optional[str], typer.Option("--since", help="Show logs since")] = None,
-    level: Annotated[Optional[str], typer.Option("--level", help="Log level filter")] = None,
+    unit: Annotated[
+        Optional[str], typer.Option("--unit", "-u", help="Systemd unit")
+    ] = None,
+    lines: Annotated[
+        int, typer.Option("--lines", "-n", help="Number of lines to show")
+    ] = 50,
+    follow: Annotated[
+        bool, typer.Option("--follow", "-f", help="Follow log output")
+    ] = False,
+    since: Annotated[
+        Optional[str], typer.Option("--since", help="Show logs since")
+    ] = None,
+    level: Annotated[
+        Optional[str], typer.Option("--level", help="Log level filter")
+    ] = None,
 ):
     """📖 Beautiful systemd journal viewer."""
     if level and level not in ["debug", "info", "warning", "error", "critical"]:
-        console.print(f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]")
+        console.print(
+            f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]"
+        )
         raise typer.Exit(1)
-    
+
     run_journal_viewer(unit, lines, follow, since, level)
 
 
 @app.command()
 def review(
     path: Annotated[str, typer.Argument(help="Path to review")],
-    format_type: Annotated[str, typer.Option("--format", help="Output format")] = "text",
-    min_score: Annotated[float, typer.Option("--min-score", help="Minimum score")] = 70.0,
+    format_type: Annotated[
+        str, typer.Option("--format", help="Output format")
+    ] = "text",
+    min_score: Annotated[
+        float, typer.Option("--min-score", help="Minimum score")
+    ] = 70.0,
 ):
     """📝 Review log quality and provide suggestions."""
     valid_formats = ["text", "json", "html"]
     if format_type not in valid_formats:
-        console.print(f"❌ [red]Invalid format '{format_type}'. Valid formats: {', '.join(valid_formats)}[/red]")
+        console.print(
+            f"❌ [red]Invalid format '{format_type}'. Valid formats: {', '.join(valid_formats)}[/red]"
+        )
         raise typer.Exit(1)
-    
+
     run_log_reviewer(path, format_type, min_score)
 
 
 @app.command()
 def demo(
-    feature_arg: Annotated[Optional[str], typer.Argument(help="Demo specific feature")] = None,
-    feature: Annotated[Optional[str], typer.Option("--feature", help="Demo specific feature")] = None,
-    all_features: Annotated[bool, typer.Option("--all", help="Demo all features")] = False,
+    feature_arg: Annotated[
+        Optional[str], typer.Argument(help="Demo specific feature")
+    ] = None,
+    feature: Annotated[
+        Optional[str], typer.Option("--feature", help="Demo specific feature")
+    ] = None,
+    all_features: Annotated[
+        bool, typer.Option("--all", help="Demo all features")
+    ] = False,
 ):
     """🎬 Run interactive demos."""
     # Support both positional argument and --feature option
@@ -745,7 +808,7 @@ def _show_markdown_files(filenames: list[str]):
                 else:
                     console.print(f"❌ [red]File not found: {filename}[/red]")
                     continue
-            
+
             console.print(f"\n📄 [bold blue]{filename}[/bold blue]")
             console.print(content)
         except Exception as e:
@@ -757,18 +820,18 @@ def _show_docs_interactive():
     console.print("🔍 [bold blue]Interactive Documentation Browser[/bold blue]")
     console.print("Available documentation sections:")
     console.print("1. Getting Started")
-    console.print("2. Best Practices") 
+    console.print("2. Best Practices")
     console.print("3. Advanced Features")
     console.print("4. API Reference")
-    
+
     choice = input("\nSelect section (1-4): ")
     docs_map = {
         "1": ["docs/user_guide/getting_started.md"],
         "2": ["docs/user_guide/best_practices.md"],
         "3": ["docs/user_guide/advanced_features.md"],
-        "4": ["docs/development/api_reference.rst"]
+        "4": ["docs/development/api_reference.rst"],
     }
-    
+
     if choice in docs_map:
         _show_markdown_files(docs_map[choice])
     else:
@@ -781,9 +844,9 @@ def _show_feature_docs(feature: str):
         "logging": ["docs/user_guide/getting_started.md"],
         "linting": ["docs/user_guide/best_practices.md"],
         "ast": ["docs/features/advanced_assistant.md"],
-        "dashboard": ["docs/features/integrations.md"]
+        "dashboard": ["docs/features/integrations.md"],
     }
-    
+
     if feature in feature_docs:
         _show_markdown_files(feature_docs[feature])
     else:
@@ -791,16 +854,23 @@ def _show_feature_docs(feature: str):
 
 
 # Implementation stubs for remaining functions
-def run_linter(path: str, min_coverage: float = 70.0, max_coverage: float = 90.0, strict: bool = False):
+def run_linter(
+    path: str,
+    min_coverage: float = 70.0,
+    max_coverage: float = 90.0,
+    strict: bool = False,
+):
     """Run the linter."""
     from .linter import lint_directory
-    
+
     # In strict mode, use stricter coverage requirements
     if strict:
         min_coverage = 3.0
         max_coverage = 10.0
-    
-    success = lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
+
+    success = lint_directory(
+        Path(path), min_coverage=min_coverage, max_coverage=max_coverage
+    )
     if not success:
         raise typer.Exit(1)
 
@@ -808,28 +878,31 @@ def run_linter(path: str, min_coverage: float = 70.0, max_coverage: float = 90.0
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
     from .web_dashboard import run_dashboard
+
     run_dashboard(host=host, port=port, debug=debug)
 
 
-def run_journal_viewer(unit: Optional[str] = None, lines: int = 50, follow: bool = False, since: Optional[str] = None, level: Optional[str] = None):
+def run_journal_viewer(
+    unit: Optional[str] = None,
+    lines: int = 50,
+    follow: bool = False,
+    since: Optional[str] = None,
+    level: Optional[str] = None,
+):
     """Run the journal viewer."""
     from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
-    
+
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
         print("❌ systemd-python not available")
         sys.exit(1)
-    
+
     viewer = JournalViewer()
-    
+
     # Query and display entries
     try:
         for entry in viewer.query_journal(
-            service=unit,
-            since=since,
-            level=level,
-            lines=lines,
-            follow=follow
+            service=unit, since=since, level=level, lines=lines, follow=follow
         ):
             print(viewer.format_entry(entry))
     except KeyboardInterrupt:
@@ -843,60 +916,65 @@ def run_journal_viewer(unit: Optional[str] = None, lines: int = 50, follow: bool
 def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
     """Run the log reviewer."""
     from .log_reviewer import LogQualityReviewer
+
     reviewer = LogQualityReviewer()
-    
+
     path = Path(path_str)
     if path.is_file():
         report = reviewer.analyze_log_file(path)
         if format_type == "json":
             import json
+
             # Convert report to dict if it has to_dict method, otherwise use default serialization
-            if hasattr(report, 'to_dict'):
+            if hasattr(report, "to_dict"):
                 report_dict = report.to_dict()
             else:
                 # Handle MagicMock or other objects that don't have to_dict
                 report_dict = {
-                    'overall_score': getattr(report, 'overall_score', 0.0),
-                    'file_path': str(path),
-                    'analysis': 'Mock analysis'
+                    "overall_score": getattr(report, "overall_score", 0.0),
+                    "file_path": str(path),
+                    "analysis": "Mock analysis",
                 }
             print(json.dumps(report_dict, indent=2))
         else:
             from .log_reviewer import print_report
+
             print_report(report, format_type)
-        
+
         # Check if score is below minimum and exit with error code
-        score = getattr(report, 'overall_score', 100.0)
+        score = getattr(report, "overall_score", 100.0)
         if score < min_score:
             sys.exit(1)
-            
+
     elif path.is_dir():
         # Analyze all log files in directory
         log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
         failed_files = 0
-        
+
         for log_file in log_files:
             report = reviewer.analyze_log_file(log_file)
-            score = getattr(report, 'overall_score', 100.0)
-            
+            score = getattr(report, "overall_score", 100.0)
+
             if score >= min_score:
                 if format_type == "json":
                     import json
-                    if hasattr(report, 'to_dict'):
+
+                    if hasattr(report, "to_dict"):
                         report_dict = report.to_dict()
                     else:
                         report_dict = {
-                            'overall_score': score,
-                            'file_path': str(log_file),
-                            'analysis': 'Mock analysis'
+                            "overall_score": score,
+                            "file_path": str(log_file),
+                            "analysis": "Mock analysis",
                         }
                     print(json.dumps(report_dict, indent=2))
                 else:
                     from .log_reviewer import print_report
+
                     print_report(report, format_type)
             else:
                 failed_files += 1
-                
+
         if failed_files > 0:
             sys.exit(1)
     else:
@@ -913,14 +991,14 @@ def generate_service_cmd(
 ):
     """Generate systemd service file."""
     from .systemd_integration import create_systemd_service_file
-    
+
     service_content = create_systemd_service_file(
         service_name=service_name,
         exec_command=exec_command,
         user=user,
         working_directory=working_directory,
     )
-    
+
     if output_file:
         with open(output_file, "w") as f:
             f.write(service_content)
@@ -1069,6 +1147,7 @@ def run_i18n_demo():
     # Load config to optionally honor translation_dir and language from pyproject.toml
     try:
         from .config import NicestLogConfig
+
         cfg = NicestLogConfig()
     except Exception:
         cfg = None
@@ -1092,12 +1171,14 @@ def run_i18n_demo():
 def run_pii_demo():
     """Demonstrate PII scrubbing features."""
     print_demo_header("PII Scrubbing", "Automatic removal of sensitive data")
-    
+
     nicestlog.init_logging(verbose=True, syslog_identifier="pii-demo")
     log = structlog.get_logger()
-    
+
     print("🔒 Demonstrating PII scrubbing:")
-    log.info("user-data", email="user@example.com", password="secret123", ssn="123-45-6789")
+    log.info(
+        "user-data", email="user@example.com", password="secret123", ssn="123-45-6789"
+    )
     log.debug("api-call", token="Bearer abc123def456", api_key="sk_live_abc123")
 
 
@@ -1117,57 +1198,59 @@ def run_async_demo():
     """Demonstrate async logging."""
     print_demo_header("Async Logging", "Non-blocking high-performance logging")
     print("⚡ Async logging demo - high performance logging")
-    
+
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="async-demo")
     log = structlog.get_logger()
-    
+
     # Simulate sync logging
     start_time = time.time()
     for i in range(100):
         log.info("sync-message", iteration=i)
     sync_duration = time.time() - start_time
-    
-    # Simulate async logging  
+
+    # Simulate async logging
     start_time = time.time()
     for i in range(100):
         log.info("async-message", iteration=i)
     async_duration = time.time() - start_time
-    
+
     # Calculate and display results
     speedup = sync_duration / async_duration if async_duration > 0 else 1.0
-    
+
     print(f"Sync logging: {sync_duration:.3f}s")
-    print(f"Async logging: {async_duration:.3f}s") 
+    print(f"Async logging: {async_duration:.3f}s")
     print(f"Speedup: {speedup:.1f}x")
 
 
 def run_complete_demo():
     """Demonstrate complete application example."""
-    print_demo_header("Complete Application Example", "Real-world application logging patterns")
+    print_demo_header(
+        "Complete Application Example", "Real-world application logging patterns"
+    )
     print("🏗️ Complete application demo - comprehensive logging")
-    
+
     print("\nThis demonstrates:")
     print("• Application startup and shutdown")
     print("• Request processing with context")
     print("• Error handling and recovery")
     print("• Performance monitoring")
     print("• Structured data logging")
-    
+
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="complete-demo")
     log = structlog.get_logger()
-    
+
     # Simulate application lifecycle
     log.info("application-startup", version="1.0.0", environment="production")
     time.sleep(0.1)
-    
+
     log.info("request-received", method="GET", path="/api/users", user_id=123)
     time.sleep(0.1)
-    
+
     log.info("database-query", table="users", duration_ms=45)
     time.sleep(0.1)
-    
+
     log.info("request-completed", status_code=200, response_time_ms=156)
 
 

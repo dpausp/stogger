@@ -7,6 +7,7 @@ This is a minimal, safe transformer that:
 
 It intentionally avoids complex logging-module rewrites for safety.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -22,7 +23,9 @@ import unicodedata
 class MigrationResult:
     files_processed: int = 0
     files_transformed: int = 0
-    diffs: Dict[str, List[str]] = field(default_factory=dict)  # path -> unified diff lines
+    diffs: Dict[str, List[str]] = field(
+        default_factory=dict
+    )  # path -> unified diff lines
 
 
 class PrintToStructlogTransformer(ast.NodeTransformer):
@@ -31,7 +34,11 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
     @staticmethod
     def slugify(text: str) -> str:
         # Normalize unicode, lower-case, keep alnum, convert spaces and punctuation to '-'
-        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+        text = (
+            unicodedata.normalize("NFKD", text)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
         text = text.lower()
         out = []
         prev_sep = False
@@ -108,7 +115,11 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         event_arg: Optional[str] = None
         if node.args:
             event_arg = self.derive_event_from_literal(node.args[0])
-        event = event_arg if (event_arg and self.is_simple_event(event_arg)) else "print-output"
+        event = (
+            event_arg
+            if (event_arg and self.is_simple_event(event_arg))
+            else "print-output"
+        )
 
         keywords: List[ast.keyword] = []
 
@@ -123,13 +134,17 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             remaining_args = node.args[1:]
             placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
             msg = original + ((" " + " ".join(placeholders)) if placeholders else "")
-            keywords.append(ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg)))
+            keywords.append(
+                ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg))
+            )
         else:
             remaining_args = node.args
             if remaining_args:
                 placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
                 msg = " ".join(placeholders)
-                keywords.append(ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg)))
+                keywords.append(
+                    ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg))
+                )
 
         # Map positional args a0, a1, ...
         for idx, a in enumerate(remaining_args):
@@ -161,11 +176,19 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             prelude.append(ast.Import(names=[ast.alias(name="structlog", asname=None)]))
         if not self.logger_assignment_present:
             get_logger_call = ast.Call(
-                func=ast.Attribute(value=ast.Name(id="structlog", ctx=ast.Load()), attr="get_logger", ctx=ast.Load()),
+                func=ast.Attribute(
+                    value=ast.Name(id="structlog", ctx=ast.Load()),
+                    attr="get_logger",
+                    ctx=ast.Load(),
+                ),
                 args=[],
                 keywords=[],
             )
-            prelude.append(ast.Assign(targets=[ast.Name(id="log", ctx=ast.Store())], value=get_logger_call))
+            prelude.append(
+                ast.Assign(
+                    targets=[ast.Name(id="log", ctx=ast.Store())], value=get_logger_call
+                )
+            )
         if prelude:
             tree.body = prelude + tree.body
             self.changed = True
@@ -237,7 +260,9 @@ def migrate_directory(
 
         # Write transformed code only if not dry-run
         if not dry_run:
-            target_path = py if output_dir is None else (output_dir / py.relative_to(input_dir))
+            target_path = (
+                py if output_dir is None else (output_dir / py.relative_to(input_dir))
+            )
             target_path.parent.mkdir(parents=True, exist_ok=True)
             target_path.write_text(new_code, encoding="utf-8")
             result.files_transformed += 1

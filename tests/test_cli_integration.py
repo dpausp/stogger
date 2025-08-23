@@ -65,13 +65,14 @@ class TestInitConfigIntegration:
 
             # Change to the temp directory to run the command
             import os
+
             original_cwd = os.getcwd()
             try:
                 os.chdir(self.temp_path)
                 result = self.runner.invoke(app, ["tools", "init-config"])
-                
+
                 assert result.exit_code == 0
-                
+
                 # Check that the pyproject.toml was updated
                 updated_content = pyproject_path.read_text()
                 assert "[tool.nicestlog]" in updated_content

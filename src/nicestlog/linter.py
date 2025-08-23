@@ -36,6 +36,7 @@ class LoggingStats:
 @dataclass
 class LoggingLevelIssue:
     """Represents a logging level issue."""
+
     line_no: int
     current_level: str
     suggested_level: str
@@ -91,98 +92,119 @@ class LoggingVisitor(ast.NodeVisitor):
             if not self.current_function_has_logs:
                 self.log_statements += 1
             self.current_function_has_logs = True
-            
+
             # Analyze logging level appropriateness
             self._analyze_logging_level(node)
 
         self.generic_visit(node)
-    
+
     def _analyze_logging_level(self, node: ast.Call):
         """Analyze if the logging level is appropriate."""
         # Extract logging level and event name
         level_info = self._extract_logging_info(node)
         if not level_info:
             return
-            
+
         level, event_name = level_info
-        
+
         # Check if this is a library internal operation that should be DEBUG
         if level == "info" and self._is_internal_operation(event_name):
             reason = self._get_level_change_reason(event_name)
             issue = LoggingLevelIssue(
                 line_no=node.lineno,
                 current_level="info",
-                suggested_level="debug", 
+                suggested_level="debug",
                 event_name=event_name,
                 reason=reason,
-                severity="warning"
+                severity="warning",
             )
             self.level_issues.append(issue)
-    
+
     def _extract_logging_info(self, node: ast.Call) -> tuple[str, str] | None:
         """Extract logging level and event name from AST node."""
         try:
             # Check if this is log.LEVEL(event_name, ...)
-            if (isinstance(node.func, ast.Attribute) and 
-                isinstance(node.func.value, ast.Name) and 
-                node.func.value.id == 'log'):
-                
+            if (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "log"
+            ):
                 level = node.func.attr
-                
+
                 # Extract event name (first argument)
                 if node.args and isinstance(node.args[0], ast.Constant):
                     event_name = node.args[0].value
                     return level, event_name
-                    
+
         except Exception:
             pass
         return None
-    
+
     def _is_internal_operation(self, event_name: str) -> bool:
         """Determine if an event represents an internal library operation."""
         if not isinstance(event_name, str):
             return False
-            
+
         # Patterns that indicate internal library operations
         internal_patterns = [
-            "initializing-", "initialization-", "-init",
-            "configuring-", "configured-", "configuration-",
-            "enabling-", "enabled-", "building-", "built-",
-            "creating-", "created-", "starting-", "started-",
-            "loading-", "loaded-", "processing-", "processed-",
-            "-complete", "-finished", "-done", "setup-",
-            "stdlib-logging-", "sync-logging-", "async-logging-",
-            "console-logging-", "file-logging-", "renderer-created",
+            "initializing-",
+            "initialization-",
+            "-init",
+            "configuring-",
+            "configured-",
+            "configuration-",
+            "enabling-",
+            "enabled-",
+            "building-",
+            "built-",
+            "creating-",
+            "created-",
+            "starting-",
+            "started-",
+            "loading-",
+            "loaded-",
+            "processing-",
+            "processed-",
+            "-complete",
+            "-finished",
+            "-done",
+            "setup-",
+            "stdlib-logging-",
+            "sync-logging-",
+            "async-logging-",
+            "console-logging-",
+            "file-logging-",
+            "renderer-created",
         ]
-        
+
         # Specific internal events
         internal_events = {
             "logging-initialization-complete",
-            "stdlib-logging-configuration-complete", 
+            "stdlib-logging-configuration-complete",
             "sync-logging-configured",
             "async-logging-configured",
             "console-logging-enabled",
             "file-logging-enabled",
             "no-pyproject-found",
         }
-        
+
         event_lower = event_name.lower()
-        
+
         # Check patterns
         for pattern in internal_patterns:
             if pattern in event_lower:
                 return True
-                
+
         # Check specific events
         if event_name in internal_events:
             return True
-            
+
         return False
-    
+
     def _get_level_change_reason(self, event_name: str) -> str:
         """Get human-readable reason for level change suggestion."""
         event_lower = event_name.lower()
-        
+
         if "initializ" in event_lower:
             return "Library initialization should be debug level to avoid user spam"
         elif "configur" in event_lower:
@@ -239,7 +261,7 @@ def analyze_file(file_path: Path) -> tuple[LoggingStats, List[LoggingLevelIssue]
             log_coverage_percent=log_coverage,
             function_coverage_percent=func_coverage,
         )
-        
+
         return stats, visitor.level_issues
     except SyntaxError as e:
         print(f"Syntax error in {file_path}: {e}", file=sys.stderr)
@@ -404,10 +426,10 @@ def lint_directory(
         # Count issues
         error_count = sum(1 for issue in issues if "❌" in issue)
         warning_count = sum(1 for issue in issues if "⚠️" in issue)
-        
+
         # Add level issues to warning count
         warning_count += len(level_issues)
-        
+
         # Store level issues for detailed display
         for issue in level_issues:
             all_level_issues.append((file_path.relative_to(directory), issue))
@@ -623,15 +645,26 @@ def lint_directory(
         # Display detailed level issues if any found
         if all_level_issues:
             print()
-            level_issues_title = Fore.YELLOW + Style.BRIGHT + "🔧 LOGGING LEVEL ISSUES DETECTED" + Style.RESET_ALL
+            level_issues_title = (
+                Fore.YELLOW
+                + Style.BRIGHT
+                + "🔧 LOGGING LEVEL ISSUES DETECTED"
+                + Style.RESET_ALL
+            )
             print(level_issues_title)
-            print("The following log.info() calls should be log.debug() for library internal operations:")
+            print(
+                "The following log.info() calls should be log.debug() for library internal operations:"
+            )
             print()
-            
+
             for file_path, issue in all_level_issues:
                 print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
-                print(f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({repr(issue.event_name)}){Style.RESET_ALL}")
-                print(f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({repr(issue.event_name)}){Style.RESET_ALL}")
+                print(
+                    f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({repr(issue.event_name)}){Style.RESET_ALL}"
+                )
+                print(
+                    f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({repr(issue.event_name)}){Style.RESET_ALL}"
+                )
                 print(f"   Reason: {issue.reason}")
                 print()
 

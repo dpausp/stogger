@@ -11,8 +11,6 @@ import toml
 
 from .config import NicestLogConfig
 
-# Get a logger for this module
-log = structlog.get_logger(__name__)
 from .core import (
     add_caller_info,
     add_pid,
@@ -23,6 +21,9 @@ from .core import (
     SimpleConsoleRenderer,
     TranslationProcessor,
 )
+
+# Get a logger for this module
+log = structlog.get_logger(__name__)
 
 
 def build_shared_processors(config: NicestLogConfig) -> List[Any]:
