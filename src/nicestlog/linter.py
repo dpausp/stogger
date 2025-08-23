@@ -33,14 +33,27 @@ class LoggingStats:
     function_coverage_percent: float
 
 
+@dataclass
+class LoggingLevelIssue:
+    """Represents a logging level issue."""
+    line_no: int
+    current_level: str
+    suggested_level: str
+    event_name: str
+    reason: str
+    severity: str = "warning"
+
+
 class LoggingVisitor(ast.NodeVisitor):
     """AST visitor to analyze logging patterns."""
 
-    def __init__(self):
+    def __init__(self, source_lines: List[str] = None):
         self.log_statements = 0
         self.functions = 0
         self.functions_with_logging = 0
         self.current_function_has_logs = False
+        self.source_lines = source_lines or []
+        self.level_issues: List[LoggingLevelIssue] = []
 
         # Detect calls to common logging methods (suffix-based)
         self.log_patterns = {
@@ -78,11 +91,113 @@ class LoggingVisitor(ast.NodeVisitor):
             if not self.current_function_has_logs:
                 self.log_statements += 1
             self.current_function_has_logs = True
+            
+            # Analyze logging level appropriateness
+            self._analyze_logging_level(node)
 
         self.generic_visit(node)
+    
+    def _analyze_logging_level(self, node: ast.Call):
+        """Analyze if the logging level is appropriate."""
+        # Extract logging level and event name
+        level_info = self._extract_logging_info(node)
+        if not level_info:
+            return
+            
+        level, event_name = level_info
+        
+        # Check if this is a library internal operation that should be DEBUG
+        if level == "info" and self._is_internal_operation(event_name):
+            reason = self._get_level_change_reason(event_name)
+            issue = LoggingLevelIssue(
+                line_no=node.lineno,
+                current_level="info",
+                suggested_level="debug", 
+                event_name=event_name,
+                reason=reason,
+                severity="warning"
+            )
+            self.level_issues.append(issue)
+    
+    def _extract_logging_info(self, node: ast.Call) -> tuple[str, str] | None:
+        """Extract logging level and event name from AST node."""
+        try:
+            # Check if this is log.LEVEL(event_name, ...)
+            if (isinstance(node.func, ast.Attribute) and 
+                isinstance(node.func.value, ast.Name) and 
+                node.func.value.id == 'log'):
+                
+                level = node.func.attr
+                
+                # Extract event name (first argument)
+                if node.args and isinstance(node.args[0], ast.Constant):
+                    event_name = node.args[0].value
+                    return level, event_name
+                    
+        except Exception:
+            pass
+        return None
+    
+    def _is_internal_operation(self, event_name: str) -> bool:
+        """Determine if an event represents an internal library operation."""
+        if not isinstance(event_name, str):
+            return False
+            
+        # Patterns that indicate internal library operations
+        internal_patterns = [
+            "initializing-", "initialization-", "-init",
+            "configuring-", "configured-", "configuration-",
+            "enabling-", "enabled-", "building-", "built-",
+            "creating-", "created-", "starting-", "started-",
+            "loading-", "loaded-", "processing-", "processed-",
+            "-complete", "-finished", "-done", "setup-",
+            "stdlib-logging-", "sync-logging-", "async-logging-",
+            "console-logging-", "file-logging-", "renderer-created",
+        ]
+        
+        # Specific internal events
+        internal_events = {
+            "logging-initialization-complete",
+            "stdlib-logging-configuration-complete", 
+            "sync-logging-configured",
+            "async-logging-configured",
+            "console-logging-enabled",
+            "file-logging-enabled",
+            "no-pyproject-found",
+        }
+        
+        event_lower = event_name.lower()
+        
+        # Check patterns
+        for pattern in internal_patterns:
+            if pattern in event_lower:
+                return True
+                
+        # Check specific events
+        if event_name in internal_events:
+            return True
+            
+        return False
+    
+    def _get_level_change_reason(self, event_name: str) -> str:
+        """Get human-readable reason for level change suggestion."""
+        event_lower = event_name.lower()
+        
+        if "initializ" in event_lower:
+            return "Library initialization should be debug level to avoid user spam"
+        elif "configur" in event_lower:
+            return "Internal configuration should be debug level"
+        elif "enabling" in event_lower or "building" in event_lower:
+            return "Internal setup operations should be debug level"
+        elif "complete" in event_lower or "finished" in event_lower:
+            return "Completion messages for internal operations should be debug level"
+        elif "renderer" in event_lower:
+            return "Renderer creation is internal library setup"
+        else:
+            return "Internal library operation should be debug level to avoid spamming users"
 
 
-def analyze_file(file_path: Path) -> LoggingStats:
+def analyze_file(file_path: Path) -> tuple[LoggingStats, List[LoggingLevelIssue]]:
     """Analyze a Python file for logging coverage."""
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -103,7 +218,7 @@ def analyze_file(file_path: Path) -> LoggingStats:
     # Parse AST and analyze
     try:
         tree = ast.parse(content)
-        visitor = LoggingVisitor()
+        visitor = LoggingVisitor(lines)
         visitor.visit(tree)
 
         log_coverage = (
@@ -115,7 +230,7 @@ def analyze_file(file_path: Path) -> LoggingStats:
             else 0
         )
 
-        return LoggingStats(
+        stats = LoggingStats(
             total_lines=total_lines,
             code_lines=code_lines,
             log_statements=visitor.log_statements,
@@ -124,9 +239,11 @@ def analyze_file(file_path: Path) -> LoggingStats:
             log_coverage_percent=log_coverage,
             function_coverage_percent=func_coverage,
         )
+        
+        return stats, visitor.level_issues
     except SyntaxError as e:
         print(f"Syntax error in {file_path}: {e}", file=sys.stderr)
-        return LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0)
+        return LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0), []
 
 
 def check_logging_quality(
@@ -252,7 +369,7 @@ def lint_directory(
         if file_path.name.startswith("."):
             continue
 
-        stats = analyze_file(file_path)
+        stats, level_issues = analyze_file(file_path)
         issues = check_logging_quality(stats, min_coverage, max_coverage)
 
         # Accumulate totals
@@ -286,6 +403,9 @@ def lint_directory(
         # Count issues
         error_count = sum(1 for issue in issues if "❌" in issue)
         warning_count = sum(1 for issue in issues if "⚠️" in issue)
+        
+        # Add level issues to warning count
+        warning_count += len(level_issues)
 
         # Add log statement issues
         statement_issues = 0
