@@ -712,8 +712,8 @@ def run_linter(path: str, min_coverage: float = 70.0, max_coverage: float = 90.0
     
     # In strict mode, use stricter coverage requirements
     if strict:
-        min_coverage = 5.0
-        max_coverage = 15.0
+        min_coverage = 3.0
+        max_coverage = 10.0
     
     lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
 
@@ -727,6 +727,16 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = F
 def run_journal_viewer(unit: Optional[str] = None, lines: int = 50, follow: bool = False, since: Optional[str] = None, level: Optional[str] = None):
     """Run the journal viewer."""
     from .journal_viewer import JournalViewer
+    
+    # Check if systemd is available
+    try:
+        from .journal_viewer import SYSTEMD_AVAILABLE
+        if not SYSTEMD_AVAILABLE:
+            console.print("❌ [red]Systemd is not available on this system[/red]")
+            sys.exit(1)
+    except ImportError:
+        pass
+    
     viewer = JournalViewer()
     # Check if the viewer has a run method, otherwise use view method
     if hasattr(viewer, 'run'):
@@ -735,6 +745,7 @@ def run_journal_viewer(unit: Optional[str] = None, lines: int = 50, follow: bool
         viewer.view(unit=unit, lines=lines, follow=follow, since=since, level=level)
     else:
         console.print("❌ [red]Journal viewer not properly configured[/red]")
+        raise typer.Exit(1)
 
 
 def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
