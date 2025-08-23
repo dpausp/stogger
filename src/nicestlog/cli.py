@@ -192,9 +192,40 @@ def check(
         print()
         try:
             from .i18n_check import check_translations
-            result = check_translations(Path(path))
-            if not result:
-                issues_found = True
+            
+            # Find source files to check
+            source_path = Path(path)
+            if source_path.is_file():
+                source_files = [source_path]
+            else:
+                source_files = list(source_path.rglob("*.py"))
+            
+            # Find translation directory (look for translations/ in project root)
+            translation_dir = Path("translations")
+            if not translation_dir.exists():
+                # Try to find it relative to the source path
+                current = source_path if source_path.is_dir() else source_path.parent
+                while current != current.parent:
+                    potential_trans_dir = current / "translations"
+                    if potential_trans_dir.exists():
+                        translation_dir = potential_trans_dir
+                        break
+                    current = current.parent
+            
+            if not translation_dir.exists():
+                print(f"⚠️  No translations directory found, skipping i18n check")
+            else:
+                result = check_translations(source_files, translation_dir)
+                missing_keys = result.get("missing_keys", [])
+                if missing_keys:
+                    print(f"❌ Found {len(missing_keys)} missing translation keys:")
+                    for key in missing_keys[:5]:  # Show first 5
+                        print(f"   - {key}")
+                    if len(missing_keys) > 5:
+                        print(f"   ... and {len(missing_keys) - 5} more")
+                    issues_found = True
+                else:
+                    print("✅ All required translation keys found")
             print()
         except Exception as e:
             print(f"❌ i18n check failed: {e}")
