@@ -12,6 +12,7 @@ import typer
 import structlog
 import nicestlog
 import importlib.resources as resources
+from colorama import Fore, Style
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -152,6 +153,60 @@ def docs(
 def init_config_cmd():
     """Create a default configuration in pyproject.toml."""
     init_config()
+
+
+@app.command()
+def check(
+    path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
+    lint: Annotated[bool, typer.Option("--lint/--no-lint", help="Check logging coverage")] = True,
+    i18n: Annotated[bool, typer.Option("--i18n/--no-i18n", help="Check translations")] = True,
+    levels: Annotated[bool, typer.Option("--levels/--no-levels", help="Check logging levels")] = True,
+    all_checks: Annotated[bool, typer.Option("--all", help="Run all available checks")] = False,
+    output_format: Annotated[str, typer.Option("--format", help="Output format")] = "text",
+    min_coverage: Annotated[float, typer.Option(help="Minimum logging coverage")] = 10.0,
+    max_coverage: Annotated[float, typer.Option(help="Maximum logging coverage")] = 90.0,
+):
+    """🔍 Unified code quality checking (lint + i18n + logging levels)."""
+    log.debug("starting-unified-check", path=path, lint=lint, i18n=i18n, levels=levels, all_checks=all_checks)
+    
+    if all_checks:
+        lint = i18n = levels = True
+    
+    issues_found = False
+    
+    # Run linting check (includes logging level analysis)
+    if lint:
+        print("🔍 " + Fore.CYAN + Style.BRIGHT + "CHECKING LOGGING COVERAGE & LEVELS" + Style.RESET_ALL)
+        print()
+        try:
+            from .linter import lint_directory
+            lint_directory(Path(path), min_coverage, max_coverage, output_format)
+            print()
+        except Exception as e:
+            print(f"❌ Linting failed: {e}")
+            issues_found = True
+    
+    # Run i18n check
+    if i18n:
+        print("🌍 " + Fore.CYAN + Style.BRIGHT + "CHECKING TRANSLATIONS" + Style.RESET_ALL)
+        print()
+        try:
+            from .i18n_check import check_translations
+            result = check_translations(Path(path))
+            if not result:
+                issues_found = True
+            print()
+        except Exception as e:
+            print(f"❌ i18n check failed: {e}")
+            issues_found = True
+    
+    # Summary
+    if issues_found:
+        print("❌ " + Fore.RED + Style.BRIGHT + "ISSUES FOUND" + Style.RESET_ALL)
+        print("Run 'nicestlog fix' to automatically fix some issues.")
+        raise typer.Exit(1)
+    else:
+        print("✅ " + Fore.GREEN + Style.BRIGHT + "ALL CHECKS PASSED" + Style.RESET_ALL)
 
 
 @app.command()
