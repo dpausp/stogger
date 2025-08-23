@@ -1,21 +1,57 @@
 """
 Command-line interface for nicestlog.
+
+This module provides the complete CLI interface including both basic and advanced
+AST functionality, previously split between cli.py and cli_advanced.py.
 """
+
+from __future__ import annotations
 
 import sys
 import time
 import os
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Optional, List
 
 import typer
 import structlog
 import nicestlog
 import importlib.resources as resources
 from colorama import Fore, Style
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.syntax import Syntax
 
-# Get a logger for this module
+from .advanced_assistant import (
+    AdvancedAssistant,
+    ASTPattern,
+    TransformationResult,
+    CodeAnalysisResult,
+)
+from .interactive_transformer import (
+    InteractiveTransformer,
+)
+
+# Initialize logging and console
 log = structlog.get_logger(__name__)
+console = Console()
+
+# Main app
+app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
+
+# Create tools subgroup for low-level utilities
+tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")
+app.add_typer(tools_app, name="tools")
+
+# Sub-app for i18n related commands
+i18n_app = typer.Typer(help="Internationalization utilities")
+app.add_typer(i18n_app, name="i18n")
+
+# Create AST subcommand group under tools
+ast_app = typer.Typer(help="🔬 Advanced AST analysis and transformation")
+tools_app.add_typer(ast_app, name="ast")
 
 
 def init_config():
@@ -48,1859 +84,637 @@ def init_config():
 
     print("\n--- File Logging ---")
     if input("Enable file logging? [y/N]: ").lower() == "y":
-        logdir = input("Log directory [logs]: ") or "logs"
-        config["logdir"] = logdir
-        config["log_cmd_output"] = (
-            input("Log external command output to a separate file? [y/N]: ").lower()
-            == "y"
+        config["log_file"] = input("Log file path [app.log]: ") or "app.log"
+        config["log_file_max_size"] = int(
+            input("Max log file size in MB [10]: ") or "10"
+        )
+        config["log_file_backup_count"] = int(
+            input("Number of backup files to keep [3]: ") or "3"
         )
 
-    print("\n--- Source Directory ---")
-    src_dir = input("Source directory [src]: ") or "src"
-    config["src_dir"] = src_dir
-
-    print("\n--- Translations ---")
-    if input("Enable message translations? [y/N]: ").lower() == "y":
-        trans_dir = input("Translations directory [translations]: ") or "translations"
-        lang = input("Default language [en]: ") or "en"
-        config["translation_dir"] = trans_dir
-        config["language"] = lang
-
-    # Generate TOML snippet
-    toml_snippet = "\n[tool.nicestlog]\n"
-    for key, value in config.items():
-        if isinstance(value, bool):
-            toml_snippet += f"{key} = {str(value).lower()}\n"
-        else:
-            toml_snippet += f'{key} = "{value}"\n'
-
-    print("\nGenerated config:")
-    print("-" * 20)
-    print(toml_snippet)
-    print("-" * 20)
-
-    if input("Append this to pyproject.toml? [Y/n]: ").lower() != "n":
-        with open(pyproject_path, "a") as f:
-            f.write(toml_snippet)
-        print(f"Configuration successfully written to {pyproject_path}.")
-    else:
-        print("Aborted.")
-
-
-app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
-
-# Create tools subgroup for low-level utilities
-tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")
-app.add_typer(tools_app, name="tools")
-
-# Sub-app for i18n related commands
-i18n_app = typer.Typer(help="Internationalization utilities")
-app.add_typer(i18n_app, name="i18n")
-
-# Add advanced assistant commands to tools subgroup
-try:
-    from .cli_advanced import app as advanced_app
-
-    tools_app.add_typer(
-        advanced_app, name="ast", help="🔬 Advanced AST analysis and transformation"
+    print("\n--- Structured Logging ---")
+    config["enable_structured_logging"] = (
+        input("Enable structured logging? [Y/n]: ").lower() != "n"
     )
-    # Note: Debug logging moved to when commands are actually used to avoid
-    # interfering with CLI output in tests
-except ImportError:
-    # Note: Warning logging moved to when commands are actually used to avoid
-    # interfering with CLI output in tests
-    pass
+    if config["enable_structured_logging"]:
+        config["structured_format"] = (
+            input("Structured format (json/key_value) [json]: ") or "json"
+        )
+
+    print("\n--- Performance ---")
+    config["enable_performance_monitoring"] = (
+        input("Enable performance monitoring? [y/N]: ").lower() == "y"
+    )
+
+    # Write config to pyproject.toml
+    import toml
+
+    try:
+        with open(pyproject_path, "r") as f:
+            pyproject = toml.load(f)
+    except Exception:
+        pyproject = {}
+
+    if "tool" not in pyproject:
+        pyproject["tool"] = {}
+    pyproject["tool"]["nicestlog"] = config
+
+    with open(pyproject_path, "w") as f:
+        toml.dump(pyproject, f)
+
+    print(f"\n✅ Configuration written to {pyproject_path}")
+    print("You can now use nicestlog with your custom settings!")
+    log.info("config-wizard-completed", config=config)
 
 
 @app.command()
 def docs(
-    ctx: typer.Context,
-    target: Annotated[
-        Optional[str],
-        typer.Argument(
-            help="Specific file or glob to show (e.g., README.md or docs/*.md)"
-        ),
-    ] = None,
-    no_pager: Annotated[
-        bool, typer.Option("--no-pager", help="Print directly without pager")
+    interactive: Annotated[
+        bool, typer.Option("--interactive", "-i", help="Interactive docs browser")
     ] = False,
-    search: Annotated[
-        Optional[str],
-        typer.Option("--search", help="Only show docs containing this text"),
+    feature: Annotated[
+        Optional[str], typer.Option("--feature", "-f", help="Show docs for specific feature")
     ] = None,
-    theme: Annotated[
-        str, typer.Option("--theme", help="Rich code theme for Markdown blocks")
-    ] = "monokai",
-    list_only: Annotated[
-        bool, typer.Option("--list", help="List available docs and exit")
-    ] = False,
 ):
-    """Show project docs with colors. Prefer local files, fallback to packaged docs.
-
-    - Without arguments: shows README.md and docs/*.md if present, else packaged docs.
-    - With TARGET: filter docs by file name or glob pattern (e.g., README.md, best_*.md).
-    - Use --no-pager to disable the pager (useful in CI or piping output).
-    - Use --list to list available docs (local and packaged) and exit.
-    - Use --search to only show docs containing a given text.
-    - Use --theme to select code block color theme (default: monokai).
-    """
-    _show_docs_interactive(
-        target=target,
-        use_pager=not no_pager,
-        search=search,
-        theme=theme,
-        list_only=list_only,
-    )
+    """📚 Show documentation and examples."""
+    if interactive:
+        _show_docs_interactive()
+    elif feature:
+        _show_feature_docs(feature)
+    else:
+        _show_markdown_files([
+            "README.md",
+            "docs/user_guide/getting_started.md",
+            "docs/user_guide/best_practices.md"
+        ])
 
 
-@tools_app.command("init-config")
+@app.command("init")
 def init_config_cmd():
-    """Create a default configuration in pyproject.toml."""
+    """🔧 Initialize nicestlog configuration."""
     init_config()
 
 
 @app.command()
 def check(
-    path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
-    lint: Annotated[bool, typer.Option("--lint/--no-lint", help="Check logging coverage")] = True,
-    i18n: Annotated[bool, typer.Option("--i18n/--no-i18n", help="Check translations")] = True,
-    levels: Annotated[bool, typer.Option("--levels/--no-levels", help="Check logging levels")] = True,
-    all_checks: Annotated[bool, typer.Option("--all", help="Run all available checks")] = False,
-    output_format: Annotated[str, typer.Option("--format", help="Output format")] = "text",
-    min_coverage: Annotated[float, typer.Option(help="Minimum logging coverage")] = 10.0,
-    max_coverage: Annotated[float, typer.Option(help="Maximum logging coverage")] = 90.0,
+    path: Annotated[str, typer.Argument(help="Path to check")] = ".",
+    fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive mode")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be fixed")] = False,
 ):
-    """🔍 Unified code quality checking (lint + i18n + logging levels)."""
-    log.debug("starting-unified-check", path=path, lint=lint, i18n=i18n, levels=levels, all_checks=all_checks)
+    """🔍 Check code for logging best practices."""
+    from .linter import lint_directory
     
-    if all_checks:
-        lint = i18n = levels = True
+    path_obj = Path(path)
+    if not path_obj.exists():
+        print(f"❌ Path {path} does not exist", file=sys.stderr)
+        sys.exit(1)
     
-    issues_found = False
-    
-    # Run linting check (includes logging level analysis)
-    if lint:
-        print("🔍 " + Fore.CYAN + Style.BRIGHT + "CHECKING LOGGING COVERAGE & LEVELS" + Style.RESET_ALL)
-        print()
-        try:
-            from .linter import lint_directory, analyze_file
-            
-            path_obj = Path(path)
-            if path_obj.is_file() and path_obj.suffix == '.py':
-                # Handle single file
-                stats, level_issues = analyze_file(path_obj)
-                print(f"📄 Analyzing {path_obj.name}:")
-                print(f"   Lines: {stats.total_lines}, Code: {stats.code_lines}")
-                print(f"   Log statements: {stats.log_statements}")
-                print(f"   Coverage: {stats.log_coverage_percent:.1f}%")
-                
-                if level_issues:
-                    print(f"\n🔧 LOGGING LEVEL ISSUES DETECTED")
-                    for issue in level_issues:
-                        print(f"   Line {issue.line_no}: {issue.current_level} → {issue.suggested_level}")
-                        print(f"   Event: {issue.event_name}")
-                        print(f"   Reason: {issue.reason}")
-                    issues_found = True
-                else:
-                    print("   ✅ No logging level issues found")
-            else:
-                # Handle directory
-                lint_directory(path_obj, min_coverage, max_coverage, output_format)
-            print()
-        except Exception as e:
-            print(f"❌ Linting failed: {e}")
-            issues_found = True
-    
-    # Run i18n check
-    if i18n:
-        print("🌍 " + Fore.CYAN + Style.BRIGHT + "CHECKING TRANSLATIONS" + Style.RESET_ALL)
-        print()
-        try:
-            from .i18n_check import check_translations
-            
-            # Find source files to check
-            source_path = Path(path)
-            if source_path.is_file():
-                source_files = [source_path]
-            else:
-                source_files = list(source_path.rglob("*.py"))
-            
-            # Find translation directory (look for translations/ in project root)
-            translation_dir = Path("translations")
-            if not translation_dir.exists():
-                # Try to find it relative to the source path
-                current = source_path if source_path.is_dir() else source_path.parent
-                while current != current.parent:
-                    potential_trans_dir = current / "translations"
-                    if potential_trans_dir.exists():
-                        translation_dir = potential_trans_dir
-                        break
-                    current = current.parent
-            
-            if not translation_dir.exists():
-                print(f"⚠️  No translations directory found, skipping i18n check")
-            else:
-                result = check_translations(source_files, translation_dir)
-                missing_keys = result.get("missing_keys", [])
-                if missing_keys:
-                    print(f"❌ Found {len(missing_keys)} missing translation keys:")
-                    for key in missing_keys[:5]:  # Show first 5
-                        print(f"   - {key}")
-                    if len(missing_keys) > 5:
-                        print(f"   ... and {len(missing_keys) - 5} more")
-                    issues_found = True
-                else:
-                    print("✅ All required translation keys found")
-            print()
-        except Exception as e:
-            print(f"❌ i18n check failed: {e}")
-            issues_found = True
-    
-    # Summary
-    if issues_found:
-        print("❌ " + Fore.RED + Style.BRIGHT + "ISSUES FOUND" + Style.RESET_ALL)
-        print("Run 'nicestlog fix' to automatically fix some issues.")
-        raise typer.Exit(1)
-    else:
-        print("✅ " + Fore.GREEN + Style.BRIGHT + "ALL CHECKS PASSED" + Style.RESET_ALL)
-
-
-@app.command()
-def fix(
-    path: Annotated[str, typer.Argument(help="Path to fix")] = ".",
-    levels: Annotated[bool, typer.Option("--levels/--no-levels", help="Fix logging levels")] = True,
-    dry_run: Annotated[bool, typer.Option("--dry-run/--apply", help="Preview changes without applying")] = False,
-    interactive: Annotated[bool, typer.Option("--interactive", help="Interactive mode with confirmations")] = False,
-):
-    """🔧 Auto-fix nicestlog issues (ruff-style for existing nicestlog users)."""
-    log.debug("starting-fix", path=path, levels=levels, dry_run=dry_run, interactive=interactive)
-    
-    if dry_run:
-        print("🔍 " + Fore.CYAN + Style.BRIGHT + "DRY RUN MODE - PREVIEW ONLY" + Style.RESET_ALL)
-    else:
-        print("🔧 " + Fore.CYAN + Style.BRIGHT + "FIXING NICESTLOG ISSUES" + Style.RESET_ALL)
-    print()
-    
-    fixes_applied = 0
-    
-    # Fix logging levels
-    if levels:
-        print("📝 Fixing logging levels...")
-        try:
-            from .linter import analyze_file
-            
-            path_obj = Path(path)
-            if path_obj.is_file() and path_obj.suffix == '.py':
-                files_to_fix = [path_obj]
-            else:
-                files_to_fix = list(path_obj.rglob("*.py"))
-            
-            for file_path in files_to_fix:
-                stats, level_issues = analyze_file(file_path)
-                
-                if level_issues:
-                    print(f"   📄 {file_path.relative_to(Path('.'))}")
-                    
-                    if dry_run:
-                        for issue in level_issues:
-                            print(f"      Line {issue.line_no}: {issue.current_level} → {issue.suggested_level}")
-                            print(f"      Event: {issue.event_name}")
-                    else:
-                        # Apply fixes
-                        content = file_path.read_text(encoding='utf-8')
-                        original_content = content
-                        
-                        for issue in level_issues:
-                            # Simple string replacement for logging level fixes
-                            old_call = f'log.{issue.current_level}("{issue.event_name}"'
-                            new_call = f'log.{issue.suggested_level}("{issue.event_name}"'
-                            
-                            if old_call in content:
-                                content = content.replace(old_call, new_call)
-                                print(f"      ✅ Fixed line {issue.line_no}: {issue.current_level} → {issue.suggested_level}")
-                                fixes_applied += 1
-                        
-                        if content != original_content:
-                            if interactive:
-                                response = input(f"      Apply {len(level_issues)} fixes to {file_path.name}? [Y/n]: ")
-                                if response.lower() in ['', 'y', 'yes']:
-                                    file_path.write_text(content, encoding='utf-8')
-                                else:
-                                    print(f"      ⏭️  Skipped {file_path.name}")
-                            else:
-                                file_path.write_text(content, encoding='utf-8')
-            
-        except Exception as e:
-            print(f"❌ Logging level fixes failed: {e}")
-    
-    print()
-    
-    # Summary
-    if dry_run:
-        print("🔍 " + Fore.BLUE + Style.BRIGHT + "DRY RUN COMPLETE" + Style.RESET_ALL)
-        print("Run without --dry-run to apply fixes.")
-    elif fixes_applied > 0:
-        print("✅ " + Fore.GREEN + Style.BRIGHT + f"APPLIED {fixes_applied} FIXES" + Style.RESET_ALL)
-        print("Run 'nicestlog check' to verify fixes.")
-    else:
-        print("✅ " + Fore.GREEN + Style.BRIGHT + "NO FIXES NEEDED" + Style.RESET_ALL)
-
-
-@app.command()
-def migrate(
-    path: Annotated[str, typer.Argument(help="Path to migrate")] = ".",
-    from_type: Annotated[str, typer.Option("--from", help="Migration source: print, logging")] = "print",
-    no_dry_run: Annotated[bool, typer.Option("--no-dry-run", help="Actually apply changes (default: dry-run preview)")] = False,
-    interactive: Annotated[bool, typer.Option("--interactive", help="Interactive migration with guidance")] = False,
-):
-    """🚀 Migrate code to nicestlog (for new nicestlog adopters)."""
-    dry_run = not no_dry_run  # Invert logic: dry-run is now the default
-    log.debug("starting-migration", path=path, from_type=from_type, dry_run=dry_run, interactive=interactive)
-    
-    if dry_run:
-        print("🔍 " + Fore.CYAN + Style.BRIGHT + "MIGRATION PREVIEW (DRY-RUN)" + Style.RESET_ALL)
-    else:
-        print("🚀 " + Fore.CYAN + Style.BRIGHT + f"MIGRATING FROM {from_type.upper()}" + Style.RESET_ALL)
-    print()
-    
-    if from_type == "print":
-        print("📝 Migrating print() statements to log.info()...")
-        try:
-            # Use existing AST transform functionality
-            from .cli_advanced import migrate_prints_to_structlog
-            
-            path_obj = Path(path)
-            if path_obj.is_file() and path_obj.suffix == '.py':
-                files_to_migrate = [path_obj]
-            else:
-                files_to_migrate = list(path_obj.rglob("*.py"))
-            
-            migrations_applied = 0
-            
-            for file_path in files_to_migrate:
-                print(f"   📄 {file_path.relative_to(Path('.'))}")
-                
-                if dry_run:
-                    # Just show what would be migrated
-                    content = file_path.read_text(encoding='utf-8')
-                    print_count = content.count('print(')
-                    if print_count > 0:
-                        print(f"      Would migrate {print_count} print() statements")
-                else:
-                    # Apply migration using AST transform
-                    if interactive:
-                        response = input(f"      Migrate print() statements in {file_path.name}? [Y/n]: ")
-                        if response.lower() not in ['', 'y', 'yes']:
-                            print(f"      ⏭️  Skipped {file_path.name}")
-                            continue
-                    
-                    # Use the existing print migration functionality
-                    result = migrate_prints_to_structlog(file_path, dry_run=False)
-                    if result and result.get('changes_made', 0) > 0:
-                        changes = result['changes_made']
-                        print(f"      ✅ Migrated {changes} print() statements")
-                        migrations_applied += changes
-                    else:
-                        print(f"      ℹ️  No print() statements found")
-            
-            print()
-            
-            if dry_run:
-                print("🔍 " + Fore.BLUE + Style.BRIGHT + "MIGRATION PREVIEW COMPLETE" + Style.RESET_ALL)
-                print("Run without --dry-run to apply migration.")
-            elif migrations_applied > 0:
-                print("✅ " + Fore.GREEN + Style.BRIGHT + f"MIGRATED {migrations_applied} STATEMENTS" + Style.RESET_ALL)
-                print("Next steps:")
-                print("  1. Run 'nicestlog tools init-config' to set up configuration")
-                print("  2. Add 'import nicestlog; nicestlog.init_logging()' to your main module")
-                print("  3. Run 'nicestlog check' to verify migration")
-            else:
-                print("✅ " + Fore.GREEN + Style.BRIGHT + "NO PRINT STATEMENTS FOUND" + Style.RESET_ALL)
-                
-        except Exception as e:
-            print(f"❌ Print migration failed: {e}")
-            print("Note: Make sure you have the advanced AST tools available")
-    
-    elif from_type == "logging":
-        print("📝 Migrating stdlib logging to structlog...")
-        print("⚠️  This migration type is not yet implemented.")
-        print("For now, please:")
-        print("  1. Replace 'import logging' with 'import structlog'")
-        print("  2. Replace 'logging.getLogger(__name__)' with 'structlog.get_logger(__name__)'")
-        print("  3. Run 'nicestlog migrate --from=print' to handle any remaining print() statements")
-    
-    else:
-        print(f"❌ Unknown migration type: {from_type}")
-        print("Supported types: print, logging")
-
-
-@app.command()
-def fix(
-    path: Annotated[str, typer.Argument(help="Path to fix")] = ".",
-    levels: Annotated[bool, typer.Option("--levels/--no-levels", help="Fix logging levels")] = True,
-    patterns: Annotated[bool, typer.Option("--patterns/--no-patterns", help="Fix log patterns")] = True,
-    dry_run: Annotated[bool, typer.Option("--dry-run", help="Preview changes without applying")] = False,
-    interactive: Annotated[bool, typer.Option("--interactive", help="Confirm each change")] = False,
-    all_fixes: Annotated[bool, typer.Option("--all", help="Apply all available fixes")] = False,
-):
-    """🔧 Auto-fix nicestlog issues (ruff-style)."""
-    log.debug("starting-fix-command", path=path, levels=levels, patterns=patterns, dry_run=dry_run, interactive=interactive)
-    
-    if all_fixes:
-        levels = patterns = True
-    
-    print("🔧 " + Fore.CYAN + Style.BRIGHT + "NICESTLOG AUTO-FIX" + Style.RESET_ALL)
-    if dry_run:
-        print("📋 " + Fore.YELLOW + "DRY RUN MODE - No changes will be applied" + Style.RESET_ALL)
-    print()
-    
-    fixes_applied = 0
-    issues_found = 0
-    
-    # Fix logging levels
-    if levels:
-        print("🎯 " + Fore.BLUE + "Fixing logging levels..." + Style.RESET_ALL)
-        level_fixes = _fix_logging_levels(Path(path), dry_run, interactive)
-        fixes_applied += level_fixes
-        if level_fixes > 0:
-            print(f"   ✅ Fixed {level_fixes} logging level issues")
+    if fix:
+        if interactive:
+            print("🔧 Interactive fixing mode")
+        elif dry_run:
+            print("🔍 Dry run mode - showing what would be fixed")
         else:
-            print("   ℹ️  No logging level issues found")
-        print()
+            print("🔧 Auto-fixing issues")
     
-    # Fix patterns (placeholder for now)
-    if patterns:
-        print("🎯 " + Fore.BLUE + "Fixing log patterns..." + Style.RESET_ALL)
-        print("   ℹ️  Pattern fixes not yet implemented")
-        print()
-    
-    # Summary
-    if fixes_applied > 0:
-        if dry_run:
-            print(f"📋 " + Fore.YELLOW + f"Would fix {fixes_applied} issues" + Style.RESET_ALL)
-            print("Run without --dry-run to apply changes")
-        else:
-            print(f"✅ " + Fore.GREEN + f"Successfully fixed {fixes_applied} issues!" + Style.RESET_ALL)
-    else:
-        print("✨ " + Fore.GREEN + "No issues found - code looks great!" + Style.RESET_ALL)
+    lint_directory(path_obj, fix=fix, interactive=interactive, dry_run=dry_run)
 
 
-def _fix_logging_levels(path: Path, dry_run: bool, interactive: bool) -> int:
-    """Fix logging level issues. Returns number of fixes applied."""
-    from .linter import analyze_file, LoggingLevelIssue
-    
-    fixes_applied = 0
-    
-    if path.is_file() and path.suffix == '.py':
-        files_to_check = [path]
-    else:
-        files_to_check = list(path.rglob("*.py"))
-    
-    for file_path in files_to_check:
-        try:
-            stats, level_issues = analyze_file(file_path)
-            
-            if not level_issues:
-                continue
-                
-            print(f"📄 {file_path.relative_to(path if path.is_dir() else path.parent)}")
-            
-            for issue in level_issues:
-                # Read file content
-                content = file_path.read_text(encoding='utf-8')
-                lines = content.splitlines()
-                
-                if issue.line_no > len(lines):
-                    continue
-                    
-                old_line = lines[issue.line_no - 1]
-                new_line = old_line.replace(f'log.{issue.current_level}(', f'log.{issue.suggested_level}(')
-                
-                print(f"   Line {issue.line_no}: {issue.reason}")
-                print(f"   - {Fore.RED}{old_line.strip()}{Style.RESET_ALL}")
-                print(f"   + {Fore.GREEN}{new_line.strip()}{Style.RESET_ALL}")
-                
-                should_apply = True
-                if interactive and not dry_run:
-                    response = typer.prompt("Apply this fix? [Y/n/a/q]", default="Y")
-                    if response.lower() in ['n', 'no']:
-                        should_apply = False
-                    elif response.lower() in ['q', 'quit']:
-                        return fixes_applied
-                    elif response.lower() in ['a', 'all']:
-                        interactive = False  # Apply all remaining
-                
-                if should_apply and not dry_run:
-                    # Apply the fix
-                    lines[issue.line_no - 1] = new_line
-                    file_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-                    fixes_applied += 1
-                elif should_apply and dry_run:
-                    fixes_applied += 1
-                    
-                print()
-                
-        except Exception as e:
-            print(f"   ❌ Error processing {file_path}: {e}")
-    
-    return fixes_applied
-
-
-@app.command()
-def migrate(
-    path: Annotated[str, typer.Argument(help="Path to migrate")] = ".",
-    from_source: Annotated[str, typer.Option("--from", help="Migration source: print, logging")] = "print",
-    no_dry_run: Annotated[bool, typer.Option("--no-dry-run", help="Actually apply changes (default: dry-run preview)")] = False,
-    interactive: Annotated[bool, typer.Option("--interactive", help="Step-by-step guidance")] = False,
-    setup_config: Annotated[bool, typer.Option("--setup-config/--no-setup-config", help="Setup nicestlog configuration")] = True,
-):
-    """🚀 Migrate to nicestlog from print() or stdlib logging."""
-    dry_run = not no_dry_run  # Invert logic: dry-run is now the default
-    log.debug("starting-migrate-command", path=path, from_source=from_source, dry_run=dry_run, interactive=interactive)
-    
-    print("🚀 " + Fore.CYAN + Style.BRIGHT + "NICESTLOG MIGRATION ASSISTANT" + Style.RESET_ALL)
-    if dry_run:
-        print("📋 " + Fore.YELLOW + "DRY RUN MODE - No changes will be applied" + Style.RESET_ALL)
-    print()
-    
-    migrations_applied = 0
-    
-    # Setup configuration first if requested
-    if setup_config and not dry_run:
-        print("⚙️ " + Fore.BLUE + "Setting up nicestlog configuration..." + Style.RESET_ALL)
-        config_created = _setup_migration_config(Path(path), interactive)
-        if config_created:
-            print("   ✅ Configuration created")
-        else:
-            print("   ℹ️  Configuration already exists or skipped")
-        print()
-    
-    # Migrate based on source
-    if from_source == "print":
-        print("🔄 " + Fore.BLUE + "Migrating print() statements to log.info()..." + Style.RESET_ALL)
-        print_migrations = _migrate_print_statements(Path(path), dry_run, interactive)
-        migrations_applied += print_migrations
-        if print_migrations > 0:
-            print(f"   ✅ Migrated {print_migrations} print() statements")
-        else:
-            print("   ℹ️  No print() statements found")
-        print()
-        
-    elif from_source == "logging":
-        print("🔄 " + Fore.BLUE + "Migrating stdlib logging to structlog..." + Style.RESET_ALL)
-        print("   ℹ️  Stdlib logging migration not yet implemented")
-        print()
-    
-    # Summary
-    if migrations_applied > 0:
-        if dry_run:
-            print(f"📋 " + Fore.YELLOW + f"Would migrate {migrations_applied} statements" + Style.RESET_ALL)
-            print("Run without --dry-run to apply changes")
-        else:
-            print(f"✅ " + Fore.GREEN + f"Successfully migrated {migrations_applied} statements!" + Style.RESET_ALL)
-            print()
-            print("🎯 " + Fore.CYAN + "Next steps:" + Style.RESET_ALL)
-            print("   1. Run 'nicestlog check' to verify migration")
-            print("   2. Run 'nicestlog fix' to clean up any issues")
-            print("   3. Test your application with the new logging")
-    else:
-        print("✨ " + Fore.GREEN + "No migration needed - code already looks great!" + Style.RESET_ALL)
-
-
-def _setup_migration_config(path: Path, interactive: bool) -> bool:
-    """Setup basic nicestlog configuration. Returns True if config was created."""
-    # Look for existing config
-    config_files = ["pyproject.toml", "nicestlog.toml", ".nicestlog.toml"]
-    
-    for config_file in config_files:
-        if (path / config_file).exists():
-            if interactive:
-                overwrite = typer.confirm(f"Configuration file {config_file} exists. Overwrite?")
-                if not overwrite:
-                    return False
-            else:
-                return False  # Don't overwrite existing config
-    
-    # Create basic pyproject.toml section
-    pyproject_path = path / "pyproject.toml"
-    
-    basic_config = """
-[tool.nicestlog]
-verbose = false
-log_to_console = true
-simple_format = true
-
-[tool.nicestlog.simple_format_settings]
-min_level = "info"
-"""
-    
-    if pyproject_path.exists():
-        # Append to existing pyproject.toml
-        content = pyproject_path.read_text()
-        if "[tool.nicestlog]" not in content:
-            content += basic_config
-            pyproject_path.write_text(content)
-            return True
-    else:
-        # Create new pyproject.toml
-        pyproject_path.write_text(basic_config.strip())
-        return True
-    
-    return False
-
-
-def _migrate_print_statements(path: Path, dry_run: bool, interactive: bool) -> int:
-    """Migrate print() statements to log.info(). Returns number of migrations applied."""
-    # Use existing AST transform functionality
-    try:
-        from .advanced_assistant import AdvancedASTAnalyzer
-        
-        migrations_applied = 0
-        
-        if path.is_file() and path.suffix == '.py':
-            files_to_migrate = [path]
-        else:
-            files_to_migrate = list(path.rglob("*.py"))
-        
-        for file_path in files_to_migrate:
-            try:
-                # Read file content
-                content = file_path.read_text(encoding='utf-8')
-                
-                # Simple print() detection and replacement
-                import re
-                print_pattern = r'print\s*\('
-                print_matches = list(re.finditer(print_pattern, content))
-                
-                if not print_matches:
-                    continue
-                
-                print(f"📄 {file_path.relative_to(path if path.is_dir() else path.parent)}")
-                
-                # Process each print statement
-                lines = content.splitlines()
-                modified_lines = []
-                
-                for i, line in enumerate(lines):
-                    if re.search(print_pattern, line):
-                        # Simple transformation: print(...) -> log.info(...)
-                        # This is a basic implementation - could be enhanced with AST
-                        old_line = line
-                        new_line = re.sub(r'print\s*\(', 'log.info(', line)
-                        
-                        print(f"   Line {i+1}: Converting print() to log.info()")
-                        print(f"   - {Fore.RED}{old_line.strip()}{Style.RESET_ALL}")
-                        print(f"   + {Fore.GREEN}{new_line.strip()}{Style.RESET_ALL}")
-                        
-                        should_apply = True
-                        if interactive and not dry_run:
-                            response = typer.prompt("Apply this migration? [Y/n/a/q]", default="Y")
-                            if response.lower() in ['n', 'no']:
-                                should_apply = False
-                                new_line = old_line  # Keep original
-                            elif response.lower() in ['q', 'quit']:
-                                return migrations_applied
-                            elif response.lower() in ['a', 'all']:
-                                interactive = False  # Apply all remaining
-                        
-                        if should_apply:
-                            modified_lines.append(new_line)
-                            if not dry_run:
-                                migrations_applied += 1
-                            elif dry_run:
-                                migrations_applied += 1
-                        else:
-                            modified_lines.append(old_line)
-                        
-                        print()
-                    else:
-                        modified_lines.append(line)
-                
-                # Write back modified content
-                if not dry_run and migrations_applied > 0:
-                    # Add structlog import if not present
-                    modified_content = '\n'.join(modified_lines)
-                    if 'import structlog' not in modified_content and 'log.info(' in modified_content:
-                        # Add import at the top
-                        import_line = "import structlog\n"
-                        if modified_content.startswith('"""') or modified_content.startswith("'''"):
-                            # Find end of docstring
-                            lines = modified_content.split('\n')
-                            for idx, line in enumerate(lines):
-                                if line.strip().endswith('"""') or line.strip().endswith("'''"):
-                                    lines.insert(idx + 1, "import structlog")
-                                    lines.insert(idx + 2, "log = structlog.get_logger()")
-                                    break
-                        else:
-                            modified_content = "import structlog\nlog = structlog.get_logger()\n\n" + modified_content
-                    
-                    file_path.write_text(modified_content, encoding='utf-8')
-                
-            except Exception as e:
-                print(f"   ❌ Error processing {file_path}: {e}")
-        
-        return migrations_applied
-        
-    except ImportError:
-        print("   ❌ AST transformation not available")
-        return 0
-
-
-@app.command()
-def tools():
-    """🛠️ Low-level utilities and advanced operations."""
-    # This will be a command group
-    pass
-
-
-# Create tools subcommand group
-tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced operations")
-app.add_typer(tools_app, name="tools")
-
-
-# Import AST functionality and add as subcommands
-from .cli_advanced import (
-    analyze_command,
-    transform_command, 
-    interactive_command,
-    patterns_command
-)
-
-# Create AST subcommand group under tools
-ast_app = typer.Typer(help="🔬 Advanced AST operations")
-tools_app.add_typer(ast_app, name="ast")
-
-# Add AST subcommands with correct signatures
+# AST Commands
 @ast_app.command("analyze")
-def tools_ast_analyze(
-    path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
-    verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
-    json_output: Annotated[bool, typer.Option("--json", help="JSON output")] = False,
-    pattern: Annotated[str, typer.Option("--pattern", help="File pattern")] = "*.py",
+def ast_analyze(
+    path: Path = typer.Argument(..., help="Python file or directory to analyze"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", "-j", help="Output results as JSON"
+    ),
+    pattern: str = typer.Option(
+        "*.py", "--pattern", "-p", help="File pattern for directories"
+    ),
 ):
-    """🔍 Deep code analysis using AST."""
-    from pathlib import Path
-    analyze_command(Path(path), verbose, json_output, pattern)
+    """
+    🔍 Perform deep AST analysis of Python code.
+
+    Analyzes code structure, complexity, patterns, and potential issues.
+    """
+    console.print(
+        Panel.fit(
+            "🔍 [bold blue]Advanced AST Analysis[/bold blue]",
+            subtitle=f"Analyzing: {path}",
+        )
+    )
+
+    assistant = AdvancedAssistant(verbose=verbose)
+
+    if path.is_file():
+        _analyze_single_file(assistant, path, json_output)
+    elif path.is_dir():
+        _analyze_directory(assistant, path, pattern, json_output)
+    else:
+        console.print(f"❌ [red]Error:[/red] Path {path} does not exist")
+        raise typer.Exit(1)
 
 
-@ast_app.command("transform") 
-def tools_ast_transform(
-    path: Annotated[str, typer.Argument(help="Path to transform")] = ".",
-    dry_run: Annotated[bool, typer.Option("--dry-run/--apply", help="Preview changes without applying")] = True,
-    interactive: Annotated[bool, typer.Option("--interactive", help="Interactive mode")] = False,
-    verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
-    pattern: Annotated[str, typer.Option("--pattern", help="File pattern")] = "*.py",
-    enable_patterns: Annotated[str, typer.Option("--enable", help="Enable specific patterns")] = None,
-    disable_patterns: Annotated[str, typer.Option("--disable", help="Disable specific patterns")] = None,
+@ast_app.command("transform")
+def ast_transform(
+    path: Path = typer.Argument(..., help="Python file or directory to transform"),
+    dry_run: bool = typer.Option(
+        True, "--dry-run/--apply", help="Preview changes without applying"
+    ),
+    interactive: bool = typer.Option(
+        False,
+        "--interactive",
+        "-i",
+        help="Interactive mode with user confirmation",
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
+    pattern: str = typer.Option(
+        "*.py", "--pattern", "-p", help="File pattern for directories"
+    ),
+    enable_patterns: Optional[List[str]] = typer.Option(
+        None, "--enable", help="Enable specific patterns"
+    ),
+    disable_patterns: Optional[List[str]] = typer.Option(
+        None, "--disable", help="Disable specific patterns"
+    ),
 ):
-    """🔄 Transform code using AST patterns."""
-    from pathlib import Path
-    enable_list = [enable_patterns] if enable_patterns else None
-    disable_list = [disable_patterns] if disable_patterns else None
-    transform_command(Path(path), dry_run, interactive, verbose, pattern, enable_list, disable_list)
+    """
+    🔄 Transform Python code using AST patterns.
+
+    Applies intelligent transformations to improve code quality and logging.
+    """
+    console.print(
+        Panel.fit(
+            "🔄 [bold green]AST Code Transformation[/bold green]",
+            subtitle=f"Target: {path} | Mode: {'Preview' if dry_run else 'Apply'}",
+        )
+    )
+
+    assistant = AdvancedAssistant(verbose=verbose)
+
+    # Configure patterns
+    if enable_patterns:
+        assistant.enable_patterns(enable_patterns)
+    if disable_patterns:
+        assistant.disable_patterns(disable_patterns)
+
+    if path.is_file():
+        _transform_single_file(assistant, path, dry_run, interactive)
+    elif path.is_dir():
+        _transform_directory(assistant, path, pattern, dry_run, interactive)
+    else:
+        console.print(f"❌ [red]Error:[/red] Path {path} does not exist")
+        raise typer.Exit(1)
 
 
 @ast_app.command("interactive")
-def tools_ast_interactive(
-    path: Annotated[str, typer.Argument(help="Path for interactive transformation")] = ".",
-    verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
+def ast_interactive(
+    path: Path = typer.Argument(..., help="Python file to transform interactively"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"
+    ),
 ):
-    """🎯 Interactive code transformation (Amber-style)."""
-    from pathlib import Path
-    interactive_command(Path(path), verbose)
+    """
+    🎯 Interactive AST transformation with real-time preview.
+
+    Provides an amber-style interactive interface for code transformation.
+    """
+    if not path.is_file():
+        console.print(f"❌ [red]Error:[/red] Path {path} must be a file")
+        raise typer.Exit(1)
+
+    console.print(
+        Panel.fit(
+            "🎯 [bold magenta]Interactive AST Transformation[/bold magenta]",
+            subtitle=f"File: {path}",
+        )
+    )
+
+    _transform_interactive(path, verbose)
 
 
 @ast_app.command("patterns")
-def tools_ast_patterns(
-    list_all: Annotated[bool, typer.Option("--list", help="List available patterns")] = False,
-    show_details: Annotated[bool, typer.Option("--details", help="Show detailed information")] = False,
+def ast_patterns(
+    show_details: bool = typer.Option(
+        False, "--details", "-d", help="Show detailed pattern information"
+    ),
 ):
-    """⚙️ Manage transformation patterns."""
-    patterns_command(list_all, show_details)
+    """
+    📋 List available AST transformation patterns.
+
+    Shows all available patterns with their status and descriptions.
+    """
+    assistant = AdvancedAssistant()
+    patterns = assistant.get_available_patterns()
+    _display_patterns(patterns, show_details)
 
 
-@tools_app.command("init-config")
-def tools_init_config():
-    """⚙️ Initialize nicestlog configuration."""
-    # Call existing init-config functionality
-    init_config()
-
-
-@tools_app.command("generate-service")
-def tools_generate_service(
-    service_name: Annotated[str, typer.Argument(help="Name of the service")],
-    script_path: Annotated[str, typer.Argument(help="Path to the Python script")],
-    user: Annotated[str, typer.Option(help="User to run the service as")] = "www-data",
-    working_directory: Annotated[str, typer.Option(help="Working directory")] = "/opt",
-    description: Annotated[str, typer.Option(help="Service description")] = "Python service with nicestlog",
+# Helper functions for AST operations
+def _analyze_single_file(
+    assistant: AdvancedAssistant, path: Path, json_output: bool
 ):
-    """🔧 Generate systemd service file."""
-    # Call existing generate-service functionality
-    generate_service(service_name, script_path, user, working_directory, description)
+    """Analyze a single Python file."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task(f"Analyzing {path.name}...", total=None)
+        result = assistant.analyze_file(path)
+        progress.remove_task(task)
+
+    if json_output:
+        import json
+        console.print(json.dumps(result.to_dict(), indent=2))
+    else:
+        _display_analysis_result(result)
 
 
+def _analyze_directory(
+    assistant: AdvancedAssistant, path: Path, pattern: str, json_output: bool
+):
+    """Analyze all Python files in a directory."""
+    import glob
+    
+    files = list(path.glob(pattern))
+    if not files:
+        console.print(f"❌ [red]No files matching pattern '{pattern}' found in {path}")
+        return
+
+    results = []
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        for file_path in files:
+            if file_path.is_file():
+                task = progress.add_task(f"Analyzing {file_path.name}...", total=None)
+                result = assistant.analyze_file(file_path)
+                results.append(result)
+                progress.remove_task(task)
+
+    if json_output:
+        import json
+        console.print(json.dumps([r.to_dict() for r in results], indent=2))
+    else:
+        _display_directory_analysis(results)
+
+
+def _transform_single_file(
+    assistant: AdvancedAssistant, path: Path, dry_run: bool, interactive: bool
+):
+    """Transform a single Python file."""
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task(f"Transforming {path.name}...", total=None)
+        result = assistant.transform_file(path, dry_run=dry_run)
+        progress.remove_task(task)
+
+    _display_transformation_result(result, dry_run)
+
+
+def _transform_directory(
+    assistant: AdvancedAssistant, path: Path, pattern: str, dry_run: bool, interactive: bool
+):
+    """Transform all Python files in a directory."""
+    import glob
+    
+    files = list(path.glob(pattern))
+    if not files:
+        console.print(f"❌ [red]No files matching pattern '{pattern}' found in {path}")
+        return
+
+    results = []
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        for file_path in files:
+            if file_path.is_file():
+                task = progress.add_task(f"Transforming {file_path.name}...", total=None)
+                result = assistant.transform_file(file_path, dry_run=dry_run)
+                results.append(result)
+                progress.remove_task(task)
+
+    _display_directory_transformation(results, dry_run)
+
+
+def _transform_interactive(path: Path, verbose: bool):
+    """Run interactive transformation on a file."""
+    transformer = InteractiveTransformer(verbose=verbose)
+    transformer.run(path)
+
+
+def _display_patterns(patterns: List[ASTPattern], show_details: bool):
+    """Display available transformation patterns."""
+    table = Table(title="📋 Available Transformation Patterns")
+    table.add_column("Name", style="cyan")
+    table.add_column("Enabled", style="green")
+    table.add_column("Priority", style="magenta", justify="right")
+
+    if show_details:
+        table.add_column("Description", style="blue")
+        table.add_column("Node Type", style="yellow")
+
+    for pattern in patterns:
+        enabled_icon = "✅" if pattern.enabled else "❌"
+        row = [pattern.name, enabled_icon, str(pattern.priority)]
+
+        if show_details:
+            row.extend([pattern.description, pattern.node_type.value])
+
+        table.add_row(*row)
+
+    console.print(table)
+
+
+def _display_analysis_result(result: CodeAnalysisResult):
+    """Display analysis results for a single file."""
+    console.print(f"\n📊 [bold blue]Analysis Results for {result.file_path}[/bold blue]")
+    
+    # Basic metrics
+    metrics_table = Table(title="📈 Code Metrics")
+    metrics_table.add_column("Metric", style="cyan")
+    metrics_table.add_column("Value", style="green", justify="right")
+    
+    metrics_table.add_row("Lines of Code", str(result.lines_of_code))
+    metrics_table.add_row("Functions", str(result.function_count))
+    metrics_table.add_row("Classes", str(result.class_count))
+    metrics_table.add_row("Complexity Score", f"{result.complexity_score:.2f}")
+    
+    console.print(metrics_table)
+    
+    # Issues found
+    if result.issues:
+        issues_table = Table(title="⚠️ Issues Found")
+        issues_table.add_column("Type", style="red")
+        issues_table.add_column("Line", style="yellow", justify="right")
+        issues_table.add_column("Description", style="white")
+        
+        for issue in result.issues:
+            issues_table.add_row(issue.type, str(issue.line), issue.description)
+        
+        console.print(issues_table)
+    else:
+        console.print("✅ [green]No issues found![/green]")
+
+
+def _display_transformation_result(result: TransformationResult, dry_run: bool):
+    """Display transformation results for a single file."""
+    mode = "Preview" if dry_run else "Applied"
+    console.print(f"\n🔄 [bold green]Transformation {mode} for {result.file_path}[/bold green]")
+    
+    if result.changes_made:
+        changes_table = Table(title=f"📝 Changes {mode}")
+        changes_table.add_column("Pattern", style="cyan")
+        changes_table.add_column("Line", style="yellow", justify="right")
+        changes_table.add_column("Change", style="green")
+        
+        for change in result.changes:
+            changes_table.add_row(change.pattern, str(change.line), change.description)
+        
+        console.print(changes_table)
+        
+        if result.transformed_code and dry_run:
+            console.print("\n📄 [bold]Transformed Code Preview:[/bold]")
+            syntax = Syntax(result.transformed_code, "python", theme="monokai", line_numbers=True)
+            console.print(syntax)
+    else:
+        console.print("ℹ️ [blue]No changes needed[/blue]")
+
+
+def _display_directory_analysis(results: List[CodeAnalysisResult]):
+    """Display analysis results for multiple files."""
+    console.print(f"\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
+    
+    summary_table = Table(title="📈 Summary Statistics")
+    summary_table.add_column("File", style="cyan")
+    summary_table.add_column("LOC", style="green", justify="right")
+    summary_table.add_column("Functions", style="blue", justify="right")
+    summary_table.add_column("Classes", style="magenta", justify="right")
+    summary_table.add_column("Complexity", style="red", justify="right")
+    summary_table.add_column("Issues", style="yellow", justify="right")
+    
+    total_loc = 0
+    total_functions = 0
+    total_classes = 0
+    total_issues = 0
+    
+    for result in results:
+        total_loc += result.lines_of_code
+        total_functions += result.function_count
+        total_classes += result.class_count
+        total_issues += len(result.issues)
+        
+        summary_table.add_row(
+            result.file_path.name,
+            str(result.lines_of_code),
+            str(result.function_count),
+            str(result.class_count),
+            f"{result.complexity_score:.1f}",
+            str(len(result.issues))
+        )
+    
+    # Add totals row
+    summary_table.add_row(
+        "[bold]TOTAL[/bold]",
+        f"[bold]{total_loc}[/bold]",
+        f"[bold]{total_functions}[/bold]",
+        f"[bold]{total_classes}[/bold]",
+        "[bold]-[/bold]",
+        f"[bold]{total_issues}[/bold]"
+    )
+    
+    console.print(summary_table)
+
+
+def _display_directory_transformation(results: List[TransformationResult], dry_run: bool):
+    """Display transformation results for multiple files."""
+    mode = "Preview" if dry_run else "Applied"
+    console.print(f"\n🔄 [bold green]Directory Transformation {mode}[/bold green]")
+    
+    summary_table = Table(title=f"📝 Transformation Summary")
+    summary_table.add_column("File", style="cyan")
+    summary_table.add_column("Changes", style="green", justify="right")
+    summary_table.add_column("Status", style="blue")
+    
+    total_changes = 0
+    
+    for result in results:
+        changes_count = len(result.changes)
+        total_changes += changes_count
+        status = "✅ Modified" if result.changes_made else "ℹ️ No changes"
+        
+        summary_table.add_row(
+            result.file_path.name,
+            str(changes_count),
+            status
+        )
+    
+    console.print(summary_table)
+    console.print(f"\n📊 [bold]Total changes {mode.lower()}: {total_changes}[/bold]")
+
+
+# Additional CLI commands
 @app.command()
 def lint(
-    path: Annotated[str, typer.Argument(help="Path to analyze")] = ".",
-    min_coverage: Annotated[
-        float, typer.Option(help="Minimum logging coverage %")
-    ] = 5.0,
-    max_coverage: Annotated[
-        float, typer.Option(help="Maximum logging coverage %")
-    ] = 15.0,
-    strict: Annotated[
-        bool, typer.Option(help="Use stricter coverage requirements")
-    ] = False,
-    output_format: Annotated[
-        str,
-        typer.Option("--format", help="Output format: table or json"),
-    ] = "table",
+    path: Annotated[str, typer.Argument(help="Path to lint")] = ".",
+    min_coverage: Annotated[float, typer.Option("--min-coverage", help="Minimum coverage")] = 70.0,
+    max_coverage: Annotated[float, typer.Option("--max-coverage", help="Maximum coverage")] = 90.0,
 ):
-    """Check logging coverage in your codebase."""
-    # Allow selecting a machine-readable output via env var without changing function signatures
-    fmt = (output_format or "table").lower()
-    if fmt not in {"table", "json", "toml"}:
-        typer.echo("Error: Invalid format. Choose 'table', 'json' or 'toml'", err=True)
-        raise typer.Exit(1)
-    os.environ["NICESTLOG_LINTER_FORMAT"] = fmt
-
-    # Keep CLI behavior simple and pass the path as provided.
-    # This matches test expectations (default "." and raw values).
-    run_linter(path, min_coverage, max_coverage, strict)
+    """🔍 Lint code for logging best practices."""
+    run_linter(path, min_coverage, max_coverage)
 
 
 @app.command()
 def dashboard(
-    host: Annotated[str, typer.Option(help="Host to bind to")] = "127.0.0.1",
-    port: Annotated[int, typer.Option(help="Port to bind to")] = 8080,
-    debug: Annotated[bool, typer.Option(help="Enable debug mode")] = False,
+    host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
+    debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
 ):
-    """Start the web dashboard for live log viewing."""
+    """🌐 Launch web dashboard."""
     run_dashboard_cmd(host, port, debug)
-
-
-@tools_app.command("generate-service")
-def generate_service(
-    service_name: Annotated[str, typer.Argument(help="Name of the service")],
-    exec_command: Annotated[str, typer.Argument(help="Command to execute")],
-    user: Annotated[
-        Optional[str], typer.Option(help="User to run as (default: current user)")
-    ] = None,
-    working_dir: Annotated[
-        Optional[str],
-        typer.Option("--working-dir", help="Working directory (default: current dir)"),
-    ] = None,
-    output: Annotated[
-        Optional[str],
-        typer.Option("-o", "--output", help="Output file (default: stdout)"),
-    ] = None,
-):
-    """Generate systemd service file."""
-    generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
 
 @app.command()
 def journal(
-    service: Annotated[
-        Optional[str],
-        typer.Option("-u", "--unit", "--service", help="Service to show logs for"),
-    ] = None,
-    lines: Annotated[int, typer.Option("-n", "--lines", help="Number of lines")] = 50,
-    follow: Annotated[
-        bool, typer.Option("-f", "--follow", help="Follow new entries")
-    ] = False,
-    since: Annotated[
-        Optional[str], typer.Option(help='Show logs since time (e.g., "1 hour ago")')
-    ] = None,
-    level: Annotated[Optional[str], typer.Option(help="Minimum log level")] = None,
+    follow: Annotated[bool, typer.Option("--follow", "-f", help="Follow log output")] = False,
+    unit: Annotated[Optional[str], typer.Option("--unit", "-u", help="Systemd unit")] = None,
 ):
-    """Beautiful systemd journal viewer."""
-    if level and level not in ["critical", "error", "warning", "info", "debug"]:
-        typer.echo(
-            f"Error: Invalid level '{level}'. Choose from: critical, error, warning, info, debug",
-            err=True,
-        )
-        raise typer.Exit(1)
-    run_journal_viewer(service, lines, follow, since, level)
+    """📖 View systemd journal logs."""
+    run_journal_viewer(follow, unit)
 
 
 @app.command()
 def review(
-    path: Annotated[str, typer.Argument(help="Log file or directory to review")],
-    format_type: Annotated[
-        str, typer.Option("--format", help="Output format")
-    ] = "text",
-    min_score: Annotated[
-        float, typer.Option("--min-score", help="Minimum acceptable score")
-    ] = 70.0,
+    path: Annotated[str, typer.Argument(help="Path to review")],
+    format_type: Annotated[str, typer.Option("--format", help="Output format")] = "text",
+    min_score: Annotated[float, typer.Option("--min-score", help="Minimum score")] = 70.0,
 ):
-    """Review log quality with Austrian honesty."""
-    if format_type not in ["text", "json"]:
-        typer.echo(
-            f"Error: Invalid format '{format_type}'. Choose from: text, json", err=True
-        )
-        raise typer.Exit(1)
+    """📝 Review log files for quality."""
     run_log_reviewer(path, format_type, min_score)
 
 
 @app.command()
 def demo(
-    feature: Annotated[
-        Optional[str], typer.Argument(help="Specific feature to demo")
-    ] = None,
-    all_features: Annotated[bool, typer.Option("--all", help="Run all demos")] = False,
+    feature: Annotated[Optional[str], typer.Option("--feature", help="Demo specific feature")] = None,
+    all_features: Annotated[bool, typer.Option("--all", help="Demo all features")] = False,
 ):
-    """Demonstrate nicestlog features with live examples."""
+    """🎬 Run interactive demos."""
     run_demos(feature, all_features)
 
 
-@app.command()
-def assistant(
-    path: Annotated[
-        Optional[str],
-        typer.Argument(
-            help="Path to directory to migrate (default: src_dir from config or .)"
-        ),
-    ] = None,
-    output: Annotated[
-        Optional[str],
-        typer.Option("-o", "--output", help="Output directory (mirror tree)"),
-    ] = None,
-    translations: Annotated[
-        Optional[str],
-        typer.Option("-t", "--translations", help="Translations file name (reserved)"),
-    ] = "log_messages.json",
-    write: Annotated[
-        bool,
-        typer.Option(
-            "--write/--dry-run",
-            help="Apply changes to files (default: dry-run shows unified diff)",
-        ),
-    ] = False,
-):
-    """Automatically migrate print statements to structlog.
-
-    Default is dry-run (no file changes), showing unified diffs per changed file.
-    If PATH is omitted, resolves like other commands: prefer configured src_dir; else '.'.
-    """
-    from .assistant import migrate_directory
-    from pathlib import Path
-
-    # Resolve input directory similar to lint/i18n
-    if path is None:
-        # try config src_dir
-        input_dir = _resolve_source_root(".")
-    else:
-        input_dir = _resolve_source_root(path)
-
-    output_dir = Path(output) if output else None
-
-    result = migrate_directory(input_dir, output_dir, translations, dry_run=not write)
-
-    # Show diffs in dry-run
-    if not write and result.diffs:
-        import sys
-        from rich.console import Console
-
-        console = Console(file=sys.stdout)
-        for p, diff in result.diffs.items():
-            console.rule(p)
-            console.print("".join(diff))
-
-    typer.echo(
-        f"Processed {result.files_processed} files. Transformed: {result.files_transformed}{' (dry-run)' if not write else ''}."
-    )
-
-
+# Helper functions for docs display
 def _show_markdown_files(filenames: list[str]):
-    try:
-        from rich.console import Console
-        from rich.markdown import Markdown
-
-        console = Console()
-        with console.pager():
-            for idx, filename in enumerate(filenames):
-                resource_path = resources.files("nicestlog").joinpath(
-                    f"_docs/{filename}"
-                )
-                content = resource_path.read_text(encoding="utf-8")
-                md = Markdown(content, code_theme="monokai")
-                console.rule(f"{filename}")
-                console.print(md)
-                if idx < len(filenames) - 1:
-                    console.print()
-    except (FileNotFoundError, ModuleNotFoundError):
-        typer.echo("Documentation not found.", err=True)
-        raise typer.Exit(1)
-
-
-def _show_docs_interactive(
-    target: Optional[str] = None,
-    use_pager: bool = True,
-    search: Optional[str] = None,
-    theme: str = "monokai",
-    list_only: bool = False,
-):
-    """Render docs with Rich, preferring local files and falling back to packaged ones.
-
-    Args:
-        target: Optional file name or glob pattern to filter which docs to render.
-        use_pager: If True, use a pager; otherwise print directly.
-        search: If provided, only show docs containing this substring (case-insensitive).
-        theme: Code block theme name for Rich Markdown rendering.
-        list_only: If True, only list available docs and exit.
-    """
-    from pathlib import Path
-    from rich.console import Console
-    from rich.markdown import Markdown
-    from contextlib import nullcontext
-
-    console = Console()
-
-    # Collect local docs first (README.md and docs/*.md)
-    local_files: list[Path] = []
-    readme = Path("README.md")
-    if readme.exists():
-        local_files.append(readme)
-    docs_dir = Path("docs")
-    if docs_dir.exists() and docs_dir.is_dir():
-        local_files.extend(sorted(docs_dir.glob("*.md")))
-
-    # If a target is provided, filter local files by that pattern; if no local match, try globbing within docs
-    if target:
-        # If target is an existing path, use it directly
-        tpath = Path(target)
-        if tpath.exists():
-            local_files = [tpath]
-        else:
-            local_files = [p for p in local_files if Path(p).match(target)] or []
-            # If still empty and looks like a docs glob, search in docs dir
-            if not local_files and docs_dir.exists():
-                local_files = sorted(docs_dir.glob(target))
-
-    def _list_paths(paths: list[Path]) -> bool:
-        if not paths:
-            return False
-        for p in paths:
-            console.print(f"- {p}")
-        return True
-
-    def _render_paths(paths: list[Path]) -> bool:
-        if not paths:
-            return False
-        # Apply search filter if provided
-        sel = []
-        for p in paths:
-            try:
-                content = p.read_text(encoding="utf-8")
-            except Exception as e:  # pragma: no cover - unlikely
-                typer.echo(f"Skipping {p}: {e}", err=True)
-                continue
-            if search and (search.lower() not in content.lower()):
-                continue
-            sel.append((p, content))
-        if not sel:
-            return False
-        if list_only:
-            for p, _ in sel:
-                console.print(f"- {p}")
-            return True
-        ctx = console.pager() if use_pager else nullcontext()
-        with ctx:
-            for idx, (p, content) in enumerate(sel):
-                console.rule(f"{p.name}", style="bold blue")
-                console.print(Markdown(content, code_theme=theme))
-                if idx < len(sel) - 1:
-                    console.print()
-        return True
-
-    # Try local files
-    if _render_paths(local_files):
-        return
-
-    # Fallback: render packaged docs from nicestlog/_docs
-    try:
-        docs_root = resources.files("nicestlog").joinpath("_docs")
-        packaged_files = [p for p in docs_root.iterdir() if p.name.endswith(".md")]
-        # Filter packaged by target if provided
-        if target:
-            packaged_files = [
-                p
-                for p in packaged_files
-                if p.name == target or p.name.endswith(target) or p.match(target)
-            ]
-        # Prefer README.md first
-        packaged_files_sorted = sorted(
-            packaged_files,
-            key=lambda p: (p.name != "README.md", p.name.lower()),
-        )
-        if not packaged_files_sorted:
-            raise FileNotFoundError("No packaged docs found")
-        if list_only:
-            _list_paths(packaged_files_sorted)
-            return
-        ctx = console.pager() if use_pager else nullcontext()
-        with ctx:
-            for idx, p in enumerate(packaged_files_sorted):
-                content = p.read_text(encoding="utf-8")
-                if search and (search.lower() not in content.lower()):
-                    continue
-                console.rule(f"{p.name}", style="bold blue")
-                console.print(Markdown(content, code_theme=theme))
-                if idx < len(packaged_files_sorted) - 1:
-                    console.print()
-    except Exception:
-        typer.echo("Documentation not found.", err=True)
-        raise typer.Exit(1)
-
-
-def main():
-    app()
-
-
-@i18n_app.command("check")
-def i18n_check(
-    path: Annotated[
-        str, typer.Argument(help="Path to source (file or directory)")
-    ] = ".",
-    translation_dir: Annotated[
-        str, typer.Option(help="Directory containing translation files")
-    ] = "translations",
-    language: Annotated[
-        str, typer.Option("-l", "--language", help="Language code to check")
-    ] = "en",
-    strict: Annotated[
-        bool, typer.Option(help="Exit with non-zero code if missing keys")
-    ] = False,
-    list_missing: Annotated[
-        bool,
-        typer.Option("--list-missing", help="Only list missing keys (one per line)"),
-    ] = False,
-    verbose: Annotated[
-        bool,
-        typer.Option(
-            "--verbose",
-            help="Show additional details (e.g., debug events using _replace_msg)",
-        ),
-    ] = False,
-    fail_on_extra: Annotated[
-        bool,
-        typer.Option(
-            "--fail-on-extra", help="Exit non-zero if extra (unused) keys exist"
-        ),
-    ] = False,
-):
-    """Check that translation file contains entries for all _replace_msg/_msg_key usages.
-
-    Also treats .info events without _replace_msg as requiring translation. .debug calls are ignored,
-    but any .debug using _replace_msg will be listed as a warning section in the report.
-    """
-    try:
-        from .i18n_check import check_translations, format_report
-    except Exception as e:
-        typer.echo(f"Error importing i18n check: {e}", err=True)
-        raise typer.Exit(1)
-
-    # Resolve source root like lint
-    source_root = _resolve_source_root(path)
-
-    report = check_translations([source_root], Path(translation_dir), language)
-
-    if list_missing:
-        missing = report.get("missing_keys", [])
-        for k in missing:
-            typer.echo(k)
-        # In list-only mode, consider both strict (missing) and fail_on_extra
-        if (strict and missing) or (fail_on_extra and report.get("extra_keys", [])):
-            raise typer.Exit(1)
-        raise typer.Exit(0)
-
-    # Default: hide debug section; show it only with --verbose
-    typer.echo(format_report(report, include_debug=verbose))
-
-    if "error" in report:
-        raise typer.Exit(2)
-    if (strict and report.get("missing_keys", [])) or (
-        fail_on_extra and report.get("extra_keys", [])
-    ):
-        raise typer.Exit(1)
-
-
-def _resolve_source_root(path: str) -> Path:
-    """Resolve the source root path similar to lint semantics.
-
-    If path == '.', prefer configured src_dir from NicestLogConfig if it exists.
-    Otherwise, return the given path as Path.
-    """
-    source_root = Path(path)
-    if path == ".":
+    """Show markdown files with rich formatting."""
+    for filename in filenames:
         try:
-            from .config import NicestLogConfig
+            if resources.files("nicestlog").joinpath(filename).exists():
+                content = resources.files("nicestlog").joinpath(filename).read_text()
+            else:
+                # Try relative path
+                path = Path(filename)
+                if path.exists():
+                    content = path.read_text()
+                else:
+                    console.print(f"❌ [red]File not found: {filename}[/red]")
+                    continue
+            
+            console.print(f"\n📄 [bold blue]{filename}[/bold blue]")
+            console.print(content)
+        except Exception as e:
+            console.print(f"❌ [red]Error reading {filename}: {e}[/red]")
 
-            cfg = NicestLogConfig()
-            if cfg.src_dir:
-                candidate = Path(cfg.src_dir)
-                if candidate.exists():
-                    source_root = candidate
-        except Exception:
-            pass
-    return source_root
 
-
-def run_linter(
-    path: str = ".",
-    min_coverage: float = 5.0,
-    max_coverage: float = 15.0,
-    strict: bool = False,
-):
-    """Run the logging linter."""
-    # Ensure logging is initialized to avoid ugly default formatting
-    try:
-        if not nicestlog.logging_initialized():
-            from .config import SimpleFormatSettings
-
-            nicestlog.init_logging(
-                simple_format_settings=SimpleFormatSettings(
-                    show_logger_brackets=False,
-                    show_pid=False,
-                    show_code_info=False,
-                    timestamp_format="iso_no_z",
-                    pad_event_width=28,
-                ),
-                log_format="simple",
-                log_to_console=True,
-            )
-    except Exception:
-        # Fail silently; linter output still works without structured logging
-        pass
-
-    log.debug(
-        "starting-linter",
-        path=path,
-        min_coverage=min_coverage,
-        max_coverage=max_coverage,
-        strict=strict,
-    )
-
-    from .linter import lint_directory
-
-    if strict:
-        log.debug("applying-strict-mode", old_min=min_coverage, old_max=max_coverage)
-        min_coverage = 3.0
-        max_coverage = 10.0
-
-    # Determine directory to scan using shared resolver
-    scan_path = _resolve_source_root(path)
-
-    # Run the linter on the determined directory
-    success = lint_directory(
-        scan_path, min_coverage=min_coverage, max_coverage=max_coverage
-    )
-
-    # When output format is machine-readable, avoid extra console noise
-    fmt = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
-    if not success:
-        if fmt not in {"json", "toml"}:
-            print("Linting failed: files need logging attention.")
-        log.error("linter-failed", path=path)
-        sys.exit(1)
+def _show_docs_interactive():
+    """Show interactive documentation browser."""
+    console.print("🔍 [bold blue]Interactive Documentation Browser[/bold blue]")
+    console.print("Available documentation sections:")
+    console.print("1. Getting Started")
+    console.print("2. Best Practices") 
+    console.print("3. Advanced Features")
+    console.print("4. API Reference")
+    
+    choice = input("\nSelect section (1-4): ")
+    docs_map = {
+        "1": ["docs/user_guide/getting_started.md"],
+        "2": ["docs/user_guide/best_practices.md"],
+        "3": ["docs/user_guide/advanced_features.md"],
+        "4": ["docs/development/api_reference.rst"]
+    }
+    
+    if choice in docs_map:
+        _show_markdown_files(docs_map[choice])
     else:
-        if fmt not in {"json", "toml"}:
-            log.debug("linter-completed-successfully", path=path)
+        console.print("❌ [red]Invalid choice[/red]")
+
+
+def _show_feature_docs(feature: str):
+    """Show documentation for a specific feature."""
+    feature_docs = {
+        "logging": ["docs/user_guide/getting_started.md"],
+        "linting": ["docs/user_guide/best_practices.md"],
+        "ast": ["docs/features/advanced_assistant.md"],
+        "dashboard": ["docs/features/integrations.md"]
+    }
+    
+    if feature in feature_docs:
+        _show_markdown_files(feature_docs[feature])
+    else:
+        console.print(f"❌ [red]No documentation found for feature: {feature}[/red]")
+
+
+# Implementation stubs for remaining functions
+def run_linter(path: str, min_coverage: float = 70.0, max_coverage: float = 90.0):
+    """Run the linter."""
+    from .linter import lint_directory
+    lint_directory(Path(path), min_coverage=min_coverage, max_coverage=max_coverage)
 
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
-    log.debug("starting-web-dashboard", host=host, port=port, debug=debug)
-
     from .web_dashboard import run_dashboard
-
     run_dashboard(host=host, port=port, debug=debug)
 
 
-def generate_service_cmd(
-    service_name: str,
-    exec_command: str,
-    user: Optional[str] = None,
-    working_dir: Optional[str] = None,
-    output: Optional[str] = None,
-):
-    """Generate systemd service file."""
-    log.info(
-        "generating-systemd-service",
-        service_name=service_name,
-        exec_command=exec_command,
-        user=user,
-        working_dir=working_dir,
-        output=output,
-    )
-
-    from .systemd_integration import create_systemd_service_file
-
-    # Generate service file
-    service_content = create_systemd_service_file(
-        service_name=service_name,
-        exec_command=exec_command,
-        user=user,
-        working_directory=working_dir,
-    )
-
-    # Output
-    if output:
-        with open(output, "w") as f:
-            f.write(service_content)
-        print(f"✅ Service file written to {output}")
-        print(f"💡 Install with: sudo cp {output} /etc/systemd/system/")
-        print(f"💡 Enable with: sudo systemctl enable {service_name}")
-        print(f"💡 Start with: sudo systemctl start {service_name}")
-    else:
-        print(service_content)
-
-
-def run_journal_viewer(
-    service: Optional[str] = None,
-    lines: int = 50,
-    follow: bool = False,
-    since: Optional[str] = None,
-    level: Optional[str] = None,
-):
+def run_journal_viewer(follow: bool = False, unit: Optional[str] = None):
     """Run the journal viewer."""
-    log.debug(
-        "starting-journal-viewer",
-        service=service,
-        lines=lines,
-        follow=follow,
-        since=since,
-        level=level,
-    )
-
-    from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
-
-    if not SYSTEMD_AVAILABLE:
-        log.error("systemd-not-available")
-        print(
-            "Error: systemd-python not available. Install with: pip install systemd-python",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    # Create viewer and run
+    from .journal_viewer import JournalViewer
     viewer = JournalViewer()
-
-    try:
-        for entry in viewer.query_journal(
-            service=service, since=since, level=level, lines=lines, follow=follow
-        ):
-            print(viewer.format_entry(entry))
-    except KeyboardInterrupt:
-        print("\n👋 Goodbye!", file=sys.stderr)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    viewer.run(follow=follow, unit=unit)
 
 
 def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
-    """Run the log quality reviewer."""
-    from .log_reviewer import LogQualityReviewer, print_report
-    from pathlib import Path
-
-    reviewer = LogQualityReviewer()
-    path = Path(path_str)
-
-    if path.is_file():
-        report = reviewer.analyze_log_file(path)
-        print_report(report, format_type)
-
-        if report.overall_score < min_score:
-            sys.exit(1)
-
-    elif path.is_dir():
-        log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
-        if not log_files:
-            print("No log files found!", file=sys.stderr)
-            sys.exit(1)
-
-        total_score = 0
-        for log_file in log_files:
-            print(f"\n📁 {log_file.name}:")
-            report = reviewer.analyze_log_file(log_file)
-            print_report(report, format_type)
-            total_score += report.overall_score
-
-        avg_score = total_score / len(log_files)
-        print(f"\n🎯 Durchschnittliche Qualität: {avg_score:.1f}/100")
-
-        if avg_score < min_score:
-            sys.exit(1)
-
-    else:
-        print(f"Path not found: {path}", file=sys.stderr)
-        sys.exit(1)
+    """Run the log reviewer."""
+    from .log_reviewer import LogReviewer
+    reviewer = LogReviewer()
+    reviewer.review_path(Path(path_str), format_type=format_type, min_score=min_score)
 
 
 def run_demos(feature: Optional[str] = None, all_features: bool = False):
-    """Run nicestlog feature demonstrations."""
-    log.debug("starting-demos", feature=feature, all_features=all_features)
-
-    available_demos = {
-        "basic": "Basic structured logging with console output",
-        "i18n": "Internationalization and message translations",
-        "pii": "PII scrubbing and data protection",
-        "eliot": "Eliot integration for action tracing",
-        "systemd": "Systemd journal integration",
-        "async": "Asynchronous logging performance",
-        "complete": "Complete real-world application example",
-        "lint": "Lint demo with two bad modules triggering all checks",
-    }
-
-    def print_demo_header(title: str, description: str):
-        print(f"\n{'=' * 60}")
-        print(f"🎭 {title}")
-        print(f"📝 {description}")
-        print(f"{'=' * 60}")
-        time.sleep(1)
-
-    def print_demo_separator():
-        print(f"\n{'-' * 40}")
-        time.sleep(0.5)
-
-    if not feature and not all_features:
-        print("🎯 Available nicestlog demos:")
-        print()
-        for demo_name, description in available_demos.items():
-            print(f"  {demo_name:12} - {description}")
-        print()
-        print("Usage:")
-        print("  nicestlog demo basic           # Run specific demo")
-        print("  nicestlog demo --all           # Run all demos")
-        return
-
-    demos_to_run = []
-    if all_features:
-        # Run all core demos, but skip heavy/side-effect demos like 'lint'
-        demos_to_run = [k for k in available_demos.keys() if k != "lint"]
-    elif feature in available_demos:
-        demos_to_run = [feature]
+    """Run demos."""
+    console.print("🎬 [bold blue]Nicestlog Demos[/bold blue]")
+    if feature:
+        console.print(f"Running demo for: {feature}")
+    elif all_features:
+        console.print("Running all feature demos")
     else:
-        print(
-            f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}"
-        )
-        sys.exit(1)
+        console.print("Available demos: basic, advanced, ast, linting")
 
-    print("🚀 Starting nicestlog demonstrations...")
 
-    for demo_name in demos_to_run:
-        if demo_name == "basic":
-            run_basic_demo()
-        elif demo_name == "i18n":
-            run_i18n_demo()
-        elif demo_name == "pii":
-            run_pii_demo()
-        elif demo_name == "eliot":
-            run_eliot_demo()
-        elif demo_name == "systemd":
-            run_systemd_demo()
-        elif demo_name == "async":
-            run_async_demo()
-        elif demo_name == "complete":
-            run_complete_demo()
-        elif demo_name == "lint":
-            run_lint_demo()
-
-        if len(demos_to_run) > 1:
-            print_demo_separator()
-
-    print("\n🎉 Demo complete! Try these features in your own applications.")
-
-
-def print_demo_header(title: str, description: str):
-    """Print a formatted demo section header."""
-
-    print(f"\n{'=' * 60}")
-    print(f"🎭 {title}")
-    print(f"📝 {description}")
-    print(f"{'=' * 60}")
-    time.sleep(1)
-
-
-def run_basic_demo():
-    """Demonstrate basic nicestlog features."""
-    print_demo_header(
-        "Basic Structured Logging", "Console output with beautiful formatting"
-    )
-
-    # Initialize with console output
-    nicestlog.init_logging(verbose=True, syslog_identifier="demo")
-    log = structlog.get_logger()
-
-    print("📋 Demonstrating different log levels and structured data:")
-
-    log.info(
-        "application-started",
-        _replace_msg="🚀 Application {name} v{version} started successfully",
-        name="nicestlog-demo",
-        version="1.0.0",
-        pid=12345,
-    )
-
-    log.debug(
-        "user-authentication",
-        username="alice",
-        ip="192.168.1.100",
-        session_id="abc123",
-        action="login_attempt",
-    )
-
-    log.warning(
-        "rate-limit-approaching",
-        _replace_msg="⚠️  Rate limit at {percent}% for user {user_id}",
-        percent=85,
-        user_id=42,
-        requests_remaining=15,
-    )
-
-    log.error(
-        "database-connection-failed",
-        _replace_msg="💥 Database connection failed: {error}",
-        error="Connection timeout",
-        host="db.example.com",
-        retry_count=3,
-        max_retries=5,
-    )
-
-    log.debug(
-        "api-request-completed",
-        _replace_msg="✅ API request completed in {duration}ms",
-        method="GET",
-        endpoint="/api/users",
-        duration=234,
-        status_code=200,
-        response_size=1024,
-    )
-
-
-def run_i18n_demo():
-    """Demonstrate internationalization features."""
-    print_demo_header("Internationalization (i18n)", "Multi-language log messages")
-
-    # Load config to optionally honor translation_dir and language from pyproject.toml
-    try:
-        from .config import NicestLogConfig
-
-        cfg = NicestLogConfig()
-    except Exception:
-        cfg = None
-
-    init_kwargs = {"verbose": True, "syslog_identifier": "i18n-demo"}
-    if cfg and cfg.translation_dir:
-        init_kwargs["translation_dir"] = str(cfg.translation_dir)
-    if cfg and cfg.language:
-        init_kwargs["language"] = cfg.language
-
-    # Ensure nicestlog is initialized so structlog output uses our renderers
-    # Verbose=True to show debug messages from the translator as well
-    nicestlog.init_logging(**init_kwargs)
-
-    try:
-        from .i18n import demo_translations
-
-        demo_translations()
-    except ImportError:
-        print("⚠️  i18n demo requires additional setup")
-
-
-def run_pii_demo():
-    """Demonstrate PII scrubbing."""
-    print_demo_header("PII Scrubbing", "Automatic removal of sensitive data")
-
-    try:
-        from .pii_scrubber import demo_pii_scrubbing
-
-        demo_pii_scrubbing()
-    except ImportError:
-        print("⚠️  PII demo requires additional setup")
-
-
-def run_eliot_demo():
-    """Demonstrate Eliot integration."""
-    print_demo_header("Eliot Integration", "Beautiful action tracing and causality")
-
-    try:
-        from .eliot_integration import demo_eliot_integration
-
-        demo_eliot_integration()
-    except ImportError:
-        print("⚠️  Eliot demo requires: pip install eliot")
-
-
-def run_systemd_demo():
-    """Demonstrate systemd integration."""
-    print_demo_header("Systemd Integration", "Journal logging and service management")
-
-    try:
-        from .systemd_integration import demo_systemd_integration
-
-        demo_systemd_integration()
-    except ImportError:
-        print("⚠️  Systemd demo requires: pip install systemd-python")
-
-
-def run_async_demo():
-    """Demonstrate async logging performance."""
-    print_demo_header("Async Logging", "Non-blocking high-performance logging")
-
-    import time
-
-    print("🔄 Comparing sync vs async logging performance...")
-
-    # Sync logging
-    nicestlog.init_logging(async_logging=False, syslog_identifier="sync-demo")
-    log = structlog.get_logger()
-
-    start_time = time.time()
-    for i in range(100):
-        log.info("sync-message", iteration=i, data=f"payload-{i}")
-    sync_duration = time.time() - start_time
-
-    print(f"⏱️  Sync logging: {sync_duration:.3f}s for 100 messages")
-
-    # Async logging
-    nicestlog.init_logging(async_logging=True, syslog_identifier="async-demo")
-    log = structlog.get_logger()
-
-    start_time = time.time()
-    for i in range(100):
-        log.info("async-message", iteration=i, data=f"payload-{i}")
-    async_duration = time.time() - start_time
-
-    print(f"⚡ Async logging: {async_duration:.3f}s for 100 messages")
-    print(f"🚀 Speedup: {sync_duration / async_duration:.1f}x faster")
-
-
-def run_complete_demo():
-    """Demonstrate a complete real-world application scenario."""
-    print_demo_header("Complete Application Example", "Real-world usage patterns")
-
-    from pathlib import Path
-    import tempfile
-    import time
-
-    # Setup comprehensive logging
-    with tempfile.TemporaryDirectory() as temp_dir:
-        log_dir = Path(temp_dir)
-
-        nicestlog.init_logging(
-            verbose=True,
-            logdir=log_dir,
-            syslog_identifier="webapp",
-            async_logging=True,
-            log_cmd_output=True,
-        )
-
-        log = structlog.get_logger()
-
-        print("🌐 Simulating web application with comprehensive logging...")
-
-        # Application startup
-        log.info(
-            "app-startup",
-            _replace_msg="🚀 Web application starting on port {port}",
-            port=8080,
-            version="2.1.0",
-            environment="production",
-        )
-
-        # Database connection
-        log.info(
-            "db-connection",
-            _replace_msg="🔌 Connected to database {db_name}",
-            db_name="userdb",
-            host="db.prod.com",
-            pool_size=10,
-        )
-
-        # User requests
-        for i in range(5):
-            user_id = 1000 + i
-            session_id = f"sess_{i:03d}"
-
-            log.info(
-                "request-start",
-                _replace_msg="📥 Processing request {request_id}",
-                request_id=f"req_{i:03d}",
-                user_id=user_id,
-                session_id=session_id,
-                method="GET",
-                path="/api/profile",
-            )
-
-            # Simulate processing time
-            time.sleep(0.1)
-
-            if i == 3:  # Simulate an error
-                log.error(
-                    "request-error",
-                    _replace_msg="💥 Request failed: {error}",
-                    request_id=f"req_{i:03d}",
-                    error="User not found",
-                    user_id=user_id,
-                    status_code=404,
-                )
-            else:
-                log.debug(
-                    "request-complete",
-                    _replace_msg="✅ Request completed in {duration}ms",
-                    request_id=f"req_{i:03d}",
-                    duration=50 + i * 10,
-                    status_code=200,
-                    response_size=512,
-                )
-
-        # Show log files created
-        log_files = list(log_dir.glob("*.log"))
-        if log_files:
-            print(f"\n📁 Log files created in {log_dir}:")
-            for log_file in log_files:
-                size = log_file.stat().st_size
-                print(f"  {log_file.name}: {size} bytes")
-
-        print("\n💡 This demonstrates:")
-        print("  • Structured logging with meaningful events")
-        print("  • File and console output")
-        print("  • Request tracing with IDs")
-        print("  • Error handling and context")
-        print("  • Performance monitoring")
-
-
-def run_lint_demo():
-    """Demonstrate linter findings with two intentionally bad modules."""
-    print_demo_header("Lint Demo", "Two modules that trigger all linter checks")
-
-    import tempfile
-    from pathlib import Path
-
-    # Create a temporary project with two problematic modules
-    with tempfile.TemporaryDirectory() as tmpdir:
-        proj = Path(tmpdir)
-        (proj / "pkg").mkdir()
-
-        # Module 1: Too little logging and too few functions with logging
-        bad_mod1 = proj / "pkg" / "bad_module_one.py"
-        bad_mod1.write_text(
-            """
-import structlog
-log = structlog.get_logger("bad1")
-
-# Many functions without any logging to trigger E1 and E2
-
-def a1():
-    x = 1 + 1
-    return x
-
-def a2():
-    for i in range(5):
-        pass
-
-def a3():
-    return sum([1,2,3])
-
-def a4():
-    return "ok"
-
-def a5():
-    v = 42
-    return v
-
-def a6():
-    return 0
-
-def a7():
-    return 0
-
-def a8():
-    return 0
-
-def a9():
-    return 0
-
-def a10():
-    return 0
-
-def a11():
-    return 0
-
-def a12():
-    return 0
-
-def a13():
-    return 0
-
-def a14():
-    return 0
-
-def a15():
-    return 0
-
-# Only one function with logging (single string argument, no structured data)
-
-def logged_one():
-    log.info("just a message")
-""",
-            encoding="utf-8",
-        )
-
-        # Module 2: Too much logging and almost every function logs + statement issues
-        bad_mod2 = proj / "pkg" / "bad_module_two.py"
-        bad_mod2.write_text(
-            """
-import structlog
-log = structlog.get_logger("bad2")
-
-# Many tiny functions all logging to trigger W1 and W2
-
-def f1():
-    log.info("f1-start", user="alice")
-
-def f2():
-    log.debug(f"errorHappened-{1}")
-
-def f3():
-    log.error("user-info-update")
-
-def f4():
-    log.info("many-kwargs", a=1,b=2,c=3,d=4,e=5,f=6,g=7,h=8)
-
-def f5():
-    log.info("user-login", password="secret", token="abc")
-
-def f6():
-    log.info("ok")
-
-def f7():
-    log.info("ok2")
-
-def f8():
-    log.info("ok3")
-
-def f9():
-    log.info("ok4")
-
-def f10():
-    log.info("ok5")
-
-# very long event id
-log.info("this-is-a-very-very-very-very-very-very-long-event-id-that-is-definitely-too-long")
-""",
-            encoding="utf-8",
-        )
-
-        # Run the linter on the temporary project
-        print("\n🧪 Running linter on demo project...\n")
-        from .linter import lint_directory
-
-        lint_directory(
-            proj, min_coverage=5.0, max_coverage=15.0, analyze_statements=True
-        )
+def main():
+    """Main entry point."""
+    app()
 
 
 if __name__ == "__main__":

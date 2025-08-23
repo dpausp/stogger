@@ -59,13 +59,11 @@ CLI
    :undoc-members:
    :show-inheritance:
 
-Advanced CLI
-------------
+Advanced CLI Features
+~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: nicestlog.cli_advanced
-   :members:
-   :undoc-members:
-   :show-inheritance:
+The CLI module now includes all advanced AST functionality that was previously in cli_advanced.
+All AST commands are available under ``nicestlog tools ast``.
 
 Eliot Integration
 -----------------
