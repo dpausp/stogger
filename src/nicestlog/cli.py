@@ -289,24 +289,389 @@ def check(
     dry_run: Annotated[
         bool, typer.Option("--dry-run", help="Show what would be fixed")
     ] = False,
+    ast_analysis: Annotated[
+        bool, typer.Option("--ast", help="Enable AST-based analysis")
+    ] = False,
+    complexity: Annotated[
+        bool, typer.Option("--complexity", help="Check code complexity")
+    ] = False,
+    patterns: Annotated[
+        Optional[List[str]], typer.Option("--pattern", help="Specific AST patterns to check")
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Enable verbose output")
+    ] = False,
 ):
-    """🔍 Check code for logging best practices."""
+    """🔍 Check code for logging best practices with optional AST analysis.
+    
+    Examples:
+      nicestlog check file.py                    # Basic linting
+      nicestlog check file.py --ast              # With AST analysis  
+      nicestlog check file.py --fix --ast        # Fix with AST transforms
+      nicestlog check file.py --interactive      # Interactive mode
+      nicestlog check file.py --complexity       # Complexity analysis
+    """
     from .linter import lint_directory
 
     path_obj = Path(path)
     if not path_obj.exists():
-        print(f"❌ Path {path} does not exist", file=sys.stderr)
+        console.print(f"❌ [red]Path {path} does not exist[/red]")
         sys.exit(1)
 
+    # Display mode information
+    mode_info = []
     if fix:
         if interactive:
-            print("🔧 Interactive fixing mode")
+            mode_info.append("🎯 Interactive fixing")
         elif dry_run:
-            print("🔍 Dry run mode - showing what would be fixed")
+            mode_info.append("🔍 Dry run preview")
         else:
-            print("🔧 Auto-fixing issues")
+            mode_info.append("🔧 Auto-fixing")
+    
+    if ast_analysis:
+        mode_info.append("🔬 AST analysis")
+    if complexity:
+        mode_info.append("📊 Complexity check")
+    
+    if mode_info:
+        console.print(f"Mode: {' + '.join(mode_info)}")
 
-    lint_directory(path_obj)
+    # 1. Basic linting (always performed)
+    console.print("\n📋 [bold blue]Running basic linting...[/bold blue]")
+    basic_success = lint_directory(path_obj)
+    
+    # 2. AST Analysis (if requested)
+    ast_issues = None
+    if ast_analysis or interactive or patterns or complexity:
+        console.print("\n🔬 [bold blue]Running AST analysis...[/bold blue]")
+        
+        assistant = AdvancedAssistant(verbose=verbose)
+        
+        # Configure patterns if specified
+        if patterns:
+            for pattern_name in patterns:
+                for ast_pattern in assistant.patterns:
+                    if pattern_name.lower() in ast_pattern.name.lower():
+                        ast_pattern.enabled = True
+                    else:
+                        ast_pattern.enabled = False
+        
+        # Perform AST analysis
+        if path_obj.is_file():
+            ast_result = assistant.analyze_file(path_obj)
+            _display_check_analysis_result(ast_result, complexity)
+            
+            # Store issues for potential fixing
+            ast_issues = ast_result
+            
+        elif path_obj.is_dir():
+            python_files = list(path_obj.glob("**/*.py"))
+            if python_files:
+                ast_results = []
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                ) as progress:
+                    for py_file in python_files:
+                        task = progress.add_task(f"Analyzing {py_file.name}...", total=None)
+                        result = assistant.analyze_file(py_file)
+                        ast_results.append(result)
+                        progress.remove_task(task)
+                
+                _display_check_directory_analysis(ast_results, complexity)
+                ast_issues = ast_results
+            else:
+                console.print("❌ [red]No Python files found in directory[/red]")
+    
+    # 3. Interactive Mode
+    if interactive and ast_issues:
+        console.print("\n🎯 [bold magenta]Starting interactive mode...[/bold magenta]")
+        transformer = InteractiveTransformer()
+        
+        if path_obj.is_file():
+            transformer.transform_file_interactive(path_obj)
+        else:
+            # For directories, process files one by one
+            python_files = list(path_obj.glob("**/*.py"))
+            for py_file in python_files:
+                console.print(f"\n📁 Processing: {py_file}")
+                if typer.confirm(f"Transform {py_file.name}?"):
+                    transformer.transform_file_interactive(py_file)
+    
+    # 4. AST-based Fixes
+    elif fix and ast_analysis and ast_issues:
+        console.print("\n🔧 [bold green]Applying AST-based fixes...[/bold green]")
+        assistant = AdvancedAssistant(verbose=verbose)
+        
+        if path_obj.is_file():
+            transform_result = assistant.transform_file(path_obj, dry_run=dry_run)
+            _display_transformation_result(transform_result, dry_run)
+        else:
+            python_files = list(path_obj.glob("**/*.py"))
+            transform_results = []
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                for py_file in python_files:
+                    task = progress.add_task(f"Transforming {py_file.name}...", total=None)
+                    result = assistant.transform_file(py_file, dry_run=dry_run)
+                    transform_results.append(result)
+                    progress.remove_task(task)
+            
+            _display_directory_transformation(transform_results, dry_run)
+    
+    # 5. Summary and exit code
+    has_issues = not basic_success or (ast_issues and _has_ast_issues(ast_issues))
+    
+    if has_issues:
+        console.print("\n❌ [red]Issues found. Run with --fix to apply automatic fixes.[/red]")
+        sys.exit(1)
+    else:
+        console.print("\n✅ [green]All checks passed![/green]")
+
+
+def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: bool):
+    """Display analysis results for check command."""
+    console.print(f"\n📊 [bold blue]Analysis Results for {result.file_path.name}[/bold blue]")
+
+    # Basic metrics
+    metrics_table = Table(title="📈 Code Metrics")
+    metrics_table.add_column("Metric", style="cyan")
+    metrics_table.add_column("Value", style="green", justify="right")
+
+    metrics_table.add_row("Lines of Code", str(result.lines_of_code))
+    metrics_table.add_row("Functions", str(result.function_count))
+    metrics_table.add_row("Classes", str(result.class_count))
+    
+    if show_complexity:
+        metrics_table.add_row("Complexity Score", f"{result.complexity_score:.2f}")
+
+    console.print(metrics_table)
+
+    # Issues found
+    if result.issues:
+        issues_table = Table(title="⚠️ Issues Found")
+        issues_table.add_column("Type", style="red")
+        issues_table.add_column("Line", style="yellow", justify="right")
+        issues_table.add_column("Description", style="white")
+
+        for i, issue in enumerate(result.issues):
+            issues_table.add_row("Issue", str(i + 1), issue)
+
+        console.print(issues_table)
+    else:
+        console.print("✅ [green]No AST issues found![/green]")
+
+
+def _display_check_directory_analysis(results: List[CodeAnalysisResult], show_complexity: bool):
+    """Display analysis results for check command on directories."""
+    console.print("\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
+
+    summary_table = Table(title="📈 Summary Statistics")
+    summary_table.add_column("File", style="cyan")
+    summary_table.add_column("LOC", style="green", justify="right")
+    summary_table.add_column("Functions", style="blue", justify="right")
+    summary_table.add_column("Classes", style="magenta", justify="right")
+    if show_complexity:
+        summary_table.add_column("Complexity", style="red", justify="right")
+    summary_table.add_column("Issues", style="yellow", justify="right")
+
+    total_loc = 0
+    total_functions = 0
+    total_classes = 0
+    total_issues = 0
+
+    for result in results:
+        total_loc += result.lines_of_code
+        total_functions += result.function_count
+        total_classes += result.class_count
+        total_issues += len(result.issues)
+
+        row = [
+            result.file_path.name,
+            str(result.lines_of_code),
+            str(result.function_count),
+            str(result.class_count),
+        ]
+        
+        if show_complexity:
+            row.append(f"{result.complexity_score:.1f}")
+        
+        row.append(str(len(result.issues)))
+        summary_table.add_row(*row)
+
+    # Add totals row
+    totals_row = [
+        "[bold]TOTAL[/bold]",
+        f"[bold]{total_loc}[/bold]",
+        f"[bold]{total_functions}[/bold]",
+        f"[bold]{total_classes}[/bold]",
+    ]
+    
+    if show_complexity:
+        totals_row.append("[bold]-[/bold]")
+    
+    totals_row.append(f"[bold]{total_issues}[/bold]")
+    summary_table.add_row(*totals_row)
+
+    console.print(summary_table)
+
+
+def _has_ast_issues(ast_issues) -> bool:
+    """Check if AST analysis found any issues."""
+    if isinstance(ast_issues, list):
+        return any(len(result.issues) > 0 for result in ast_issues)
+    else:
+        return len(ast_issues.issues) > 0
+
+
+@app.command()
+def fix(
+    path: Annotated[str, typer.Argument(help="File or directory to fix")],
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", help="Show changes without applying")
+    ] = False,
+    interactive: Annotated[
+        bool, typer.Option("--interactive", "-i", help="Interactive fixing")
+    ] = False,
+    ast_transforms: Annotated[
+        bool, typer.Option("--ast/--no-ast", help="Use AST transformations")
+    ] = True,
+    backup: Annotated[
+        bool, typer.Option("--backup/--no-backup", help="Create backup files")
+    ] = True,
+    patterns: Annotated[
+        Optional[List[str]], typer.Option("--pattern", help="Specific patterns to fix")
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Enable verbose output")
+    ] = False,
+):
+    """🔧 Advanced code fixing with AST transformations.
+    
+    Examples:
+      nicestlog fix file.py                      # Auto-fix with AST
+      nicestlog fix file.py --dry-run            # Preview fixes
+      nicestlog fix file.py --interactive        # Interactive fixing
+      nicestlog fix src/ --pattern logging      # Fix specific patterns
+      nicestlog fix file.py --no-backup         # Skip backup creation
+    """
+    path_obj = Path(path)
+    if not path_obj.exists():
+        console.print(f"❌ [red]Path {path} does not exist[/red]")
+        sys.exit(1)
+
+    # Display mode information
+    mode_info = []
+    if interactive:
+        mode_info.append("🎯 Interactive")
+    if dry_run:
+        mode_info.append("🔍 Preview")
+    else:
+        mode_info.append("🔧 Apply fixes")
+    
+    if ast_transforms:
+        mode_info.append("🔬 AST transforms")
+    if backup and not dry_run:
+        mode_info.append("💾 With backup")
+    
+    console.print(
+        Panel.fit(
+            f"🔧 [bold green]Code Fixing[/bold green]\n"
+            f"Mode: [cyan]{' + '.join(mode_info)}[/cyan]\n"
+            f"Target: [yellow]{path_obj}[/yellow]",
+            title="Fix Configuration"
+        )
+    )
+
+    # 1. Create backup if requested and not dry run
+    if backup and not dry_run:
+        backup_result = create_migration_backup(path_obj)
+        if backup_result:
+            console.print(f"✅ [green]Backup created: {backup_result}[/green]")
+
+    # 2. Interactive Mode
+    if interactive:
+        console.print("\n🎯 [bold magenta]Starting interactive fixing...[/bold magenta]")
+        transformer = InteractiveTransformer()
+        
+        if path_obj.is_file():
+            transformer.transform_file_interactive(path_obj)
+        else:
+            # For directories, process files one by one
+            python_files = list(path_obj.glob("**/*.py"))
+            for py_file in python_files:
+                console.print(f"\n📁 Processing: {py_file}")
+                if typer.confirm(f"Fix {py_file.name}?"):
+                    transformer.transform_file_interactive(py_file)
+        return
+
+    # 3. Automatic AST-based fixing
+    if ast_transforms:
+        console.print("\n🔬 [bold blue]Running AST-based fixes...[/bold blue]")
+        assistant = AdvancedAssistant(verbose=verbose)
+        
+        # Configure patterns if specified
+        if patterns:
+            for pattern_name in patterns:
+                for ast_pattern in assistant.patterns:
+                    if pattern_name.lower() in ast_pattern.name.lower():
+                        ast_pattern.enabled = True
+                    else:
+                        ast_pattern.enabled = False
+        
+        # Apply fixes
+        if path_obj.is_file():
+            transform_result = assistant.transform_file(path_obj, dry_run=dry_run)
+            _display_transformation_result(transform_result, dry_run)
+            
+            if not transform_result.changes_made:
+                console.print("ℹ️ [blue]No fixes needed - code is already optimal[/blue]")
+        else:
+            python_files = list(path_obj.glob("**/*.py"))
+            if not python_files:
+                console.print("❌ [red]No Python files found in directory[/red]")
+                sys.exit(1)
+                
+            transform_results = []
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+            ) as progress:
+                for py_file in python_files:
+                    task = progress.add_task(f"Fixing {py_file.name}...", total=None)
+                    result = assistant.transform_file(py_file, dry_run=dry_run)
+                    transform_results.append(result)
+                    progress.remove_task(task)
+            
+            _display_directory_transformation(transform_results, dry_run)
+            
+            # Summary
+            total_changes = sum(len(r.changes) for r in transform_results)
+            if total_changes == 0:
+                console.print("\nℹ️ [blue]No fixes needed - all code is already optimal[/blue]")
+            elif dry_run:
+                console.print(f"\n[blue]ℹ️ Run without --dry-run to apply {total_changes} fixes[/blue]")
+            else:
+                console.print(f"\n✅ [green]Successfully applied {total_changes} fixes[/green]")
+
+    # 4. Basic linting fixes (fallback if AST disabled)
+    else:
+        console.print("\n📋 [bold blue]Running basic linting fixes...[/bold blue]")
+        from .linter import lint_directory
+        success = lint_directory(path_obj)
+        
+        if success:
+            console.print("✅ [green]All basic checks passed![/green]")
+        else:
+            console.print("❌ [red]Some issues remain. Consider using --ast for advanced fixes.[/red]")
+            sys.exit(1)
 
 
 # AST Commands
