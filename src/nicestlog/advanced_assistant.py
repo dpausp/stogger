@@ -99,6 +99,41 @@ class CodeAnalysisResult:
     potential_issues: List[str] = field(default_factory=list)
     transformation_suggestions: List[str] = field(default_factory=list)
 
+    @property
+    def lines_of_code(self) -> int:
+        """Calculate lines of code from the AST."""
+        return len(ast.unparse(self.ast_tree).splitlines())
+
+    @property
+    def function_count(self) -> int:
+        """Count of function definitions."""
+        return self.node_counts.get("FunctionDef", 0)
+
+    @property
+    def class_count(self) -> int:
+        """Count of class definitions."""
+        return self.node_counts.get("ClassDef", 0)
+
+    @property
+    def issues(self) -> List[str]:
+        """Alias for potential_issues for CLI compatibility."""
+        return self.potential_issues
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "file_path": str(self.file_path),
+            "original_hash": self.original_hash,
+            "node_counts": self.node_counts,
+            "complexity_score": self.complexity_score,
+            "detected_patterns": self.detected_patterns,
+            "potential_issues": self.potential_issues,
+            "transformation_suggestions": self.transformation_suggestions,
+            "lines_of_code": self.lines_of_code,
+            "function_count": self.function_count,
+            "class_count": self.class_count,
+        }
+
 
 @dataclass
 class TransformationResult:
@@ -111,6 +146,16 @@ class TransformationResult:
     success: bool
     changes_made: List[str] = field(default_factory=list)
     rollback_data: Optional[Dict[str, Any]] = None
+
+    @property
+    def file_path(self) -> Path:
+        """Get the file path from the analysis."""
+        return self.analysis.file_path
+
+    @property
+    def changes(self) -> List[str]:
+        """Alias for changes_made for CLI compatibility."""
+        return self.changes_made
 
 
 class AdvancedASTAnalyzer(ast.NodeVisitor):

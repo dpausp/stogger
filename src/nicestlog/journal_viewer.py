@@ -9,7 +9,7 @@ import json
 import re
 from datetime import datetime, timedelta
 
-from typing import Dict, Any, Iterator
+from typing import Dict, Any, Iterator, Optional
 from dataclasses import dataclass
 
 # Keep a reference to the real datetime class for type checks when tests patch the module symbol
@@ -212,11 +212,11 @@ class JournalViewer:
 
     def query_journal(
         self,
-        service: str = None,
-        since: str = None,
-        until: str = None,
-        level: str = None,
-        lines: int = None,
+        service: Optional[str] = None,
+        since: Optional[str] = None,
+        until: Optional[str] = None,
+        level: Optional[str] = None,
+        lines: Optional[int] = None,
         follow: bool = False,
     ) -> Iterator[JournalEntry]:
         """

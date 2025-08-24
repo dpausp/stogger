@@ -8,7 +8,7 @@ import os
 import sys
 import socket
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 import structlog
 
@@ -36,7 +36,9 @@ class SystemdJournalHandler:
         "trace": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
     }
 
-    def __init__(self, identifier: str = None, facility: str = None):
+    def __init__(
+        self, identifier: Optional[str] = None, facility: Optional[str] = None
+    ):
         """
         Initialize systemd journal handler.
 
@@ -195,7 +197,9 @@ def detect_systemd_environment() -> Dict[str, Any]:
 
 
 def setup_systemd_logging(
-    identifier: str = None, facility: str = None, structured_fields: bool = True
+    identifier: Optional[str] = None,
+    facility: Optional[str] = None,
+    structured_fields: bool = True,
 ) -> bool:
     """
     Setup systemd journal logging integration.
@@ -258,9 +262,9 @@ def setup_systemd_logging(
 def create_systemd_service_file(
     service_name: str,
     exec_command: str,
-    user: str = None,
-    working_directory: str = None,
-    environment: Dict[str, str] = None,
+    user: Optional[str] = None,
+    working_directory: Optional[str] = None,
+    environment: Optional[Dict[str, str]] = None,
     restart_policy: str = "always",
 ) -> str:
     """
@@ -321,9 +325,9 @@ WantedBy=multi-user.target
 
 
 def query_journal_logs(
-    service_name: str = None,
+    service_name: Optional[str] = None,
     since: str = "1 hour ago",
-    level: str = None,
+    level: Optional[str] = None,
     lines: int = 100,
 ) -> List[Dict[str, Any]]:
     """

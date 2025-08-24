@@ -54,7 +54,7 @@ class HumanReadableEliotDestination:
 
     def __init__(
         self,
-        file: TextIO = None,
+        file: Optional[TextIO] = None,
         show_timestamps: bool = True,
         show_task_ids: bool = False,
         max_width: int = 120,
@@ -225,7 +225,7 @@ class HumanReadableEliotDestination:
 
 
 def setup_eliot_logging(
-    destination: TextIO = None,
+    destination: Optional[TextIO] = None,
     human_readable: bool = True,
     show_timestamps: bool = True,
     show_task_ids: bool = False,
@@ -282,7 +282,7 @@ if ELIOT_AVAILABLE:
         """Return a context manager for logging an action with nicestlog formatting."""
         return _ActionContext(action_name, **kwargs)
 
-    def log_call(action_name: str = None, **action_kwargs):
+    def log_call(action_name: Optional[str] = None, **action_kwargs):
         """Decorator to log function calls as Eliot actions."""
 
         def decorator(func):
@@ -317,7 +317,7 @@ else:
     def log_action(action_name: str, **kwargs):
         return _DummyActionContext()
 
-    def log_call(action_name: str = None, **action_kwargs):
+    def log_call(action_name: Optional[str] = None, **action_kwargs):
         def decorator(func):
             return func
 

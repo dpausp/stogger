@@ -270,7 +270,7 @@ def analyze_file(file_path: Path, prefer_dash_case: bool = True) -> LogAnalysisR
         )
 
         # Count magic args usage
-        magic_usage = {}
+        magic_usage: Dict[str, int] = {}
         for statement in statements:
             for magic_arg in statement.magic_args:
                 magic_usage[magic_arg] = magic_usage.get(magic_arg, 0) + 1
