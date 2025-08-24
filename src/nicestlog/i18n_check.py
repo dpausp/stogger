@@ -9,7 +9,7 @@ entries for all detected message keys.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, Set, Tuple, Dict, List
+from typing import Iterable, Set, Tuple, Dict, List, cast
 
 try:
     import toml
@@ -224,7 +224,7 @@ def format_report(report: Dict[str, object], include_debug: bool = True) -> str:
         return (
             f"❌ i18n check failed: {report['error']}\n"
             f"   Translation file: {report.get('translation_file', '<unknown>')}\n"
-            f"   Required keys detected: {len(list(report.get('required_keys', [])))}\n"
+            f"   Required keys detected: {len(cast(List[str], report.get('required_keys', [])))}\n"
         )
 
     missing: List[str] = report.get("missing_keys", [])  # type: ignore[assignment]
@@ -258,7 +258,7 @@ def format_report(report: Dict[str, object], include_debug: bool = True) -> str:
             lines.append(f"  - {k}")
 
     if include_debug:
-        dbg = list(report.get("debug_with_replace_events", []))  # type: ignore[assignment]
+        dbg = cast(List[str], report.get("debug_with_replace_events", []))
         if dbg:
             lines.append("\n⚠️ Debug events using _replace_msg (ignored for coverage):")
             for k in dbg:

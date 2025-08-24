@@ -346,8 +346,8 @@ class LiveCodeEditor:
                 pattern_stats[pattern] = {
                     "total": 0,
                     "accepted": 0,
-                    "avg_edits": 0,
-                    "avg_duration": 0,
+                    "avg_edits": 0.0,
+                    "avg_duration": 0.0,
                 }
 
             pattern_stats[pattern]["total"] += 1
@@ -358,9 +358,14 @@ class LiveCodeEditor:
 
         # Calculate averages
         for stats in pattern_stats.values():
-            stats["avg_edits"] = int(stats["avg_edits"] / stats["total"])
-            stats["avg_duration"] = int(stats["avg_duration"] / stats["total"])
-            stats["acceptance_rate"] = int(stats["accepted"] / stats["total"])
+            if stats["total"] > 0:
+                stats["avg_edits"] = float(stats["avg_edits"]) / float(stats["total"])
+                stats["avg_duration"] = float(stats["avg_duration"]) / float(
+                    stats["total"]
+                )
+                stats["acceptance_rate"] = float(stats["accepted"]) / float(
+                    stats["total"]
+                )
 
         insights = {
             "total_sessions": total_sessions,

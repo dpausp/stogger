@@ -199,12 +199,14 @@ class InteractiveTransformer:
                     # Update proposal with edited code
                     proposal.transformed_code = edited_code
                     proposal.user_edited = True
-                    proposal.edit_history.append(
-                        f"Live edited: {edit_session.edit_steps}"
-                    )
+                    if proposal.edit_history is not None:
+                        proposal.edit_history.append(
+                            f"Live edited: {edit_session.edit_steps}"
+                        )
 
                     # Store edit session
-                    self.session.edit_sessions.append(edit_session)
+                    if self.session.edit_sessions is not None:
+                        self.session.edit_sessions.append(edit_session)
                     self.session.edited += 1
 
                     if accepted:
@@ -543,7 +545,7 @@ class InteractiveTransformer:
 • Proposals rejected: {self.session.rejected}
 • Files skipped: {self.session.skipped_files}
 • 🔥 Live edits made: {self.session.edited}
-• Edit sessions recorded: {len(self.session.edit_sessions)}
+• Edit sessions recorded: {len(self.session.edit_sessions or [])}
 """
 
         if self.session.quit_requested:
@@ -567,7 +569,7 @@ class InteractiveTransformer:
             rejected=self.session.rejected,
             skipped_files=self.session.skipped_files,
             edited=self.session.edited,
-            edit_sessions=len(self.session.edit_sessions),
+            edit_sessions=len(self.session.edit_sessions or []),
             quit_requested=self.session.quit_requested,
         )
 

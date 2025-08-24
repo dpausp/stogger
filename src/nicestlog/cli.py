@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 import time
 from pathlib import Path
-from typing import Annotated, Optional, List
+from typing import Annotated, Optional, List, cast
 
 import typer
 import structlog
@@ -113,8 +113,8 @@ def i18n_check(
         )
 
         # Handle list_missing and fail_on_extra logic
-        missing_keys: List[str] = list(result.get("missing_keys", []))
-        extra_keys: List[str] = list(result.get("extra_keys", []))
+        missing_keys = cast(List[str], result.get("missing_keys", []))
+        extra_keys = cast(List[str], result.get("extra_keys", []))
 
         if list_missing:
             for key in missing_keys:
@@ -132,7 +132,9 @@ def i18n_check(
         if verbose or missing_keys or extra_keys:
             print(f"Translation check for language: {language}")
             print(f"Translation file: {result.get('translation_file', 'N/A')}")
-            print(f"Required keys: {len(result.get('required_keys', []))}")
+            print(
+                f"Required keys: {len(cast(List[str], result.get('required_keys', [])))}"
+            )
 
             if missing_keys:
                 print(f"Missing keys: {len(missing_keys)}")
@@ -151,7 +153,7 @@ def i18n_check(
                 print("No extra keys")
 
             # Show debug events if present
-            debug_events: List[str] = list(result.get("debug_with_replace_events", []))
+            debug_events = cast(List[str], result.get("debug_with_replace_events", []))
             if debug_events and verbose:
                 print("Debug events using _replace_msg (ignored for coverage):")
                 for key in debug_events:
