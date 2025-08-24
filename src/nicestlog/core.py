@@ -158,7 +158,7 @@ class ConsoleFileRenderer:
             max(self._level_to_color.keys(), key=lambda e: len(e))
         )
 
-    def __call__(self, logger, method_name, event_dict):
+    def __call__(self, _, method_name, event_dict):
         log_settings = event_dict.pop("_log_settings", {})
         if log_settings.get("console_ignore", False):
             return
@@ -346,7 +346,7 @@ class SimpleConsoleRenderer:
         for key in self._level_to_color.keys():
             self._level_to_color[key] += BRIGHT
 
-    def __call__(self, logger, method_name, event_dict):
+    def __call__(self, _, method_name, event_dict):
         # Filter according to the -v switch
         if self.LEVELS.index(method_name.lower()) > self.min_level:
             # For stdlib ProcessorFormatter, raising DropEvent can bubble up via logging handlers.

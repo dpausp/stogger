@@ -202,7 +202,6 @@ def detect_systemd_environment() -> Dict[str, Any]:
 def setup_systemd_logging(
     identifier: Optional[str] = None,
     facility: Optional[str] = None,
-    structured_fields: bool = True,
 ) -> bool:
     """
     Setup systemd journal logging integration.

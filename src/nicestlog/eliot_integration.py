@@ -9,14 +9,12 @@ from typing import Any, Dict, Optional, TextIO
 from datetime import datetime
 
 try:
-    from eliot import start_action, Action, log_message  # type: ignore[import-untyped]
-    from eliot._output import FileDestination  # type: ignore[import-untyped]
-    from eliot._message import WrittenMessage  # type: ignore[import-untyped]
+    from eliot import start_action, log_message  # type: ignore[import-untyped]
 
     ELIOT_AVAILABLE = True
 except ImportError:
     ELIOT_AVAILABLE = False
-    start_action = Action = log_message = FileDestination = WrittenMessage = None
+    start_action = log_message = None
 
 try:
     from .core import RESET_ALL, BRIGHT, DIM, RED, BLUE, CYAN, MAGENTA, YELLOW, GREEN

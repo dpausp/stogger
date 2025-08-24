@@ -76,7 +76,7 @@ class LogQualityReviewer:
         lines = log_content.splitlines()
         return self._analyze_log_lines(lines, "content")
 
-    def _analyze_log_lines(self, lines: List[str], source: str) -> LogQualityReport:
+    def _analyze_log_lines(self, lines: List[str], _: str) -> LogQualityReport:
         """Core analysis logic."""
         issues = []
         good_practices = []

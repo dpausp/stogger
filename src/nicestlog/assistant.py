@@ -213,7 +213,6 @@ def migrate_file(content: str) -> Tuple[str, bool]:
 def migrate_directory(
     input_dir: Path,
     output_dir: Optional[Path],
-    translations_file: str = "log_messages.json",
     dry_run: bool = True,
 ) -> MigrationResult:
     """Migrate Python files under input_dir. Writes to output_dir if provided, else in-place.
