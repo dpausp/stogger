@@ -598,8 +598,8 @@ def _display_analysis_result(result: CodeAnalysisResult):
         issues_table.add_column("Line", style="yellow", justify="right")
         issues_table.add_column("Description", style="white")
 
-        for issue in result.issues:
-            issues_table.add_row(issue.type, str(issue.line), issue.description)
+        for i, issue in enumerate(result.issues):
+            issues_table.add_row("Issue", str(i + 1), issue)
 
         console.print(issues_table)
     else:
@@ -619,8 +619,8 @@ def _display_transformation_result(result: TransformationResult, dry_run: bool):
         changes_table.add_column("Line", style="yellow", justify="right")
         changes_table.add_column("Change", style="green")
 
-        for change in result.changes:
-            changes_table.add_row(change.pattern, str(change.line), change.description)
+        for i, change in enumerate(result.changes):
+            changes_table.add_row("Change", str(i + 1), change)
 
         console.print(changes_table)
 
@@ -804,9 +804,9 @@ def _show_markdown_files(filenames: list[str]):
     """Show markdown files with rich formatting."""
     for filename in filenames:
         try:
-            if resources.files("nicestlog").joinpath(filename).exists():
+            try:
                 content = resources.files("nicestlog").joinpath(filename).read_text()
-            else:
+            except (FileNotFoundError, AttributeError):
                 # Try relative path
                 path = Path(filename)
                 if path.exists():

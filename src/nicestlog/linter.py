@@ -11,7 +11,7 @@ import os
 import json
 import toml
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
 from colorama import init as colorama_init, Fore, Style
 
@@ -133,7 +133,7 @@ class LoggingVisitor(ast.NodeVisitor):
 
                 # Extract event name (first argument)
                 if node.args and isinstance(node.args[0], ast.Constant):
-                    event_name = node.args[0].value
+                    event_name = str(node.args[0].value)
                     return level, event_name
 
         except Exception:
@@ -272,7 +272,7 @@ def check_logging_quality(
     stats: LoggingStats, min_coverage: float = 5.0, max_coverage: float = 15.0
 ) -> List[str]:
     """Check if logging coverage is appropriate."""
-    issues = []
+    issues: List[str] = []
 
     if stats.code_lines == 0:
         return issues
@@ -384,7 +384,7 @@ def lint_directory(
         )
 
     # Collect per-file data first so we can render a clean table
-    rows: List[dict] = []
+    rows: List[Dict[str, Any]] = []
     all_level_issues = []  # Store all level issues for detailed display
 
     for file_path in python_files:

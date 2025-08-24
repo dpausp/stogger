@@ -81,7 +81,7 @@ class LogQualityReviewer:
         issues = []
         good_practices = []
         suggestions = []
-        stats = {
+        stats: Dict[str, Any] = {
             "total_lines": len(lines),
             "empty_lines": 0,
             "structured_lines": 0,

@@ -108,7 +108,7 @@ class PIIScrubber:
         if not isinstance(data, dict):
             return data
 
-        scrubbed = {}
+        scrubbed: Dict[str, Any] = {}
         for key, value in data.items():
             # Check if field name is sensitive
             if key.lower() in self.sensitive_fields:
@@ -129,7 +129,7 @@ class PIIScrubber:
         if not isinstance(data, list):
             return data
 
-        scrubbed = []
+        scrubbed: List[Any] = []
         for item in data:
             if isinstance(item, str):
                 scrubbed.append(self.scrub_string(item))

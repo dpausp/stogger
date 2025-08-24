@@ -49,9 +49,11 @@ Install nicestlog and start logging like a pro:
 .. code-block:: python
 
    import nicestlog
+   import structlog
 
-   # Your beautiful logging starts here!
-   log = nicestlog.get_logger()
+   # Initialize console logging and get a structlog logger
+   nicestlog.init_logging(verbose=True)
+   log = structlog.get_logger()
    log.info("hello-world", user_id=123, action="login")
 
 Key Features

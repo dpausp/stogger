@@ -130,7 +130,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             and isinstance(node.args[0].value, str)
         )
         if lit_first:
-            original = node.args[0].value  # type: ignore[assignment]
+            original = node.args[0].value  # type: ignore[attr-defined]
             remaining_args = node.args[1:]
             placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
             msg = original + ((" " + " ".join(placeholders)) if placeholders else "")

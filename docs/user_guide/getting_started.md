@@ -59,13 +59,16 @@ log.info("payment-processed",
 
 ## Configuration
 
+Note: The high-level configure API is not finalized; prefer init_logging with kwargs.
+
 nicestlog can be configured through various methods:
 
 ```python
 import nicestlog
 
 # Configure with custom settings
-nicestlog.configure(
+# Prefer init_logging; configure is subject to change.
+nicestlog.init_logging(
     level="INFO",
     format="json",
     include_timestamp=True
@@ -76,4 +79,4 @@ nicestlog.configure(
 
 - Learn about [Best Practices](best_practices.md) for effective logging
 - Explore [Advanced Features](../features/advanced_assistant.md) for code transformation
-- Check out the [API Reference](../development/api_reference.md) for detailed documentation
+- Check out the [API Reference](../development/api_reference) for detailed documentation

@@ -60,10 +60,12 @@ CLI
    :show-inheritance:
 
 Advanced CLI Features
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 The CLI module now includes all advanced AST functionality that was previously in cli_advanced.
 All AST commands are available under ``nicestlog tools ast``.
+
+Note: Some high-level CLI examples in Features docs use legacy names (analyze/transform at top-level). The authoritative CLI layout is the help in `nicestlog --help` which reflects this repository's CLI (tools ast ...).
 
 Eliot Integration
 -----------------
