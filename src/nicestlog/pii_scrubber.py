@@ -5,7 +5,7 @@ Automatically detects and redacts sensitive information from log messages.
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class PIIScrubber:
@@ -15,8 +15,8 @@ class PIIScrubber:
 
     def __init__(
         self,
-        custom_patterns: Dict[str, str] = None,
-        sensitive_fields: List[str] = None,
+        custom_patterns: Optional[Dict[str, str]] = None,
+        sensitive_fields: Optional[List[str]] = None,
         redaction_text: str = "[REDACTED]",
     ):
         """
@@ -175,8 +175,8 @@ class PIIScrubber:
 
 # Convenience function for easy integration
 def create_pii_processor(
-    custom_patterns: Dict[str, str] = None,
-    sensitive_fields: List[str] = None,
+    custom_patterns: Optional[Dict[str, str]] = None,
+    sensitive_fields: Optional[List[str]] = None,
     redaction_text: str = "[REDACTED]",
 ) -> PIIScrubber:
     """Create a PII scrubber processor for structlog."""

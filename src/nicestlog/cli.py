@@ -303,7 +303,7 @@ def check(
         else:
             print("🔧 Auto-fixing issues")
 
-    lint_directory(path_obj, fix=fix, interactive=interactive, dry_run=dry_run)
+    lint_directory(path_obj)
 
 
 # AST Commands
@@ -384,9 +384,15 @@ def ast_transform(
 
     # Configure patterns
     if enable_patterns:
-        assistant.enable_patterns(enable_patterns)
+        for pattern_name in enable_patterns:
+            for ast_pattern in assistant.patterns:
+                if ast_pattern.name == pattern_name:
+                    ast_pattern.enabled = True
     if disable_patterns:
-        assistant.disable_patterns(disable_patterns)
+        for pattern_name in disable_patterns:
+            for ast_pattern in assistant.patterns:
+                if ast_pattern.name == pattern_name:
+                    ast_pattern.enabled = False
 
     if path.is_file():
         _transform_single_file(assistant, path, dry_run, interactive)
@@ -435,7 +441,7 @@ def ast_patterns(
     Shows all available patterns with their status and descriptions.
     """
     assistant = AdvancedAssistant()
-    patterns = assistant.get_available_patterns()
+    patterns = assistant.patterns
     _display_patterns(patterns, show_details)
 
 
@@ -540,8 +546,8 @@ def _transform_directory(
 
 def _transform_interactive(path: Path, verbose: bool):
     """Run interactive transformation on a file."""
-    transformer = InteractiveTransformer(verbose=verbose)
-    transformer.run(path)
+    transformer = InteractiveTransformer()
+    transformer.transform_file_interactive(path)
 
 
 def _display_patterns(patterns: List[ASTPattern], show_details: bool):

@@ -11,7 +11,7 @@ import os
 import json
 import toml
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from dataclasses import dataclass
 from colorama import init as colorama_init, Fore, Style
 
@@ -48,7 +48,7 @@ class LoggingLevelIssue:
 class LoggingVisitor(ast.NodeVisitor):
     """AST visitor to analyze logging patterns."""
 
-    def __init__(self, source_lines: List[str] = None):
+    def __init__(self, source_lines: Optional[List[str]] = None):
         self.log_statements = 0
         self.functions = 0
         self.functions_with_logging = 0
@@ -225,7 +225,7 @@ def analyze_file(file_path: Path) -> tuple[LoggingStats, List[LoggingLevelIssue]
         content = file_path.read_text(encoding="utf-8")
     except Exception as e:
         print(f"Error reading {file_path}: {e}", file=sys.stderr)
-        return LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0)
+        return LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0), []
 
     lines = content.splitlines()
     total_lines = len(lines)
