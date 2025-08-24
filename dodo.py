@@ -65,7 +65,7 @@ def task_complexity():
 def task_security():
     """Run security checks."""
     return uv_actions(
-        "bandit -r src/",
+        "bandit -r src/ --configfile pyproject.toml",
         verbosity=2,
     )
 

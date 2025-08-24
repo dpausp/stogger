@@ -393,7 +393,9 @@ class AdvancedTransformer(ast.NodeTransformer):
         self.patterns = {p.name: p for p in patterns if p.enabled}
         self.metrics = TransformationMetrics()
         self.changes_made: List[str] = []
-        self.transformation_id = hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
+        self.transformation_id = hashlib.sha256(
+            str(time.time()).encode(), usedforsecurity=False
+        ).hexdigest()[:8]
 
         log.debug(
             "transformer-initialized",
@@ -496,7 +498,9 @@ class AdvancedAssistant:
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
         self.patterns: List[ASTPattern] = []
-        self.session_id = hashlib.md5(str(time.time()).encode()).hexdigest()[:12]
+        self.session_id = hashlib.sha256(
+            str(time.time()).encode(), usedforsecurity=False
+        ).hexdigest()[:12]
 
         # Initialize default patterns
         self._initialize_default_patterns()

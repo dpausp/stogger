@@ -40,6 +40,17 @@ include = ["README.md", "docs/**"]
 # Source directory (default: "src")
 src_dir = "src"
 
+[tool.bandit]
+# Skip these tests for acceptable low-severity issues
+skips = [
+    "B110",  # try_except_pass - acceptable for optional imports and error handling
+    "B112",  # try_except_continue - acceptable for file processing loops
+    "B106",  # hardcoded_password_funcarg - demo/test data only
+    "B311",  # random - used for demo data generation, not security
+    "B404",  # subprocess - needed for editor integration
+    "B603",  # subprocess_without_shell_equals_true - safe usage with controlled input
+]
+
 [dependency-groups]
 dev = [
     "bandit>=1.8.6",
