@@ -31,6 +31,7 @@ from .advanced_assistant import (
 from .interactive_transformer import (
     InteractiveTransformer,
 )
+from .assistant import migrate_file, migrate_directory, MigrationResult
 
 # Initialize logging and console
 log = structlog.get_logger(__name__)
@@ -784,6 +785,28 @@ def review(
 
 
 @app.command()
+def migrate(
+    path: Annotated[str, typer.Argument(help="File or directory to migrate")],
+    output: Annotated[Optional[str], typer.Option("--output", "-o", help="Output directory")] = None,
+    migration_type: Annotated[str, typer.Option("--type", "-t", help="Migration type")] = "print-to-structlog",
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show changes without applying")] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive migration")] = False,
+    backup: Annotated[bool, typer.Option("--backup/--no-backup", help="Create backup files")] = True,
+    force: Annotated[bool, typer.Option("--force", help="Overwrite existing files")] = False,
+):
+    """🔄 Migrate code using AST transformations.
+    
+    Examples:
+      nicestlog migrate file.py                           # Print to structlog
+      nicestlog migrate src/ --output migrated/           # Directory migration
+      nicestlog migrate file.py --type logging-to-structlog  # Logging migration
+      nicestlog migrate file.py --interactive             # Interactive mode
+      nicestlog migrate file.py --dry-run                 # Preview changes
+    """
+    run_migrate_command(path, output, migration_type, dry_run, interactive, backup, force)
+
+
+@app.command()
 def demo(
     feature_arg: Annotated[
         Optional[str], typer.Argument(help="Demo specific feature")
@@ -1266,6 +1289,390 @@ def run_lint_demo():
     """Demonstrate linting functionality."""
     print_demo_header("Linting Demo", "Code quality analysis and suggestions")
     print("🔍 Linting demo - analyzing code quality")
+
+
+# Migration Types Configuration
+MIGRATION_TYPES = {
+    "print-to-structlog": {
+        "description": "Convert print statements to structlog calls",
+        "handler": "migrate_print_to_structlog",
+        "patterns": ["print_statements", "logging_calls"],
+    },
+    "logging-to-structlog": {
+        "description": "Convert standard logging to structlog",
+        "handler": "migrate_logging_to_structlog", 
+        "patterns": ["logging_calls", "logger_imports"],
+    },
+    "format-strings": {
+        "description": "Convert f-strings to structured logging",
+        "handler": "migrate_format_strings",
+        "patterns": ["format_strings", "string_formatting"],
+    },
+}
+
+
+def run_migrate_command(
+    path: str,
+    output: Optional[str],
+    migration_type: str,
+    dry_run: bool,
+    interactive: bool,
+    backup: bool,
+    force: bool,
+):
+    """Execute migration command with comprehensive AST integration."""
+    
+    # 1. Validate migration type
+    if migration_type not in MIGRATION_TYPES:
+        console.print(f"[red]❌ Unknown migration type: {migration_type}[/red]")
+        console.print(f"Available types: {', '.join(MIGRATION_TYPES.keys())}")
+        console.print("\nMigration types:")
+        for mt, config in MIGRATION_TYPES.items():
+            console.print(f"  [cyan]{mt}[/cyan] - {config['description']}")
+        raise typer.Exit(1)
+    
+    migration_config = MIGRATION_TYPES[migration_type]
+    
+    # 2. Path validation and setup
+    source_path = Path(path)
+    if not source_path.exists():
+        console.print(f"[red]❌ Path {path} does not exist[/red]")
+        raise typer.Exit(1)
+    
+    if output:
+        target_path = Path(output)
+        target_path.mkdir(parents=True, exist_ok=True)
+    else:
+        target_path = source_path  # In-place migration
+    
+    # 3. Display migration info
+    console.print(
+        Panel.fit(
+            f"🔄 [bold blue]Code Migration[/bold blue]\n"
+            f"Type: [cyan]{migration_type}[/cyan]\n"
+            f"Mode: [yellow]{'Preview' if dry_run else 'Apply'}[/yellow]\n"
+            f"Source: [green]{source_path}[/green]\n"
+            f"Target: [green]{target_path}[/green]",
+            title="Migration Configuration"
+        )
+    )
+    
+    # 4. Backup creation
+    if backup and not dry_run and target_path == source_path:
+        backup_result = create_migration_backup(source_path)
+        if backup_result:
+            console.print(f"✅ [green]Backup created: {backup_result}[/green]")
+    
+    # 5. Interactive mode
+    if interactive:
+        console.print("🎯 [bold magenta]Starting interactive migration...[/bold magenta]")
+        transformer = InteractiveTransformer()
+        result = run_interactive_migration(
+            transformer, source_path, target_path, migration_config, dry_run
+        )
+        show_migration_report(result, dry_run)
+        return
+    
+    # 6. Automatic migration
+    console.print("🚀 [bold blue]Starting automatic migration...[/bold blue]")
+    
+    if source_path.is_file():
+        result = migrate_single_file(
+            source_path, target_path, migration_config, dry_run, force
+        )
+    else:
+        result = migrate_directory_recursive(
+            source_path, target_path, migration_config, dry_run, force
+        )
+    
+    # 7. Show results
+    show_migration_report(result, dry_run)
+    
+    # 8. Exit with appropriate code
+    if result.errors > 0:
+        raise typer.Exit(1)
+
+
+def migrate_single_file(
+    source: Path, 
+    target: Path, 
+    config: dict, 
+    dry_run: bool, 
+    force: bool
+) -> MigrationResult:
+    """Migrate a single file using the appropriate handler."""
+    
+    # Print-to-Structlog migration (existing functionality)
+    if config["handler"] == "migrate_print_to_structlog":
+        try:
+            # Read source file
+            original_content = source.read_text(encoding='utf-8')
+            
+            # Apply migration
+            new_content, changed = migrate_file(original_content)
+            
+            # Create result object compatible with our interface
+            # Note: MigrationResult from assistant.py has different fields
+            class CompatibleResult:
+                def __init__(self):
+                    self.files_processed = 1
+                    self.transformations_applied = 1 if changed else 0
+                    self.errors = 0
+                    self.warnings = []
+            
+            result = CompatibleResult()
+            
+            # Write result if not dry run and changed
+            if not dry_run and changed:
+                if target != source:
+                    # Different target
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(new_content, encoding='utf-8')
+                else:
+                    # In-place migration
+                    source.write_text(new_content, encoding='utf-8')
+            
+            # Show diff preview if dry run and changed
+            if dry_run and changed:
+                import difflib
+                diff_lines = list(difflib.unified_diff(
+                    original_content.splitlines(keepends=True),
+                    new_content.splitlines(keepends=True),
+                    fromfile=str(source),
+                    tofile=str(target),
+                ))
+                console.print("\n[bold blue]📄 Preview of changes:[/bold blue]")
+                for line in diff_lines[:20]:  # Show first 20 lines
+                    if line.startswith('+'):
+                        console.print(f"[green]{line.rstrip()}[/green]")
+                    elif line.startswith('-'):
+                        console.print(f"[red]{line.rstrip()}[/red]")
+                    elif line.startswith('@@'):
+                        console.print(f"[cyan]{line.rstrip()}[/cyan]")
+                    else:
+                        console.print(line.rstrip())
+                if len(diff_lines) > 20:
+                    console.print(f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]")
+            
+            return result
+            
+        except Exception as e:
+            console.print(f"[red]❌ Error migrating {source}: {e}[/red]")
+            class CompatibleResult:
+                def __init__(self):
+                    self.files_processed = 1
+                    self.transformations_applied = 0
+                    self.errors = 1
+                    self.warnings = [str(e)]
+            return CompatibleResult()
+    
+    # Extended AST migrations using Advanced Assistant
+    assistant = AdvancedAssistant()
+    
+    # Get patterns for this migration type
+    patterns = []
+    for pattern_name in config["patterns"]:
+        for ast_pattern in assistant.patterns:
+            if pattern_name.lower() in ast_pattern.name.lower():
+                patterns.append(ast_pattern)
+    
+    if not patterns:
+        console.print(f"[yellow]⚠️ No AST patterns found for {config['handler']}[/yellow]")
+        # Fallback to basic analysis
+        analysis_result = assistant.analyze_file(source)
+        class CompatibleResult:
+            def __init__(self):
+                self.files_processed = 1
+                self.transformations_applied = 0
+                self.errors = 0
+                self.warnings = [f"No specific patterns for {config['handler']}"]
+        return CompatibleResult()
+    
+    # Apply AST transformations
+    try:
+        transform_result = assistant.transform_file(source, dry_run=dry_run)
+        
+        if not dry_run and transform_result.changes_made and target != source:
+            # Copy transformed content to target
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(transform_result.transformed_code)
+        
+        class CompatibleResult:
+            def __init__(self):
+                self.files_processed = 1
+                self.transformations_applied = len(transform_result.changes)
+                self.errors = 0
+                self.warnings = []
+        return CompatibleResult()
+    
+    except Exception as e:
+        console.print(f"[red]❌ Error migrating {source}: {e}[/red]")
+        class CompatibleResult:
+            def __init__(self):
+                self.files_processed = 1
+                self.transformations_applied = 0
+                self.errors = 1
+                self.warnings = [str(e)]
+        return CompatibleResult()
+
+
+def migrate_directory_recursive(
+    source: Path, 
+    target: Path, 
+    config: dict, 
+    dry_run: bool, 
+    force: bool
+) -> MigrationResult:
+    """Migrate all Python files in a directory recursively."""
+    
+    # For print-to-structlog, use existing directory migration
+    if config["handler"] == "migrate_print_to_structlog":
+        return migrate_directory(source, target, dry_run)
+    
+    # For other migrations: Process files individually
+    python_files = list(source.rglob("*.py"))
+    if not python_files:
+        console.print(f"[yellow]⚠️ No Python files found in {source}[/yellow]")
+        class CompatibleResult:
+            def __init__(self):
+                self.files_processed = 0
+                self.transformations_applied = 0
+                self.errors = 0
+                self.warnings = []
+        return CompatibleResult()
+    
+    total_files = 0
+    total_transformations = 0
+    total_errors = 0
+    all_warnings = []
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        
+        for py_file in python_files:
+            task = progress.add_task(f"Migrating {py_file.name}...", total=None)
+            
+            # Calculate target file path
+            rel_path = py_file.relative_to(source)
+            target_file = target / rel_path if target != source else py_file
+            
+            # Migrate individual file
+            result = migrate_single_file(py_file, target_file, config, dry_run, force)
+            
+            total_files += result.files_processed
+            total_transformations += result.transformations_applied
+            total_errors += result.errors
+            all_warnings.extend(result.warnings)
+            
+            progress.remove_task(task)
+    
+    class CompatibleResult:
+        def __init__(self):
+            self.files_processed = total_files
+            self.transformations_applied = total_transformations
+            self.errors = total_errors
+            self.warnings = all_warnings
+    return CompatibleResult()
+
+
+def run_interactive_migration(
+    transformer: InteractiveTransformer,
+    source: Path,
+    target: Path, 
+    config: dict,
+    dry_run: bool
+) -> MigrationResult:
+    """Run interactive migration using InteractiveTransformer."""
+    
+    console.print(f"🎯 Interactive migration: {config['description']}")
+    console.print("Use the interactive interface to review and apply changes.")
+    
+    try:
+        # Start interactive session
+        if source.is_file():
+            transformer.transform_file_interactive(source)
+        else:
+            # For directories, process files one by one interactively
+            python_files = list(source.rglob("*.py"))
+            for py_file in python_files:
+                console.print(f"\n📁 Processing: {py_file}")
+                transformer.transform_file_interactive(py_file)
+        
+        # Return success result (InteractiveTransformer handles its own reporting)
+        class CompatibleResult:
+            def __init__(self):
+                self.files_processed = 1 if source.is_file() else len(list(source.rglob("*.py")))
+                self.transformations_applied = 0  # Interactive mode handles its own counting
+                self.errors = 0
+                self.warnings = []
+        return CompatibleResult()
+        
+    except Exception as e:
+        console.print(f"[red]❌ Interactive migration failed: {e}[/red]")
+        class CompatibleResult:
+            def __init__(self):
+                self.files_processed = 0
+                self.transformations_applied = 0
+                self.errors = 1
+                self.warnings = [str(e)]
+        return CompatibleResult()
+
+
+def create_migration_backup(path: Path) -> Optional[str]:
+    """Create backup of files before migration."""
+    import shutil
+    import datetime
+    
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    if path.is_file():
+        backup_path = path.with_suffix(f".backup_{timestamp}{path.suffix}")
+        shutil.copy2(path, backup_path)
+        return str(backup_path)
+    
+    elif path.is_dir():
+        backup_path = path.parent / f"{path.name}_backup_{timestamp}"
+        shutil.copytree(path, backup_path)
+        return str(backup_path)
+    
+    return None
+
+
+def show_migration_report(result: MigrationResult, dry_run: bool):
+    """Display comprehensive migration results."""
+    action = "Would migrate" if dry_run else "Migrated"
+    
+    # Main results table
+    results_table = Table(title=f"📊 Migration Results ({action})")
+    results_table.add_column("Metric", style="cyan")
+    results_table.add_column("Count", style="green", justify="right")
+    
+    results_table.add_row("Files processed", str(result.files_processed))
+    results_table.add_row("Transformations applied", str(result.transformations_applied))
+    results_table.add_row("Errors", str(result.errors))
+    results_table.add_row("Warnings", str(len(result.warnings)))
+    
+    console.print(results_table)
+    
+    # Show warnings if any
+    if result.warnings:
+        console.print("\n[yellow]⚠️ Warnings:[/yellow]")
+        for warning in result.warnings:
+            console.print(f"  • {warning}")
+    
+    # Show status message
+    if result.errors > 0:
+        console.print(f"\n[red]❌ Migration completed with {result.errors} errors[/red]")
+    elif result.transformations_applied > 0:
+        if dry_run:
+            console.print(f"\n[blue]ℹ️ Run without --dry-run to apply {result.transformations_applied} changes[/blue]")
+        else:
+            console.print(f"\n[green]✅ Successfully applied {result.transformations_applied} transformations[/green]")
+    else:
+        console.print(f"\n[blue]ℹ️ No changes needed - code is already in target format[/blue]")
 
 
 def main():
