@@ -474,7 +474,7 @@ def lint_directory(
     if output_format == "json":
         # Machine-readable JSON output
         report = {
-            "files": rows,
+            "files": [str(row) for row in rows],
             "summary": {
                 "total_files": len(python_files),
                 "files_with_issues": total_issues,
@@ -492,7 +492,7 @@ def lint_directory(
     elif output_format == "toml":
         # Machine-readable TOML output
         report = {
-            "files": rows,
+            "files": [str(row) for row in rows],
             "summary": {
                 "total_files": len(python_files),
                 "files_with_issues": total_issues,

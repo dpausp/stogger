@@ -431,7 +431,7 @@ class AdvancedTransformer(ast.NodeTransformer):
             patterns_matched=dict(self.metrics.patterns_matched),
         )
 
-        return transformed_tree
+        return transformed_tree  # type: ignore[return-value]
 
     def visit(self, node: ast.AST) -> ast.AST:
         """Visit and potentially transform a node."""
@@ -557,7 +557,7 @@ class AdvancedAssistant:
                 description="Convert print() calls to structured logging",
                 node_type=NodeType.CALL,
                 matcher=is_print_call,
-                transformer=transform_print_to_log,
+                transformer=transform_print_to_log,  # type: ignore[arg-type]
                 priority=10,
             )
         )
@@ -588,7 +588,7 @@ class AdvancedAssistant:
                 description="Add placeholder docstrings to functions",
                 node_type=NodeType.FUNCTION_DEF,
                 matcher=is_function_without_docstring,
-                transformer=add_docstring,
+                transformer=add_docstring,  # type: ignore[arg-type]
                 priority=5,
                 enabled=False,  # Disabled by default
             )

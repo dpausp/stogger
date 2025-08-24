@@ -97,7 +97,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
             "json-renderer-created", min_level="debug" if config.verbose else "info"
         )
     elif config.log_format == "simple":
-        renderer = SimpleConsoleRenderer(
+        renderer = SimpleConsoleRenderer(  # type: ignore[assignment]
             min_level="debug" if config.verbose else "info",
             settings=config.simple_format_settings,
         )
@@ -106,7 +106,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
             min_level="debug" if config.verbose else "info",
         )
     else:
-        renderer = ConsoleFileRenderer(
+        renderer = ConsoleFileRenderer(  # type: ignore[assignment]
             min_level="debug" if config.verbose else "info",
             show_caller_info=config.show_caller_info,
         )

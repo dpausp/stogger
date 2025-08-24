@@ -14,7 +14,7 @@ from flask import Flask, render_template_string, request
 import structlog
 
 # Simple in-memory log storage
-log_buffer = queue.Queue(maxsize=1000)
+log_buffer: queue.Queue[Dict[str, Any]] = queue.Queue(maxsize=1000)
 recent_logs: List[Dict[str, Any]] = []
 log_lock = threading.Lock()
 

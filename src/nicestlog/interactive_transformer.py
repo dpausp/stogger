@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
 import structlog
@@ -56,7 +56,7 @@ class TransformationProposal:
     context_after: List[str]
     node_type: str
     user_edited: bool = False
-    edit_history: List[str] = None
+    edit_history: Optional[List[str]] = None
 
     def __post_init__(self):
         if self.edit_history is None:
@@ -74,7 +74,7 @@ class InteractiveSession:
     auto_accept_all: bool = False
     quit_requested: bool = False
     edited: int = 0
-    edit_sessions: List[EditSession] = None
+    edit_sessions: Optional[List[EditSession]] = None
 
     def __post_init__(self):
         if self.edit_sessions is None:
@@ -180,7 +180,11 @@ class InteractiveTransformer:
                     )
                     break
 
-                elif choice == UserChoice.EDIT and self.enable_live_editing:
+                elif (
+                    choice == UserChoice.EDIT
+                    and self.enable_live_editing
+                    and self.live_editor
+                ):
                     # Live edit the transformation
                     edited_code, accepted, edit_session = (
                         self.live_editor.edit_transformation(
@@ -288,7 +292,7 @@ class InteractiveTransformer:
         # Show session header
         self._show_session_header(files)
 
-        results = []
+        results: List[Any] = []
         for file_path in files:
             if self.session.quit_requested:
                 log.info(

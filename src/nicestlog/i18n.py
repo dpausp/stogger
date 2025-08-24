@@ -9,9 +9,9 @@ from typing import Dict, Any, Optional
 import structlog
 
 try:
-    import toml
+    import toml  # type: ignore[import-untyped]
 except ImportError:
-    toml = None
+    toml = None  # type: ignore[assignment]
 
 # Get logger for this module
 log = structlog.get_logger(__name__)

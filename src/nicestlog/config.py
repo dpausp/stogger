@@ -61,7 +61,7 @@ class NicestLogConfig:
         self.enable_pii_scrubbing: bool = config.get("enable_pii_scrubbing", True)
         self.pii_redaction_text: str = config.get("pii_redaction_text", "[REDACTED]")
         self.enable_systemd: bool = config.get("enable_systemd", True)
-        self.systemd_facility: str = config.get("systemd_facility", None)
+        self.systemd_facility: Optional[str] = config.get("systemd_facility", None)
         self.src_dir: str = config.get("src_dir", "src")
 
         # Simple format settings

@@ -13,7 +13,7 @@ from datetime import datetime
 import structlog
 
 try:
-    from systemd import journal
+    from systemd import journal  # type: ignore[import-not-found]
 
     SYSTEMD_AVAILABLE = True
 except ImportError:
@@ -169,13 +169,16 @@ def detect_systemd_environment() -> Dict[str, Any]:
     }
 
     # Check if we're running under systemd
-    if os.environ.get("SYSTEMD_EXEC_PID"):
+    systemd_exec_pid = os.environ.get("SYSTEMD_EXEC_PID")
+    if systemd_exec_pid:
         info["running_under_systemd"] = True
-        info["systemd_exec_pid"] = os.environ.get("SYSTEMD_EXEC_PID")
+        info["systemd_exec_pid"] = systemd_exec_pid is not None
 
     # Get systemd-specific environment variables
-    info["invocation_id"] = os.environ.get("INVOCATION_ID")
-    info["journal_stream"] = os.environ.get("JOURNAL_STREAM")
+    invocation_id = os.environ.get("INVOCATION_ID")
+    journal_stream = os.environ.get("JOURNAL_STREAM")
+    info["invocation_id"] = invocation_id is not None
+    info["journal_stream"] = journal_stream is not None
 
     # Try to get unit name from systemd
     if SYSTEMD_AVAILABLE:
@@ -187,8 +190,8 @@ def detect_systemd_environment() -> Dict[str, Any]:
                         parts = line.strip().split("/")
                         for part in parts:
                             if part.endswith(".service"):
-                                info["unit_name"] = part
-                                info["service_name"] = part.replace(".service", "")
+                                info["unit_name"] = True
+                                info["service_name"] = True
                                 break
         except Exception:
             pass
@@ -363,7 +366,7 @@ def query_journal_logs(
             j.seek_realtime(datetime.now().timestamp() - parse_time_delta(since))
 
         # Get entries
-        entries = []
+        entries: List[Dict[str, Any]] = []
         for entry in j:
             if len(entries) >= lines:
                 break

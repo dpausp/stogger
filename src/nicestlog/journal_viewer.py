@@ -16,7 +16,7 @@ from dataclasses import dataclass
 _REAL_DATETIME = datetime
 
 try:
-    from systemd import journal
+    from systemd import journal  # type: ignore[import-not-found]
 
     SYSTEMD_AVAILABLE = True
 except ImportError:
@@ -308,14 +308,20 @@ class JournalViewer:
         # Relative times
         if "ago" in time_str:
             if "hour" in time_str:
-                hours = int(re.search(r"(\d+)", time_str).group(1))
-                return now - timedelta(hours=hours)
+                match = re.search(r"(\d+)", time_str)
+                if match:
+                    hours = int(match.group(1))
+                    return now - timedelta(hours=hours)
             elif "minute" in time_str:
-                minutes = int(re.search(r"(\d+)", time_str).group(1))
-                return now - timedelta(minutes=minutes)
+                match = re.search(r"(\d+)", time_str)
+                if match:
+                    minutes = int(match.group(1))
+                    return now - timedelta(minutes=minutes)
             elif "day" in time_str:
-                days = int(re.search(r"(\d+)", time_str).group(1))
-                return now - timedelta(days=days)
+                match = re.search(r"(\d+)", time_str)
+                if match:
+                    days = int(match.group(1))
+                    return now - timedelta(days=days)
 
         # Absolute times
         if time_str == "today":

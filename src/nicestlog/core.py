@@ -20,7 +20,7 @@ log = structlog.get_logger(__name__)
 try:
     import colorama
 except ImportError:
-    colorama = None
+    colorama = None  # type: ignore[assignment]
 
 _MISSING = "{who} requires the {package} package installed."
 _EVENT_WIDTH = 30

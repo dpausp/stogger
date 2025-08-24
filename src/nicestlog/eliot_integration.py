@@ -9,9 +9,9 @@ from typing import Any, Dict, Optional, TextIO
 from datetime import datetime
 
 try:
-    from eliot import start_action, Action, log_message
-    from eliot._output import FileDestination
-    from eliot._message import WrittenMessage
+    from eliot import start_action, Action, log_message  # type: ignore[import-untyped]
+    from eliot._output import FileDestination  # type: ignore[import-untyped]
+    from eliot._message import WrittenMessage  # type: ignore[import-untyped]
 
     ELIOT_AVAILABLE = True
 except ImportError:

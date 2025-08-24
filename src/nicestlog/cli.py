@@ -113,8 +113,8 @@ def i18n_check(
         )
 
         # Handle list_missing and fail_on_extra logic
-        missing_keys = result.get("missing_keys", [])
-        extra_keys = result.get("extra_keys", [])
+        missing_keys: List[str] = list(result.get("missing_keys", []))
+        extra_keys: List[str] = list(result.get("extra_keys", []))
 
         if list_missing:
             for key in missing_keys:
@@ -151,7 +151,7 @@ def i18n_check(
                 print("No extra keys")
 
             # Show debug events if present
-            debug_events = result.get("debug_with_replace_events", [])
+            debug_events: List[str] = list(result.get("debug_with_replace_events", []))
             if debug_events and verbose:
                 print("Debug events using _replace_msg (ignored for coverage):")
                 for key in debug_events:
