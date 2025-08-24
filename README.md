@@ -59,7 +59,7 @@ log = structlog.get_logger()
 log.info("Starting application", component="main")
 ```
 
-For more examples and best practices, see the [documentation](docs/best_practices.md).
+For more examples and best practices, see the [documentation](docs/user_guide/best_practices.md).
 
 ## CLI Docs Viewer
 
@@ -171,7 +171,7 @@ nicestlog ast patterns --list --details
 Replace? [Y]es/[n]o/[a]ll/[p]review/[s]kip file/[q]uit:
 ```
 
-See [Advanced Assistant Documentation](docs/advanced_assistant.md) for complete details.
+See [Advanced Assistant Documentation](docs/features/advanced_assistant.md) for complete details.
 
 ## License
 

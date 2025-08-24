@@ -187,9 +187,10 @@ if random.random() < 0.1:  # 10% sampling
 ```python
 # Flask example
 from flask import request, g
-import nicestlog
+import nicestlog, structlog
 
-log = nicestlog.get_logger()
+nicestlog.init_logging(verbose=True)
+log = structlog.get_logger()
 
 @app.before_request
 def before_request():

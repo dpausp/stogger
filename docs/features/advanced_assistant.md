@@ -1,4 +1,62 @@
-# 🚀 Advanced AST Assistant - Revolutionary Code Transformation
+# 🚀 Advanced AST Assistant
+
+The Advanced AST Assistant provides AST-based analysis and transformations. The API and CLI described here reflect the current implementation.
+
+- Python API: see `src/nicestlog/advanced_assistant.py`
+- CLI: available under `nicestlog ast ...` (analyze/transform/patterns)
+
+## Quick Python examples
+
+```python
+from pathlib import Path
+from nicestlog.advanced_assistant import (
+    AdvancedAssistant,
+    ASTPattern,
+    NodeType,
+    analyze_python_file,
+    transform_python_file,
+)
+
+# Analyze a file
+analysis = analyze_python_file(Path("my_script.py"))
+print(analysis.complexity_score, analysis.detected_patterns)
+
+# Transform a file (dry-run)
+result = transform_python_file(Path("my_script.py"), dry_run=True)
+print(len(result.changes_made), result.metrics.nodes_analyzed)
+
+# Custom pattern
+assistant = AdvancedAssistant()
+assistant.add_pattern(
+    ASTPattern(
+        name="example",
+        description="no-op",
+        node_type=NodeType.CALL,
+        matcher=lambda node: False,
+        transformer=lambda node: node,
+        priority=1,
+    )
+)
+```
+
+## CLI usage
+
+```bash
+# Analyze
+nicestlog ast analyze my_script.py --verbose
+nicestlog ast analyze src/ --pattern "*.py" --json
+
+# Transform
+nicestlog ast transform my_script.py --dry-run --verbose
+nicestlog ast transform src/ --enable print_to_structlog --disable add_missing_docstrings
+
+# Patterns
+nicestlog ast patterns --list
+nicestlog ast patterns --details
+```
+
+For details on detected issues in logging calls, see Log Statement Analysis.
+
 
 The Advanced AST Assistant is nicestlog's flagship feature that provides intelligent code transformation and analysis capabilities using Python's Abstract Syntax Tree (AST).
 

@@ -16,9 +16,13 @@ Here's how to start logging with nicestlog:
 
 ```python
 import nicestlog
+import structlog
+
+# Initialize logging (console by default)
+nicestlog.init_logging(verbose=True)
 
 # Get a logger instance
-log = nicestlog.get_logger()
+log = structlog.get_logger()
 
 # Log with structured data
 log.info("user-login", user_id=123, username="alice", ip="192.168.1.1")

@@ -6,19 +6,19 @@ This project includes a comprehensive Nix flake for reproducible development and
 
 ### Prerequisites
 
-- [Nix](https://nixos.org/download.html) with flakes enabled
-- Optional: [direnv](https://direnv.net/) for automatic environment loading
+- Nix with flakes enabled
+- Optional: direnv for automatic environment loading
 
 ### Enable Nix Flakes
 
-Add to your `~/.config/nix/nix.conf` or `/etc/nix/nix.conf`:
+Add to your ~/.config/nix/nix.conf or /etc/nix/nix.conf:
 ```
 experimental-features = nix-command flakes
 ```
 
 ## Usage
 
-### 🚀 Run nicestlog CLI directly
+### Run nicestlog CLI directly
 
 ```bash
 # Run the CLI tool
@@ -29,7 +29,7 @@ nix run . -- analyze src/
 nix run . -- transform --dry-run src/
 ```
 
-### 📚 Build Documentation
+### Build Documentation
 
 ```bash
 # Build documentation once
@@ -39,7 +39,7 @@ nix run .#build-docs
 nix run .#live-docs
 ```
 
-### 🛠️ Development Environment
+### Development Environment
 
 ```bash
 # Enter development shell
@@ -72,7 +72,7 @@ mypy src/
 nicestlog-dev
 ```
 
-### 🏗️ Build Package
+### Build Package
 
 ```bash
 # Build the nicestlog package
@@ -89,39 +89,39 @@ nix flake check
 
 ### Apps (nix run)
 
-- `nix run .` or `nix run .#nicestlog` - Run nicestlog CLI
-- `nix run .#build-docs` - Build documentation
-- `nix run .#live-docs` - Start live documentation server
+- nix run . or nix run .#nicestlog - Run nicestlog CLI
+- nix run .#build-docs - Build documentation
+- nix run .#live-docs - Start live documentation server
 
 ### Packages (nix build)
 
-- `nix build` or `nix build .#nicestlog` - Build nicestlog package
-- `nix build .#docs` - Build documentation
+- nix build or nix build .#nicestlog - Build nicestlog package
+- nix build .#docs - Build documentation
 
 ### Development
 
-- `nix develop` - Enter development shell with all dependencies
-- `nix flake check` - Run all checks (build, tests, docs)
+- nix develop - Enter development shell with all dependencies
+- nix flake check - Run all checks (build, tests, docs)
 
 ## Features
 
-### 🔧 Complete Development Environment
+### Complete Development Environment
 
 The Nix flake provides:
 
-- **Python 3.11** with all dependencies
-- **nicestlog package** built and available
-- **Documentation tools** (Sphinx, Furo, MyST)
-- **Development tools** (pytest, ruff, mypy, pre-commit)
-- **CLI tools** ready to use
+- Python with all dependencies
+- nicestlog package built and available
+- Documentation tools (Sphinx, Furo, MyST)
+- Development tools (pytest, ruff, mypy, pre-commit)
+- CLI tools ready to use
 
-### 📦 Reproducible Builds
+### Reproducible Builds
 
 - Pinned dependencies for consistent builds
 - Cross-platform support (Linux, macOS, Windows via WSL)
 - Isolated environment prevents conflicts
 
-### 🚀 Easy CI/CD Integration
+### Easy CI/CD Integration
 
 ```yaml
 # GitHub Actions example
@@ -144,7 +144,7 @@ The Nix flake provides:
 ├── flake.nix          # Nix flake definition
 ├── flake.lock         # Locked dependencies
 ├── .envrc             # direnv configuration
-├── NIX.md             # This file
+├── docs/user_guide/nix_integration.md  # This file
 └── ...
 ```
 
@@ -152,7 +152,7 @@ The Nix flake provides:
 
 ### Adding Dependencies
 
-Edit `flake.nix` and add to the appropriate section:
+Edit flake.nix and add to the appropriate section:
 
 ```nix
 pythonEnv = pkgs.python311.withPackages (ps: with ps; [
@@ -163,7 +163,7 @@ pythonEnv = pkgs.python311.withPackages (ps: with ps; [
 
 ### Custom Scripts
 
-Add new scripts in the `outputs` section:
+Add new scripts in the outputs section:
 
 ```nix
 myScript = pkgs.writeShellScriptBin "my-script" ''
@@ -192,7 +192,7 @@ sudo chown -R $USER:$USER ~/.cache/nix
 
 ### Python path issues
 
-The development shell automatically sets up `PYTHONPATH` to include the built nicestlog package.
+The development shell automatically sets up PYTHONPATH to include the built nicestlog package.
 
 ### Documentation build fails
 
@@ -298,4 +298,4 @@ nix build
 nix bundle .#nicestlog
 ```
 
-The Nix integration provides a complete, reproducible development and deployment environment for nicestlog! 🎯
+The Nix integration provides a complete, reproducible development and deployment environment for nicestlog!

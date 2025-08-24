@@ -7,7 +7,7 @@ nicestlog provides powerful advanced features for sophisticated logging scenario
 Edit and transform logs in real-time:
 
 ```python
-from nicestlog.live_editor import LiveEditor
+from nicestlog.live_editor import LiveEditor  # module exists; experimental
 
 editor = LiveEditor()
 editor.start_session("my_app.py")
@@ -50,9 +50,10 @@ transformer.transform_file("legacy_code.py", interactive=True)
 Create custom log processors:
 
 ```python
-from nicestlog import LogProcessor
+# Note: API below is conceptual; use structlog processors in practice.
+from typing import Dict, Any, Callable
 
-class CustomProcessor(LogProcessor):
+class CustomProcessor:
     def process(self, record):
         # Add custom fields
         record["environment"] = "production"
@@ -69,7 +70,8 @@ nicestlog.add_processor(CustomProcessor())
 
 ```python
 import os
-from nicestlog import configure
+# For real usage, configure via nicestlog.init_logging and structlog.
+from nicestlog import init_logging as configure
 
 # Different configs per environment
 if os.getenv("ENV") == "production":
@@ -90,12 +92,15 @@ else:
 ### Dynamic Configuration
 
 ```python
-from nicestlog import get_config, update_config
+# In practice, query structlog configuration directly.
+# Placeholder API shown below for illustration only.
 
 # Get current config
-config = get_config()
+config = {"level": "INFO"}  # example
 
 # Update at runtime
+# ... update your own config structure and reinitialize if needed
+update_config = lambda cfg: cfg
 update_config({
     "level": "DEBUG",
     "include_caller": True

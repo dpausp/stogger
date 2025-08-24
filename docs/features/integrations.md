@@ -1,92 +1,92 @@
 # 🔌 Integrations
 
-nicestlog provides seamless integration with popular Python logging frameworks and systems.
+nicestlog provides integrations and examples for common ecosystems. The snippets below reflect the current API.
 
 ## Eliot Integration
 
-nicestlog integrates beautifully with Eliot for action-based structured logging:
+Use the Eliot helpers to get beautiful, human-readable action traces.
 
 ```python
-from nicestlog.eliot_integration import EliotLogger
-from eliot import start_action
+from nicestlog.eliot_integration import setup_eliot_logging, log_action, log_call
 
-# Use nicestlog with Eliot actions
-logger = EliotLogger()
+# Configure Eliot output (human-readable by default)
+setup_eliot_logging(human_readable=True, show_timestamps=True)
 
-with start_action(action_type="user-registration"):
-    logger.info("registration-started", user_email="user@example.com")
+# Context-managed action
+with log_action("user-registration", user_email="user@example.com"):
     # ... registration logic ...
-    logger.info("registration-completed", user_id=123)
+    pass
+
+# Decorate functions to log calls as actions
+@log_call("send-welcome-email")
+def send_email(user_id: int) -> bool:
+    # ...
+    return True
 ```
 
 ## Systemd Integration
 
-Perfect integration with systemd journal for system services:
+Send logs to the systemd journal when running as a service.
 
 ```python
-from nicestlog.systemd_integration import SystemdLogger
+import structlog
+from nicestlog.systemd_integration import setup_systemd_logging, detect_systemd_environment
 
-# Automatic systemd journal integration
-logger = SystemdLogger()
-logger.info("service-started", service_name="my-app", pid=os.getpid())
+# Only enable when systemd is available
+if detect_systemd_environment():
+    setup_systemd_logging(syslog_identifier="my-app")
+
+log = structlog.get_logger("service")
+log.info("service-started", pid=os.getpid())
 ```
 
 ## Web Dashboard
 
-Real-time log monitoring with the built-in web dashboard:
+Simple real-time log viewer powered by Flask + HTMX.
 
 ```python
-from nicestlog.web_dashboard import start_dashboard
+from nicestlog.web_dashboard import run_dashboard, setup_web_logging
+import structlog
 
-# Start web dashboard on port 8080
-start_dashboard(port=8080, log_level="INFO")
+# Route logs to the in-memory dashboard buffer
+setup_web_logging()
+log = structlog.get_logger("demo")
+
+# Start the dashboard on http://127.0.0.1:8080
+run_dashboard(port=8080, debug=False)
 ```
 
-## Flask Integration
+## Flask Example
 
 ```python
-from flask import Flask
-from nicestlog import get_logger
+from flask import Flask, request
+import structlog
+import nicestlog
 
+nicestlog.init_logging(verbose=True)
 app = Flask(__name__)
-log = get_logger()
+log = structlog.get_logger("web")
 
 @app.before_request
 def log_request():
-    log.info("request-started", 
-             method=request.method, 
-             path=request.path)
+    log.info(
+        "request-started",
+        method=request.method,
+        path=request.path,
+        user_agent=request.headers.get("User-Agent"),
+    )
 ```
 
-## Django Integration
-
-```python
-# settings.py
-LOGGING = {
-    'version': 1,
-    'handlers': {
-        'nicestlog': {
-            'class': 'nicestlog.DjangoHandler',
-            'level': 'INFO',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['nicestlog'],
-            'level': 'INFO',
-        },
-    },
-}
-```
-
-## FastAPI Integration
+## FastAPI Example
 
 ```python
 from fastapi import FastAPI
-from nicestlog import get_logger
+import structlog
+import nicestlog
 
+nicestlog.init_logging(verbose=True)
 app = FastAPI()
-log = get_logger()
+log = structlog.get_logger("api")
 
 @app.middleware("http")
 async def log_requests(request, call_next):
