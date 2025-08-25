@@ -6,12 +6,12 @@ Initial workspace scan and setup - understanding the codebase and current tasks.
 ## Discovered Items to Address
 
 ### High Priority
-- [ ] **Uncommitted Changes**: There are modifications in `.agent.md` and `AGENTS.md` that need to be committed
-- [ ] **AST Integration Task**: Review `todo_ast_integration.md` for pending AST tools integration work
+- [x] **Uncommitted Changes**: Checked git status - working tree is clean
+- [x] **AST Integration Task**: ✅ COMPLETED! AST tools are fully integrated into main commands (`check`, `fix`, `migrate`)
 
 ### Analysis Items Found
 - [ ] Check TODO items in source code (found in multiple files)
-- [ ] Review CONVENTIONS.md incomplete section (line 39: "- TODO")
+- [x] Review CONVENTIONS.md incomplete section (line 39: "- TODO") - ✅ COMPLETED! Added Core Components documentation
 - [ ] Examine i18n_check.py optimization opportunities (lines 154, 156)
 
 ### Files to Check/Modify

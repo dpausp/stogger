@@ -36,7 +36,13 @@ Configuration is in `pyproject.toml`:
 
 ### Core Components
 
-- TODO
+- **nicestlog.core**: Main logging initialization and configuration
+- **nicestlog.cli**: Command-line interface with Typer
+- **nicestlog.advanced_assistant**: AST-based code analysis and transformation
+- **nicestlog.interactive_transformer**: Interactive code transformation with user prompts
+- **nicestlog.linter**: Code quality checking for logging best practices
+- **nicestlog.factory**: Logger factory and configuration management
+- **nicestlog.i18n**: Internationalization support and translation checking
 
 ### Testing
 
