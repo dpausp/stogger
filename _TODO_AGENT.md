@@ -1,21 +1,21 @@
-# Early Logging Format Initialization
+# Nicestlog Migration Examples and Library Support
 
 Task goal
-- Initialize internal log format early to reduce uninitialized structlog messages
-- Minimize or eliminate the block of uninitialized structlog messages at startup
-- Allow graceful fallback to structlog standard format if initialization fails
-- Improve user experience by having consistent logging from the very beginning
+- Show concrete before/after examples of how nicestlog migration works with real code
+- Check and document eliot integration (already mentioned in codebase)
+- Research and identify other popular logging libraries that could be supported
+- Provide practical migration examples that users can follow
 
 Success criteria
-- Significantly reduced uninitialized structlog messages at startup
-- Early format initialization before any logging occurs
-- Graceful fallback to standard format if initialization fails
-- No breaking changes to existing functionality
+- Clear before/after code examples showing migration process
+- Documentation of currently supported logging libraries (eliot, etc.)
+- Research findings on other popular logging libraries (loguru, sentry, etc.)
+- Practical examples users can copy and adapt
 
 Out-of-scope for this task
-- Complete logging system redesign
-- Changes to external logging configuration APIs
-- Performance optimizations beyond initialization timing
+- Actually implementing new library integrations
+- Changing existing migration functionality
+- Performance optimizations
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -25,50 +25,48 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze current logging initialization
-   - Context: Understand where and when logging format is currently set up
+1) Analyze current migration functionality
+   - Context: Understand what migration features already exist
    - Files to check/modify:
-     - src/nicestlog/__init__.py
-     - src/nicestlog/__main__.py
-     - src/nicestlog/cli.py
-     - src/nicestlog/core.py
-     - src/nicestlog/config.py
+     - src/nicestlog/cli.py (migration commands)
+     - src/nicestlog/eliot_integration.py (eliot support)
+     - examples/ directory (existing examples)
+     - docs/ directory (migration documentation)
    - Steps:
-     - [x] Examine current logging setup flow
-     - [x] Identify where uninitialized messages occur
-     - [x] Find current format initialization points
-     - [x] Document current behavior
+     - [x] Examine CLI migration commands
+     - [x] Check eliot integration implementation
+     - [x] Review existing examples and documentation
+     - [x] Document current migration capabilities
 
-2) Design early initialization strategy
-   - Context: Plan how to initialize logging format as early as possible
+2) Research popular logging libraries
+   - Context: Identify what other logging libraries are commonly used
    - Files to check/modify:
-     - src/nicestlog/__init__.py (likely main entry point)
-     - src/nicestlog/core.py (core logging setup)
+     - Research findings document
    - Steps:
-     - [x] Design early initialization approach
-     - [x] Plan fallback strategy for failed initialization
-     - [x] Identify minimal dependencies for early setup
-     - [x] Create implementation plan
+     - [x] Research loguru usage and features
+     - [x] Research sentry integration patterns
+     - [x] Check for other popular logging libraries (structlog, python-json-logger, etc.)
+     - [x] Document findings with usage patterns
 
-3) Implement early logging initialization
-   - Context: Actually implement the early initialization
+3) Create concrete migration examples
+   - Context: Show real before/after code examples
    - Files to check/modify:
-     - src/nicestlog/__init__.py (added early init call)
-     - src/nicestlog/core.py (added init_early_logging function)
-     - src/nicestlog/factory.py (fixed verbose debug messages)
+     - docs/user_guide/migration_examples.md (new file)
+     - examples/migration_examples.py (new file)
    - Steps:
-     - [x] Implement early format initialization
-     - [x] Add graceful fallback handling
-     - [x] Test with various scenarios
-     - [x] Commit with message: "feat: initialize logging format early to reduce uninitialized messages"
+     - [x] Create before/after examples for standard logging
+     - [x] Create eliot migration examples
+     - [x] Create examples for other identified libraries
+     - [x] Add practical tips and common patterns
+     - [x] Commit with message: "docs: add concrete migration examples with before/after code"
 
-4) Test and validate
-   - Context: Ensure the changes work correctly and don't break anything
+4) Update documentation
+   - Context: Ensure migration documentation is comprehensive
    - Files to check/modify:
-     - tests/test_early_logging_init.py (new test file)
+     - docs/user_guide/cli_migration_guide.md
+     - README.md
    - Steps:
-     - [x] Add tests for early initialization
-     - [x] Test fallback scenarios
-     - [x] Verify no regression in existing functionality
-     - [x] Run full test suite
-     - [x] Commit with message: "test: add tests for early logging initialization"
+     - [x] Update existing migration documentation
+     - [x] Add references to new examples
+     - [x] Ensure all supported libraries are documented
+     - [x] Commit with message: "docs: update migration guide with library support details"

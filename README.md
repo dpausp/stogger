@@ -21,6 +21,31 @@ pip install nicestlog
 
 ## Quick Start
 
+### 🔄 Migration from Existing Logging
+
+Already have a project with print statements or standard logging? Nicestlog can migrate it automatically:
+
+```bash
+# Analyze your project (safe, no changes)
+nicestlog migrate /path/to/your/project
+
+# Apply migration with backup
+nicestlog migrate /path/to/your/project --do-migrate --backup
+
+# Validate results
+nicestlog check /path/to/your/project
+```
+
+**Supported migrations:**
+- ✅ `print()` statements → structured logging
+- ✅ Standard `logging` module → structlog  
+- ✅ Eliot integration (already compatible!)
+- ✅ Loguru, Sentry, and other libraries
+
+📚 See [Migration Examples](docs/user_guide/migration_examples.md) for concrete before/after code examples.
+
+### 🌱 New Project Setup
+
 ### Basic Console Logging
 
 ```python

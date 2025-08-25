@@ -1,5 +1,37 @@
 # CLI Migration Guide - v2.1 Command Changes
 
+> 📚 **New!** For concrete before/after examples, see [Migration Examples](migration_examples.md)
+
+## 🔄 Supported Migration Types
+
+Nicestlog supports migration from various logging approaches:
+
+| Source | Migration Type | Difficulty | Command |
+|--------|---------------|------------|---------|
+| **print() statements** | `print-to-structlog` | Easy | `nicestlog migrate . --do-migrate --type print-to-structlog` |
+| **Standard logging** | `logging-to-structlog` | Medium | `nicestlog migrate . --do-migrate --type logging-to-structlog --interactive` |
+| **Format strings** | `format-strings` | Easy | `nicestlog migrate . --do-migrate --type format-strings` |
+| **Eliot** | Enhancement | Easy | Already compatible! Use `nicestlog.eliot_integration` |
+| **Loguru** | Manual + Enhancement | Medium | Manual conversion + `nicestlog check . --ast --fix` |
+| **Sentry** | Integration | Easy | Use Sentry's `StructlogIntegration` |
+
+## 🎯 Quick Start Migration
+
+1. **Analyze your project** (safe, no changes):
+   ```bash
+   nicestlog migrate /path/to/project
+   ```
+
+2. **Apply migration with backup**:
+   ```bash
+   nicestlog migrate /path/to/project --do-migrate --backup
+   ```
+
+3. **Validate results**:
+   ```bash
+   nicestlog check /path/to/project --ast
+   ```
+
 ## Overview
 
 nicestlog v2.1 introduces a cleaner, more intuitive CLI structure. This guide helps existing users migrate to the new commands.
