@@ -5,8 +5,11 @@
 
 🎉 **PROJECT COMPLETED SUCCESSFULLY** - All phases finished, CLI restructure implemented!
 
-## Current Session Goal ✅ COMPLETED
+## Previous Session Goal ✅ COMPLETED
 **TEST SUITE MAINTENANCE**: Fix failing tests and improve coverage to 90%
+
+## Current Session Goal
+**USABILITY IMPROVEMENTS**: Fix critical user experience issues with migrate command
 
 ### ✅ COMPLETED ISSUES
 - ✅ Fixed 5 failing tests in `test_cli_ast_integration.py` due to CLI restructure
@@ -19,6 +22,57 @@
 - ✅ Updated all migrate command tests to use proper mocks
 - ✅ Tests now properly mock `nicestlog.project_analyzer.analyze_project_for_agents`
 - ✅ Fixed mock return values to match expected `ProjectAnalysisResult` structure
+
+### 🚨 NEW CRITICAL USABILITY ISSUES
+**User tested `nicestlog migrate` and found major problems:**
+
+1. **🔥 CRITICAL: Logging not initialized** 
+   - Command crashes because logging system not set up
+   - Very embarrassing for a logging tool!
+   - Users get confusing error messages
+
+2. **📁 CRITICAL: .venv directory scanned**
+   - Tool scans virtual environment files (thousands of files)
+   - Ignores .gitignore completely
+   - Makes analysis extremely slow and noisy
+   - Should respect .gitignore, .nicestlogignore, common ignore patterns
+
+3. **❓ CRITICAL: No guidance for configuration**
+   - Tool doesn't tell users how to initialize config
+   - No clear next steps after analysis
+   - Missing helpful hints for first-time users
+   - Should suggest `nicestlog init` when no config found
+
+### 📋 USABILITY IMPROVEMENT PLAN
+
+#### Phase 1: Critical Fixes ⚠️ HIGH PRIORITY
+- [ ] **1.1** Fix logging initialization in migrate command
+- [ ] **1.2** Implement proper .gitignore respect in project analyzer
+- [ ] **1.3** Add helpful user guidance and next-step suggestions
+- [ ] **1.4** Add progress indicators for long-running analysis
+- [ ] **1.5** Improve error messages and user feedback
+
+#### Phase 2: Enhanced User Experience
+- [ ] **2.1** Add .nicestlogignore support for custom ignore patterns
+- [ ] **2.2** Smart defaults for common project structures
+- [ ] **2.3** Better output formatting and readability
+- [ ] **2.4** Add --quiet and --verbose flags for different user needs
+- [ ] **2.5** Configuration validation and helpful error messages
+
+#### Phase 3: Polish & Documentation
+- [ ] **3.1** Update CLI help texts with better examples
+- [ ] **3.2** Add getting started guide for new users
+- [ ] **3.3** Performance optimization for large projects
+- [ ] **3.4** Add telemetry/analytics for usage patterns (opt-in)
+- [ ] **3.5** User testing and feedback collection
+
+### 🎯 SUCCESS CRITERIA
+- [ ] `nicestlog migrate` works out-of-the-box without crashes
+- [ ] Respects .gitignore and common ignore patterns
+- [ ] Provides clear guidance for next steps
+- [ ] Fast analysis even on large projects
+- [ ] Helpful error messages and user feedback
+- [ ] New users can get started without reading docs
 
 ## 🚨 PROBLEM IDENTIFIED
 Current CLI has inconsistent command structure:
