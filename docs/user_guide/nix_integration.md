@@ -282,7 +282,7 @@ pytest tests/
 build-docs
 
 # Run CLI
-nicestlog analyze src/
+nicestlog migrate src/
 ```
 
 ### CI/CD Pipeline

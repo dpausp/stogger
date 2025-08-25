@@ -18,8 +18,8 @@ This is confusing and inconsistent! Need clean design.
 - [x] **1.1** Analyze current commands and group logically
 - [x] **1.2** Design consistent top-level structure  
 - [x] **1.3** Create command hierarchy specification
-- [ ] **1.4** Document migration path for existing users
-- [ ] **1.5** Update help texts and documentation
+- [x] **1.4** Document migration path for existing users
+- [x] **1.5** Update help texts and documentation
 
 #### 1.1 ANALYSIS COMPLETE ✅
 

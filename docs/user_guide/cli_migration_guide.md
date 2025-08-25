@@ -36,7 +36,7 @@ The CLI has been restructured for better usability and logical workflow:
 ### Before (v2.0)
 ```bash
 # Separate commands for analysis and migration
-nicestlog analyze .                    # Analyze project
+nicestlog migrate .                   # Analyze project
 nicestlog migrate . --dry-run          # Preview migration
 nicestlog migrate .                    # Apply migration
 ```
@@ -63,9 +63,9 @@ nicestlog migrate . --do-migrate      # Apply migration changes
 **Before:**
 ```bash
 # Multiple ways to analyze (confusing)
-nicestlog analyze .
-nicestlog tools analyze-project .
-nicestlog tools analyze-project . --agent
+nicestlog migrate .
+nicestlog migrate . --json
+nicestlog migrate . --json
 ```
 
 **After:**
@@ -97,8 +97,8 @@ nicestlog migrate . --do-migrate --type logging-to-structlog  # Specific type
 **Before:**
 ```bash
 # Buried under tools ast
-nicestlog tools ast analyze file.py
-nicestlog tools ast transform file.py --interactive
+nicestlog check file.py --ast
+nicestlog fix file.py --interactive
 ```
 
 **After:**
@@ -114,7 +114,7 @@ nicestlog fix file.py --interactive
 ```bash
 # Duplicate commands
 nicestlog init
-nicestlog tools init-config
+nicestlog init
 ```
 
 **After:**
@@ -131,8 +131,8 @@ nicestlog init /path/to/project        # Specific directory
 **Before:**
 ```bash
 # Multiple inconsistent ways
-nicestlog analyze . --json
-nicestlog tools analyze-project . --agent
+nicestlog migrate . --json
+nicestlog migrate . --json
 ```
 
 **After:**
@@ -147,7 +147,7 @@ nicestlog migrate . --json
 ```bash
 #!/bin/bash
 # Old agent workflow
-nicestlog tools analyze-project . --agent > analysis.json
+nicestlog migrate . --json > analysis.json
 STRATEGY=$(cat analysis.json | jq -r '.recommendation.strategy')
 if [ "$STRATEGY" = "print-to-structlog" ]; then
     nicestlog migrate . --type print-to-structlog

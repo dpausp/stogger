@@ -16,7 +16,7 @@ This guide helps AI agents analyze existing Python projects and systematically r
 
 ```bash
 # Scan project structure and identify logging patterns
-nicestlog tools ast analyze . --verbose --json > project_analysis.json
+nicestlog migrate . --json > project_analysis.json
 
 # Check existing logging coverage
 nicestlog check . --ast --complexity --verbose
@@ -39,7 +39,7 @@ Check `pyproject.toml`, `requirements.txt`, or `setup.py` for:
 
 ```bash
 # Get detailed metrics
-nicestlog tools ast analyze . --pattern "*.py" --json | jq '.[] | {file: .file_path, complexity: .complexity_score, issues: (.issues | length)}'
+nicestlog migrate . --json | jq '.[] | {file: .file_path, complexity: .complexity_score, issues: (.issues | length)}'
 ```
 
 **Complexity Thresholds:**
@@ -154,7 +154,7 @@ python -m pytest  # or your test command
 nicestlog review . --format text --min-score 80
 
 # Check for any remaining issues
-nicestlog tools ast analyze . --verbose
+nicestlog check . --ast --verbose
 ```
 
 ## 📊 Phase 5: Monitoring and Optimization
