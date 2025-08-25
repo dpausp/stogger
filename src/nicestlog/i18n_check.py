@@ -49,8 +49,22 @@ def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set
     Returns:
         tuple(set(event_keys), set(msg_keys))
     """
+    event_keys, msg_keys, _ = scan_translation_keys(paths)
+    return event_keys, msg_keys
+
+
+def scan_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str], Set[str]]:
+    """Scan Python files for all translation-related keys in a single pass.
+    
+    This optimized function reduces IO by scanning files once and extracting
+    all needed information: event keys, message keys, and debug events.
+
+    Returns:
+        tuple(set(event_keys), set(msg_keys), set(debug_events))
+    """
     event_keys: Set[str] = set()
     msg_keys: Set[str] = set()
+    debug_events: Set[str] = set()
 
     for root in paths:
         if root.is_file() and root.suffix == ".py":
@@ -80,7 +94,11 @@ def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set
             for m in _MSG_KEY.finditer(text):
                 msg_keys.add(m.group("key"))
 
-    return event_keys, msg_keys
+            # Debug events that use _replace_msg (should be excluded from requirements)
+            for m in _DEBUG_WITH_REPLACE.finditer(text):
+                debug_events.add(m.group("event"))
+
+    return event_keys, msg_keys, debug_events
 
 
 def load_translation_keys(translation_file: Path) -> Set[str]:
@@ -121,7 +139,8 @@ def check_translations(
       - msg_keys_found: set[str]
       - debug_with_replace_events: set[str]
     """
-    event_keys, msg_keys = find_required_translation_keys(source_paths)
+    # Use optimized single-pass scanning to reduce IO
+    event_keys, msg_keys, debug_events = scan_translation_keys(source_paths)
 
     translation_file = translation_dir / f"{language}.toml"
     translation_keys: Set[str] = set()
@@ -141,40 +160,10 @@ def check_translations(
             "required_keys": sorted(event_keys),
         }
 
-    # Collect debug-level events that use _replace_msg.
-    #
-    # Rationale:
-    # - nicestlog does not require translations for debug-level messages.
-    # - We still want to report these debug events (for visibility), but
-    #   exclude them from the required translation coverage. Therefore we
-    #   collect their event names in `debug_events` and remove them from
-    #   `required_keys` below.
-    # - This scanning pass is separate from `find_required_translation_keys`
-    #   to keep concerns clear. It could be merged into a single pass in the
-    #   future to avoid duplicate file reads. See TODO just below.
-    #
-    # TODO: Consider refactoring to return (event_keys, msg_keys, debug_events)
-    #       from a single scanning function to reduce IO.
-    debug_with_replace: Set[str] = set()
-    debug_events: Set[str] = set()
-    for root in source_paths:
-        if root.is_file() and root.suffix == ".py":
-            py_files = [root]
-        else:
-            py_files = [
-                p
-                for p in root.rglob("*.py")
-                if not any(part in EXCLUDE_DIRS for part in p.parts)
-            ]
-        for file in py_files:
-            try:
-                text = file.read_text(encoding="utf-8")
-            except Exception:
-                continue
-            for m in _DEBUG_WITH_REPLACE.finditer(text):
-                ev = m.group("event")
-                debug_with_replace.add(ev)
-                debug_events.add(ev)
+    # Debug events are collected during the single scan pass above.
+    # These are excluded from required translation coverage as nicestlog
+    # does not require translations for debug-level messages.
+    debug_with_replace = debug_events
 
     # Compute required keys: all event/info/_msg_key minus debug ones
     required_keys = (set(event_keys) | set(msg_keys)) - debug_events

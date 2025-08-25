@@ -10,9 +10,11 @@ Initial workspace scan and setup - understanding the codebase and current tasks.
 - [x] **AST Integration Task**: ✅ COMPLETED! AST tools are fully integrated into main commands (`check`, `fix`, `migrate`)
 
 ### Analysis Items Found
-- [ ] Check TODO items in source code (found in multiple files)
+- [x] Check TODO items in source code (found in multiple files) - ✅ COMPLETED! Fixed critical issues:
+  - Added atexit cleanup handler for QueueListener in factory.py (prevents resource leaks)
+  - Optimized i18n_check.py to use single-pass file scanning (reduces IO by ~50%)
 - [x] Review CONVENTIONS.md incomplete section (line 39: "- TODO") - ✅ COMPLETED! Added Core Components documentation
-- [ ] Examine i18n_check.py optimization opportunities (lines 154, 156)
+- [x] Examine i18n_check.py optimization opportunities (lines 154, 156) - ✅ COMPLETED! Implemented single-pass scanning
 
 ### Files to Check/Modify
 - `todo_ast_integration.md` - Contains specific integration tasks
