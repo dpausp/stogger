@@ -3,7 +3,6 @@ Integration tests for AST-enhanced CLI commands.
 Tests the new --ast, --interactive, --complexity, and --pattern options.
 """
 
-import pytest
 import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -23,6 +22,7 @@ class TestCheckCommandASTIntegration:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_check_with_ast_analysis(self):
@@ -38,10 +38,10 @@ def test_function():
     return True
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             # Mock analysis result
             mock_result = MagicMock()
             mock_result.file_path = test_file
@@ -49,11 +49,13 @@ def test_function():
             mock_result.function_count = 1
             mock_result.class_count = 0
             mock_result.complexity_score = 2.5
-            mock_result.issues = ["Found print statement that could be structured logging"]
+            mock_result.issues = [
+                "Found print statement that could be structured logging"
+            ]
             mock_assistant.analyze_file.return_value = mock_result
 
             result = self.runner.invoke(app, ["check", str(test_file), "--ast"])
-            
+
             assert result.exit_code == 1  # Issues found
             assert "AST analysis" in result.stdout
             assert "Lines of Code" in result.stdout
@@ -73,10 +75,10 @@ def complex_function(x):
     return "low"
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             mock_result = MagicMock()
             mock_result.file_path = test_file
             mock_result.complexity_score = 8.5
@@ -87,7 +89,7 @@ def complex_function(x):
             mock_assistant.analyze_file.return_value = mock_result
 
             result = self.runner.invoke(app, ["check", str(test_file), "--complexity"])
-            
+
             assert result.exit_code == 0
             assert "Complexity Score" in result.stdout
             assert "8.5" in result.stdout
@@ -103,16 +105,16 @@ def test():
     logging.warning("Something happened")
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             # Mock patterns
             mock_pattern = MagicMock()
             mock_pattern.name = "logging_quality"
             mock_pattern.enabled = False
             mock_assistant.patterns = [mock_pattern]
-            
+
             mock_result = MagicMock()
             mock_result.issues = []
             mock_result.file_path = test_file
@@ -122,12 +124,14 @@ def test():
             mock_result.complexity_score = 1.0
             mock_assistant.analyze_file.return_value = mock_result
 
-            result = self.runner.invoke(app, ["check", str(test_file), "--pattern", "logging"])
-            
+            result = self.runner.invoke(
+                app, ["check", str(test_file), "--pattern", "logging"]
+            )
+
             assert result.exit_code == 0
             assert mock_pattern.enabled  # Pattern should be enabled
 
-    @patch('nicestlog.cli.InteractiveTransformer')
+    @patch("nicestlog.cli.InteractiveTransformer")
     def test_check_interactive_mode(self, mock_transformer_class):
         """Test check command with --interactive flag."""
         test_file = self.temp_path / "interactive.py"
@@ -139,10 +143,10 @@ def test():
         mock_transformer = MagicMock()
         mock_transformer_class.return_value = mock_transformer
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             mock_result = MagicMock()
             mock_result.issues = ["print statement found"]
             mock_result.file_path = test_file
@@ -152,8 +156,10 @@ def test():
             mock_result.complexity_score = 1.0
             mock_assistant.analyze_file.return_value = mock_result
 
-            result = self.runner.invoke(app, ["check", str(test_file), "--interactive", "--ast"])
-            
+            result = self.runner.invoke(
+                app, ["check", str(test_file), "--interactive", "--ast"]
+            )
+
             assert result.exit_code == 1  # Issues found
             assert "interactive mode" in result.stdout.lower()
             assert mock_transformer.transform_file_interactive.called
@@ -171,6 +177,7 @@ class TestFixCommandASTIntegration:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_fix_with_ast_transforms(self):
@@ -182,10 +189,10 @@ def test():
     return True
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             mock_result = MagicMock()
             mock_result.file_path = test_file
             mock_result.changes_made = True
@@ -194,7 +201,7 @@ def test():
             mock_assistant.transform_file.return_value = mock_result
 
             result = self.runner.invoke(app, ["fix", str(test_file)])
-            
+
             assert result.exit_code == 0
             assert "AST-based fixes" in result.stdout
             assert mock_assistant.transform_file.called
@@ -206,10 +213,10 @@ def test():
 print("This should be fixed")
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             mock_result = MagicMock()
             mock_result.file_path = test_file
             mock_result.changes_made = True
@@ -218,12 +225,12 @@ print("This should be fixed")
             mock_assistant.transform_file.return_value = mock_result
 
             result = self.runner.invoke(app, ["fix", str(test_file), "--dry-run"])
-            
+
             assert result.exit_code == 0
             assert "Preview" in result.stdout
             mock_assistant.transform_file.assert_called_with(test_file, dry_run=True)
 
-    @patch('nicestlog.cli.InteractiveTransformer')
+    @patch("nicestlog.cli.InteractiveTransformer")
     def test_fix_interactive_mode(self, mock_transformer_class):
         """Test fix command with --interactive flag."""
         test_file = self.temp_path / "interactive_fix.py"
@@ -236,7 +243,7 @@ def test():
         mock_transformer_class.return_value = mock_transformer
 
         result = self.runner.invoke(app, ["fix", str(test_file), "--interactive"])
-        
+
         assert result.exit_code == 0
         assert "interactive fixing" in result.stdout.lower()
         assert mock_transformer.transform_file_interactive.called
@@ -249,23 +256,25 @@ import logging
 logging.info("test")
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             # Mock patterns
             mock_pattern = MagicMock()
             mock_pattern.name = "logging_calls"
             mock_pattern.enabled = False
             mock_assistant.patterns = [mock_pattern]
-            
+
             mock_result = MagicMock()
             mock_result.changes_made = False
             mock_result.changes = []
             mock_assistant.transform_file.return_value = mock_result
 
-            result = self.runner.invoke(app, ["fix", str(test_file), "--pattern", "logging"])
-            
+            result = self.runner.invoke(
+                app, ["fix", str(test_file), "--pattern", "logging"]
+            )
+
             assert result.exit_code == 0
             assert mock_pattern.enabled  # Pattern should be enabled
 
@@ -282,6 +291,7 @@ class TestMigrateCommandASTIntegration:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_migrate_print_to_structlog(self):
@@ -293,14 +303,14 @@ def hello():
     print(f"User {user_id} logged in")
 """)
 
-        with patch('nicestlog.cli.migrate_file') as mock_migrate:
+        with patch("nicestlog.cli.migrate_file") as mock_migrate:
             mock_migrate.return_value = (
                 'import structlog\nlog = structlog.get_logger()\n\ndef hello():\n    log.info("output", message="Hello world")\n    log.info("user-login", user_id=user_id)',
-                True
+                True,
             )
 
             result = self.runner.invoke(app, ["migrate", str(test_file)])
-            
+
             assert result.exit_code == 0
             assert "Migration Configuration" in result.stdout
             assert mock_migrate.called
@@ -312,19 +322,19 @@ def hello():
 print("Test migration")
 """)
 
-        with patch('nicestlog.cli.migrate_file') as mock_migrate:
+        with patch("nicestlog.cli.migrate_file") as mock_migrate:
             original_content = test_file.read_text()
             new_content = 'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="Test migration")'
             mock_migrate.return_value = (new_content, True)
 
             result = self.runner.invoke(app, ["migrate", str(test_file), "--dry-run"])
-            
+
             assert result.exit_code == 0
             assert "Preview of changes" in result.stdout
             # File should not be modified in dry run
             assert test_file.read_text() == original_content
 
-    @patch('nicestlog.cli.InteractiveTransformer')
+    @patch("nicestlog.cli.InteractiveTransformer")
     def test_migrate_interactive_mode(self, mock_transformer_class):
         """Test migrate command with --interactive flag."""
         test_file = self.temp_path / "migrate_interactive.py"
@@ -336,7 +346,7 @@ print("Interactive migration test")
         mock_transformer_class.return_value = mock_transformer
 
         result = self.runner.invoke(app, ["migrate", str(test_file), "--interactive"])
-        
+
         assert result.exit_code == 0
         assert "interactive migration" in result.stdout.lower()
         assert mock_transformer.transform_file_interactive.called
@@ -346,11 +356,11 @@ print("Interactive migration test")
         # Create test directory with Python files
         test_dir = self.temp_path / "test_project"
         test_dir.mkdir()
-        
+
         (test_dir / "file1.py").write_text('print("File 1")')
         (test_dir / "file2.py").write_text('print("File 2")')
 
-        with patch('nicestlog.cli.migrate_directory') as mock_migrate_dir:
+        with patch("nicestlog.cli.migrate_directory") as mock_migrate_dir:
             mock_result = MagicMock()
             mock_result.files_processed = 2
             mock_result.transformations_applied = 2
@@ -359,7 +369,7 @@ print("Interactive migration test")
             mock_migrate_dir.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_dir)])
-            
+
             assert result.exit_code == 0
             assert mock_migrate_dir.called
 
@@ -367,17 +377,19 @@ print("Interactive migration test")
         """Test migrate command with --output flag."""
         test_file = self.temp_path / "source.py"
         output_dir = self.temp_path / "migrated"
-        
+
         test_file.write_text('print("Source file")')
 
-        with patch('nicestlog.cli.migrate_file') as mock_migrate:
+        with patch("nicestlog.cli.migrate_file") as mock_migrate:
             mock_migrate.return_value = (
                 'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="Source file")',
-                True
+                True,
             )
 
-            result = self.runner.invoke(app, ["migrate", str(test_file), "--output", str(output_dir)])
-            
+            result = self.runner.invoke(
+                app, ["migrate", str(test_file), "--output", str(output_dir)]
+            )
+
             assert result.exit_code == 0
             assert str(output_dir) in result.stdout
 
@@ -389,17 +401,19 @@ import logging
 logging.info("Test message")
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             mock_result = MagicMock()
             mock_result.changes_made = True
             mock_result.changes = ["Converted logging to structlog"]
             mock_assistant.transform_file.return_value = mock_result
 
-            result = self.runner.invoke(app, ["migrate", str(test_file), "--type", "logging-to-structlog"])
-            
+            result = self.runner.invoke(
+                app, ["migrate", str(test_file), "--type", "logging-to-structlog"]
+            )
+
             assert result.exit_code == 0
             assert "logging-to-structlog" in result.stdout
 
@@ -416,6 +430,7 @@ class TestASTToolsSubcommands:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_tools_ast_analyze(self):
@@ -427,10 +442,10 @@ def test_function():
     return True
 """)
 
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             mock_result = MagicMock()
             mock_result.file_path = test_file
             mock_result.lines_of_code = 4
@@ -440,17 +455,19 @@ def test_function():
             mock_result.issues = []
             mock_assistant.analyze_file.return_value = mock_result
 
-            result = self.runner.invoke(app, ["tools", "ast", "analyze", str(test_file)])
-            
+            result = self.runner.invoke(
+                app, ["tools", "ast", "analyze", str(test_file)]
+            )
+
             assert result.exit_code == 0
             assert "Advanced AST Analysis" in result.stdout
 
     def test_tools_ast_patterns(self):
         """Test that tools ast patterns still works."""
-        with patch('nicestlog.cli.AdvancedAssistant') as mock_assistant_class:
+        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
-            
+
             mock_pattern = MagicMock()
             mock_pattern.name = "test_pattern"
             mock_pattern.enabled = True
@@ -460,7 +477,7 @@ def test_function():
             mock_assistant.patterns = [mock_pattern]
 
             result = self.runner.invoke(app, ["tools", "ast", "patterns"])
-            
+
             assert result.exit_code == 0
             assert "Available Transformation Patterns" in result.stdout
 
@@ -477,6 +494,7 @@ class TestBackwardCompatibility:
     def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
+
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_check_without_ast_still_works(self):
@@ -490,11 +508,11 @@ def test():
     log.info("test-message")
 """)
 
-        with patch('nicestlog.linter.lint_directory') as mock_lint:
+        with patch("nicestlog.linter.lint_directory") as mock_lint:
             mock_lint.return_value = True
 
             result = self.runner.invoke(app, ["check", str(test_file)])
-            
+
             assert result.exit_code == 0
             assert "basic linting" in result.stdout.lower()
             assert mock_lint.called

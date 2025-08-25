@@ -36,7 +36,7 @@ class LoggingStats:
 
 @dataclass
 class LoggingLevelIssue:
-    """Represents a logging level issue."""
+    """Represents a logging level issue or related logging suggestion."""
 
     line_no: int
     current_level: str
@@ -44,6 +44,7 @@ class LoggingLevelIssue:
     event_name: str
     reason: str
     severity: str = "warning"
+    category: str = "level"  # "level" or "except_logging"
 
 
 class LoggingVisitor(ast.NodeVisitor):
@@ -69,6 +70,9 @@ class LoggingVisitor(ast.NodeVisitor):
             ".warn(",
         }
 
+        # Track whether we're currently inside an except block and if that except has a name
+        self._except_stack: List[Optional[str]] = []
+
     def visit_FunctionDef(self, node):
         """Visit function definitions."""
         self.functions += 1
@@ -82,6 +86,24 @@ class LoggingVisitor(ast.NodeVisitor):
             self.functions_with_logging += 1
 
         self.current_function_has_logs = old_has_logs
+
+    # Track try/except context to suggest log.exception usage
+    def visit_Try(self, node: ast.Try):
+        # Handle try/except blocks and push except names on stack
+        for handler in node.handlers:
+            name = handler.name if isinstance(handler.name, str) else None
+            self._except_stack.append(name)
+            # Visit the handler body to analyze logging calls inside
+            for stmt in handler.body:
+                self.visit(stmt)
+            self._except_stack.pop()
+        # Visit try, orelse, and finally parts normally
+        for stmt in node.body:
+            self.visit(stmt)
+        for stmt in getattr(node, "orelse", []):
+            self.visit(stmt)
+        for stmt in getattr(node, "finalbody", []):
+            self.visit(stmt)
 
     def visit_Call(self, node):
         """Visit function calls to detect logging."""
@@ -97,7 +119,66 @@ class LoggingVisitor(ast.NodeVisitor):
             # Analyze logging level appropriateness
             self._analyze_logging_level(node)
 
+            # If we're in an except: advise to use log.exception or exc_info
+            self._analyze_except_logging(node)
+
         self.generic_visit(node)
+
+    def _analyze_except_logging(self, node: ast.Call) -> None:
+        """Within except blocks, suggest log.exception over log.error without exc_info."""
+        # Only trigger if we are inside any except block
+        if not self._except_stack:
+            return
+        # Only consider calls on a "log" object
+        if not (
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "log"
+        ):
+            return
+        level = node.func.attr
+        # If user used log.exception, it's fine — encourage dropping redundant error=str(e)
+        if level == "exception":
+            # Detect redundant explicit error=str(e)
+            for kw in node.keywords:
+                if kw.arg in {"error", "error_message"}:
+                    issue = LoggingLevelIssue(
+                        line_no=node.lineno,
+                        current_level="exception",
+                        suggested_level="exception",
+                        event_name=self._extract_event_name(node) or "",
+                        reason="Inside except: log.exception() already includes the exception and traceback; remove redundant error=str(e)",
+                        severity="warning",
+                        category="except_logging",
+                    )
+                    self.level_issues.append(issue)
+            return
+        # For error/critical in except: require exc_info
+        if level in {"error", "critical"}:
+            has_exc_info = any(kw.arg == "exc_info" for kw in node.keywords)
+            if not has_exc_info:
+                issue = LoggingLevelIssue(
+                    line_no=node.lineno,
+                    current_level=level,
+                    suggested_level="exception",
+                    event_name=self._extract_event_name(node) or "",
+                    reason="Inside except: prefer log.exception(...) or pass exc_info=True to include traceback",
+                    severity="warning",
+                    category="except_logging",
+                )
+                self.level_issues.append(issue)
+
+    def _extract_event_name(self, node: ast.Call) -> Optional[str]:
+        try:
+            if (
+                node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+            ):
+                return str(node.args[0].value)
+        except Exception:
+            return None
+        return None
 
     def _analyze_logging_level(self, node: ast.Call):
         """Analyze if the logging level is appropriate."""

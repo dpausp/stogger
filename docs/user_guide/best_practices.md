@@ -123,12 +123,11 @@ log.info("user-data-processed", **scrubber.scrub(user_data))
 ```python
 try:
     process_payment(order_id)
-except PaymentError as e:
-    log.error("payment-processing-failed",
-              order_id=order_id,
-              error_type=type(e).__name__,
-              error_message=str(e),
-              exc_info=True)
+except PaymentError:
+    log.exception(
+        "payment-processing-failed",
+        order_id=order_id,
+    )
 ```
 
 ### Correlation IDs

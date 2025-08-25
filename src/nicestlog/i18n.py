@@ -149,7 +149,9 @@ class NicestlogTranslator:
 
     def set_language(self, language: str):
         """Change language and reload translations."""
-        log.debug("changing_language", old_language=self.language, new_language=language)
+        log.debug(
+            "changing_language", old_language=self.language, new_language=language
+        )
         self.language = language
         self._load_translations()
 
