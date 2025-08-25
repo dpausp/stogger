@@ -22,7 +22,7 @@ log = structlog.get_logger(__name__)
 @dataclass
 class LoggingPattern:
     """Represents a detected logging pattern in the codebase."""
-    pattern_type: str  # 'print', 'logging', 'structlog', 'custom'
+    pattern_type: str  # 'print', 'logging', 'structlog', 'cli_output', 'custom'
     file_path: str
     line_number: int
     code_snippet: str
@@ -109,6 +109,16 @@ class ProjectAnalyzer:
             r'structlog\.',
             r'get_logger',
             r'bind\(',
+        ]
+        
+        # CLI framework output patterns
+        self.cli_output_patterns = [
+            r'typer\.echo\s*\(',
+            r'click\.echo\s*\(',
+            r'rich\.print\s*\(',
+            r'console\.print\s*\(',  # Rich Console instance
+            r'from rich import print',  # Rich print import
+            r'parser\.error\s*\(',  # argparse error output
         ]
         
         # Known logging libraries
@@ -293,17 +303,33 @@ class ProjectAnalyzer:
             if not line or line.startswith('#'):
                 continue
             
-            # Check for print statements
-            for pattern in self.print_patterns:
+            # Check for CLI framework output functions first (higher priority)
+            cli_pattern_found = False
+            for pattern in self.cli_output_patterns:
                 if re.search(pattern, line):
                     patterns.append(LoggingPattern(
-                        pattern_type='print',
+                        pattern_type='cli_output',
                         file_path=str(file_path),
                         line_number=line_num,
                         code_snippet=line,
                         severity='high',
-                        migration_priority=9
+                        migration_priority=8
                     ))
+                    cli_pattern_found = True
+                    break
+            
+            # Check for print statements (but skip if CLI pattern already found)
+            if not cli_pattern_found:
+                for pattern in self.print_patterns:
+                    if re.search(pattern, line):
+                        patterns.append(LoggingPattern(
+                            pattern_type='print',
+                            file_path=str(file_path),
+                            line_number=line_num,
+                            code_snippet=line,
+                            severity='high',
+                            migration_priority=9
+                        ))
             
             # Check for standard logging
             for pattern in self.logging_patterns:
@@ -458,9 +484,14 @@ class ProjectAnalyzer:
         print_count = len([p for p in patterns if p.pattern_type == 'print'])
         logging_count = len([p for p in patterns if p.pattern_type == 'logging'])
         structlog_count = len([p for p in patterns if p.pattern_type == 'structlog'])
+        cli_output_count = len([p for p in patterns if p.pattern_type == 'cli_output'])
         
         # Determine strategy
-        if print_count > logging_count and print_count > 0:
+        if cli_output_count > 0:
+            strategy = 'cli-outputs-to-structlog'
+            priority = 'high'
+            effort = 'medium' if complexity.complexity_category == 'simple' else 'high'
+        elif print_count > logging_count and print_count > 0:
             strategy = 'print-to-structlog'
             priority = 'high'
             effort = 'low' if complexity.complexity_category == 'simple' else 'medium'
@@ -500,7 +531,17 @@ class ProjectAnalyzer:
             prerequisites.append("Add structlog dependency")
         
         # Strategy-specific steps
-        if strategy == 'print-to-structlog':
+        if strategy == 'cli-outputs-to-structlog':
+            steps = [
+                "1. Add nicestlog to dependencies",
+                "2. Initialize nicestlog configuration",
+                "3. Run: nicestlog migrate . --type cli-outputs-to-structlog --interactive",
+                "4. Review CLI styling preservation",
+                "5. Create translation files for CLI messages",
+                "6. Test CLI output formatting",
+                "7. Validate changes"
+            ]
+        elif strategy == 'print-to-structlog':
             steps = [
                 "1. Add nicestlog to dependencies",
                 "2. Initialize nicestlog configuration",
