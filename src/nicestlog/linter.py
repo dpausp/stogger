@@ -10,6 +10,7 @@ import sys
 import os
 import json
 import toml
+import fnmatch
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass
@@ -341,10 +342,33 @@ def lint_directory(
         "dist",
         ".eggs",
     }
+    # Load exclusion globs from pyproject.toml [tool.nicestlog]
+    exclude_globs: list[str] = []
+    pyproject = directory / "pyproject.toml"
+    if pyproject.exists():
+        try:
+            cfg = toml.load(str(pyproject))
+            nl_cfg = cfg.get("tool", {}).get("nicestlog", {})
+            exclude_globs = list(nl_cfg.get("exclude", []))
+        except Exception:
+            exclude_globs = []
+
+    def is_excluded(path: Path) -> bool:
+        rel = path.relative_to(directory)
+        s = str(rel)
+        # Match any configured glob
+        for pattern in exclude_globs:
+            if fnmatch.fnmatch(s, pattern):
+                return True
+            # Also allow directory-style pattern without **/*.py
+            if rel.parts and pattern.rstrip("/") in rel.parts:
+                return True
+        return False
+
     python_files = [
         p
         for p in directory.rglob("*.py")
-        if not any(part in EXCLUDE_DIRS for part in p.parts)
+        if not any(part in EXCLUDE_DIRS for part in p.parts) and not is_excluded(p)
     ]
 
     if not python_files:

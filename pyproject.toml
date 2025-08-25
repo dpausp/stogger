@@ -39,6 +39,12 @@ include = ["README.md", "docs/**"]
 [tool.nicestlog]
 # Source directory (default: "src")
 src_dir = "src"
+# Exclude non-library paths from linter/check by default
+exclude = [
+  "tests/**",
+  "docs/**",
+  "examples/**",
+]
 
 [tool.bandit]
 # Skip these tests for acceptable low-severity issues
