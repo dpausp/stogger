@@ -149,7 +149,7 @@ class NicestlogTranslator:
 
     def set_language(self, language: str):
         """Change language and reload translations."""
-        log.info("changing_language", old_language=self.language, new_language=language)
+        log.debug("changing_language", old_language=self.language, new_language=language)
         self.language = language
         self._load_translations()
 
@@ -191,7 +191,7 @@ def t(key: str, section: str = "general", **kwargs) -> str:
 
 def set_language(language: str):
     """Set global language."""
-    log.info("setting_global_language", language=language)
+    log.debug("setting_global_language", language=language)
     get_translator().set_language(language)
 
 

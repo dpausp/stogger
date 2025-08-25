@@ -64,7 +64,7 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
             )
             with open(translation_file, "r") as f:
                 translations = toml.load(f)
-            log.info(
+            log.debug(
                 "translations-loaded",
                 translation_count=len(translations),
                 language=config.language,
