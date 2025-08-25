@@ -185,7 +185,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
     def analyze(self, tree: ast.Module) -> CodeAnalysisResult:
         """Perform comprehensive analysis of the AST."""
-        log.info(
+        log.debug(
             "analysis-started",
             _replace_msg="🚀 Starting deep AST analysis for {file_path}",
             file_path=str(self.file_path),
@@ -407,7 +407,7 @@ class AdvancedTransformer(ast.NodeTransformer):
 
     def transform(self, tree: ast.Module) -> ast.Module:
         """Apply all transformations to the AST."""
-        log.info(
+        log.debug(
             "transformation-started",
             _replace_msg="🚀 Starting transformation with ID {transformation_id}",
             transformation_id=self.transformation_id,
@@ -608,7 +608,7 @@ class AdvancedAssistant:
     def add_pattern(self, pattern: ASTPattern) -> None:
         """Add a custom transformation pattern."""
         self.patterns.append(pattern)
-        log.info(
+        log.debug(
             "pattern-added",
             _replace_msg="➕ Added custom pattern: {name}",
             name=pattern.name,
@@ -619,7 +619,7 @@ class AdvancedAssistant:
 
     def analyze_file(self, file_path: Path) -> CodeAnalysisResult:
         """Perform comprehensive analysis of a Python file."""
-        log.info(
+        log.debug(
             "file-analysis-started",
             _replace_msg="🔍 Starting analysis of {file_path}",
             file_path=str(file_path),
@@ -658,7 +658,7 @@ class AdvancedAssistant:
         self, file_path: Path, dry_run: bool = False
     ) -> TransformationResult:
         """Transform a Python file using all enabled patterns."""
-        log.info(
+        log.debug(
             "file-transformation-started",
             _replace_msg="🔄 Starting transformation of {file_path} (dry_run: {dry_run})",
             file_path=str(file_path),
@@ -702,7 +702,7 @@ class AdvancedAssistant:
                 # Write transformed content
                 file_path.write_text(transformed_content)
 
-                log.info(
+                log.debug(
                     "file-transformed",
                     _replace_msg="💾 File {file_path} transformed and saved (backup: {backup_path})",
                     file_path=str(file_path),
