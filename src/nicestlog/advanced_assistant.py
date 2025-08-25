@@ -462,7 +462,7 @@ class AdvancedTransformer(ast.NodeTransformer):
                             change_desc = f"Applied {pattern_name} at line {getattr(node, 'lineno', 'unknown')}"
                             self.changes_made.append(change_desc)
 
-                            log.info(
+                            log.debug(
                                 "node-transformed",
                                 _replace_msg="🔧 {change_desc}",
                                 change_desc=change_desc,
@@ -746,7 +746,7 @@ class AdvancedAssistant:
         self, directory: Path, pattern: str = "*.py", dry_run: bool = False
     ) -> List[TransformationResult]:
         """Transform all Python files in a directory."""
-        log.info(
+        log.debug(
             "directory-transformation-started",
             _replace_msg="🗂️ Starting directory transformation: {directory}",
             directory=str(directory),
