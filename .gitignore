@@ -12,3 +12,6 @@ src/nicestlog/_docs
 
 # Virtual environments
 .venv
+
+# direnv
+.direnv
