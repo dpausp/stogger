@@ -295,9 +295,13 @@ if ELIOT_AVAILABLE:
                         if result is not None:
                             action.add_success_fields(result=result)
                         return result
-                    except Exception:
-                        # Log the exception without using add_failure_fields
-                        pass
+                    except Exception as exc:
+                        # Record failure fields for easier debugging and tests
+                        try:
+                            action.add_failure_fields(exception=str(exc))
+                        except Exception:
+                            # If add_failure_fields isn't available, ignore
+                            pass
                         raise
 
             return wrapper

@@ -439,18 +439,20 @@ class TestReviewIntegration:
 
             mock_reviewer.analyze_log_file.side_effect = [mock_report1, mock_report2]
 
-            with patch("nicestlog.log_reviewer.print_report"):
-                result = self.runner.invoke(
-                    app,
-                    [
-                        "review",
-                        str(self.temp_path),
-                        "--format",
-                        "json",
-                        "--min-score",
-                        "70",
-                    ],
-                )
+            # Patch json.dumps to handle MagicMock reliably
+            with patch("json.dumps", side_effect=lambda obj, indent=2: "{}"):
+                with patch("nicestlog.log_reviewer.print_report"):
+                    result = self.runner.invoke(
+                        app,
+                        [
+                            "review",
+                            str(self.temp_path),
+                            "--format",
+                            "json",
+                            "--min-score",
+                            "70",
+                        ],
+                    )
 
                 assert result.exit_code == 0
                 assert mock_reviewer.analyze_log_file.call_count == 2

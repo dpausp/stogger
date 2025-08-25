@@ -172,13 +172,13 @@ def detect_systemd_environment() -> Dict[str, Any]:
     systemd_exec_pid = os.environ.get("SYSTEMD_EXEC_PID")
     if systemd_exec_pid:
         info["running_under_systemd"] = True
-        info["systemd_exec_pid"] = systemd_exec_pid is not None
+        info["systemd_exec_pid"] = systemd_exec_pid
 
     # Get systemd-specific environment variables
     invocation_id = os.environ.get("INVOCATION_ID")
     journal_stream = os.environ.get("JOURNAL_STREAM")
-    info["invocation_id"] = invocation_id is not None
-    info["journal_stream"] = journal_stream is not None
+    info["invocation_id"] = invocation_id
+    info["journal_stream"] = journal_stream
 
     # Try to get unit name from systemd
     if SYSTEMD_AVAILABLE:
@@ -190,8 +190,8 @@ def detect_systemd_environment() -> Dict[str, Any]:
                         parts = line.strip().split("/")
                         for part in parts:
                             if part.endswith(".service"):
-                                info["unit_name"] = True
-                                info["service_name"] = True
+                                info["unit_name"] = part
+                                info["service_name"] = part.replace(".service", "")
                                 break
         except Exception:
             pass

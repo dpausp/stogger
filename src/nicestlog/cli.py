@@ -1437,6 +1437,11 @@ def generate_service_cmd(
         with open(output_file, "w") as f:
             f.write(service_content)
         print(f"Service file written to {output_file}")
+        # Provide helpful follow-up instructions
+        target_path = f"/etc/systemd/system/{service_name}.service"
+        print(f"Install with: sudo cp {output_file} {target_path}")
+        print(f"Enable with: sudo systemctl enable {service_name}")
+        print(f"Start with: sudo systemctl start {service_name}")
     else:
         print(service_content)
 
@@ -1743,8 +1748,14 @@ def run_migrate_command(
         raise typer.Exit(1)
 
     if output:
-        target_path = Path(output)
-        target_path.mkdir(parents=True, exist_ok=True)
+        target_root = Path(output)
+        target_root.mkdir(parents=True, exist_ok=True)
+        if source_path.is_file():
+            # For single file, compute target file path under output directory
+            target_path = target_root / source_path.name
+        else:
+            # For directories, use the directory itself as root
+            target_path = target_root
     else:
         target_path = source_path  # In-place migration
 
