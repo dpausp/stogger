@@ -61,6 +61,25 @@ log.info("Starting application", component="main")
 
 For more examples and best practices, see the [documentation](docs/user_guide/best_practices.md).
 
+## Quick Command Reference
+
+```bash
+# Project analysis and migration
+nicestlog migrate .                    # Analyze project (safe, default)
+nicestlog migrate . --json            # JSON output for agents
+nicestlog migrate . --do-migrate      # Apply migration changes
+
+# Code quality and fixes
+nicestlog check .                      # Check logging best practices
+nicestlog fix . --interactive          # Fix issues interactively
+nicestlog lint .                       # Check logging coverage
+
+# Setup and utilities
+nicestlog init                         # Initialize configuration
+nicestlog docs                         # Browse documentation
+nicestlog demo                         # Run interactive demos
+```
+
 ## CLI Docs Viewer
 
 Use the built-in docs viewer to read project docs with colorized Markdown rendering.
@@ -138,40 +157,50 @@ jobs:
 ```
 
 
-## 🚀 Advanced AST Assistant
+## 🚀 Project Migration & Code Analysis
 
-nicestlog now includes a revolutionary **Advanced AST Assistant** for sophisticated code analysis and transformation:
+nicestlog includes powerful tools for analyzing existing projects and migrating them to use structured logging:
 
 ```bash
-# Analyze Python code structure and patterns
-nicestlog ast analyze my_script.py --verbose
+# Analyze project for migration opportunities (safe, fast)
+nicestlog migrate .
 
-# Transform code with comprehensive logging
-nicestlog ast transform src/ --dry-run --pattern "*.py"
+# Get JSON output for automated processing
+nicestlog migrate . --json
 
-# 🎯 NEW: Interactive transformation (amber-style)
-nicestlog ast interactive my_script.py --verbose
+# Actually apply migration changes
+nicestlog migrate . --do-migrate
 
-# List available transformation patterns
-nicestlog ast patterns --list --details
+# Interactive migration with user confirmation
+nicestlog migrate . --do-migrate --interactive
+
+# Specific migration type
+nicestlog migrate . --do-migrate --type logging-to-structlog
 ```
 
 **Key Features:**
-- 🔍 **Deep AST Analysis** - Comprehensive code structure analysis
-- 🔄 **Pattern-Based Transformations** - Convert print() to structured logging
-- 🎯 **Interactive Mode** - Amber-style search & replace with user confirmation
-- 📊 **Performance Metrics** - Detailed timing and analysis data
-- 🛡️ **Safety Features** - Dry-run mode, backups, rollback capabilities
-- 📝 **Extensive Logging** - Every operation logged with structured data
+- 🔍 **Project Analysis** - Comprehensive assessment of logging patterns
+- 🔄 **Safe Migration** - Analyze first, migrate only with explicit flag
+- 🎯 **Interactive Mode** - User confirmation for each change
+- 📊 **Risk Assessment** - Complexity analysis and conflict detection
+- 🛡️ **Safety Features** - Backup files, dry-run previews
+- 🤖 **Agent-Friendly** - JSON output for programmatic consumption
 
-**Interactive Mode Example:**
-```
-./my_script.py:15              print("Processing data")
-        ->                     log.info("print-message", _replace_msg="Processing data")
-Replace? [Y]es/[n]o/[a]ll/[p]review/[s]kip file/[q]uit:
+**Migration Workflow:**
+1. `nicestlog migrate .` - Analyze project (shows recommendations)
+2. Review suggestions and warnings
+3. `nicestlog migrate . --do-migrate` - Apply changes with backups
+
+**For AI Agents:**
+```bash
+# Get structured analysis data
+nicestlog migrate /path/to/project --json > analysis.json
+
+# Parse recommendations
+cat analysis.json | jq '.recommendation.strategy'
 ```
 
-See [Advanced Assistant Documentation](docs/features/advanced_assistant.md) for complete details.
+See [Agent Migration Guide](docs/agents/migration_guide.md) for complete workflows.
 
 ## License
 
