@@ -245,7 +245,7 @@ def init_config():
 
     print(f"\n✅ Configuration written to {pyproject_path}")
     print("You can now use nicestlog with your custom settings!")
-    log.info("config-wizard-completed", config=config)
+    log.debug("config-wizard-completed", config=config)
 
 
 @app.command()
@@ -1690,7 +1690,7 @@ def run_complete_demo():
     log.info("database-query", table="users", duration_ms=45)
     time.sleep(0.1)
 
-    log.info("request-completed", status_code=200, response_time_ms=156)
+    log.debug("request-completed", status_code=200, response_time_ms=156)
 
 
 def run_lint_demo():
