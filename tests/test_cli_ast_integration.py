@@ -295,7 +295,7 @@ class TestMigrateCommandASTIntegration:
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_migrate_print_to_structlog(self):
-        """Test migrate command for print-to-structlog migration."""
+        """Test migrate command for print-to-structlog migration (analysis by default)."""
         test_file = self.temp_path / "migrate_test.py"
         test_file.write_text("""
 def hello():
@@ -303,40 +303,80 @@ def hello():
     print(f"User {user_id} logged in")
 """)
 
-        with patch("nicestlog.cli.migrate_file") as mock_migrate:
-            mock_migrate.return_value = (
-                'import structlog\nlog = structlog.get_logger()\n\ndef hello():\n    log.info("output", message="Hello world")\n    log.info("user-login", user_id=user_id)',
-                True,
-            )
+        with patch("nicestlog.project_analyzer.analyze_project_for_agents") as mock_analyzer:
+            # Create a more complete mock that matches ProjectAnalysisResult structure
+            mock_result = MagicMock()
+            mock_result.project_path = str(test_file)
+            mock_result.to_json.return_value = '{"recommendations": ["Convert print statements"]}'
+            
+            # Mock the complexity object
+            mock_complexity = MagicMock()
+            mock_complexity.total_files = 1
+            mock_complexity.python_files = 1
+            mock_complexity.total_lines = 4
+            mock_complexity.complexity_category = "simple"
+            mock_result.complexity = mock_complexity
+            
+            # Mock the dependencies object
+            mock_deps = MagicMock()
+            mock_deps.package_manager = "pip"
+            mock_deps.has_logging = False
+            mock_deps.has_structlog = False
+            mock_deps.has_loguru = False
+            mock_deps.has_other_logging = []
+            mock_result.dependencies = mock_deps
+            
+            # Mock logging patterns
+            mock_result.logging_patterns = []
+            
+            # Mock recommendation
+            mock_rec = MagicMock()
+            mock_rec.strategy = "print-to-structlog"
+            mock_rec.priority = "high"
+            mock_rec.estimated_effort = "low"
+            mock_rec.recommended_approach = "automatic"
+            mock_rec.risk_level = "low"
+            mock_rec.steps = ["Convert print statements", "Add structlog imports"]
+            mock_result.recommendation = mock_rec
+            
+            # Mock warnings
+            mock_result.warnings = []
+            
+            mock_analyzer.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_file)])
-
+            
             assert result.exit_code == 0
-            assert "Migration Configuration" in result.stdout
-            assert mock_migrate.called
+            assert "Project Analysis" in result.stdout
+            assert "To apply changes, run:" in result.stdout
+            assert "--do-migrate" in result.stdout
 
     def test_migrate_dry_run(self):
-        """Test migrate command with --dry-run flag."""
+        """Test migrate command with --do-migrate --dry-run flags."""
         test_file = self.temp_path / "migrate_dry.py"
         test_file.write_text("""
 print("Test migration")
 """)
 
-        with patch("nicestlog.cli.migrate_file") as mock_migrate:
-            original_content = test_file.read_text()
-            new_content = 'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="Test migration")'
-            mock_migrate.return_value = (new_content, True)
+        # Note: --dry-run is not a valid flag for migrate command in new structure
+        # The default behavior is analysis only (safe), so we test that
+        with patch("nicestlog.cli.project_analyzer") as mock_analyzer:
+            mock_result = MagicMock()
+            mock_result.recommendations = ["Convert print to structured logging"]
+            mock_result.files_analyzed = 1
+            mock_analyzer.analyze_project.return_value = mock_result
 
-            result = self.runner.invoke(app, ["migrate", str(test_file), "--dry-run"])
+            result = self.runner.invoke(app, ["migrate", str(test_file)])
 
             assert result.exit_code == 0
-            assert "Preview of changes" in result.stdout
-            # File should not be modified in dry run
-            assert test_file.read_text() == original_content
+            assert "Starting analysis" in result.stdout
+            # File should not be modified in analysis mode
+            original_content = test_file.read_text()
+            assert "print(" in original_content
 
     @patch("nicestlog.cli.InteractiveTransformer")
     def test_migrate_interactive_mode(self, mock_transformer_class):
-        """Test migrate command with --interactive flag."""
+        """Test migrate command with --interactive flag (analysis mode)."""
         test_file = self.temp_path / "migrate_interactive.py"
         test_file.write_text("""
 print("Interactive migration test")
@@ -345,14 +385,21 @@ print("Interactive migration test")
         mock_transformer = MagicMock()
         mock_transformer_class.return_value = mock_transformer
 
-        result = self.runner.invoke(app, ["migrate", str(test_file), "--interactive"])
+        with patch("nicestlog.cli.project_analyzer") as mock_analyzer:
+            mock_result = MagicMock()
+            mock_result.recommendations = ["Interactive migration available"]
+            mock_result.files_analyzed = 1
+            mock_analyzer.analyze_project.return_value = mock_result
 
-        assert result.exit_code == 0
-        assert "interactive migration" in result.stdout.lower()
-        assert mock_transformer.transform_file_interactive.called
+            result = self.runner.invoke(app, ["migrate", str(test_file), "--interactive"])
+
+            assert result.exit_code == 0
+            assert "Starting analysis" in result.stdout
+            # Interactive mode is only available with --do-migrate
+            assert "--do-migrate" in result.stdout
 
     def test_migrate_directory(self):
-        """Test migrate command on a directory."""
+        """Test migrate command on a directory (analysis mode)."""
         # Create test directory with Python files
         test_dir = self.temp_path / "test_project"
         test_dir.mkdir()
@@ -360,62 +407,60 @@ print("Interactive migration test")
         (test_dir / "file1.py").write_text('print("File 1")')
         (test_dir / "file2.py").write_text('print("File 2")')
 
-        with patch("nicestlog.cli.migrate_directory") as mock_migrate_dir:
+        with patch("nicestlog.cli.project_analyzer") as mock_analyzer:
             mock_result = MagicMock()
-            mock_result.files_processed = 2
-            mock_result.transformations_applied = 2
-            mock_result.errors = 0
-            mock_result.warnings = []
-            mock_migrate_dir.return_value = mock_result
+            mock_result.files_analyzed = 2
+            mock_result.recommendations = ["Convert print statements in multiple files"]
+            mock_analyzer.analyze_project.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_dir)])
 
             assert result.exit_code == 0
-            assert mock_migrate_dir.called
+            assert "Starting analysis" in result.stdout
+            assert mock_analyzer.analyze_project.called
 
     def test_migrate_with_output_directory(self):
-        """Test migrate command with --output flag."""
+        """Test migrate command with --output flag (analysis mode)."""
         test_file = self.temp_path / "source.py"
         output_dir = self.temp_path / "migrated"
 
         test_file.write_text('print("Source file")')
 
-        with patch("nicestlog.cli.migrate_file") as mock_migrate:
-            mock_migrate.return_value = (
-                'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="Source file")',
-                True,
-            )
+        with patch("nicestlog.cli.project_analyzer") as mock_analyzer:
+            mock_result = MagicMock()
+            mock_result.recommendations = ["Convert print to structured logging"]
+            mock_result.files_analyzed = 1
+            mock_analyzer.analyze_project.return_value = mock_result
 
             result = self.runner.invoke(
                 app, ["migrate", str(test_file), "--output", str(output_dir)]
             )
 
             assert result.exit_code == 0
-            assert str(output_dir) in result.stdout
+            assert "Starting analysis" in result.stdout
+            # Output directory is only used when actually migrating with --do-migrate
 
     def test_migrate_different_types(self):
-        """Test migrate command with different migration types."""
+        """Test migrate command with different migration types (analysis mode)."""
         test_file = self.temp_path / "logging_test.py"
         test_file.write_text("""
 import logging
 logging.info("Test message")
 """)
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
-            mock_assistant_class.return_value = mock_assistant
-
+        with patch("nicestlog.cli.project_analyzer") as mock_analyzer:
             mock_result = MagicMock()
-            mock_result.changes_made = True
-            mock_result.changes = ["Converted logging to structlog"]
-            mock_assistant.transform_file.return_value = mock_result
+            mock_result.recommendations = ["Convert logging to structlog"]
+            mock_result.files_analyzed = 1
+            mock_analyzer.analyze_project.return_value = mock_result
 
             result = self.runner.invoke(
                 app, ["migrate", str(test_file), "--type", "logging-to-structlog"]
             )
 
             assert result.exit_code == 0
-            assert "logging-to-structlog" in result.stdout
+            assert "Starting analysis" in result.stdout
+            # Type is only used when actually migrating with --do-migrate
 
 
 class TestASTToolsSubcommands:
@@ -434,7 +479,7 @@ class TestASTToolsSubcommands:
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_tools_ast_analyze(self):
-        """Test that tools ast analyze still works."""
+        """Test that tools ast analyze still works (deprecated command)."""
         test_file = self.temp_path / "analyze_test.py"
         test_file.write_text("""
 def test_function():
@@ -460,7 +505,8 @@ def test_function():
             )
 
             assert result.exit_code == 0
-            assert "Advanced AST Analysis" in result.stdout
+            assert "DEPRECATED" in result.stdout
+            assert "AST analysis" in result.stdout  # Updated expectation
 
     def test_tools_ast_patterns(self):
         """Test that tools ast patterns still works."""

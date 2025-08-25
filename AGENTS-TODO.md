@@ -1,9 +1,22 @@
 # AGENTS TODO - Session Management
 
-## Current Session Goal ✅ COMPLETED
+## Previous Session Goal ✅ COMPLETED
 **CRITICAL REFACTOR REVISION**: Fix CLI command structure with better analyze/migrate integration
 
 🎉 **PROJECT COMPLETED SUCCESSFULLY** - All phases finished, CLI restructure implemented!
+
+## Current Session Goal
+**TEST SUITE MAINTENANCE**: Fix failing tests and improve coverage to 90%
+
+### 🚨 IMMEDIATE ISSUES
+- 7 failing tests in `test_cli_ast_integration.py` due to CLI restructure
+- Test coverage at 64% (target: 90%)
+- Tests expect old CLI behavior but we changed the structure
+
+### 🔧 PROGRESS UPDATE
+- ✅ Fixed test mocking issues for new CLI structure
+- 🔄 Working on remaining failing tests (6 remaining)
+- 📋 Need to update all migrate command tests to use proper mocks
 
 ## 🚨 PROBLEM IDENTIFIED
 Current CLI has inconsistent command structure:
