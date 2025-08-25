@@ -14,6 +14,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Any
 import structlog
+import fnmatch
 
 log = structlog.get_logger(__name__)
 
@@ -115,6 +116,16 @@ class ProjectAnalyzer:
             'loguru', 'colorlog', 'rich', 'click', 'typer',
             'flask', 'django', 'fastapi', 'tornado'
         }
+        
+        # Common ignore patterns (like .gitignore)
+        self.default_ignore_patterns = {
+            '.venv/*', 'venv/*', 'env/*', '.env/*',
+            '__pycache__/*', '*.pyc', '*.pyo', '*.pyd',
+            '.git/*', '.svn/*', '.hg/*',
+            'node_modules/*', '.tox/*', '.pytest_cache/*',
+            'build/*', 'dist/*', '*.egg-info/*',
+            '.mypy_cache/*', '.coverage', 'htmlcov/*'
+        }
     
     def analyze_project(self, project_path: Path) -> ProjectAnalysisResult:
         """Perform comprehensive analysis of a Python project."""
@@ -160,10 +171,96 @@ class ProjectAnalyzer:
         
         return result
     
+    def _load_ignore_patterns(self, project_path: Path) -> Set[str]:
+        """Load ignore patterns from .gitignore, .nicestlogignore and defaults."""
+        ignore_patterns = set(self.default_ignore_patterns)
+        
+        # Load .gitignore patterns
+        gitignore_path = project_path / '.gitignore'
+        if gitignore_path.exists():
+            try:
+                content = gitignore_path.read_text(encoding='utf-8')
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        # Convert gitignore patterns to glob patterns
+                        if line.endswith('/'):
+                            ignore_patterns.add(f"{line}*")
+                        else:
+                            ignore_patterns.add(line)
+                            ignore_patterns.add(f"{line}/*")
+            except Exception as e:
+                self.log.warning(
+                    "gitignore-load-failed",
+                    _replace_msg="Failed to load .gitignore: {error}",
+                    error=str(e)
+                )
+        
+        # Load .nicestlogignore patterns (custom ignore file)
+        nicestlog_ignore = project_path / '.nicestlogignore'
+        if nicestlog_ignore.exists():
+            try:
+                content = nicestlog_ignore.read_text(encoding='utf-8')
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        ignore_patterns.add(line)
+            except Exception as e:
+                self.log.warning(
+                    "nicestlogignore-load-failed",
+                    _replace_msg="Failed to load .nicestlogignore: {error}",
+                    error=str(e)
+                )
+        
+        return ignore_patterns
+    
+    def _should_ignore_file(self, file_path: Path, project_path: Path, ignore_patterns: Set[str]) -> bool:
+        """Check if a file should be ignored based on patterns."""
+        # Get relative path from project root
+        try:
+            rel_path = file_path.relative_to(project_path)
+        except ValueError:
+            return False
+        
+        rel_path_str = str(rel_path)
+        
+        # Check against all ignore patterns
+        for pattern in ignore_patterns:
+            if fnmatch.fnmatch(rel_path_str, pattern):
+                return True
+            # Also check parent directories
+            for parent in rel_path.parents:
+                if fnmatch.fnmatch(str(parent), pattern):
+                    return True
+        
+        return False
+    
+    def _get_python_files(self, project_path: Path) -> List[Path]:
+        """Get all Python files, respecting ignore patterns."""
+        ignore_patterns = self._load_ignore_patterns(project_path)
+        python_files = []
+        
+        for py_file in project_path.rglob("*.py"):
+            if not self._should_ignore_file(py_file, project_path, ignore_patterns):
+                python_files.append(py_file)
+        
+        if self.verbose:
+            total_py_files = len(list(project_path.rglob("*.py")))
+            ignored_count = total_py_files - len(python_files)
+            self.log.debug(
+                "file-filtering-complete",
+                _replace_msg="Found {total} Python files, ignored {ignored} files",
+                total=total_py_files,
+                ignored=ignored_count,
+                included=len(python_files)
+            )
+        
+        return python_files
+    
     def _analyze_logging_patterns(self, project_path: Path) -> List[LoggingPattern]:
         """Analyze the project for different logging patterns."""
         patterns = []
-        python_files = list(project_path.rglob("*.py"))
+        python_files = self._get_python_files(project_path)
         
         self.log.debug(
             "analyzing-logging-patterns",
@@ -236,7 +333,7 @@ class ProjectAnalyzer:
     
     def _analyze_complexity(self, project_path: Path) -> ProjectComplexity:
         """Analyze project complexity metrics."""
-        python_files = list(project_path.rglob("*.py"))
+        python_files = self._get_python_files(project_path)
         total_files = len(list(project_path.rglob("*")))
         total_lines = 0
         complexities = []

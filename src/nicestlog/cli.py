@@ -1233,6 +1233,14 @@ def migrate(
         # Default behavior: Analysis only
         from .project_analyzer import analyze_project_for_agents
         
+        # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
+        import nicestlog
+        nicestlog.init_logging(
+            verbose=verbose,
+            syslog_identifier="nicestlog-migrate",
+            log_format="console"
+        )
+        
         try:
             result = analyze_project_for_agents(path, verbose=verbose)
             
@@ -1248,7 +1256,9 @@ def migrate(
             else:
                 # Human-readable output
                 _display_project_analysis(result)
-                console.print(f"\n💡 [blue]To apply changes, run: nicestlog migrate {path} --do-migrate[/blue]")
+                
+                # Enhanced user guidance based on analysis
+                _display_next_steps_guidance(result, path)
                 
         except Exception as e:
             console.print(f"❌ [red]Analysis failed: {e}[/red]")
@@ -2168,6 +2178,62 @@ def show_migration_report(result: MigrationResult, dry_run: bool):
         console.print(
             "\n[blue]ℹ️ No changes needed - code is already in target format[/blue]"
         )
+
+
+def _display_next_steps_guidance(result, path: str):
+    """Display helpful next-step guidance based on analysis results."""
+    console.print(f"\n🎯 [bold green]Next Steps & Guidance[/bold green]")
+    
+    # Check if config exists
+    config_path = Path(path) / "pyproject.toml"
+    has_config = config_path.exists()
+    
+    if not has_config:
+        console.print("📋 [yellow]No pyproject.toml found - initialize configuration first:[/yellow]")
+        console.print(f"   [cyan]nicestlog init {path}[/cyan]")
+        console.print("")
+    
+    # Strategy-specific guidance
+    rec = result.recommendation
+    if rec.strategy == "print-to-structlog":
+        console.print("🔄 [blue]Print-to-Structlog Migration:[/blue]")
+        console.print(f"   1. Preview changes: [cyan]nicestlog migrate {path} --dry-run[/cyan]")
+        console.print(f"   2. Apply migration: [cyan]nicestlog migrate {path} --do-migrate --backup[/cyan]")
+        console.print(f"   3. Validate results: [cyan]nicestlog check {path}[/cyan]")
+    elif rec.strategy == "logging-to-structlog":
+        console.print("🔄 [blue]Logging-to-Structlog Migration:[/blue]")
+        console.print(f"   1. Interactive preview: [cyan]nicestlog migrate {path} --interactive[/cyan]")
+        console.print(f"   2. Apply changes: [cyan]nicestlog migrate {path} --do-migrate --type logging-to-structlog[/cyan]")
+        console.print(f"   3. Update imports: [cyan]nicestlog check {path} --fix[/cyan]")
+    elif rec.strategy == "enhancement":
+        console.print("✨ [blue]Enhancement Recommendations:[/blue]")
+        console.print(f"   1. Check current code: [cyan]nicestlog check {path} --ast[/cyan]")
+        console.print(f"   2. Apply fixes: [cyan]nicestlog fix {path} --ast[/cyan]")
+        console.print(f"   3. Add translations: [cyan]nicestlog i18n check {path}/src[/cyan]")
+    else:  # greenfield
+        console.print("🌱 [blue]Greenfield Setup:[/blue]")
+        console.print(f"   1. Initialize config: [cyan]nicestlog init {path}[/cyan]")
+        console.print(f"   2. Set up logging: [cyan]nicestlog docs --feature logging[/cyan]")
+        console.print(f"   3. Run demos: [cyan]nicestlog demo basic[/cyan]")
+    
+    # Risk warnings
+    if rec.risk_level == "high":
+        console.print(f"\n⚠️  [red]High Risk Migration - Consider:[/red]")
+        console.print("   • Create full project backup first")
+        console.print("   • Use interactive mode for review")
+        console.print("   • Test thoroughly before committing")
+    elif rec.risk_level == "medium":
+        console.print(f"\n⚠️  [yellow]Medium Risk - Recommended:[/yellow]")
+        console.print("   • Use --backup flag for safety")
+        console.print("   • Review changes before applying")
+    
+    # Prerequisites
+    if rec.prerequisites:
+        console.print(f"\n📋 [yellow]Prerequisites:[/yellow]")
+        for prereq in rec.prerequisites:
+            console.print(f"   • {prereq}")
+    
+    console.print(f"\n💡 [blue]Need help? Run: [cyan]nicestlog docs[/cyan] or [cyan]nicestlog demo[/cyan][/blue]")
 
 
 def _display_project_analysis(result):
