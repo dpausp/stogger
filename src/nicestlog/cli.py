@@ -71,7 +71,7 @@ def tools_generate_service(
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
 
-# NEW: Top-level analyze command (replaces tools analyze-project)
+# DEPRECATED: Top-level analyze command (use 'migrate' instead)
 @app.command()
 def analyze(
     path: str = typer.Argument(".", help="Project path to analyze"),
@@ -79,28 +79,14 @@ def analyze(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
     json_output: bool = typer.Option(False, "--json", help="JSON output for agents"),
 ):
-    """🔍 Analyze project for nicestlog migration opportunities."""
-    from .project_analyzer import analyze_project_for_agents
+    """🔍 [DEPRECATED] Use 'nicestlog migrate' instead (analysis is default behavior)."""
+    console.print("[yellow]⚠️ DEPRECATED: 'analyze' command is deprecated.[/yellow]")
+    console.print("[yellow]   Use 'nicestlog migrate' instead (analysis is default behavior).[/yellow]")
     
-    try:
-        result = analyze_project_for_agents(path, verbose=verbose)
-        
-        if json_output or output:
-            # JSON output for agents or file output
-            json_content = result.to_json()
-            
-            if output:
-                Path(output).write_text(json_content)
-                console.print(f"✅ [green]Analysis saved to {output}[/green]")
-            else:
-                print(json_content)
-        else:
-            # Human-readable output
-            _display_project_analysis(result)
-            
-    except Exception as e:
-        console.print(f"❌ [red]Analysis failed: {e}[/red]")
-        raise typer.Exit(1)
+    # Redirect to migrate command
+    migrate(path=path, do_migrate=False, migration_type="print-to-structlog", 
+           json_output=json_output, output=output, verbose=verbose, 
+           interactive=False, backup=True, force=False)
 
 
 # DEPRECATED: Keep old command with deprecation warning
@@ -111,29 +97,14 @@ def tools_analyze_project_deprecated(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
     agent_mode: bool = typer.Option(False, "--agent", help="Agent-friendly JSON output"),
 ):
-    """🔍 [DEPRECATED] Use 'nicestlog analyze' instead."""
+    """🔍 [DEPRECATED] Use 'nicestlog migrate --json' instead."""
     console.print("[yellow]⚠️ DEPRECATED: 'tools analyze-project' is deprecated.[/yellow]")
-    console.print("[yellow]   Use 'nicestlog analyze' instead.[/yellow]")
+    console.print("[yellow]   Use 'nicestlog migrate --json' instead.[/yellow]")
     
-    # Redirect to new command
-    from .project_analyzer import analyze_project_for_agents
-    
-    try:
-        result = analyze_project_for_agents(path, verbose=verbose)
-        
-        if agent_mode or output:
-            json_content = result.to_json()
-            if output:
-                Path(output).write_text(json_content)
-                console.print(f"✅ [green]Analysis saved to {output}[/green]")
-            else:
-                print(json_content)
-        else:
-            _display_project_analysis(result)
-            
-    except Exception as e:
-        console.print(f"❌ [red]Analysis failed: {e}[/red]")
-        raise typer.Exit(1)
+    # Redirect to migrate command
+    migrate(path=path, do_migrate=False, migration_type="print-to-structlog", 
+           json_output=agent_mode, output=output, verbose=verbose, 
+           interactive=False, backup=True, force=False)
 
 
 # Sub-app for i18n related commands
@@ -1219,15 +1190,21 @@ def review(
 
 @app.command()
 def migrate(
-    path: Annotated[str, typer.Argument(help="File or directory to migrate")],
-    output: Annotated[
-        Optional[str], typer.Option("--output", "-o", help="Output directory")
-    ] = None,
+    path: Annotated[str, typer.Argument(help="Project path to analyze/migrate")] = ".",
+    do_migrate: Annotated[
+        bool, typer.Option("--do-migrate", help="Actually apply changes (default: analyze only)")
+    ] = False,
     migration_type: Annotated[
         str, typer.Option("--type", "-t", help="Migration type")
     ] = "print-to-structlog",
-    dry_run: Annotated[
-        bool, typer.Option("--dry-run", help="Show changes without applying")
+    json_output: Annotated[
+        bool, typer.Option("--json", help="JSON output for agents")
+    ] = False,
+    output: Annotated[
+        Optional[str], typer.Option("--output", "-o", help="Output JSON file or directory")
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Verbose output")
     ] = False,
     interactive: Annotated[
         bool, typer.Option("--interactive", "-i", help="Interactive migration")
@@ -1239,18 +1216,48 @@ def migrate(
         bool, typer.Option("--force", help="Overwrite existing files")
     ] = False,
 ):
-    """🔄 Migrate code using AST transformations.
+    """🔄 Analyze project and optionally migrate code.
 
+    Default behavior: Analyze project for migration opportunities (safe, fast)
+    
     Examples:
-      nicestlog migrate file.py                           # Print to structlog
-      nicestlog migrate src/ --output migrated/           # Directory migration
-      nicestlog migrate file.py --type logging-to-structlog  # Logging migration
-      nicestlog migrate file.py --interactive             # Interactive mode
-      nicestlog migrate file.py --dry-run                 # Preview changes
+      nicestlog migrate                                   # Analyze current project
+      nicestlog migrate /path/to/project                  # Analyze specific project  
+      nicestlog migrate . --json                          # Agent analysis output
+      nicestlog migrate . --do-migrate                    # Actually apply changes
+      nicestlog migrate . --do-migrate --type logging-to-structlog  # Specific migration
+      nicestlog migrate . --do-migrate --interactive      # Interactive migration
     """
-    run_migrate_command(
-        path, output, migration_type, dry_run, interactive, backup, force
-    )
+    
+    if not do_migrate:
+        # Default behavior: Analysis only
+        from .project_analyzer import analyze_project_for_agents
+        
+        try:
+            result = analyze_project_for_agents(path, verbose=verbose)
+            
+            if json_output or (output and output.endswith('.json')):
+                # JSON output for agents or file output
+                json_content = result.to_json()
+                
+                if output:
+                    Path(output).write_text(json_content)
+                    console.print(f"✅ [green]Analysis saved to {output}[/green]")
+                else:
+                    print(json_content)
+            else:
+                # Human-readable output
+                _display_project_analysis(result)
+                console.print(f"\n💡 [blue]To apply changes, run: nicestlog migrate {path} --do-migrate[/blue]")
+                
+        except Exception as e:
+            console.print(f"❌ [red]Analysis failed: {e}[/red]")
+            raise typer.Exit(1)
+    else:
+        # Migration behavior: Apply changes
+        run_migrate_command(
+            path, output, migration_type, dry_run=False, interactive=interactive, backup=backup, force=force
+        )
 
 
 @app.command()

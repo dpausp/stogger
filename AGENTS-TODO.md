@@ -1,7 +1,7 @@
 # AGENTS TODO - Session Management
 
 ## Current Session Goal
-**CRITICAL REFACTOR**: Fix CLI command structure chaos and create proper implementation plan
+**CRITICAL REFACTOR REVISION**: Fix CLI command structure with better analyze/migrate integration
 
 ## 🚨 PROBLEM IDENTIFIED
 Current CLI has inconsistent command structure:
@@ -56,7 +56,7 @@ TOP-LEVEL (11 commands):
 4. **Agent unfriendly**: `tools analyze-project` is hard to discover
 5. **Mixed abstractions**: Some commands are workflows, others are utilities
 
-### Phase 2: Implement New Structure ✅  
+### Phase 2: Implement New Structure ✅ (REVISED)  
 - [x] **2.1** Create new command groups in cli.py
 - [x] **2.2** Move commands to appropriate groups
 - [x] **2.3** Add deprecation warnings for old commands
@@ -65,12 +65,13 @@ TOP-LEVEL (11 commands):
 
 #### 2.1-2.3 IMPLEMENTATION COMPLETE ✅
 
-**NEW TOP-LEVEL COMMANDS ADDED:**
-- ✅ `nicestlog analyze` (was: `tools analyze-project`)
+**REVISED IMPLEMENTATION:**
+- ✅ `nicestlog migrate` (analyze by default, migrate with `--do-migrate`)
 - ✅ `nicestlog init [path]` (enhanced from: `init` + `tools init-config`)
 
 **DEPRECATED COMMANDS WITH WARNINGS:**
-- ⚠️ `tools analyze-project` → redirects to `analyze`
+- ⚠️ `analyze` → redirects to `migrate` (analysis is default)
+- ⚠️ `tools analyze-project` → redirects to `migrate --json`
 - ⚠️ `tools init-config` → redirects to `init`
 - ⚠️ `tools ast analyze` → redirects to `check --ast`
 - ⚠️ `tools ast transform` → redirects to `fix --ast`
@@ -78,10 +79,11 @@ TOP-LEVEL (11 commands):
 - ⚠️ `tools ast patterns` → shows deprecation warning
 
 **AGENT-FRIENDLY IMPROVEMENTS:**
-- `analyze` is now prominent top-level command
+- `migrate` is logical workflow command (analyze → migrate)
+- Safe by default: no changes without `--do-migrate`
 - `--json` flag for clean agent output
-- Enhanced `init` works with any project path
-- Clear deprecation messages with exact replacements
+- Fast typing: `nicestlog migrate` for quick analysis
+- Clear intent: `--do-migrate` makes destructive action explicit
 
 #### 2.4-2.5 FINAL VALIDATION ✅
 
@@ -108,13 +110,15 @@ TOP-LEVEL (11 commands):
 - [ ] **4.4** Validate agent workflows still work
 - [ ] **4.5** Performance test command loading
 
-#### 1.2 NEW STRUCTURE DESIGN ✅
+#### 1.2 REVISED STRUCTURE DESIGN ✅
 
-**CLEAN COMMAND STRUCTURE:**
+**BETTER COMMAND STRUCTURE:**
 ```
 nicestlog
-├── analyze [path]              # 🔍 Project analysis (was: tools analyze-project)
-├── migrate [path]              # 🔄 Code migration (existing)
+├── migrate [path]              # 🔄 Analyze + migrate (default: analyze only)
+│   ├── --do-migrate           # Actually apply changes
+│   ├── --json                 # JSON output for agents
+│   └── --type                 # Migration type
 ├── check [path]                # 🔍 Code quality check (existing) 
 ├── fix [path]                  # 🔧 Auto-fix issues (existing)
 ├── init [path]                 # 🔧 Initialize config (merge: init + tools init-config)
@@ -128,59 +132,60 @@ nicestlog
     └── check                   # 🌍 Translation check (existing)
 ```
 
-**DESIGN PRINCIPLES:**
-1. **Flat hierarchy**: Max 2 levels (except specialized i18n)
-2. **Verb-based naming**: All commands are actions
-3. **Logical flow**: analyze → migrate → check → fix
-4. **Agent-first**: `analyze` is prominent and discoverable
-5. **Consistency**: All path-based commands follow same pattern
+**REVISED DESIGN PRINCIPLES:**
+1. **Logical workflow**: `migrate` = analyze by default, migrate with flag
+2. **Safe by default**: No changes without explicit `--do-migrate`
+3. **Agent-friendly**: `migrate --json` for analysis, `migrate --do-migrate` for action
+4. **Clear intent**: `--do-migrate` makes destructive action explicit
+5. **Fast typing**: `nicestlog migrate` for quick analysis
 
 **COMMAND CATEGORIES:**
-- **Analysis**: `analyze`, `check`, `lint`, `review`
-- **Transformation**: `migrate`, `fix`
+- **Core workflow**: `migrate` (analyze + transform)
+- **Quality**: `check`, `lint`, `review`, `fix`
 - **Setup**: `init`
 - **Utilities**: `docs`, `demo`, `dashboard`, `journal`
 - **Specialized**: `i18n check`
 
+**USAGE PATTERNS:**
+- `nicestlog migrate .` → Analyze project (safe, fast)
+- `nicestlog migrate . --json` → Agent analysis output
+- `nicestlog migrate . --do-migrate` → Actually apply changes
+- `nicestlog migrate . --do-migrate --type print-to-structlog` → Specific migration
+
 **REMOVED/MERGED:**
+- ❌ `analyze` as top-level → Integrated into `migrate` (default behavior)
 - ❌ `tools generate-service` → Remove (niche utility)
 - ❌ `tools ast *` → Integrate into `check --ast`, `fix --ast`
 - ✅ `tools init-config` → Merge into `init`
-- ✅ `tools analyze-project` → Promote to `analyze`
+- ✅ `tools analyze-project` → Integrate into `migrate` (default)
 
 #### 1.3 COMMAND HIERARCHY SPECIFICATION ✅
 
 **DETAILED COMMAND SPECIFICATION:**
 
 ```yaml
-# nicestlog CLI Command Specification v2.0
+# nicestlog CLI Command Specification v2.1 (REVISED)
 
 commands:
-  analyze:
-    description: "🔍 Analyze project for nicestlog migration opportunities"
+  migrate:
+    description: "🔄 Analyze project and optionally migrate code"
     args: ["path"]
     options:
+      - "--do-migrate": "Actually apply changes (default: analyze only)"
+      - "--type/-t": "Migration type (print-to-structlog, logging-to-structlog)"
+      - "--json": "JSON output for agents"
       - "--output/-o": "Output JSON file"
       - "--verbose/-v": "Verbose output"
-      - "--json": "JSON output for agents"
-    examples:
-      - "nicestlog analyze ."
-      - "nicestlog analyze /path/to/project --json"
-      - "nicestlog analyze . --output analysis.json"
-    migration_from: "tools analyze-project"
-    
-  migrate:
-    description: "🔄 Migrate code using AST transformations"
-    args: ["path"]
-    options:
-      - "--type/-t": "Migration type (print-to-structlog, logging-to-structlog)"
-      - "--dry-run": "Preview changes"
       - "--interactive/-i": "Interactive mode"
       - "--backup/--no-backup": "Create backup files"
     examples:
-      - "nicestlog migrate . --type print-to-structlog --dry-run"
-      - "nicestlog migrate src/ --interactive"
-    migration_from: "migrate (existing)"
+      - "nicestlog migrate ." # Analyze only (safe, fast)
+      - "nicestlog migrate . --json" # Agent analysis output
+      - "nicestlog migrate . --do-migrate" # Actually apply changes
+      - "nicestlog migrate . --do-migrate --type print-to-structlog"
+      - "nicestlog migrate . --do-migrate --interactive"
+    migration_from: "migrate (existing) + tools analyze-project (merged)"
+    behavior: "Default behavior is analysis only. Use --do-migrate to apply changes."
     
   check:
     description: "🔍 Check code for logging best practices"
@@ -258,13 +263,20 @@ deprecated_commands:
   tools:
     deprecation_message: "Use top-level commands instead"
     replacements:
-      "tools analyze-project": "analyze"
+      "tools analyze-project": "migrate --json"
       "tools init-config": "init"
       "tools ast analyze": "check --ast"
       "tools ast transform": "fix --ast"
       "tools ast interactive": "fix --interactive"
       "tools ast patterns": "check --ast --help"
-    removal_version: "v2.0.0"
+    removal_version: "v2.1.0"
+  
+  analyze:
+    deprecation_message: "Use 'migrate' instead (analysis is default behavior)"
+    replacements:
+      "analyze": "migrate"
+      "analyze --json": "migrate --json"
+    removal_version: "v2.1.0"
 ```
 
 **BACKWARD COMPATIBILITY STRATEGY:**

@@ -108,7 +108,7 @@ def run_agent_analysis(project_dir):
     
     try:
         result = subprocess.run([
-            "uv", "run", "nicestlog", "analyze", 
+            "uv", "run", "nicestlog", "migrate", 
             str(project_dir), "--json"
         ], capture_output=True, text=True, check=True)
         
