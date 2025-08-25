@@ -31,11 +31,12 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
     """
     Builds processors that are shared between sync and async modes.
     """
-    log.debug(
-        "building-shared-processors",
-        pii_scrubbing=config.enable_pii_scrubbing,
-        translation_dir=str(config.translation_dir) if config.translation_dir else None,
-    )
+    if config.verbose:
+        log.debug(
+            "building-shared-processors",
+            pii_scrubbing=config.enable_pii_scrubbing,
+            translation_dir=str(config.translation_dir) if config.translation_dir else None,
+        )
 
     processors = [
         structlog.stdlib.add_log_level,
@@ -49,7 +50,8 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
 
     # Add PII scrubbing if enabled
     if config.enable_pii_scrubbing:
-        log.debug("enabling-pii-scrubbing", redaction_text=config.pii_redaction_text)
+        if config.verbose:
+            log.debug("enabling-pii-scrubbing", redaction_text=config.pii_redaction_text)
         from .pii_scrubber import create_pii_processor
 
         processors.append(
@@ -58,18 +60,20 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
     if config.translation_dir:
         try:
             translation_file = config.translation_dir / f"{config.language}.toml"
-            log.debug(
-                "loading-translations",
-                file=str(translation_file),
-                language=config.language,
-            )
+            if config.verbose:
+                log.debug(
+                    "loading-translations",
+                    file=str(translation_file),
+                    language=config.language,
+                )
             with open(translation_file, "r") as f:
                 translations = toml.load(f)
-            log.debug(
-                "translations-loaded",
-                translation_count=len(translations),
-                language=config.language,
-            )
+            if config.verbose:
+                log.debug(
+                    "translations-loaded",
+                    translation_count=len(translations),
+                    language=config.language,
+                )
             processors.append(TranslationProcessor(translations))
         except (IOError, toml.TomlDecodeError) as e:
             log.warning(
@@ -79,7 +83,8 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
                 f"Warning: failed to load translations from {translation_file}: {e}",
                 file=sys.stderr,
             )
-    log.debug("shared-processors-built", processor_count=len(processors))
+    if config.verbose:
+        log.debug("shared-processors-built", processor_count=len(processors))
     return processors
 
 

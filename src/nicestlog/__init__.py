@@ -7,9 +7,12 @@ systemd journal output.
 """
 
 from .config import NicestLogConfig, SimpleFormatSettings
-from .core import init_logging, logging_initialized
+from .core import init_logging, logging_initialized, init_early_logging
 from .factory import build_shared_processors, configure_stdlib_logging
 from .cli import main
+
+# Initialize early logging format to reduce uninitialized structlog messages
+init_early_logging()
 
 # Ensure package data includes markdown docs when installed from source
 try:
@@ -28,6 +31,7 @@ from .systemd_integration import (
 
 __all__ = [
     "init_logging",
+    "init_early_logging",
     "logging_initialized",
     "main",
     "lint_main",
