@@ -67,6 +67,38 @@ def tools_generate_service(
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
 
+# Add project analysis command to tools
+@tools_app.command("analyze-project")
+def tools_analyze_project(
+    path: str = typer.Argument(".", help="Project path to analyze"),
+    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output JSON file"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
+    agent_mode: bool = typer.Option(False, "--agent", help="Agent-friendly JSON output"),
+):
+    """🔍 Analyze project for nicestlog migration opportunities."""
+    from .project_analyzer import analyze_project_for_agents
+    
+    try:
+        result = analyze_project_for_agents(path, verbose=verbose)
+        
+        if agent_mode or output:
+            # JSON output for agents or file output
+            json_output = result.to_json()
+            
+            if output:
+                Path(output).write_text(json_output)
+                console.print(f"✅ [green]Analysis saved to {output}[/green]")
+            else:
+                print(json_output)
+        else:
+            # Human-readable output
+            _display_project_analysis(result)
+            
+    except Exception as e:
+        console.print(f"❌ [red]Analysis failed: {e}[/red]")
+        raise typer.Exit(1)
+
+
 # Sub-app for i18n related commands
 i18n_app = typer.Typer(help="Internationalization utilities")
 app.add_typer(i18n_app, name="i18n")
@@ -2117,6 +2149,87 @@ def show_migration_report(result: MigrationResult, dry_run: bool):
         console.print(
             "\n[blue]ℹ️ No changes needed - code is already in target format[/blue]"
         )
+
+
+def _display_project_analysis(result):
+    """Display human-readable project analysis results."""
+    from .project_analyzer import ProjectAnalysisResult
+    
+    console.print(f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]")
+    
+    # Project Overview
+    overview_table = Table(title="📊 Project Overview")
+    overview_table.add_column("Metric", style="cyan")
+    overview_table.add_column("Value", style="green", justify="right")
+    
+    overview_table.add_row("Total Files", str(result.complexity.total_files))
+    overview_table.add_row("Python Files", str(result.complexity.python_files))
+    overview_table.add_row("Total Lines", str(result.complexity.total_lines))
+    overview_table.add_row("Complexity", result.complexity.complexity_category.title())
+    overview_table.add_row("Package Manager", result.dependencies.package_manager.title())
+    
+    console.print(overview_table)
+    
+    # Logging Patterns
+    if result.logging_patterns:
+        patterns_table = Table(title="🔍 Logging Patterns Found")
+        patterns_table.add_column("Type", style="cyan")
+        patterns_table.add_column("Count", style="yellow", justify="right")
+        patterns_table.add_column("Priority", style="red", justify="right")
+        
+        pattern_counts = {}
+        for pattern in result.logging_patterns:
+            pattern_counts[pattern.pattern_type] = pattern_counts.get(pattern.pattern_type, 0) + 1
+        
+        for pattern_type, count in pattern_counts.items():
+            priority = "High" if pattern_type == "print" else "Medium" if pattern_type == "logging" else "Low"
+            patterns_table.add_row(pattern_type.title(), str(count), priority)
+        
+        console.print(patterns_table)
+    
+    # Dependencies
+    deps_table = Table(title="📦 Dependencies Analysis")
+    deps_table.add_column("Package", style="cyan")
+    deps_table.add_column("Status", style="green")
+    
+    deps_table.add_row("Standard Logging", "✅ Present" if result.dependencies.has_logging else "❌ Missing")
+    deps_table.add_row("Structlog", "✅ Present" if result.dependencies.has_structlog else "❌ Missing")
+    deps_table.add_row("Loguru", "✅ Present" if result.dependencies.has_loguru else "❌ Missing")
+    
+    if result.dependencies.has_other_logging:
+        deps_table.add_row("Other Logging", ", ".join(result.dependencies.has_other_logging))
+    
+    console.print(deps_table)
+    
+    # Recommendation
+    rec = result.recommendation
+    rec_panel = Panel.fit(
+        f"[bold green]Strategy:[/bold green] {rec.strategy}\n"
+        f"[bold yellow]Priority:[/bold yellow] {rec.priority}\n"
+        f"[bold blue]Effort:[/bold blue] {rec.estimated_effort}\n"
+        f"[bold magenta]Approach:[/bold magenta] {rec.recommended_approach}\n"
+        f"[bold red]Risk:[/bold red] {rec.risk_level}",
+        title="🎯 Migration Recommendation"
+    )
+    console.print(rec_panel)
+    
+    # Steps
+    if rec.steps:
+        console.print("\n📋 [bold blue]Recommended Steps:[/bold blue]")
+        for step in rec.steps:
+            console.print(f"  {step}")
+    
+    # Warnings
+    if result.warnings:
+        console.print("\n[yellow]⚠️ Warnings:[/yellow]")
+        for warning in result.warnings:
+            console.print(f"  • {warning}")
+    
+    # Next Steps
+    console.print(f"\n[bold green]Next Steps:[/bold green]")
+    console.print(f"1. Run: [cyan]nicestlog migrate . --type {rec.strategy} --dry-run[/cyan]")
+    console.print(f"2. Review changes and apply: [cyan]nicestlog migrate . --type {rec.strategy} --backup[/cyan]")
+    console.print(f"3. Validate: [cyan]nicestlog check . --ast[/cyan]")
 
 
 def main():
