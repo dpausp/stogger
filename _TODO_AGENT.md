@@ -1,21 +1,23 @@
-# Nicestlog Migration Examples and Library Support
+# CLI Framework Output Functions to Structlog Migration
 
 Task goal
-- Show concrete before/after examples of how nicestlog migration works with real code
-- Check and document eliot integration (already mentioned in codebase)
-- Research and identify other popular logging libraries that could be supported
-- Provide practical migration examples that users can follow
+- Extend nicestlog migration capabilities to handle CLI framework output functions
+- Add support for typer.echo(), click.echo(), rich.print() and other common CLI output patterns
+- Research and identify other widespread CLI output functions that should be migrated
+- Create migration patterns that preserve CLI-specific functionality (colors, styling, etc.)
 
 Success criteria
-- Clear before/after code examples showing migration process
-- Documentation of currently supported logging libraries (eliot, etc.)
-- Research findings on other popular logging libraries (loguru, sentry, etc.)
-- Practical examples users can copy and adapt
+- New migration type for CLI framework outputs
+- Automatic detection and transformation of typer.echo, click.echo, rich.print
+- Preservation of styling and formatting in structlog equivalents
+- Documentation and examples showing before/after transformations
+- Integration with existing migration system
 
 Out-of-scope for this task
-- Actually implementing new library integrations
 - Changing existing migration functionality
+- Complex CLI argument parsing migrations
 - Performance optimizations
+- Full CLI framework integration beyond output functions
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -25,48 +27,65 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze current migration functionality
-   - Context: Understand what migration features already exist
+1) Research CLI framework output functions
+   - Context: Identify common CLI output patterns that should be migrated
    - Files to check/modify:
-     - src/nicestlog/cli.py (migration commands)
-     - src/nicestlog/eliot_integration.py (eliot support)
-     - examples/ directory (existing examples)
-     - docs/ directory (migration documentation)
+     - Research notes document
+     - src/nicestlog/project_analyzer.py (pattern detection)
    - Steps:
-     - [x] Examine CLI migration commands
-     - [x] Check eliot integration implementation
-     - [x] Review existing examples and documentation
-     - [x] Document current migration capabilities
+     - [ ] Research typer.echo() usage patterns and parameters
+     - [ ] Research click.echo() usage patterns and parameters  
+     - [ ] Research rich.print() usage patterns and parameters
+     - [ ] Identify other common CLI output functions (argparse, fire, etc.)
+     - [ ] Document styling/formatting preservation requirements
+     - [ ] Analyze how these differ from regular print() statements
 
-2) Research popular logging libraries
-   - Context: Identify what other logging libraries are commonly used
+2) Extend pattern detection in project analyzer
+   - Context: Add detection for CLI framework output functions
    - Files to check/modify:
-     - Research findings document
+     - src/nicestlog/project_analyzer.py
+     - src/nicestlog/assistant.py (if needed)
    - Steps:
-     - [x] Research loguru usage and features
-     - [x] Research sentry integration patterns
-     - [x] Check for other popular logging libraries (structlog, python-json-logger, etc.)
-     - [x] Document findings with usage patterns
+     - [ ] Add CLI framework output patterns to analyzer
+     - [ ] Create new pattern type for CLI outputs
+     - [ ] Test pattern detection with sample code
+     - [ ] Update migration recommendation logic
 
-3) Create concrete migration examples
-   - Context: Show real before/after code examples
+3) Implement CLI output migration transformations
+   - Context: Create AST transformations for CLI framework outputs
    - Files to check/modify:
-     - docs/user_guide/migration_examples.md (new file)
-     - examples/migration_examples.py (new file)
+     - src/nicestlog/assistant.py or new CLI-specific module
+     - src/nicestlog/advanced_assistant.py (AST patterns)
    - Steps:
-     - [x] Create before/after examples for standard logging
-     - [x] Create eliot migration examples
-     - [x] Create examples for other identified libraries
-     - [x] Add practical tips and common patterns
-     - [x] Commit with message: "docs: add concrete migration examples with before/after code"
+     - [ ] Design structlog equivalents that preserve styling
+     - [ ] Implement typer.echo() → structlog transformation
+     - [ ] Implement click.echo() → structlog transformation
+     - [ ] Implement rich.print() → structlog transformation
+     - [ ] Handle color/styling parameters appropriately
+     - [ ] Add new migration type "cli-outputs-to-structlog"
 
-4) Update documentation
-   - Context: Ensure migration documentation is comprehensive
+4) Create tests and examples
+   - Context: Ensure transformations work correctly
    - Files to check/modify:
-     - docs/user_guide/cli_migration_guide.md
+     - tests/test_cli_output_migration.py (new)
+     - examples/cli_migration_demo.py (new)
+     - docs/user_guide/migration_examples.md
+   - Steps:
+     - [ ] Write tests for each CLI framework transformation
+     - [ ] Create before/after examples showing styling preservation
+     - [ ] Test edge cases (nested calls, complex parameters)
+     - [ ] Add CLI migration examples to documentation
+     - [ ] Commit with message: "feat: add CLI framework output migration support"
+
+5) Integration and documentation
+   - Context: Integrate with existing CLI and update docs
+   - Files to check/modify:
+     - src/nicestlog/cli.py (add new migration type)
+     - docs/user_guide/migration_examples.md
      - README.md
    - Steps:
-     - [x] Update existing migration documentation
-     - [x] Add references to new examples
-     - [x] Ensure all supported libraries are documented
-     - [x] Commit with message: "docs: update migration guide with library support details"
+     - [ ] Add CLI migration type to migrate command
+     - [ ] Update help text and documentation
+     - [ ] Add CLI migration examples to migration guide
+     - [ ] Test full migration workflow
+     - [ ] Commit with message: "docs: add CLI framework migration examples and integration"
