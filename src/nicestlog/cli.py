@@ -32,6 +32,7 @@ from .interactive_transformer import (
     InteractiveTransformer,
 )
 from .assistant import migrate_file, migrate_directory, MigrationResult
+from .cli_output_transformer import migrate_cli_outputs_file
 
 # Initialize logging and console
 log = structlog.get_logger(__name__)
@@ -1772,6 +1773,11 @@ MIGRATION_TYPES = {
         "handler": "migrate_logging_to_structlog",
         "patterns": ["logging_calls", "logger_imports"],
     },
+    "cli-outputs-to-structlog": {
+        "description": "Convert CLI framework outputs (typer.echo, click.echo, rich.print) to structlog",
+        "handler": "migrate_cli_outputs_to_structlog",
+        "patterns": ["cli_output", "print_statements"],
+    },
     "format-strings": {
         "description": "Convert f-strings to structured logging",
         "handler": "migrate_format_strings",
@@ -1875,8 +1881,79 @@ def migrate_single_file(
 ) -> MigrationResult:
     """Migrate a single file using the appropriate handler."""
 
+    # CLI-outputs-to-Structlog migration (new functionality)
+    if config["handler"] == "migrate_cli_outputs_to_structlog":
+        try:
+            # Read source file
+            original_content = source.read_text(encoding="utf-8")
+
+            # Apply CLI output migration
+            new_content, changed = migrate_cli_outputs_file(original_content)
+
+            # Create result object compatible with our interface
+            class CompatibleResult:
+                def __init__(self):
+                    self.files_processed = 1
+                    self.transformations_applied = 1 if changed else 0
+                    self.errors = 0
+                    self.warnings = []
+
+            result = CompatibleResult()
+
+            # Write result if not dry run and changed
+            if not dry_run and changed:
+                if target != source:
+                    # Different target
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(new_content, encoding="utf-8")
+                else:
+                    # In-place migration
+                    source.write_text(new_content, encoding="utf-8")
+
+            # Show diff preview if dry run and changed
+            if dry_run and changed:
+                import difflib
+
+                diff_lines = list(
+                    difflib.unified_diff(
+                        original_content.splitlines(keepends=True),
+                        new_content.splitlines(keepends=True),
+                        fromfile=str(source),
+                        tofile=str(target),
+                    )
+                )
+                console.print("\n[bold blue]📄 Preview of CLI output migration:[/bold blue]")
+                for line in diff_lines[:20]:  # Show first 20 lines
+                    if line.startswith("+"):
+                        console.print(f"[green]{line.rstrip()}[/green]")
+                    elif line.startswith("-"):
+                        console.print(f"[red]{line.rstrip()}[/red]")
+                    elif line.startswith("@@"):
+                        console.print(f"[cyan]{line.rstrip()}[/cyan]")
+                    else:
+                        console.print(line.rstrip())
+                if len(diff_lines) > 20:
+                    console.print(
+                        f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]"
+                    )
+
+            return result
+
+        except Exception as exc:
+            error_msg = str(exc)
+            console.print(f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]")
+
+            class CompatibleResult:
+                def __init__(self):
+                    self.files_processed = 1
+                    self.transformations_applied = 0
+                    self.errors = 1
+                    self.warnings = [error_msg]
+
+            return CompatibleResult()
+
     # Print-to-Structlog migration (existing functionality)
-    if config["handler"] == "migrate_print_to_structlog":
+    elif config["handler"] == "migrate_print_to_structlog":
         try:
             # Read source file
             original_content = source.read_text(encoding="utf-8")
@@ -2013,6 +2090,10 @@ def migrate_directory_recursive(
     # For print-to-structlog, use existing directory migration
     if config["handler"] == "migrate_print_to_structlog":
         return migrate_directory(source, target, dry_run)
+    
+    # For CLI outputs migration, use custom directory migration
+    elif config["handler"] == "migrate_cli_outputs_to_structlog":
+        return migrate_directory_with_handler(source, target, migrate_cli_outputs_file, dry_run)
 
     # For other migrations: Process files individually
     python_files = list(source.rglob("*.py"))
@@ -2114,6 +2195,80 @@ def run_interactive_migration(
                 self.warnings = [error_msg]
 
         return CompatibleResult()
+
+
+def migrate_directory_with_handler(
+    input_dir: Path,
+    output_dir: Optional[Path],
+    migration_handler,
+    dry_run: bool = True,
+) -> MigrationResult:
+    """Migrate Python files using a custom migration handler function."""
+    
+    class CompatibleResult:
+        def __init__(self):
+            self.files_processed = 0
+            self.transformations_applied = 0
+            self.errors = 0
+            self.warnings = []
+            self.diffs = {}
+    
+    result = CompatibleResult()
+    input_dir = Path(input_dir)
+    if output_dir:
+        output_dir = Path(output_dir)
+
+    if not input_dir.exists() or not input_dir.is_dir():
+        raise FileNotFoundError(f"Input directory not found: {input_dir}")
+
+    for py in input_dir.rglob("*.py"):
+        # Skip generated or virtual env paths
+        if any(part in {".venv", "venv", "__pycache__", ".git"} for part in py.parts):
+            continue
+        try:
+            original = py.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        
+        try:
+            new_code, changed = migration_handler(original)
+            result.files_processed += 1
+            
+            if not changed:
+                # No transformation; in dry-run collect no diff. When writing to separate dir, still mirror original.
+                if output_dir is not None and not dry_run:
+                    target_path = output_dir / py.relative_to(input_dir)
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    target_path.write_text(original, encoding="utf-8")
+                continue
+
+            # If changed, record diff and count transformation
+            if changed:
+                result.transformations_applied += 1
+                import difflib
+                diff_lines = list(
+                    difflib.unified_diff(
+                        original.splitlines(keepends=True),
+                        new_code.splitlines(keepends=True),
+                        fromfile=str(py),
+                        tofile=str(py),
+                    )
+                )
+                result.diffs[str(py)] = diff_lines
+
+            # Write transformed code only if not dry-run
+            if not dry_run:
+                target_path = (
+                    py if output_dir is None else (output_dir / py.relative_to(input_dir))
+                )
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_text(new_code, encoding="utf-8")
+                
+        except Exception as exc:
+            result.errors += 1
+            result.warnings.append(f"Error processing {py}: {exc}")
+
+    return result
 
 
 def create_migration_backup(path: Path) -> Optional[str]:

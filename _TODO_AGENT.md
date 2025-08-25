@@ -54,15 +54,15 @@ Prioritized work items (with checkboxes)
 3) Implement CLI output migration transformations
    - Context: Create AST transformations for CLI framework outputs
    - Files to check/modify:
-     - src/nicestlog/assistant.py or new CLI-specific module
-     - src/nicestlog/advanced_assistant.py (AST patterns)
+     - src/nicestlog/cli_output_transformer.py (new)
+     - src/nicestlog/cli.py (integrate new migration type)
    - Steps:
-     - [ ] Design structlog equivalents that preserve styling
-     - [ ] Implement typer.echo() → structlog transformation
-     - [ ] Implement click.echo() → structlog transformation
-     - [ ] Implement rich.print() → structlog transformation
-     - [ ] Handle color/styling parameters appropriately
-     - [ ] Add new migration type "cli-outputs-to-structlog"
+     - [x] Design structlog equivalents that preserve styling
+     - [x] Implement typer.echo() → structlog transformation
+     - [x] Implement click.echo() → structlog transformation
+     - [x] Implement rich.print() → structlog transformation
+     - [x] Handle color/styling parameters appropriately
+     - [x] Add new migration type "cli-outputs-to-structlog"
 
 4) Create tests and examples
    - Context: Ensure transformations work correctly
