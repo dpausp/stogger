@@ -102,10 +102,11 @@ class TestTyperCliRunner:
         mock_init_config.assert_called_once()
 
     def test_init_config_help(self):
-        """Test tools init-config help."""
+        """Test tools init-config help (deprecated command)."""
         result = self.runner.invoke(app, ["tools", "init-config", "--help"])
         assert result.exit_code == 0
-        assert "Initialize nicestlog configuration" in result.stdout
+        assert "DEPRECATED" in result.stdout
+        assert "Use 'nicestlog init' instead" in result.stdout
 
 
 class TestLintCommand:
