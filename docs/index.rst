@@ -36,6 +36,7 @@ Welcome to the comprehensive documentation for nicestlog - your go-to solution f
 
    development/todo
    development/api_reference
+   ../docs/development_lessons_dogfooding_check
 
 Quick Start
 -----------
