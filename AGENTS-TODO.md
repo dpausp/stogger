@@ -60,8 +60,8 @@ TOP-LEVEL (11 commands):
 - [x] **2.1** Create new command groups in cli.py
 - [x] **2.2** Move commands to appropriate groups
 - [x] **2.3** Add deprecation warnings for old commands
-- [ ] **2.4** Update all help texts and descriptions
-- [ ] **2.5** Test all command paths work correctly
+- [x] **2.4** Update all help texts and descriptions
+- [x] **2.5** Test all command paths work correctly
 
 #### 2.1-2.3 IMPLEMENTATION COMPLETE ✅
 

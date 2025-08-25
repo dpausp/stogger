@@ -108,8 +108,8 @@ def run_agent_analysis(project_dir):
     
     try:
         result = subprocess.run([
-            "uv", "run", "nicestlog", "tools", "analyze-project", 
-            str(project_dir), "--agent"
+            "uv", "run", "nicestlog", "analyze", 
+            str(project_dir), "--json"
         ], capture_output=True, text=True, check=True)
         
         # Clean output - remove any logging lines before JSON

@@ -10,7 +10,7 @@ Small to medium projects using `print()` statements for logging/debugging.
 ### Agent Workflow
 ```bash
 # 1. Analyze project
-nicestlog tools analyze-project . --agent > analysis.json
+nicestlog analyze . --json > analysis.json
 
 # 2. Check if strategy is print-to-structlog
 STRATEGY=$(cat analysis.json | jq -r '.recommendation.strategy')
@@ -87,7 +87,7 @@ Projects using Python's standard logging module.
 ### Agent Workflow
 ```bash
 # 1. Analyze and verify strategy
-nicestlog tools analyze-project . --agent | jq '.recommendation.strategy'
+nicestlog analyze . --json | jq '.recommendation.strategy'
 # Should return: "logging-to-structlog"
 
 # 2. Interactive migration (recommended for logging)
@@ -145,7 +145,7 @@ Projects already using structlog but need nicestlog improvements.
 ### Agent Workflow
 ```bash
 # 1. Verify enhancement strategy
-nicestlog tools analyze-project . --agent | jq '.recommendation.strategy'
+nicestlog analyze . --json | jq '.recommendation.strategy'
 # Should return: "enhancement"
 
 # 2. Add nicestlog and enhance existing logging
@@ -288,7 +288,7 @@ jobs:
           
       - name: Analyze project structure
         run: |
-          uv run nicestlog tools analyze-project . --agent > analysis.json
+          uv run nicestlog analyze . --json > analysis.json
           cat analysis.json | jq '.recommendation'
 ```
 
@@ -319,7 +319,7 @@ High-performance applications where logging overhead matters.
 ### Agent Workflow
 ```bash
 # 1. Analyze performance requirements
-nicestlog tools analyze-project . --agent | jq '.complexity'
+nicestlog analyze . --json | jq '.complexity'
 
 # 2. Configure for performance
 cat > pyproject.toml.perf << 'EOF'
