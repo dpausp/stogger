@@ -454,6 +454,15 @@ class AdvancedTransformer(ast.NodeTransformer):
                     node_type=type(node).__name__,
                 )
 
+                if not pattern.transformer:
+                    log.debug(
+                        "pattern-matched-no-transformer",
+                        _replace_msg="ℹ️ Pattern '{pattern}' matched but has no transformer",
+                        pattern=pattern_name,
+                        line=getattr(node, "lineno", "unknown"),
+                        node_type=type(node).__name__,
+                    )
+
                 if pattern.transformer:
                     try:
                         new_node = pattern.transformer(node)
@@ -668,6 +677,11 @@ class AdvancedAssistant:
         )
 
         try:
+            log.debug(
+                "read-file",
+                _replace_msg="📖 Reading and parsing file {file_path}",
+                file_path=str(file_path),
+            )
             # Read and analyze the file
             original_content = file_path.read_text(encoding="utf-8")
             tree = ast.parse(original_content)
@@ -677,10 +691,20 @@ class AdvancedAssistant:
 
             # Apply transformations
             enabled_patterns = [p for p in self.patterns if p.enabled]
+            log.debug(
+                "apply-transformations",
+                _replace_msg="🧩 Applying {count} enabled patterns",
+                count=len(enabled_patterns),
+                enabled_patterns=[p.name for p in enabled_patterns],
+            )
             transformer = AdvancedTransformer(enabled_patterns)
             transformed_tree = transformer.transform(tree)
 
             # Generate new code
+            log.debug(
+                "generate-code",
+                _replace_msg="🧪 Generating code from transformed AST",
+            )
             transformed_content = ast.unparse(transformed_tree)
 
             # Create result
@@ -695,11 +719,21 @@ class AdvancedAssistant:
 
             # Write file if not dry run
             if not dry_run and transformed_content != original_content:
+                log.debug(
+                    "write-backup",
+                    _replace_msg="🗂️ Creating backup file for {file_path}",
+                    file_path=str(file_path),
+                )
                 # Create backup
                 backup_path = file_path.with_suffix(f"{file_path.suffix}.backup")
                 backup_path.write_text(original_content)
 
                 # Write transformed content
+                log.debug(
+                    "write-transformed",
+                    _replace_msg="✍️ Writing transformed content to {file_path}",
+                    file_path=str(file_path),
+                )
                 file_path.write_text(transformed_content)
 
                 log.debug(
@@ -756,6 +790,12 @@ class AdvancedAssistant:
         )
 
         files = list(directory.glob(pattern))
+        log.debug(
+            "directory-files-selected",
+            _replace_msg="📁 Selected {count} files for transformation in {directory}",
+            count=len(files),
+            directory=str(directory),
+        )
         results = []
 
         for file_path in files:
