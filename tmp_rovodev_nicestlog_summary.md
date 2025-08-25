@@ -9,10 +9,10 @@ Key points:
 - Files needing attention: 60
 
 Specific actionable findings:
-- Change two internal info-level logs to debug in src/nicestlog/cli.py (lines ~248 and ~1693) to avoid W3-level issues.
+- Fixed: two internal info-level logs downgraded to debug in src/nicestlog/cli.py (lines ~248 and ~1693).
 
 Suggested next steps (pick one or more):
-1) Auto-apply quick fixes: `uv run nicestlog check --fix` (will update the two info->debug spots).
+1) Auto-apply quick fixes: already applied (cli.py info->debug updates).
 2) Scope checks to library code to reduce noise: `uv run nicestlog check src/nicestlog`.
 3) Decide policy for tests/docs/examples (ignore or lower severity) and add a config accordingly.
 4) Start a targeted logging uplift in a few core modules (e.g., advanced_assistant.py, factory.py, i18n.py), adding structured debug logs around key operations and errors.
