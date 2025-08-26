@@ -945,7 +945,6 @@ dependencies = [
     { name = "click" },
     { name = "colorama" },
     { name = "eliot" },
-    { name = "flask" },
     { name = "requests" },
     { name = "rich" },
     { name = "structlog" },
@@ -956,6 +955,9 @@ dependencies = [
 [package.optional-dependencies]
 color = [
     { name = "colorama" },
+]
+web = [
+    { name = "flask" },
 ]
 
 [package.dev-dependencies]
@@ -998,14 +1000,14 @@ requires-dist = [
     { name = "colorama", specifier = ">=0.4.6" },
     { name = "colorama", marker = "extra == 'color'", specifier = ">=0.4.0" },
     { name = "eliot", specifier = ">=1.0.0" },
-    { name = "flask", specifier = ">=3.0.3" },
+    { name = "flask", marker = "extra == 'web'", specifier = ">=3.0.3" },
     { name = "requests", specifier = ">=2.32.4" },
     { name = "rich", specifier = ">=13.0" },
     { name = "structlog", specifier = ">=23.0.0" },
     { name = "toml", specifier = ">=0.10.2" },
     { name = "typer", specifier = ">=0.9.0" },
 ]
-provides-extras = ["color"]
+provides-extras = ["color", "web"]
 
 [package.metadata.requires-dev]
 dev = [

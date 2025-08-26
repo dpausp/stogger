@@ -7,7 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "structlog>=23.0.0",
     "eliot>=1.0.0",
-    "flask>=3.0.3",
     "requests>=2.32.4",
     "typer>=0.9.0",
     "rich>=13.0",
@@ -18,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 color = ["colorama>=0.4.0"]
+web = ["flask>=3.0.3"]
 
 [project.scripts]
 nicestlog = "nicestlog:main"
