@@ -810,9 +810,6 @@ def ast_analyze_deprecated(
     console.print("[yellow]   Use 'nicestlog check --ast' instead.[/yellow]")
 
     # Redirect to check command with AST enabled
-    from typer.testing import CliRunner
-
-    runner = CliRunner()
 
     # Build command args
     args = [str(path), "--ast"]
