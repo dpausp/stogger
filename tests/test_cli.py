@@ -80,74 +80,10 @@ class TestTyperCliRunner:
         assert result.exit_code == 0
         assert "Nicestlog utility" in result.stdout
         assert "tools" in result.stdout
-        assert "lint" in result.stdout
+        assert "check" in result.stdout
         assert "dashboard" in result.stdout
 
 
-class TestLintCommand:
-    """Test cases for lint command."""
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.runner = CliRunner()
-
-    def test_lint_help(self):
-        """Test lint command help."""
-        result = self.runner.invoke(app, ["lint", "--help"])
-        assert result.exit_code == 0
-        assert "Check logging coverage" in result.stdout
-        assert "--min-coverage" in result.stdout
-        assert "--max-coverage" in result.stdout
-        assert "--strict" in result.stdout
-
-    @patch("nicestlog.cli.run_linter")
-    def test_lint_default_args(self, mock_linter):
-        """Test lint command with default arguments."""
-        result = self.runner.invoke(app, ["lint"])
-        assert result.exit_code == 0
-        mock_linter.assert_called_once_with(".", 5.0, 15.0, False)
-
-    @patch("nicestlog.cli.run_linter")
-    def test_lint_custom_args(self, mock_linter):
-        """Test lint command with custom arguments."""
-        result = self.runner.invoke(
-            app,
-            [
-                "lint",
-                "src/",
-                "--min-coverage",
-                "10.0",
-                "--max-coverage",
-                "20.0",
-                "--strict",
-            ],
-        )
-        assert result.exit_code == 0
-        mock_linter.assert_called_once_with("src/", 10.0, 20.0, True)
-
-    @patch("nicestlog.linter.lint_directory")
-    def test_run_linter_function(self, mock_lint_directory):
-        """Test the run_linter function directly."""
-        mock_lint_directory.return_value = True
-
-        # Test with strict=True (should override coverage values)
-        run_linter("/test/path", 8.0, 18.0, True)
-
-        mock_lint_directory.assert_called_once_with(
-            Path("/test/path"), min_coverage=3.0, max_coverage=10.0
-        )
-
-    @patch("nicestlog.linter.lint_directory")
-    def test_run_linter_function_no_strict(self, mock_lint_directory):
-        """Test the run_linter function without strict mode."""
-        mock_lint_directory.return_value = True
-
-        # Test with strict=False (should use provided values)
-        run_linter("/test/path", 8.0, 18.0, False)
-
-        mock_lint_directory.assert_called_once_with(
-            Path("/test/path"), min_coverage=8.0, max_coverage=18.0
-        )
 
 
 class TestDashboardCommand:
@@ -450,9 +386,9 @@ class TestParameterValidation:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    def test_lint_invalid_coverage_type(self):
-        """Test lint command with invalid coverage type."""
-        result = self.runner.invoke(app, ["lint", "--min-coverage", "invalid"])
+    def test_check_invalid_parameter_type(self):
+        """Test check command with invalid parameter type."""
+        result = self.runner.invoke(app, ["check", "--verbose", "invalid"])
         assert result.exit_code != 0
 
     def test_dashboard_invalid_port_type(self):

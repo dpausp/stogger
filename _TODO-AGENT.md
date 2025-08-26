@@ -42,10 +42,10 @@ Prioritized work items (with checkboxes)
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Remove @app.command() lint function
-     - [ ] Remove run_linter function if not used elsewhere
-     - [ ] Update help text and command listings
-     - [ ] Commit with message: "feat: remove redundant lint command, use check instead"
+     - [x] Remove @app.command() lint function
+     - [x] Remove run_linter function if not used elsewhere
+     - [x] Update help text and command listings
+     - [x] Commit with message: "feat: remove redundant lint command, use check instead"
 
 3) Update tests to use check instead of lint
    - Context: All lint tests should be migrated to use check command
@@ -54,10 +54,10 @@ Prioritized work items (with checkboxes)
      - tests/test_cli_integration.py
      - Any other test files using lint
    - Steps:
-     - [ ] Find all tests using lint command
-     - [ ] Update tests to use check command with appropriate flags
-     - [ ] Ensure test coverage is maintained
-     - [ ] Commit with message: "test: migrate lint tests to use check command"
+     - [x] Find all tests using lint command
+     - [x] Update tests to use check command with appropriate flags
+     - [x] Ensure test coverage is maintained
+     - [x] Commit with message: "test: migrate lint tests to use check command"
 
 4) Update documentation and migration guide
    - Context: Users need to know about the change and how to migrate
