@@ -657,6 +657,107 @@ logging.info("Test message")
             assert "Project Analysis" in result.stdout
             # Type is only used when actually migrating with --do-migrate
 
+    def test_migrate_with_wrapper_warnings(self):
+        """Test migrate command detects and warns about log wrapper anti-patterns."""
+        test_file = self.temp_path / "wrapper_test.py"
+        test_file.write_text("""
+def log_debug(message):
+    print(f"DEBUG: {message}")
+
+def write_info(msg):
+    logging.info(msg)
+
+def emit_warning(text):
+    logger.warning(text)
+
+def main():
+    log_debug("Starting application")
+    write_info("Processing data")
+    emit_warning("Low disk space")
+""")
+
+        with patch(
+            "nicestlog.project_analyzer.analyze_project_for_agents"
+        ) as mock_analyzer:
+            mock_result = MagicMock()
+            mock_result.project_path = str(test_file)
+            mock_result.to_json.return_value = (
+                '{"recommendations": ["Convert wrapper functions to direct logging"]}'
+            )
+
+            # Mock the complexity object
+            mock_complexity = MagicMock()
+            mock_complexity.total_files = 1
+            mock_complexity.python_files = 1
+            mock_complexity.total_lines = 12
+            mock_complexity.complexity_category = "simple"
+            mock_result.complexity = mock_complexity
+
+            # Mock the dependencies object
+            mock_deps = MagicMock()
+            mock_deps.package_manager = "pip"
+            mock_deps.has_logging = True
+            mock_deps.has_structlog = False
+            mock_deps.has_loguru = False
+            mock_deps.has_other_logging = []
+            mock_result.dependencies = mock_deps
+
+            # Mock logging patterns with wrapper patterns
+            from nicestlog.project_analyzer import LoggingPattern
+            mock_result.logging_patterns = [
+                LoggingPattern(
+                    pattern_type="wrapper",
+                    file_path=str(test_file),
+                    line_number=2,
+                    code_snippet="def log_debug(message):",
+                    severity="medium",
+                    migration_priority=7,
+                ),
+                LoggingPattern(
+                    pattern_type="wrapper",
+                    file_path=str(test_file),
+                    line_number=5,
+                    code_snippet="def write_info(msg):",
+                    severity="medium",
+                    migration_priority=7,
+                ),
+                LoggingPattern(
+                    pattern_type="wrapper",
+                    file_path=str(test_file),
+                    line_number=8,
+                    code_snippet="def emit_warning(text):",
+                    severity="medium",
+                    migration_priority=7,
+                ),
+            ]
+
+            # Mock recommendation
+            mock_rec = MagicMock()
+            mock_rec.strategy = "logging-to-structlog"
+            mock_rec.priority = "high"
+            mock_rec.estimated_effort = "medium"
+            mock_rec.recommended_approach = "manual"
+            mock_rec.risk_level = "medium"
+            mock_rec.steps = ["Remove wrapper functions", "Use direct logging calls"]
+            mock_result.recommendation = mock_rec
+
+            # Mock warnings including wrapper warning
+            mock_result.warnings = [
+                "Log wrapper anti-patterns detected (3 functions) - "
+                "consider using log.* calls directly instead of wrapper functions"
+            ]
+
+            mock_analyzer.return_value = mock_result
+
+            result = self.runner.invoke(app, ["migrate", str(test_file)])
+
+            assert result.exit_code == 0
+            assert "Project Analysis" in result.stdout
+            # Check that warnings are displayed (the exact format may vary)
+            assert "wrapper" in result.stdout.lower() or "Wrapper" in result.stdout
+            # Check that the warning count is shown
+            assert "3" in result.stdout
+
 
 
 

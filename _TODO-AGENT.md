@@ -66,8 +66,8 @@ Prioritized work items (with checkboxes)
    - Steps:
      - [x] Add wrapper detection to migration analysis
      - [x] Create migration-specific warning messages
-     - [ ] Write tests for migration wrapper warnings
-     - [ ] Commit with message: "feat: add log wrapper warnings to migrate command"
+     - [x] Write tests for migration wrapper warnings
+     - [x] Commit with message: "feat: add log wrapper warnings to migrate command"
 
 5) Documentation and examples
    - Context: Help users understand what log wrappers are and why to avoid them
