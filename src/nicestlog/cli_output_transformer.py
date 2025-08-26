@@ -24,7 +24,7 @@ class CLIOutputCall:
     line_number: int
     original_call: ast.Call
     message_arg: Optional[ast.AST] = None
-    style_info: Dict[str, Any] = None
+    style_info: Optional[Dict[str, Any]] = None
     output_stream: str = "stdout"  # 'stdout', 'stderr'
 
 
@@ -50,7 +50,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         }
 
         # Track rich console instances
-        self.rich_console_vars = set()
+        self.rich_console_vars: set[str] = set()
 
     @staticmethod
     def slugify(text: str) -> str:
@@ -225,11 +225,17 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
             ):
                 call_info.output_stream = "stderr"
             elif kw.arg == "fg":
+                if call_info.style_info is None:
+                    call_info.style_info = {}
                 call_info.style_info["color"] = self._extract_color_value(kw.value)
             elif kw.arg == "bg":
+                if call_info.style_info is None:
+                    call_info.style_info = {}
                 call_info.style_info["bg_color"] = self._extract_color_value(kw.value)
             elif kw.arg in ["bold", "italic", "underline", "dim"]:
                 if isinstance(kw.value, ast.Constant) and kw.value.value:
+                    if call_info.style_info is None:
+                        call_info.style_info = {}
                     call_info.style_info[kw.arg] = True
 
         return call_info
@@ -276,6 +282,8 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         # Extract styling from keywords
         for kw in node.keywords or []:
             if kw.arg == "style":
+                if call_info.style_info is None:
+                    call_info.style_info = {}
                 call_info.style_info["style"] = self._extract_string_value(kw.value)
 
         return call_info
@@ -303,6 +311,8 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
             ):
                 call_info.output_stream = "stderr"
             elif kw.arg == "style":
+                if call_info.style_info is None:
+                    call_info.style_info = {}
                 call_info.style_info["style"] = self._extract_string_value(kw.value)
 
         return call_info
@@ -325,7 +335,13 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
     def _analyze_sys_write(self, node: ast.Call) -> CLIOutputCall:
         """Analyze sys.stdout.write() / sys.stderr.write() call."""
-        stream = "stderr" if node.func.value.attr == "stderr" else "stdout"
+        stream = (
+            "stderr"
+            if hasattr(node.func, "value")
+            and hasattr(node.func.value, "attr")
+            and node.func.value.attr == "stderr"
+            else "stdout"
+        )
 
         call_info = CLIOutputCall(
             framework="sys",
@@ -411,7 +427,10 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
                 keywords.append(
                     ast.keyword(arg="_replace_msg", value=ast.Constant(value="{a0}"))
                 )
-                keywords.append(ast.keyword(arg="a0", value=cli_call.message_arg))
+                if cli_call.message_arg is not None and isinstance(
+                    cli_call.message_arg, ast.expr
+                ):
+                    keywords.append(ast.keyword(arg="a0", value=cli_call.message_arg))
 
         # Add CLI-specific metadata
         keywords.append(

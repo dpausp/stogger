@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 import time
 from pathlib import Path
-from typing import Annotated, Optional, List, cast
+from typing import Annotated, Optional, List, cast, Protocol
 
 import typer
 import structlog
@@ -31,8 +31,17 @@ from .advanced_assistant import (
 from .interactive_transformer import (
     InteractiveTransformer,
 )
-from .assistant import migrate_file, migrate_directory, MigrationResult
+from .assistant import migrate_file, migrate_directory
 from .cli_output_transformer import migrate_cli_outputs_file
+
+
+# Type protocol for migration results to handle different result types
+class MigrationResultProtocol(Protocol):
+    files_processed: int
+    transformations_applied: int
+    errors: int
+    warnings: list[str]
+
 
 # Initialize logging and console
 log = structlog.get_logger(__name__)
@@ -456,7 +465,7 @@ def check(
             _display_check_analysis_result(ast_result, complexity)
 
             # Store issues for potential fixing
-            ast_issues = ast_result
+            ast_issues = [ast_result]
 
         elif path_obj.is_dir():
             python_files = list(path_obj.glob("**/*.py"))
@@ -516,8 +525,10 @@ def check(
                     task = progress.add_task(
                         f"Transforming {py_file.name}...", total=None
                     )
-                    result = assistant.transform_file(py_file, dry_run=dry_run)
-                    transform_results.append(result)
+                    transform_result = assistant.transform_file(
+                        py_file, dry_run=dry_run
+                    )
+                    transform_results.append(transform_result)
                     progress.remove_task(task)
 
             _display_directory_transformation(transform_results, dry_run)
@@ -1942,7 +1953,7 @@ def run_migrate_command(
 
 def migrate_single_file(
     source: Path, target: Path, config: dict, dry_run: bool, force: bool
-) -> MigrationResult:
+) -> MigrationResultProtocol:
     """Migrate a single file using the appropriate handler."""
 
     # CLI-outputs-to-Structlog migration (new functionality)
@@ -1955,14 +1966,14 @@ def migrate_single_file(
             new_content, changed = migrate_cli_outputs_file(original_content)
 
             # Create result object compatible with our interface
-            class CompatibleResult:
+            class CLIOutputMigrationResult:
                 def __init__(self):
                     self.files_processed = 1
                     self.transformations_applied = 1 if changed else 0
                     self.errors = 0
                     self.warnings = []
 
-            result = CompatibleResult()
+            result = CLIOutputMigrationResult()
 
             # Write result if not dry run and changed
             if not dry_run and changed:
@@ -2011,14 +2022,14 @@ def migrate_single_file(
                 f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]"
             )
 
-            class CompatibleResult:
+            class CLIOutputErrorResult:
                 def __init__(self):
                     self.files_processed = 1
                     self.transformations_applied = 0
                     self.errors = 1
                     self.warnings = [error_msg]
 
-            return CompatibleResult()
+            return CLIOutputErrorResult()
 
     # Print-to-Structlog migration (existing functionality)
     elif config["handler"] == "migrate_print_to_structlog":
@@ -2031,14 +2042,14 @@ def migrate_single_file(
 
             # Create result object compatible with our interface
             # Note: MigrationResult from assistant.py has different fields
-            class CompatibleResult:
+            class PrintMigrationResult:
                 def __init__(self):
                     self.files_processed = 1
                     self.transformations_applied = 1 if changed else 0
                     self.errors = 0
                     self.warnings = []
 
-            result = CompatibleResult()
+            migration_result: MigrationResultProtocol = PrintMigrationResult()
 
             # Write result if not dry run and changed
             if not dry_run and changed:
@@ -2077,20 +2088,20 @@ def migrate_single_file(
                         f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]"
                     )
 
-            return result
+            return migration_result
 
         except Exception as exc:
             error_msg = str(exc)
             console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
-            class CompatibleResult:
+            class PrintMigrationErrorResult:
                 def __init__(self):
                     self.files_processed = 1
                     self.transformations_applied = 0
                     self.errors = 1
                     self.warnings = [error_msg]
 
-            return CompatibleResult()
+            return PrintMigrationErrorResult()
 
     # Extended AST migrations using Advanced Assistant
     assistant = AdvancedAssistant()
@@ -2109,14 +2120,14 @@ def migrate_single_file(
         # Fallback to basic analysis
         assistant.analyze_file(source)
 
-        class CompatibleResult:
+        class ASTPatternResult:
             def __init__(self):
                 self.files_processed = 1
                 self.transformations_applied = 0
                 self.errors = 0
                 self.warnings = [f"No specific patterns for {config['handler']}"]
 
-        return CompatibleResult()
+        return ASTPatternResult()
 
     # Apply AST transformations
     try:
@@ -2127,37 +2138,37 @@ def migrate_single_file(
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(transform_result.transformed_code)
 
-        class CompatibleResult:
+        class ASTTransformResult:
             def __init__(self):
                 self.files_processed = 1
                 self.transformations_applied = len(transform_result.changes)
                 self.errors = 0
                 self.warnings = []
 
-        return CompatibleResult()
+        return ASTTransformResult()
 
     except Exception as exc:
         error_msg = str(exc)
         console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
-        class CompatibleResult:
+        class ASTTransformErrorResult:
             def __init__(self):
                 self.files_processed = 1
                 self.transformations_applied = 0
                 self.errors = 1
                 self.warnings = [error_msg]
 
-        return CompatibleResult()
+        return ASTTransformErrorResult()
 
 
 def migrate_directory_recursive(
     source: Path, target: Path, config: dict, dry_run: bool, force: bool
-) -> MigrationResult:
+) -> MigrationResultProtocol:
     """Migrate all Python files in a directory recursively."""
 
     # For print-to-structlog, use existing directory migration
     if config["handler"] == "migrate_print_to_structlog":
-        return migrate_directory(source, target, dry_run)
+        return migrate_directory(source, target, dry_run)  # type: ignore[return-value]
 
     # For CLI outputs migration, use custom directory migration
     elif config["handler"] == "migrate_cli_outputs_to_structlog":
@@ -2170,14 +2181,14 @@ def migrate_directory_recursive(
     if not python_files:
         console.print(f"[yellow]⚠️ No Python files found in {source}[/yellow]")
 
-        class CompatibleResult:
+        class DirectoryMigrationResult:
             def __init__(self):
                 self.files_processed = 0
                 self.transformations_applied = 0
                 self.errors = 0
                 self.warnings = []
 
-        return CompatibleResult()
+        return DirectoryMigrationResult()
 
     total_files = 0
     total_transformations = 0
@@ -2206,14 +2217,14 @@ def migrate_directory_recursive(
 
             progress.remove_task(task)
 
-    class CompatibleResult:
+    class DirectoryRecursiveResult:
         def __init__(self):
             self.files_processed = total_files
             self.transformations_applied = total_transformations
             self.errors = total_errors
             self.warnings = all_warnings
 
-    return CompatibleResult()
+    return DirectoryRecursiveResult()
 
 
 def run_interactive_migration(
@@ -2222,7 +2233,7 @@ def run_interactive_migration(
     target: Path,
     config: dict,
     dry_run: bool,
-) -> MigrationResult:
+) -> MigrationResultProtocol:
     """Run interactive migration using InteractiveTransformer."""
 
     console.print(f"🎯 Interactive migration: {config['description']}")
@@ -2240,7 +2251,7 @@ def run_interactive_migration(
                 transformer.transform_file_interactive(py_file)
 
         # Return success result (InteractiveTransformer handles its own reporting)
-        class CompatibleResult:
+        class InteractiveMigrationResult:
             def __init__(self):
                 self.files_processed = (
                     1 if source.is_file() else len(list(source.rglob("*.py")))
@@ -2251,20 +2262,20 @@ def run_interactive_migration(
                 self.errors = 0
                 self.warnings = []
 
-        return CompatibleResult()
+        return InteractiveMigrationResult()
 
     except Exception as exc:
         error_msg = str(exc)
         console.print(f"[red]❌ Interactive migration failed: {exc}[/red]")
 
-        class CompatibleResult:
+        class InteractiveMigrationErrorResult:
             def __init__(self):
                 self.files_processed = 0
                 self.transformations_applied = 0
                 self.errors = 1
                 self.warnings = [error_msg]
 
-        return CompatibleResult()
+        return InteractiveMigrationErrorResult()
 
 
 def migrate_directory_with_handler(
@@ -2272,10 +2283,10 @@ def migrate_directory_with_handler(
     output_dir: Optional[Path],
     migration_handler,
     dry_run: bool = True,
-) -> MigrationResult:
+) -> MigrationResultProtocol:
     """Migrate Python files using a custom migration handler function."""
 
-    class CompatibleResult:
+    class HandlerMigrationResult:
         def __init__(self):
             self.files_processed = 0
             self.transformations_applied = 0
@@ -2283,7 +2294,7 @@ def migrate_directory_with_handler(
             self.warnings = []
             self.diffs = {}
 
-    result = CompatibleResult()
+    result = HandlerMigrationResult()
     input_dir = Path(input_dir)
     if output_dir:
         output_dir = Path(output_dir)
@@ -2364,7 +2375,7 @@ def create_migration_backup(path: Path) -> Optional[str]:
     return None
 
 
-def show_migration_report(result: MigrationResult, dry_run: bool):
+def show_migration_report(result: MigrationResultProtocol, dry_run: bool):
     """Display comprehensive migration results."""
     action = "Would migrate" if dry_run else "Migrated"
 

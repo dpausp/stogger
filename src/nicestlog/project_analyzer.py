@@ -444,7 +444,7 @@ class ProjectAnalyzer:
 
     def _calculate_ast_complexity(self, tree: ast.AST) -> float:
         """Calculate a simple complexity score from AST."""
-        complexity = 0
+        complexity = 0.0
 
         for node in ast.walk(tree):
             if isinstance(node, (ast.If, ast.While, ast.For)):

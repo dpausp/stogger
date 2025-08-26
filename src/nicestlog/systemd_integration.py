@@ -158,7 +158,7 @@ def detect_systemd_environment() -> Dict[str, Any]:
     """
     Detect if we're running under systemd and gather environment info.
     """
-    info = {
+    info: Dict[str, Any] = {
         "running_under_systemd": False,
         "journal_available": SYSTEMD_AVAILABLE,
         "service_name": None,
