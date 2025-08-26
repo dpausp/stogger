@@ -1001,14 +1001,23 @@ def lint(
     run_linter(path, min_coverage, max_coverage, strict)
 
 
-@app.command()
-def dashboard(
-    host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
-    port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
-    debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
-):
-    """🌐 Start the web dashboard."""
-    run_dashboard_cmd(host, port, debug)
+# Check if Flask is available for dashboard command
+try:
+    import flask
+    FLASK_AVAILABLE_FOR_CLI = True
+except ImportError:
+    FLASK_AVAILABLE_FOR_CLI = False
+
+# Only register dashboard command if Flask is available
+if FLASK_AVAILABLE_FOR_CLI:
+    @app.command()
+    def dashboard(
+        host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
+        port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
+        debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
+    ):
+        """🌐 Start the web dashboard."""
+        run_dashboard_cmd(host, port, debug)
 
 
 @app.command()
