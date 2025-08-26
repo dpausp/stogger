@@ -44,9 +44,9 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/cli.py
      - src/nicestlog/advanced_assistant.py
    - Steps:
-     - [ ] Add gitignore parsing functionality
-     - [ ] Filter files before AST analysis
-     - [ ] Test with common gitignore patterns
+     - [x] Add gitignore parsing functionality
+     - [x] Filter files before AST analysis
+     - [x] Test with common gitignore patterns
      - [ ] Commit with message: "feat: respect .gitignore in AST analysis"
 
 3) Focus AST patterns on logging-related issues
@@ -55,10 +55,10 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/advanced_assistant.py
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Disable general complexity patterns for check command
-     - [ ] Enable only logging-related patterns
-     - [ ] Update pattern filtering logic
-     - [ ] Test with logging-focused analysis
+     - [x] Disable general complexity patterns for check command
+     - [x] Enable only logging-related patterns
+     - [x] Update pattern filtering logic
+     - [x] Test with logging-focused analysis
      - [ ] Commit with message: "feat: focus AST analysis on logging patterns in check command"
 
 4) Improve AST output formatting and organization

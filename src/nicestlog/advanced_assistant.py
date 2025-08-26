@@ -300,8 +300,9 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             line_number=node.lineno,
         )
 
-        # Check for potential issues
-        if arg_count > 5:
+        # Check for potential issues - but be more lenient for common patterns
+        # Only flag functions with excessive parameters (8+) and avoid common patterns
+        if arg_count > 7 and not self._is_common_function_pattern(node.name):
             issue = f"Function '{node.name}' has many parameters ({arg_count})"
             self.potential_issues.append(issue)
             log.warning(
@@ -379,6 +380,28 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             modules=modules,
             line=node.lineno,
         )
+
+    def _is_common_function_pattern(self, function_name: str) -> bool:
+        """Check if this is a common function pattern that should not be flagged."""
+        # Common patterns that often have many parameters
+        common_patterns = [
+            "__init__",  # Constructor methods
+            "__new__",   # Constructor methods
+            "init",      # Initialization functions
+            "setup",     # Setup functions
+            "configure", # Configuration functions
+            "create",    # Factory functions
+            "build",     # Builder functions
+            "main",      # Main functions (often have CLI args)
+        ]
+        
+        # Check if function name matches common patterns
+        name_lower = function_name.lower()
+        for pattern in common_patterns:
+            if pattern in name_lower:
+                return True
+        
+        return False
 
 
 class AdvancedTransformer(ast.NodeTransformer):

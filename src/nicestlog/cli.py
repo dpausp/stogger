@@ -460,8 +460,12 @@ def check(
             ast_issues = [ast_result]
 
         elif path_obj.is_dir():
-            python_files = list(path_obj.glob("**/*.py"))
+            # Use gitignore-aware file filtering
+            from .gitignore_utils import filter_python_files
+            python_files = filter_python_files(path_obj, respect_gitignore=True)
+            
             if python_files:
+                console.print(f"📁 [blue]Analyzing {len(python_files)} Python files (respecting .gitignore)[/blue]")
                 ast_results = []
                 with Progress(
                     SpinnerColumn(),
@@ -479,7 +483,7 @@ def check(
                 _display_check_directory_analysis(ast_results, complexity)
                 ast_issues = ast_results
             else:
-                console.print("❌ [red]No Python files found in directory[/red]")
+                console.print("❌ [red]No Python files found in directory (after applying .gitignore)[/red]")
 
     # 3. Interactive Mode
     if interactive and ast_issues:
@@ -489,8 +493,9 @@ def check(
         if path_obj.is_file():
             transformer.transform_file_interactive(path_obj)
         else:
-            # For directories, process files one by one
-            python_files = list(path_obj.glob("**/*.py"))
+            # For directories, process files one by one (respecting gitignore)
+            from .gitignore_utils import filter_python_files
+            python_files = filter_python_files(path_obj, respect_gitignore=True)
             for py_file in python_files:
                 console.print(f"\n📁 Processing: {py_file}")
                 if typer.confirm(f"Transform {py_file.name}?"):
@@ -711,8 +716,9 @@ def fix(
         if path_obj.is_file():
             transformer.transform_file_interactive(path_obj)
         else:
-            # For directories, process files one by one
-            python_files = list(path_obj.glob("**/*.py"))
+            # For directories, process files one by one (respecting gitignore)
+            from .gitignore_utils import filter_python_files
+            python_files = filter_python_files(path_obj, respect_gitignore=True)
             for py_file in python_files:
                 console.print(f"\n📁 Processing: {py_file}")
                 if typer.confirm(f"Fix {py_file.name}?"):
@@ -743,9 +749,10 @@ def fix(
                     "ℹ️ [blue]No fixes needed - code is already optimal[/blue]"
                 )
         else:
-            python_files = list(path_obj.glob("**/*.py"))
+            from .gitignore_utils import filter_python_files
+            python_files = filter_python_files(path_obj, respect_gitignore=True)
             if not python_files:
-                console.print("❌ [red]No Python files found in directory[/red]")
+                console.print("❌ [red]No Python files found in directory (after applying .gitignore)[/red]")
                 sys.exit(1)
 
             transform_results = []
@@ -2401,6 +2408,32 @@ def _display_project_analysis(result):
         f"2. Apply: [cyan]nicestlog migrate . --type {rec.strategy} --do-migrate --backup[/cyan]"
     )
     console.print("3. Validate: [cyan]nicestlog check . --ast[/cyan]")
+
+
+def _configure_logging_focused_patterns(assistant: AdvancedAssistant, user_patterns: Optional[List[str]] = None):
+    """Configure AST patterns to focus on logging-related issues only."""
+    if user_patterns:
+        # User specified patterns, don't override
+        return
+    
+    # Disable general complexity patterns that aren't logging-related
+    for pattern in assistant.patterns:
+        if pattern.name in ["add_missing_docstrings"]:
+            # Keep docstring patterns disabled by default
+            pattern.enabled = False
+        elif "print" in pattern.name.lower() or "log" in pattern.name.lower():
+            # Enable logging-related patterns
+            pattern.enabled = True
+        else:
+            # Keep other patterns as they are
+            pass
+    
+    log.debug(
+        "patterns-configured-for-logging",
+        _replace_msg="🎯 Configured AST patterns for logging focus",
+        enabled_patterns=[p.name for p in assistant.patterns if p.enabled],
+        disabled_patterns=[p.name for p in assistant.patterns if not p.enabled],
+    )
 
 
 def main():
