@@ -1,23 +1,22 @@
-# Make Flask Web Dashboard Optional
+# Remove Redundant Lint Command
 
 Task goal
-- Make Flask and web dashboard functionality optional dependencies
-- Hide the dashboard command since it's not mature and has too many dependencies
-- Reduce the core dependency footprint of nicestlog
-- Keep web dashboard available for users who explicitly want it
+- Remove the redundant `lint` command since `check` command provides all linting functionality and more
+- Simplify CLI interface by consolidating functionality
+- Ensure no functionality is lost in the migration
+- Update documentation and tests accordingly
 
 Success criteria
-- Flask moved from required to optional dependencies
-- Dashboard command hidden/disabled when Flask not available
-- Core nicestlog functionality works without Flask
-- Clear error messages when trying to use dashboard without Flask
-- No breaking changes for existing users who have Flask installed
+- `lint` command removed from CLI
+- All `lint` functionality available through `check` command
+- Tests updated to use `check` instead of `lint`
+- Documentation updated to reflect the change
+- No breaking changes for users (clear migration path)
 
 Out-of-scope for this task
-- Removing the web dashboard code entirely
-- Rewriting the dashboard with different technology
-- Adding new dashboard features
-- Performance optimizations
+- Changing the underlying linting logic
+- Modifying the check command functionality
+- Adding new features
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -27,47 +26,47 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Move Flask to optional dependencies
-   - Context: Flask is currently required but only needed for web dashboard
+1) Analyze current lint vs check functionality
+   - Context: Need to understand what lint does vs check to ensure no functionality is lost
    - Files to check/modify:
-     - pyproject.toml
-   - Steps:
-     - [x] Move flask from dependencies to optional-dependencies
-     - [x] Create new "web" or "dashboard" optional dependency group
-     - [x] Update dependency groups if needed
-     - [x] Commit with message: "feat: make Flask optional dependency for web dashboard"
-
-2) Add optional import handling for Flask
-   - Context: Need graceful handling when Flask is not installed
-   - Files to check/modify:
-     - src/nicestlog/web_dashboard.py
      - src/nicestlog/cli.py
+     - src/nicestlog/linter.py
    - Steps:
-     - [x] Add try/except for Flask imports in web_dashboard.py
-     - [x] Add graceful error handling in CLI dashboard command
-     - [x] Create helpful error messages for missing Flask
-     - [x] Commit with message: "feat: add graceful handling for missing Flask dependency"
+     - [ ] Compare lint and check command implementations
+     - [ ] Identify any unique lint functionality
+     - [ ] Document the migration path for users
+     - [ ] Commit with message: "docs: analyze lint vs check command functionality"
 
-3) Hide dashboard command when Flask unavailable
-   - Context: Dashboard command should be hidden if Flask not installed
+2) Remove lint command from CLI
+   - Context: Remove the redundant lint command registration
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [x] Conditionally register dashboard command based on Flask availability
-     - [x] Add clear error message if command is called without Flask
-     - [x] Update CLI help to reflect optional nature
-     - [x] Commit with message: "feat: hide dashboard command when Flask not available"
+     - [ ] Remove @app.command() lint function
+     - [ ] Remove run_linter function if not used elsewhere
+     - [ ] Update help text and command listings
+     - [ ] Commit with message: "feat: remove redundant lint command, use check instead"
 
-4) Update tests and documentation
-   - Context: Tests need to handle optional Flask, docs need updating
+3) Update tests to use check instead of lint
+   - Context: All lint tests should be migrated to use check command
    - Files to check/modify:
      - tests/test_cli.py
      - tests/test_cli_integration.py
-     - docs/ files
-     - README.md
+     - Any other test files using lint
    - Steps:
-     - [x] Add tests for missing Flask scenarios
-     - [x] Update existing tests to handle optional Flask
-     - [x] Update documentation about optional web dashboard
-     - [x] Add installation instructions for web dashboard
-     - [x] Commit with message: "docs: update for optional Flask web dashboard"
+     - [ ] Find all tests using lint command
+     - [ ] Update tests to use check command with appropriate flags
+     - [ ] Ensure test coverage is maintained
+     - [ ] Commit with message: "test: migrate lint tests to use check command"
+
+4) Update documentation and migration guide
+   - Context: Users need to know about the change and how to migrate
+   - Files to check/modify:
+     - README.md
+     - docs/ files
+     - CLI help text
+   - Steps:
+     - [ ] Update documentation to remove lint references
+     - [ ] Add migration note for users currently using lint
+     - [ ] Update examples to use check instead of lint
+     - [ ] Commit with message: "docs: remove lint command references, update to use check"
