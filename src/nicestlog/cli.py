@@ -121,9 +121,28 @@ def tools_journal(
     run_journal_viewer(unit, lines, follow, since, level)
 
 
-# Sub-app for i18n related commands
+# Check if Flask is available for dashboard command
+try:
+    import flask
+    FLASK_AVAILABLE_FOR_CLI = True
+except ImportError:
+    FLASK_AVAILABLE_FOR_CLI = False
+
+# Add dashboard command to tools (only if Flask is available)
+if FLASK_AVAILABLE_FOR_CLI:
+    @tools_app.command("dashboard")
+    def tools_dashboard(
+        host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
+        port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
+        debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
+    ):
+        """🌐 Start the web dashboard."""
+        run_dashboard_cmd(host, port, debug)
+
+
+# Sub-app for i18n related commands (moved to tools)
 i18n_app = typer.Typer(help="Internationalization utilities")
-app.add_typer(i18n_app, name="i18n")
+tools_app.add_typer(i18n_app, name="i18n")
 
 
 # Add i18n check command
@@ -1037,23 +1056,6 @@ def _display_directory_transformation(
 # Additional CLI commands
 
 
-# Check if Flask is available for dashboard command
-try:
-    import flask
-    FLASK_AVAILABLE_FOR_CLI = True
-except ImportError:
-    FLASK_AVAILABLE_FOR_CLI = False
-
-# Only register dashboard command if Flask is available
-if FLASK_AVAILABLE_FOR_CLI:
-    @app.command()
-    def dashboard(
-        host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
-        port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
-        debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
-    ):
-        """🌐 Start the web dashboard."""
-        run_dashboard_cmd(host, port, debug)
 
 
 
@@ -1151,8 +1153,9 @@ def migrate(
         )
 
 
-@app.command()
-def demo(
+# Add demo command to tools
+@tools_app.command("demo")
+def tools_demo(
     feature_arg: Annotated[
         Optional[str], typer.Argument(help="Demo specific feature")
     ] = None,
