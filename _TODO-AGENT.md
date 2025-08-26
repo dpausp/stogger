@@ -49,6 +49,9 @@ Prioritized work items (with checkboxes)
      - [x] Filter out non-logging function analysis
      - [x] Ensure only Log, Error, Info, Logger calls are analyzed
      - [x] Test with sample code containing both logging and non-logging functions
+     - [x] Improved logging function detection to require multiple logging calls
+     - [x] Added CLI command patterns to exclude from complexity analysis
+     - [x] Added line numbers to warning messages
      - [x] Commit with message: "feat: focus AST analysis on log statements only"
 
 3) Fix event ID case recommendations
