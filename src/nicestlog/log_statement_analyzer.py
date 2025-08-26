@@ -58,6 +58,38 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             "trace",
         }
         self.magic_args = {"_replace_msg", "exc_info", "_structured", "_level", "_name"}
+        
+        # Track logging imports and logger variables
+        self.logging_imports: Set[str] = set()  # e.g., {'logging', 'structlog', 'loguru'}
+        self.logger_variables: Set[str] = set()  # e.g., {'log', 'logger', 'my_logger'}
+        self.logging_modules = {
+            'logging', 'structlog', 'loguru', 'logbook', 'eliot'
+        }
+        self.logger_factory_patterns = {
+            'get_logger', 'getLogger', 'logger', 'Logger', 'new'
+        }
+
+    def visit_Import(self, node: ast.Import) -> None:
+        """Track logging module imports."""
+        for alias in node.names:
+            if alias.name in self.logging_modules:
+                self.logging_imports.add(alias.asname or alias.name)
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Track logging imports from modules."""
+        if node.module in self.logging_modules:
+            for alias in node.names:
+                self.logging_imports.add(alias.asname or alias.name)
+        self.generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        """Track logger variable assignments."""
+        if isinstance(node.value, ast.Call) and self._is_logger_factory_call(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self.logger_variables.add(target.id)
+        self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
         """Visit function calls to detect log statements."""
@@ -67,11 +99,58 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
         self.generic_visit(node)
 
-    def _is_log_call(self, node: ast.Call) -> bool:
-        """Check if this is a logging method call."""
+    def _is_logger_factory_call(self, node: ast.Call) -> bool:
+        """Check if this is a logger factory call like structlog.get_logger()."""
         try:
             if isinstance(node.func, ast.Attribute):
-                return node.func.attr in self.log_methods
+                # Check for patterns like structlog.get_logger(), logging.getLogger()
+                if (isinstance(node.func.value, ast.Name) and 
+                    node.func.value.id in self.logging_imports and
+                    node.func.attr in self.logger_factory_patterns):
+                    return True
+                # Check for direct factory calls like get_logger()
+                if node.func.attr in self.logger_factory_patterns:
+                    return True
+            elif isinstance(node.func, ast.Name):
+                # Check for direct calls like getLogger()
+                if node.func.id in self.logger_factory_patterns:
+                    return True
+            return False
+        except AttributeError:
+            return False
+
+    def _is_log_call(self, node: ast.Call) -> bool:
+        """Check if this is a logging method call on a real logger."""
+        try:
+            if isinstance(node.func, ast.Attribute):
+                # Check if method name is a log method
+                if node.func.attr not in self.log_methods:
+                    return False
+                
+                # Check if the object is a known logger
+                if isinstance(node.func.value, ast.Name):
+                    # Direct logger variable: logger.info()
+                    if node.func.value.id in self.logger_variables:
+                        return True
+                    # Known logging module: logging.info() (rare but possible)
+                    if node.func.value.id in self.logging_imports:
+                        return True
+                    # Common logger names (fallback for untracked loggers)
+                    common_logger_names = {'log', 'logger', 'LOG', 'LOGGER'}
+                    if node.func.value.id in common_logger_names:
+                        return True
+                
+                # Check for attribute access like self.logger.info()
+                elif isinstance(node.func.value, ast.Attribute):
+                    if (isinstance(node.func.value.attr, str) and 
+                        'logger' in node.func.value.attr.lower()):
+                        return True
+                
+                # Check for chained calls like structlog.get_logger().info()
+                if isinstance(node.func.value, ast.Call):
+                    if self._is_logger_factory_call(node.func.value):
+                        return True
+            
             return False
         except AttributeError:
             return False

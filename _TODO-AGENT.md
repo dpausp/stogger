@@ -45,11 +45,11 @@ Prioritized work items (with checkboxes)
    - Files to check/modify:
      - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [ ] Add import scanning for logging libraries (logging, structlog, loguru, etc.)
-     - [ ] Track logger variable assignments (logger = structlog.get_logger())
-     - [ ] Consider type hints for logger identification
-     - [ ] Build whitelist of known logging patterns
-     - [ ] Commit with message: "feat: improve logger identification through import analysis"
+     - [x] Add import scanning for logging libraries (logging, structlog, loguru, etc.)
+     - [x] Track logger variable assignments (logger = structlog.get_logger())
+     - [x] Consider type hints for logger identification
+     - [x] Build whitelist of known logging patterns
+     - [x] Commit with message: "feat: improve logger identification through import analysis"
 
 3) Filter out non-logging function calls
    - Context: Nur echte Log-Statements analysieren, alles andere ignorieren
