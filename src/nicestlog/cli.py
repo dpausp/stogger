@@ -431,9 +431,11 @@ def check(
     if mode_info:
         console.print(f"Mode: {' + '.join(mode_info)}")
 
-    # 1. Basic linting (always performed)
-    console.print("\n📋 [bold blue]Running basic linting...[/bold blue]")
-    basic_success = lint_directory(path_obj)
+    # 1. Basic linting (performed only when AST is disabled)
+    basic_success = True
+    if no_ast and not interactive and not patterns and not complexity:
+        console.print("\n📋 [bold blue]Running basic linting...[/bold blue]")
+        basic_success = lint_directory(path_obj)
 
     # 2. AST Analysis (enabled by default, disabled with --no-ast)
     ast_issues = None
@@ -480,7 +482,8 @@ def check(
                         ast_results.append(result)
                         progress.remove_task(task)
 
-                _display_check_directory_analysis(ast_results, complexity)
+                # Display unified table with AST insights integrated
+                _display_unified_check_analysis(ast_results, complexity)
                 ast_issues = ast_results
             else:
                 console.print("❌ [red]No Python files found in directory (after applying .gitignore)[/red]")
@@ -602,6 +605,65 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
             console.print("  • Consider adding structured logging to functions without logs")
     else:
         console.print("✅ [green]No AST issues found![/green]")
+
+
+def _display_unified_check_analysis(
+    results: List[CodeAnalysisResult], show_complexity: bool
+):
+    """Display unified analysis results combining logging quality and AST metrics."""
+    from .linter import lint_directory
+    
+    # Extract AST metrics for integration with linter output
+    ast_metrics = {}
+    total_ast_issues = 0
+    all_ast_insights = []
+    
+    for result in results:
+        ast_metrics[result.file_path.name] = {
+            'functions': result.function_count,
+            'classes': result.class_count,
+            'complexity': result.complexity_score if show_complexity else None
+        }
+        total_ast_issues += len(result.issues)
+        if result.issues:
+            all_ast_insights.extend([
+                f"  • {result.file_path.name}: {issue}" for issue in result.issues
+            ])
+    
+    # Run the enhanced linter with AST metrics
+    console.print("\n📊 [bold blue]Unified Code Quality Analysis[/bold blue]")
+    
+    # Set environment variable to pass AST metrics to linter
+    import os
+    import json
+    os.environ['NICESTLOG_AST_METRICS'] = json.dumps(ast_metrics)
+    
+    try:
+        # Get the directory path from the first result
+        if results:
+            directory_path = results[0].file_path.parent
+            lint_success = lint_directory(directory_path)
+        else:
+            lint_success = True
+    finally:
+        # Clean up environment variable
+        if 'NICESTLOG_AST_METRICS' in os.environ:
+            del os.environ['NICESTLOG_AST_METRICS']
+    
+    # Display AST insights if any found
+    if all_ast_insights:
+        console.print(f"\n💡 [bold blue]AST Analysis Insights:[/bold blue]")
+        console.print(f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions")
+        console.print(f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization")
+        if total_ast_issues > 0:
+            console.print(f"  • {total_ast_issues} code quality improvements identified:")
+            for insight in all_ast_insights[:5]:  # Show first 5 insights
+                console.print(insight)
+            if len(all_ast_insights) > 5:
+                console.print(f"    ... and {len(all_ast_insights) - 5} more suggestions")
+        else:
+            console.print("  • No code quality issues detected - excellent code structure!")
+        console.print("  • Consider adding structured logging to functions without logs")
 
 
 def _display_check_directory_analysis(

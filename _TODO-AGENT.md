@@ -48,17 +48,17 @@ Prioritized work items (with checkboxes)
      - [x] Plan how AST insights integrate into suggestions section
      - [x] Ensure all useful information is preserved
      - [x] Create mockup of desired output format
-     - [ ] Commit with message: "design: unified AST analysis table structure"
+     - [x] Commit with message: "design: unified AST analysis table structure"
 
 3) Implement unified table display
    - Context: Modify the display functions to show single unified table
    - Files to check/modify:
      - src/nicestlog/cli.py (_display_check_analysis_result, _display_check_directory_analysis)
    - Steps:
-     - [ ] Modify _display_check_analysis_result to show unified table
-     - [ ] Update _display_check_directory_analysis for consistency
-     - [ ] Integrate AST insights into suggestions section
-     - [ ] Remove redundant second table
+     - [x] Modify _display_check_analysis_result to show unified table
+     - [x] Update _display_check_directory_analysis for consistency
+     - [x] Integrate AST insights into suggestions section
+     - [x] Remove redundant second table
      - [ ] Commit with message: "feat: unified AST analysis table display"
 
 4) Test and validate changes

@@ -781,11 +781,33 @@ def lint_directory(
         }
         print(toml.dumps(report))
     else:
+        # Check if AST metrics are available for unified display
+        ast_metrics = {}
+        try:
+            import json
+            ast_data = os.getenv('NICESTLOG_AST_METRICS')
+            if ast_data:
+                ast_metrics = json.loads(ast_data)
+        except Exception:
+            pass
+        
         # Human-friendly table output with subtle colors
         colorama_init(autoreset=True)
+        
+        # Add AST metrics to rows if available
+        for r in rows:
+            if r["module"] in ast_metrics:
+                r["functions"] = ast_metrics[r["module"]]["functions"]
+                r["classes"] = ast_metrics[r["module"]]["classes"]
+            else:
+                r["functions"] = 0
+                r["classes"] = 0
+        
         # Determine dynamic column widths
         module_width = max([len("MODULE")] + [len(r["module"]) for r in rows])
         lines_width = max(len("LINES"), *(len(str(r["lines"])) for r in rows))
+        funcs_width = max(len("FUNCS"), *(len(str(r.get("functions", 0))) for r in rows))
+        classes_width = max(len("CLASSES"), *(len(str(r.get("classes", 0))) for r in rows))
         logs_width = max(len("LOGS"), *(len(str(r["logs"])) for r in rows))
         cov_width = max(len("COVERAGE"), *(len(f"{r['coverage']:.1f}%") for r in rows))
         # Compute width for ISSUES based on visible content (E#/W#), ignoring ANSI codes
@@ -802,28 +824,47 @@ def lint_directory(
 
         h_module = Fore.CYAN + Style.BRIGHT + "MODULE" + Style.RESET_ALL
         h_lines = Fore.CYAN + Style.BRIGHT + "LINES" + Style.RESET_ALL
+        h_funcs = Fore.CYAN + Style.BRIGHT + "FUNCS" + Style.RESET_ALL
+        h_classes = Fore.CYAN + Style.BRIGHT + "CLASSES" + Style.RESET_ALL
         h_logs = Fore.CYAN + Style.BRIGHT + "LOGS" + Style.RESET_ALL
         h_cov = Fore.CYAN + Style.BRIGHT + "COVERAGE" + Style.RESET_ALL
         h_issues = Fore.CYAN + Style.BRIGHT + "ISSUES" + Style.RESET_ALL
         h_summary = Fore.CYAN + Style.BRIGHT + "SUMMARY" + Style.RESET_ALL
 
-        header = (
-            f"{h_module.ljust(module_width + (len(h_module) - len('MODULE')))}  "
-            f"{h_lines.rjust(lines_width + (len(h_lines) - len('LINES')))}  "
-            f"{h_logs.rjust(logs_width + (len(h_logs) - len('LOGS')))}  "
-            f"{h_cov.rjust(cov_width + (len(h_cov) - len('COVERAGE')))}  "
-            f"{h_issues.rjust(issues_width + (len(h_issues) - len('ISSUES')))}  "
-            f"{h_summary.ljust(primary_width + (len(h_summary) - len('SUMMARY')))}"
-        )
-        sep = "-" * (
-            module_width
-            + lines_width
-            + logs_width
-            + cov_width
-            + issues_width
-            + primary_width
-            + 10
-        )
+        # Build header with or without AST columns
+        if ast_metrics:
+            header = (
+                f"{h_module.ljust(module_width + (len(h_module) - len('MODULE')))}  "
+                f"{h_lines.rjust(lines_width + (len(h_lines) - len('LINES')))}  "
+                f"{h_funcs.rjust(funcs_width + (len(h_funcs) - len('FUNCS')))}  "
+                f"{h_classes.rjust(classes_width + (len(h_classes) - len('CLASSES')))}  "
+                f"{h_logs.rjust(logs_width + (len(h_logs) - len('LOGS')))}  "
+                f"{h_cov.rjust(cov_width + (len(h_cov) - len('COVERAGE')))}  "
+                f"{h_issues.rjust(issues_width + (len(h_issues) - len('ISSUES')))}  "
+                f"{h_summary.ljust(primary_width + (len(h_summary) - len('SUMMARY')))}"
+            )
+        else:
+            header = (
+                f"{h_module.ljust(module_width + (len(h_module) - len('MODULE')))}  "
+                f"{h_lines.rjust(lines_width + (len(h_lines) - len('LINES')))}  "
+                f"{h_logs.rjust(logs_width + (len(h_logs) - len('LOGS')))}  "
+                f"{h_cov.rjust(cov_width + (len(h_cov) - len('COVERAGE')))}  "
+                f"{h_issues.rjust(issues_width + (len(h_issues) - len('ISSUES')))}  "
+                f"{h_summary.ljust(primary_width + (len(h_summary) - len('SUMMARY')))}"
+            )
+        # Calculate separator width based on whether AST metrics are included
+        if ast_metrics:
+            sep_width = (
+                module_width + lines_width + funcs_width + classes_width + 
+                logs_width + cov_width + issues_width + primary_width + 14
+            )
+        else:
+            sep_width = (
+                module_width + lines_width + logs_width + 
+                cov_width + issues_width + primary_width + 10
+            )
+        sep = "-" * sep_width
+        
         print(header)
         print(sep)
         for r in rows:
@@ -857,14 +898,27 @@ def lint_directory(
             pad = issues_width - visible_len(issues_cell)
             issues_padded = issues_cell + (" " * max(0, pad))
 
-            print(
-                f"{r['module'].ljust(module_width)}  "
-                f"{str(r['lines']).rjust(lines_width)}  "
-                f"{str(r['logs']).rjust(logs_width)}  "
-                f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
-                f"{issues_padded}  "
-                f"{r['primary'].ljust(primary_width)}"
-            )
+            # Print row with or without AST columns
+            if ast_metrics:
+                print(
+                    f"{r['module'].ljust(module_width)}  "
+                    f"{str(r['lines']).rjust(lines_width)}  "
+                    f"{str(r.get('functions', 0)).rjust(funcs_width)}  "
+                    f"{str(r.get('classes', 0)).rjust(classes_width)}  "
+                    f"{str(r['logs']).rjust(logs_width)}  "
+                    f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
+                    f"{issues_padded}  "
+                    f"{r['primary'].ljust(primary_width)}"
+                )
+            else:
+                print(
+                    f"{r['module'].ljust(module_width)}  "
+                    f"{str(r['lines']).rjust(lines_width)}  "
+                    f"{str(r['logs']).rjust(logs_width)}  "
+                    f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
+                    f"{issues_padded}  "
+                    f"{r['primary'].ljust(primary_width)}"
+                )
 
         # Global issue legend: what E#/W# counts refer to and categories
         print()
