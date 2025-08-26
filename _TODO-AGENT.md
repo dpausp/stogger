@@ -45,11 +45,11 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/advanced_assistant.py
      - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [ ] Identify log statement detection logic
-     - [ ] Filter out non-logging function analysis
-     - [ ] Ensure only Log, Error, Info, Logger calls are analyzed
-     - [ ] Test with sample code containing both logging and non-logging functions
-     - [ ] Commit with message: "feat: focus AST analysis on log statements only"
+     - [x] Identify log statement detection logic
+     - [x] Filter out non-logging function analysis
+     - [x] Ensure only Log, Error, Info, Logger calls are analyzed
+     - [x] Test with sample code containing both logging and non-logging functions
+     - [x] Commit with message: "feat: focus AST analysis on log statements only"
 
 3) Fix event ID case recommendations
    - Context: Ensure recommendations use kebab-case or KeepUpCase, never underscores
@@ -57,22 +57,22 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/advanced_assistant.py
      - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [ ] Find event ID case checking logic
-     - [ ] Fix recommendations to suggest kebab-case/KeepUpCase
-     - [ ] Remove underscore suggestions
-     - [ ] Test with various event ID formats
-     - [ ] Commit with message: "fix: correct event ID case recommendations"
+     - [x] Find event ID case checking logic
+     - [x] Fix recommendations to suggest kebab-case/KeepUpCase
+     - [x] Remove underscore suggestions
+     - [x] Test with various event ID formats
+     - [x] Commit with message: "fix: correct event ID case recommendations"
 
 4) Integrate AST into check command by default
    - Context: Make --ast the default behavior with --no-ast option to disable
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Change check command to run AST by default
-     - [ ] Add --no-ast boolean flag to disable
-     - [ ] Update help text and documentation
-     - [ ] Test both modes work correctly
-     - [ ] Commit with message: "feat: integrate AST analysis into check command by default"
+     - [x] Change check command to run AST by default
+     - [x] Add --no-ast boolean flag to disable
+     - [x] Update help text and documentation
+     - [x] Test both modes work correctly
+     - [x] Commit with message: "feat: integrate AST analysis into check command by default"
 
 5) Combine fixers for comprehensive suggestions
    - Context: When multiple issues exist, provide combined fix suggestions
@@ -80,8 +80,8 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/advanced_assistant.py
      - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [ ] Identify how suggestions are generated
-     - [ ] Combine multiple fixes into single comprehensive suggestion
-     - [ ] Test with log statements having multiple issues
-     - [ ] Ensure final suggestion has correct level + correct case
-     - [ ] Commit with message: "feat: combine multiple fixes into comprehensive suggestions"
+     - [x] Identify how suggestions are generated
+     - [x] Combine multiple fixes into single comprehensive suggestion
+     - [x] Test with log statements having multiple issues
+     - [x] Ensure final suggestion has correct level + correct case
+     - [x] Commit with message: "feat: combine multiple fixes into comprehensive suggestions"
