@@ -66,8 +66,8 @@ Prioritized work items (with checkboxes)
      - docs/ files
      - README.md
    - Steps:
-     - [ ] Add tests for missing Flask scenarios
-     - [ ] Update existing tests to handle optional Flask
-     - [ ] Update documentation about optional web dashboard
-     - [ ] Add installation instructions for web dashboard
-     - [ ] Commit with message: "docs: update for optional Flask web dashboard"
+     - [x] Add tests for missing Flask scenarios
+     - [x] Update existing tests to handle optional Flask
+     - [x] Update documentation about optional web dashboard
+     - [x] Add installation instructions for web dashboard
+     - [x] Commit with message: "docs: update for optional Flask web dashboard"

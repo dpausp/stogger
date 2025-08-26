@@ -44,6 +44,14 @@ log.info("service-started", pid=os.getpid())
 
 Simple real-time log viewer powered by Flask + HTMX.
 
+**Note:** The web dashboard requires Flask as an optional dependency. Install it with:
+
+```bash
+pip install 'nicestlog[web]'
+# or
+pip install flask>=3.0.3
+```
+
 ```python
 from nicestlog.web_dashboard import run_dashboard, setup_web_logging
 import structlog
