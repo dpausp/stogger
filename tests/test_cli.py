@@ -9,7 +9,6 @@ from pathlib import Path
 from nicestlog.cli import (
     main,
     init_config,
-    run_linter,
     run_dashboard_cmd,
     generate_service_cmd,
     run_journal_viewer,

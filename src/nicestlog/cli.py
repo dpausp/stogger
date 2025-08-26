@@ -984,21 +984,6 @@ def _display_directory_transformation(
 
 
 # Additional CLI commands
-@app.command()
-def lint(
-    path: Annotated[str, typer.Argument(help="Path to lint")] = ".",
-    min_coverage: Annotated[
-        float, typer.Option("--min-coverage", help="Minimum coverage")
-    ] = 5.0,
-    max_coverage: Annotated[
-        float, typer.Option("--max-coverage", help="Maximum coverage")
-    ] = 15.0,
-    strict: Annotated[
-        bool, typer.Option("--strict", help="Enable strict mode")
-    ] = False,
-):
-    """🔍 Check logging coverage and quality."""
-    run_linter(path, min_coverage, max_coverage, strict)
 
 
 # Check if Flask is available for dashboard command
@@ -1239,25 +1224,6 @@ def _show_feature_docs(feature: str):
 
 
 # Implementation stubs for remaining functions
-def run_linter(
-    path: str,
-    min_coverage: float = 70.0,
-    max_coverage: float = 90.0,
-    strict: bool = False,
-):
-    """Run the linter."""
-    from .linter import lint_directory
-
-    # In strict mode, use stricter coverage requirements
-    if strict:
-        min_coverage = 3.0
-        max_coverage = 10.0
-
-    success = lint_directory(
-        Path(path), min_coverage=min_coverage, max_coverage=max_coverage
-    )
-    if not success:
-        raise typer.Exit(1)
 
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
