@@ -44,7 +44,7 @@ class LoggingLevelIssue:
     event_name: str
     reason: str
     severity: str = "warning"
-    category: str = "level"  # "level" or "except_logging"
+    category: str = "level"  # "level", "except_logging", or "wrapper"
 
 
 class LoggingVisitor(ast.NodeVisitor):
@@ -73,19 +73,32 @@ class LoggingVisitor(ast.NodeVisitor):
         # Track whether we're currently inside an except block and if that except has a name
         self._except_stack: List[Optional[str]] = []
 
+        # Track function definitions to detect log wrappers
+        self._function_definitions: Dict[str, ast.FunctionDef] = {}
+        self._current_function: Optional[str] = None
+
     def visit_FunctionDef(self, node):
         """Visit function definitions."""
         self.functions += 1
         old_has_logs = self.current_function_has_logs
+        old_function = self._current_function
         self.current_function_has_logs = False
+        self._current_function = node.name
+
+        # Store function definition for wrapper analysis
+        self._function_definitions[node.name] = node
 
         # Visit function body
         self.generic_visit(node)
+
+        # Check if this function is a log wrapper
+        self._analyze_log_wrapper(node)
 
         if self.current_function_has_logs:
             self.functions_with_logging += 1
 
         self.current_function_has_logs = old_has_logs
+        self._current_function = old_function
 
     # Track try/except context to suggest log.exception usage
     def visit_Try(self, node: ast.Try):
@@ -299,6 +312,161 @@ class LoggingVisitor(ast.NodeVisitor):
             return "Renderer creation is internal library setup"
         else:
             return "Internal library operation should be debug level to avoid spamming users"
+
+    def _analyze_log_wrapper(self, node: ast.FunctionDef) -> None:
+        """Analyze if a function is a problematic log wrapper."""
+        # Skip functions with obvious non-wrapper names
+        non_wrapper_names = {
+            "__init__",
+            "__str__",
+            "__repr__",
+            "main",
+            "run",
+            "execute",
+            "process",
+            "handle",
+            "setup",
+            "teardown",
+            "test_",
+        }
+        if any(pattern in node.name.lower() for pattern in non_wrapper_names):
+            return
+
+        # Look for wrapper patterns in function body
+        has_logging_call = False
+        has_other_logic = False
+        logging_calls = []
+
+        # Only analyze direct statements in the function body, not nested calls
+        for stmt in node.body:
+            if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
+                call = stmt.value
+                call_str = ast.unparse(call)
+
+                # Check if this is a logging call
+                if any(pattern in call_str for pattern in self.log_patterns):
+                    has_logging_call = True
+                    logging_calls.append(call)
+                elif not self._is_trivial_call(call):
+                    has_other_logic = True
+            elif isinstance(stmt, ast.If):
+                # Check if the if statement contains logging
+                for child_stmt in ast.walk(stmt):
+                    if isinstance(child_stmt, ast.Call):
+                        call_str = ast.unparse(child_stmt)
+                        if any(pattern in call_str for pattern in self.log_patterns):
+                            has_logging_call = True
+                            logging_calls.append(child_stmt)
+                        elif not self._is_trivial_call(child_stmt):
+                            has_other_logic = True
+            elif not isinstance(stmt, (ast.Pass, ast.Return)):
+                # Any other significant statement indicates business logic
+                has_other_logic = True
+
+        # Detect wrapper anti-patterns
+        if has_logging_call and not has_other_logic:
+            # Function only does logging - likely a wrapper
+            if self._is_likely_wrapper(node, logging_calls):
+                self._report_wrapper_issue(node, logging_calls)
+
+    def _is_trivial_call(self, call: ast.Call) -> bool:
+        """Check if a call is trivial (not significant business logic)."""
+        call_str = ast.unparse(call)
+        trivial_patterns = [
+            "str(",
+            "len(",
+            "type(",
+            "isinstance(",
+            "hasattr(",
+            "getattr(",
+            "setattr(",
+            "format(",
+            ".strip(",
+            ".lower(",
+            ".upper(",
+            ".split(",
+            ".join(",
+            ".replace(",
+        ]
+        return any(pattern in call_str for pattern in trivial_patterns)
+
+    def _is_likely_wrapper(
+        self, func_node: ast.FunctionDef, logging_calls: List[ast.Call]
+    ) -> bool:
+        """Determine if function is likely an unnecessary log wrapper."""
+        # First check: Don't flag very simple functions with no parameters (like log_startup())
+        # These are often legitimate convenience functions
+        func_args = {arg.arg for arg in func_node.args.args}
+        if len(func_args) == 0 and len(func_node.body) == 1 and len(logging_calls) == 1:
+            return False
+
+        # Pattern 1: Function name suggests it's a wrapper
+        wrapper_name_patterns = [
+            "log_",
+            "_log",
+            "write_log",
+            "do_log",
+            "make_log",
+            "send_log",
+            "emit_log",
+            "output_log",
+            "print_log",
+        ]
+        if any(pattern in func_node.name.lower() for pattern in wrapper_name_patterns):
+            return True
+
+        # Pattern 2: Function that conditionally logs (common anti-pattern)
+        has_conditional_logging = False
+        for stmt in func_node.body:
+            if isinstance(stmt, ast.If):
+                # Check if the if statement contains logging
+                for child in ast.walk(stmt):
+                    if isinstance(child, ast.Call):
+                        call_str = ast.unparse(child)
+                        if any(pattern in call_str for pattern in self.log_patterns):
+                            has_conditional_logging = True
+                            break
+
+        if has_conditional_logging:
+            return True
+
+        # Pattern 3: Simple passthrough function (just calls log with parameters)
+        if len(logging_calls) == 1 and len(func_node.body) <= 2:
+            # Check if function parameters are just passed through to logging
+            log_call = logging_calls[0]
+
+            # Simple heuristic: if function has args and they appear in the log call
+            if func_args and len(func_args) > 0:
+                log_call_str = ast.unparse(log_call)
+                if any(arg in log_call_str for arg in func_args):
+                    return True
+
+        return False
+
+    def _report_wrapper_issue(
+        self, func_node: ast.FunctionDef, logging_calls: List[ast.Call]
+    ) -> None:
+        """Report a log wrapper anti-pattern issue."""
+        # Determine the specific wrapper pattern
+        reason = "Function appears to be an unnecessary wrapper around logging calls"
+
+        if "log_" in func_node.name.lower() or "_log" in func_node.name.lower():
+            reason = f"Function '{func_node.name}' appears to be a wrapper around logging - consider using log.* directly"
+        elif len(logging_calls) == 1 and len(func_node.body) <= 2:
+            reason = f"Function '{func_node.name}' only passes parameters to logging - use log.* directly instead"
+        elif any(isinstance(stmt, ast.If) for stmt in ast.walk(func_node)):
+            reason = f"Function '{func_node.name}' conditionally logs - consider using log levels or structured logging instead"
+
+        issue = LoggingLevelIssue(
+            line_no=func_node.lineno,
+            current_level="wrapper",
+            suggested_level="direct",
+            event_name=func_node.name,
+            reason=reason,
+            severity="warning",
+            category="wrapper",
+        )
+        self.level_issues.append(issue)
 
 
 def analyze_file(file_path: Path) -> tuple[LoggingStats, List[LoggingLevelIssue]]:
@@ -746,9 +914,27 @@ def lint_directory(
             + Style.RESET_ALL
             + ": Inappropriate logging levels (library internal operations using INFO)"
         )
+        print(
+            "    "
+            + Fore.YELLOW
+            + "W4"
+            + Style.RESET_ALL
+            + ": Log wrapper anti-patterns (unnecessary functions wrapping logging calls)"
+        )
 
         # Display detailed level issues if any found
-        if all_level_issues:
+        level_issues = [
+            issue
+            for file_path, issue in all_level_issues
+            if issue.category != "wrapper"
+        ]
+        wrapper_issues = [
+            issue
+            for file_path, issue in all_level_issues
+            if issue.category == "wrapper"
+        ]
+
+        if level_issues:
             print()
             level_issues_title = (
                 Fore.YELLOW
@@ -763,15 +949,43 @@ def lint_directory(
             print()
 
             for file_path, issue in all_level_issues:
-                print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
-                print(
-                    f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({repr(issue.event_name)}){Style.RESET_ALL}"
-                )
-                print(
-                    f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({repr(issue.event_name)}){Style.RESET_ALL}"
-                )
-                print(f"   Reason: {issue.reason}")
-                print()
+                if issue.category != "wrapper":
+                    print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
+                    print(
+                        f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({repr(issue.event_name)}){Style.RESET_ALL}"
+                    )
+                    print(
+                        f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({repr(issue.event_name)}){Style.RESET_ALL}"
+                    )
+                    print(f"   Reason: {issue.reason}")
+                    print()
+
+        # Display wrapper issues if any found
+        if wrapper_issues:
+            print()
+            wrapper_issues_title = (
+                Fore.YELLOW
+                + Style.BRIGHT
+                + "🚫 LOG WRAPPER ANTI-PATTERNS DETECTED"
+                + Style.RESET_ALL
+            )
+            print(wrapper_issues_title)
+            print(
+                "The following functions appear to be unnecessary wrappers around logging calls:"
+            )
+            print()
+
+            for file_path, issue in all_level_issues:
+                if issue.category == "wrapper":
+                    print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
+                    print(
+                        f"   Line {issue.line_no}: {Fore.YELLOW}def {issue.event_name}(...){Style.RESET_ALL}"
+                    )
+                    print(
+                        f"   Suggestion: {Fore.GREEN}Use log.* calls directly instead of wrapper functions{Style.RESET_ALL}"
+                    )
+                    print(f"   Reason: {issue.reason}")
+                    print()
 
     if output_format not in {"json", "toml"}:
         print("=" * 60)
@@ -853,7 +1067,7 @@ def main():
         sys.exit(1)
 
     if path.is_file():
-        stats = analyze_file(path)
+        stats, level_issues = analyze_file(path)
         issues = check_logging_quality(stats, args.min_coverage, args.max_coverage)
         print(f"📁 {path}")
         for issue in issues:

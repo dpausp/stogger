@@ -33,19 +33,19 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/cli.py (check and migrate commands)
      - src/nicestlog/project_analyzer.py (migration analysis)
    - Steps:
-     - [ ] Examine current linter and analyzer architecture
-     - [ ] Identify common log wrapper patterns to detect
-     - [ ] Research AST patterns for wrapper detection
+     - [x] Examine current linter and analyzer architecture
+     - [x] Identify common log wrapper patterns to detect
+     - [x] Research AST patterns for wrapper detection
 
 2) Define log wrapper patterns to detect
    - Context: Need clear criteria for what constitutes a problematic log wrapper
    - Files to check/modify:
      - New pattern definitions (possibly in linter.py or separate module)
    - Steps:
-     - [ ] Define AST patterns for function wrappers around logging calls
-     - [ ] Identify indirect logging call patterns
-     - [ ] Create examples of good vs bad logging patterns
-     - [ ] Document detection criteria
+     - [x] Define AST patterns for function wrappers around logging calls
+     - [x] Identify indirect logging call patterns
+     - [x] Create examples of good vs bad logging patterns
+     - [x] Document detection criteria
 
 3) Implement detection in check command
    - Context: Add log wrapper detection to existing linting functionality
@@ -53,10 +53,10 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/linter.py
      - tests/test_linter_*.py
    - Steps:
-     - [ ] Add log wrapper detection logic to linter
-     - [ ] Create appropriate warning messages
-     - [ ] Write tests for wrapper detection
-     - [ ] Commit with message: "feat: add log wrapper detection to check command"
+     - [x] Add log wrapper detection logic to linter
+     - [x] Create appropriate warning messages
+     - [x] Write tests for wrapper detection
+     - [x] Commit with message: "feat: add log wrapper detection to check command"
 
 4) Implement detection in migrate command
    - Context: Warn about log wrappers during migration analysis
@@ -64,8 +64,8 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/project_analyzer.py or relevant migration module
      - tests/test_cli_*.py (migration tests)
    - Steps:
-     - [ ] Add wrapper detection to migration analysis
-     - [ ] Create migration-specific warning messages
+     - [x] Add wrapper detection to migration analysis
+     - [x] Create migration-specific warning messages
      - [ ] Write tests for migration wrapper warnings
      - [ ] Commit with message: "feat: add log wrapper warnings to migrate command"
 

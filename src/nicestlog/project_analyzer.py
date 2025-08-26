@@ -128,6 +128,13 @@ class ProjectAnalyzer:
             r"parser\.error\s*\(",  # argparse error output
         ]
 
+        # Log wrapper patterns (functions that unnecessarily wrap logging calls)
+        self.wrapper_patterns = [
+            r"def\s+\w*log\w*\s*\(",  # Functions with 'log' in name
+            r"def\s+write_\w+\s*\(",  # write_something functions
+            r"def\s+emit_\w+\s*\(",  # emit_something functions
+        ]
+
         # Known logging libraries
         self.logging_libraries = {
             "loguru",
@@ -395,6 +402,20 @@ class ProjectAnalyzer:
                         )
                     )
 
+            # Check for log wrapper anti-patterns
+            for pattern in self.wrapper_patterns:
+                if re.search(pattern, line):
+                    patterns.append(
+                        LoggingPattern(
+                            pattern_type="wrapper",
+                            file_path=str(file_path),
+                            line_number=line_num,
+                            code_snippet=line,
+                            severity="medium",
+                            migration_priority=7,
+                        )
+                    )
+
         return patterns
 
     def _analyze_complexity(self, project_path: Path) -> ProjectComplexity:
@@ -527,6 +548,7 @@ class ProjectAnalyzer:
         logging_count = len([p for p in patterns if p.pattern_type == "logging"])
         structlog_count = len([p for p in patterns if p.pattern_type == "structlog"])
         cli_output_count = len([p for p in patterns if p.pattern_type == "cli_output"])
+        len([p for p in patterns if p.pattern_type == "wrapper"])
 
         # Determine strategy
         if cli_output_count > 0:
@@ -653,6 +675,14 @@ class ProjectAnalyzer:
 
         if complexity.max_complexity > 20:
             warnings.append("High complexity functions detected - review manually")
+
+        # Check for log wrapper anti-patterns
+        wrapper_patterns = [p for p in patterns if p.pattern_type == "wrapper"]
+        if wrapper_patterns:
+            warnings.append(
+                f"Log wrapper anti-patterns detected ({len(wrapper_patterns)} functions) - "
+                "consider using log.* calls directly instead of wrapper functions"
+            )
 
         return warnings
 
