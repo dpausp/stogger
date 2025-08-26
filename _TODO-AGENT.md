@@ -36,7 +36,7 @@ Prioritized work items (with checkboxes)
      - [x] Run check --ast to see current behavior
      - [x] Analyze why it's flagging init function with 6 parameters
      - [x] Check if gitignore is being respected
-     - [ ] Commit with message: "docs: analyze AST integration issues in check command"
+     - [x] Commit with message: "docs: analyze AST integration issues in check command"
 
 2) Fix gitignore respect in AST analysis
    - Context: AST should not analyze files that are in .gitignore
@@ -47,7 +47,7 @@ Prioritized work items (with checkboxes)
      - [x] Add gitignore parsing functionality
      - [x] Filter files before AST analysis
      - [x] Test with common gitignore patterns
-     - [ ] Commit with message: "feat: respect .gitignore in AST analysis"
+     - [x] Commit with message: "feat: respect .gitignore in AST analysis"
 
 3) Focus AST patterns on logging-related issues
    - Context: Remove irrelevant complexity checks, focus on logging quality
@@ -59,7 +59,7 @@ Prioritized work items (with checkboxes)
      - [x] Enable only logging-related patterns
      - [x] Update pattern filtering logic
      - [x] Test with logging-focused analysis
-     - [ ] Commit with message: "feat: focus AST analysis on logging patterns in check command"
+     - [x] Commit with message: "feat: focus AST analysis on logging patterns in check command"
 
 4) Improve AST output formatting and organization
    - Context: Make output more useful and less cluttered
@@ -70,7 +70,7 @@ Prioritized work items (with checkboxes)
      - [x] Add better descriptions for logging-specific issues
      - [x] Clean up output formatting
      - [x] Add summary of logging improvements suggested
-     - [ ] Commit with message: "feat: improve AST analysis output for logging focus"
+     - [x] Commit with message: "feat: improve AST analysis output for logging focus"
 
 5) Add configuration for AST analysis scope
    - Context: Allow users to control what AST analyzes
@@ -82,4 +82,4 @@ Prioritized work items (with checkboxes)
      - [x] Allow disabling specific pattern categories
      - [x] Add logging-only mode
      - [ ] Update documentation
-     - [ ] Commit with message: "feat: add configuration for AST analysis scope"
+     - [x] Commit with message: "feat: add configuration for AST analysis scope"
