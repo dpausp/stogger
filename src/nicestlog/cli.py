@@ -92,6 +92,35 @@ def tools_review(
     run_log_reviewer(path, format_type, min_score)
 
 
+# Add journal command to tools
+@tools_app.command("journal")
+def tools_journal(
+    unit: Annotated[
+        Optional[str], typer.Option("--unit", "-u", help="Systemd unit")
+    ] = None,
+    lines: Annotated[
+        int, typer.Option("--lines", "-n", help="Number of lines to show")
+    ] = 50,
+    follow: Annotated[
+        bool, typer.Option("--follow", "-f", help="Follow log output")
+    ] = False,
+    since: Annotated[
+        Optional[str], typer.Option("--since", help="Show logs since")
+    ] = None,
+    level: Annotated[
+        Optional[str], typer.Option("--level", help="Log level filter")
+    ] = None,
+):
+    """📖 Beautiful systemd journal viewer."""
+    if level and level not in ["debug", "info", "warning", "error", "critical"]:
+        console.print(
+            f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]"
+        )
+        raise typer.Exit(1)
+
+    run_journal_viewer(unit, lines, follow, since, level)
+
+
 # Sub-app for i18n related commands
 i18n_app = typer.Typer(help="Internationalization utilities")
 app.add_typer(i18n_app, name="i18n")
@@ -1027,32 +1056,6 @@ if FLASK_AVAILABLE_FOR_CLI:
         run_dashboard_cmd(host, port, debug)
 
 
-@app.command()
-def journal(
-    unit: Annotated[
-        Optional[str], typer.Option("--unit", "-u", help="Systemd unit")
-    ] = None,
-    lines: Annotated[
-        int, typer.Option("--lines", "-n", help="Number of lines to show")
-    ] = 50,
-    follow: Annotated[
-        bool, typer.Option("--follow", "-f", help="Follow log output")
-    ] = False,
-    since: Annotated[
-        Optional[str], typer.Option("--since", help="Show logs since")
-    ] = None,
-    level: Annotated[
-        Optional[str], typer.Option("--level", help="Log level filter")
-    ] = None,
-):
-    """📖 Beautiful systemd journal viewer."""
-    if level and level not in ["debug", "info", "warning", "error", "critical"]:
-        console.print(
-            f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]"
-        )
-        raise typer.Exit(1)
-
-    run_journal_viewer(unit, lines, follow, since, level)
 
 
 
