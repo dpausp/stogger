@@ -24,6 +24,7 @@ General approach (guardrails)
 - No dependency YOLOing (Rule 3). Use `uv run` for Python commands
 - Lint before committing (Rule 5). Respect pre-commit if present (Rule 6)
 - Only add tests when we change code (Rule 4)
+- **Dogfooding**: Regelmäßig `uv run python -m nicestlog check` auf eigenem Code ausführen um zu validieren dass Änderungen Sinn ergeben
 
 Prioritized work items (with checkboxes)
 
