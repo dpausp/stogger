@@ -66,7 +66,7 @@ Prioritized work items (with checkboxes)
      - docs/ files
      - CLI help text
    - Steps:
-     - [ ] Update documentation to remove lint references
-     - [ ] Add migration note for users currently using lint
-     - [ ] Update examples to use check instead of lint
-     - [ ] Commit with message: "docs: remove lint command references, update to use check"
+     - [x] Update documentation to remove lint references
+     - [x] Add migration note for users currently using lint
+     - [x] Update examples to use check instead of lint
+     - [x] Commit with message: "docs: remove lint command references, update to use check"

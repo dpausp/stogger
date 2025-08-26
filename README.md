@@ -97,7 +97,7 @@ nicestlog migrate . --do-migrate      # Apply migration changes
 # Code quality and fixes
 nicestlog check .                      # Check logging best practices
 nicestlog fix . --interactive          # Fix issues interactively
-nicestlog lint .                       # Check logging coverage
+nicestlog check .                      # Check logging coverage and quality
 
 # Setup and utilities
 nicestlog init                         # Initialize configuration

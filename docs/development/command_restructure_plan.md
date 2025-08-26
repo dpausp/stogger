@@ -11,7 +11,7 @@ Simplify command structure from 11 top-level commands to 8, with clearer user wo
 nicestlog (11 top-level + 5 subcommands = 16 total)
 ├── docs                    # Documentation viewer
 ├── init-config            # Configuration setup
-├── lint                   # Code analysis (logging coverage)
+├── check                  # Code analysis (logging coverage + AST + complexity)
 ├── dashboard              # Web interface
 ├── generate-service       # Systemd service generation
 ├── journal                # Systemd journal viewer
@@ -30,7 +30,7 @@ nicestlog (11 top-level + 5 subcommands = 16 total)
 
 ```
 nicestlog (8 top-level + 7 subcommands = 15 total)
-├── check          # Unified analysis (lint + i18n + ast insights)
+├── check          # Unified analysis (logging coverage + i18n + ast insights)
 ├── fix            # Auto-fixes for nicestlog users (ruff-style)
 ├── migrate        # Assisted migration for new users
 ├── review         # Log file analysis
