@@ -70,6 +70,28 @@ def tools_generate_service(
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
 
+# Add review command to tools
+@tools_app.command("review")
+def tools_review(
+    path: Annotated[str, typer.Argument(help="Path to review")],
+    format_type: Annotated[
+        str, typer.Option("--format", help="Output format")
+    ] = "text",
+    min_score: Annotated[
+        float, typer.Option("--min-score", help="Minimum score")
+    ] = 70.0,
+):
+    """📝 Review log quality and provide suggestions."""
+    valid_formats = ["text", "json", "html"]
+    if format_type not in valid_formats:
+        console.print(
+            f"❌ [red]Invalid format '{format_type}'. Valid formats: {', '.join(valid_formats)}[/red]"
+        )
+        raise typer.Exit(1)
+
+    run_log_reviewer(path, format_type, min_score)
+
+
 # Sub-app for i18n related commands
 i18n_app = typer.Typer(help="Internationalization utilities")
 app.add_typer(i18n_app, name="i18n")
@@ -1033,25 +1055,6 @@ def journal(
     run_journal_viewer(unit, lines, follow, since, level)
 
 
-@app.command()
-def review(
-    path: Annotated[str, typer.Argument(help="Path to review")],
-    format_type: Annotated[
-        str, typer.Option("--format", help="Output format")
-    ] = "text",
-    min_score: Annotated[
-        float, typer.Option("--min-score", help="Minimum score")
-    ] = 70.0,
-):
-    """📝 Review log quality and provide suggestions."""
-    valid_formats = ["text", "json", "html"]
-    if format_type not in valid_formats:
-        console.print(
-            f"❌ [red]Invalid format '{format_type}'. Valid formats: {', '.join(valid_formats)}[/red]"
-        )
-        raise typer.Exit(1)
-
-    run_log_reviewer(path, format_type, min_score)
 
 
 @app.command()
