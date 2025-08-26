@@ -1,22 +1,22 @@
-# Remove Redundant Lint Command
+# Move Specialized Commands to Tools Subgroup
 
 Task goal
-- Remove the redundant `lint` command since `check` command provides all linting functionality and more
-- Simplify CLI interface by consolidating functionality
-- Ensure no functionality is lost in the migration
-- Update documentation and tests accordingly
+- Move `review`, `journal`, `dashboard`, `demo`, `i18n` commands to `tools` subgroup
+- Clean up main CLI interface to focus on core functionality (check, fix, migrate)
+- Maintain backward compatibility where possible
+- Improve CLI organization and discoverability
 
 Success criteria
-- `lint` command removed from CLI
-- All `lint` functionality available through `check` command
-- Tests updated to use `check` instead of `lint`
-- Documentation updated to reflect the change
-- No breaking changes for users (clear migration path)
+- Commands moved to tools subgroup: `tools review`, `tools journal`, etc.
+- Main CLI shows only core commands: check, fix, migrate, init, docs
+- All existing functionality preserved
+- Tests updated to reflect new command structure
+- Documentation updated with new command paths
 
 Out-of-scope for this task
-- Changing the underlying linting logic
-- Modifying the check command functionality
-- Adding new features
+- Changing the underlying functionality of moved commands
+- Removing any features
+- Breaking existing scripts (provide deprecation warnings if needed)
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -26,47 +26,76 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze current lint vs check functionality
-   - Context: Need to understand what lint does vs check to ensure no functionality is lost
-   - Files to check/modify:
-     - src/nicestlog/cli.py
-     - src/nicestlog/linter.py
-   - Steps:
-     - [x] Compare lint and check command implementations
-     - [x] Identify any unique lint functionality
-     - [x] Document the migration path for users
-     - [x] Commit with message: "docs: analyze lint vs check command functionality"
-
-2) Remove lint command from CLI
-   - Context: Remove the redundant lint command registration
+1) Analyze current command structure
+   - Context: Understand current CLI layout and identify commands to move
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [x] Remove @app.command() lint function
-     - [x] Remove run_linter function if not used elsewhere
-     - [x] Update help text and command listings
-     - [x] Commit with message: "feat: remove redundant lint command, use check instead"
+     - [ ] List all current top-level commands
+     - [ ] Identify core vs specialized commands
+     - [ ] Plan the new structure
+     - [ ] Commit with message: "docs: analyze current CLI command structure"
 
-3) Update tests to use check instead of lint
-   - Context: All lint tests should be migrated to use check command
+2) Move review command to tools
+   - Context: Review is a specialized analysis tool
+   - Files to check/modify:
+     - src/nicestlog/cli.py
+   - Steps:
+     - [ ] Move review command to tools_app
+     - [ ] Update command registration
+     - [ ] Test the new command path
+     - [ ] Commit with message: "feat: move review command to tools subgroup"
+
+3) Move journal command to tools
+   - Context: Journal viewer is a specialized systemd tool
+   - Files to check/modify:
+     - src/nicestlog/cli.py
+   - Steps:
+     - [ ] Move journal command to tools_app
+     - [ ] Update command registration
+     - [ ] Test the new command path
+     - [ ] Commit with message: "feat: move journal command to tools subgroup"
+
+4) Move dashboard command to tools (if Flask available)
+   - Context: Dashboard is a specialized web tool
+   - Files to check/modify:
+     - src/nicestlog/cli.py
+   - Steps:
+     - [ ] Move dashboard command to tools_app
+     - [ ] Update Flask availability check for tools context
+     - [ ] Test the new command path
+     - [ ] Commit with message: "feat: move dashboard command to tools subgroup"
+
+5) Move demo command to tools
+   - Context: Demo is a utility/educational tool
+   - Files to check/modify:
+     - src/nicestlog/cli.py
+   - Steps:
+     - [ ] Move demo command to tools_app
+     - [ ] Update command registration
+     - [ ] Test the new command path
+     - [ ] Commit with message: "feat: move demo command to tools subgroup"
+
+6) Move i18n subgroup to tools
+   - Context: i18n is a specialized development tool
+   - Files to check/modify:
+     - src/nicestlog/cli.py
+   - Steps:
+     - [ ] Move i18n_app to be under tools_app
+     - [ ] Update nested subgroup structure
+     - [ ] Test the new command path: tools i18n check
+     - [ ] Commit with message: "feat: move i18n commands to tools subgroup"
+
+7) Update tests and documentation
+   - Context: All references need to be updated to new command paths
    - Files to check/modify:
      - tests/test_cli.py
      - tests/test_cli_integration.py
-     - Any other test files using lint
-   - Steps:
-     - [x] Find all tests using lint command
-     - [x] Update tests to use check command with appropriate flags
-     - [x] Ensure test coverage is maintained
-     - [x] Commit with message: "test: migrate lint tests to use check command"
-
-4) Update documentation and migration guide
-   - Context: Users need to know about the change and how to migrate
-   - Files to check/modify:
-     - README.md
      - docs/ files
-     - CLI help text
+     - README.md
    - Steps:
-     - [x] Update documentation to remove lint references
-     - [x] Add migration note for users currently using lint
-     - [x] Update examples to use check instead of lint
-     - [x] Commit with message: "docs: remove lint command references, update to use check"
+     - [ ] Update all test command invocations
+     - [ ] Update documentation examples
+     - [ ] Add migration notes for users
+     - [ ] Test all new command paths
+     - [ ] Commit with message: "docs: update for reorganized CLI command structure"
