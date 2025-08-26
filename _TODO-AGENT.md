@@ -37,17 +37,17 @@ Prioritized work items (with checkboxes)
      - [x] Identify the two tables and their content
      - [x] Determine which information is valuable and which is redundant
      - [x] Map out the desired unified structure
-     - [ ] Commit with message: "docs: analyze current AST table output structure"
+     - [x] Commit with message: "docs: analyze current AST table output structure"
 
 2) Design unified table structure
    - Context: Create a single table that combines the best of both current tables
    - Files to check/modify:
      - src/nicestlog/cli.py (_display_check_analysis_result function)
    - Steps:
-     - [ ] Design new unified table schema
-     - [ ] Plan how AST insights integrate into suggestions section
-     - [ ] Ensure all useful information is preserved
-     - [ ] Create mockup of desired output format
+     - [x] Design new unified table schema
+     - [x] Plan how AST insights integrate into suggestions section
+     - [x] Ensure all useful information is preserved
+     - [x] Create mockup of desired output format
      - [ ] Commit with message: "design: unified AST analysis table structure"
 
 3) Implement unified table display
