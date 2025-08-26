@@ -123,16 +123,20 @@ def tools_journal(
 
 # Check if Flask is available for dashboard command
 try:
-    import flask
+    import flask  # noqa: F401
+
     FLASK_AVAILABLE_FOR_CLI = True
 except ImportError:
     FLASK_AVAILABLE_FOR_CLI = False
 
 # Add dashboard command to tools (only if Flask is available)
 if FLASK_AVAILABLE_FOR_CLI:
+
     @tools_app.command("dashboard")
     def tools_dashboard(
-        host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
+        host: Annotated[
+            str, typer.Option("--host", help="Host to bind to")
+        ] = "127.0.0.1",
         port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
         debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
     ):
@@ -393,6 +397,10 @@ def check(
         Optional[List[str]],
         typer.Option("--pattern", help="Specific AST patterns to check"),
     ] = None,
+    backup: Annotated[
+        bool,
+        typer.Option("--backup/--no-backup", help="Create backup files when fixing"),
+    ] = True,
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
     ] = False,
@@ -403,7 +411,9 @@ def check(
       nicestlog check file.py                    # Basic linting + AST analysis
       nicestlog check file.py --no-ast           # Basic linting only
       nicestlog check file.py --fix              # Fix with AST transforms
+      nicestlog check file.py --fix --backup     # Fix with backup creation
       nicestlog check file.py --interactive      # Interactive mode
+      nicestlog check file.py --dry-run --fix    # Preview fixes
       nicestlog check file.py --complexity       # Complexity analysis
     """
     from .linter import lint_directory
@@ -464,10 +474,13 @@ def check(
         elif path_obj.is_dir():
             # Use gitignore-aware file filtering
             from .gitignore_utils import filter_python_files
+
             python_files = filter_python_files(path_obj, respect_gitignore=True)
-            
+
             if python_files:
-                console.print(f"📁 [blue]Analyzing {len(python_files)} Python files (respecting .gitignore)[/blue]")
+                console.print(
+                    f"📁 [blue]Analyzing {len(python_files)} Python files (respecting .gitignore)[/blue]"
+                )
                 ast_results = []
                 with Progress(
                     SpinnerColumn(),
@@ -486,7 +499,9 @@ def check(
                 _display_unified_check_analysis(ast_results, complexity)
                 ast_issues = ast_results
             else:
-                console.print("❌ [red]No Python files found in directory (after applying .gitignore)[/red]")
+                console.print(
+                    "❌ [red]No Python files found in directory (after applying .gitignore)[/red]"
+                )
 
     # 3. Interactive Mode
     if interactive and ast_issues:
@@ -498,6 +513,7 @@ def check(
         else:
             # For directories, process files one by one (respecting gitignore)
             from .gitignore_utils import filter_python_files
+
             python_files = filter_python_files(path_obj, respect_gitignore=True)
             for py_file in python_files:
                 console.print(f"\n📁 Processing: {py_file}")
@@ -507,6 +523,13 @@ def check(
     # 4. AST-based Fixes
     elif fix and not no_ast and ast_issues:
         console.print("\n🔧 [bold green]Applying AST-based fixes...[/bold green]")
+
+        # Create backup if requested and not dry run
+        if backup and not dry_run:
+            backup_result = create_migration_backup(path_obj)
+            if backup_result:
+                console.print(f"✅ [green]Backup created: {backup_result}[/green]")
+
         assistant = AdvancedAssistant(verbose=verbose)
 
         if path_obj.is_file():
@@ -570,39 +593,43 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
         # Separate logging issues from general issues
         logging_issues = []
         general_issues = []
-        
+
         for issue in result.issues:
             if any(keyword in issue.lower() for keyword in ["print", "log", "logging"]):
                 logging_issues.append(issue)
             else:
                 general_issues.append(issue)
-        
+
         if logging_issues:
             logging_table = Table(title="🔍 Logging Improvement Opportunities")
             logging_table.add_column("Priority", style="yellow")
             logging_table.add_column("Suggestion", style="cyan")
-            
+
             for i, issue in enumerate(logging_issues, 1):
                 priority = "High" if "print" in issue.lower() else "Medium"
                 logging_table.add_row(priority, issue)
-            
+
             console.print(logging_table)
-        
+
         if general_issues:
             general_table = Table(title="⚠️ Code Quality Issues")
             general_table.add_column("Type", style="red")
             general_table.add_column("Description", style="white")
-            
+
             for issue in general_issues:
                 general_table.add_row("Complexity", issue)
-            
+
             console.print(general_table)
-        
+
         # Add summary with actionable suggestions
         if logging_issues:
             console.print("\n💡 [bold blue]Logging Improvements:[/bold blue]")
-            console.print("  • Run with --fix to automatically convert print statements")
-            console.print("  • Consider adding structured logging to functions without logs")
+            console.print(
+                "  • Run with --fix to automatically convert print statements"
+            )
+            console.print(
+                "  • Consider adding structured logging to functions without logs"
+            )
     else:
         console.print("✅ [green]No AST issues found![/green]")
 
@@ -612,58 +639,70 @@ def _display_unified_check_analysis(
 ):
     """Display unified analysis results combining logging quality and AST metrics."""
     from .linter import lint_directory
-    
+
     # Extract AST metrics for integration with linter output
     ast_metrics = {}
     total_ast_issues = 0
     all_ast_insights = []
-    
+
     for result in results:
         ast_metrics[result.file_path.name] = {
-            'functions': result.function_count,
-            'classes': result.class_count,
-            'complexity': result.complexity_score if show_complexity else None
+            "functions": result.function_count,
+            "classes": result.class_count,
+            "complexity": result.complexity_score if show_complexity else None,
         }
         total_ast_issues += len(result.issues)
         if result.issues:
-            all_ast_insights.extend([
-                f"  • {result.file_path.name}: {issue}" for issue in result.issues
-            ])
-    
+            all_ast_insights.extend(
+                [f"  • {result.file_path.name}: {issue}" for issue in result.issues]
+            )
+
     # Run the enhanced linter with AST metrics
     console.print("\n📊 [bold blue]Unified Code Quality Analysis[/bold blue]")
-    
+
     # Set environment variable to pass AST metrics to linter
     import os
     import json
-    os.environ['NICESTLOG_AST_METRICS'] = json.dumps(ast_metrics)
-    
+
+    os.environ["NICESTLOG_AST_METRICS"] = json.dumps(ast_metrics)
+
     try:
         # Get the directory path from the first result
         if results:
             directory_path = results[0].file_path.parent
-            lint_success = lint_directory(directory_path)
-        else:
-            lint_success = True
+            lint_directory(directory_path)
+        # Note: lint_success not used, just run for side effects
     finally:
         # Clean up environment variable
-        if 'NICESTLOG_AST_METRICS' in os.environ:
-            del os.environ['NICESTLOG_AST_METRICS']
-    
+        if "NICESTLOG_AST_METRICS" in os.environ:
+            del os.environ["NICESTLOG_AST_METRICS"]
+
     # Display AST insights if any found
     if all_ast_insights:
-        console.print(f"\n💡 [bold blue]AST Analysis Insights:[/bold blue]")
-        console.print(f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions")
-        console.print(f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization")
+        console.print("\n💡 [bold blue]AST Analysis Insights:[/bold blue]")
+        console.print(
+            f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions"
+        )
+        console.print(
+            f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization"
+        )
         if total_ast_issues > 0:
-            console.print(f"  • {total_ast_issues} code quality improvements identified:")
+            console.print(
+                f"  • {total_ast_issues} code quality improvements identified:"
+            )
             for insight in all_ast_insights[:5]:  # Show first 5 insights
                 console.print(insight)
             if len(all_ast_insights) > 5:
-                console.print(f"    ... and {len(all_ast_insights) - 5} more suggestions")
+                console.print(
+                    f"    ... and {len(all_ast_insights) - 5} more suggestions"
+                )
         else:
-            console.print("  • No code quality issues detected - excellent code structure!")
-        console.print("  • Consider adding structured logging to functions without logs")
+            console.print(
+                "  • No code quality issues detected - excellent code structure!"
+            )
+        console.print(
+            "  • Consider adding structured logging to functions without logs"
+        )
 
 
 def _display_check_directory_analysis(
@@ -728,166 +767,6 @@ def _has_ast_issues(ast_issues) -> bool:
         return any(len(result.issues) > 0 for result in ast_issues)
     else:
         return len(ast_issues.issues) > 0
-
-
-@app.command()
-def fix(
-    path: Annotated[str, typer.Argument(help="File or directory to fix")],
-    dry_run: Annotated[
-        bool, typer.Option("--dry-run", help="Show changes without applying")
-    ] = False,
-    interactive: Annotated[
-        bool, typer.Option("--interactive", "-i", help="Interactive fixing")
-    ] = False,
-    ast_transforms: Annotated[
-        bool, typer.Option("--ast/--no-ast", help="Use AST transformations")
-    ] = True,
-    backup: Annotated[
-        bool, typer.Option("--backup/--no-backup", help="Create backup files")
-    ] = True,
-    patterns: Annotated[
-        Optional[List[str]], typer.Option("--pattern", help="Specific patterns to fix")
-    ] = None,
-    verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Enable verbose output")
-    ] = False,
-):
-    """🔧 Advanced code fixing with AST transformations.
-
-    Examples:
-      nicestlog fix file.py                      # Auto-fix with AST
-      nicestlog fix file.py --dry-run            # Preview fixes
-      nicestlog fix file.py --interactive        # Interactive fixing
-      nicestlog fix src/ --pattern logging      # Fix specific patterns
-      nicestlog fix file.py --no-backup         # Skip backup creation
-    """
-    path_obj = Path(path)
-    if not path_obj.exists():
-        console.print(f"❌ [red]Path {path} does not exist[/red]")
-        sys.exit(1)
-
-    # Display mode information
-    mode_info = []
-    if interactive:
-        mode_info.append("🎯 Interactive")
-    if dry_run:
-        mode_info.append("🔍 Preview")
-    else:
-        mode_info.append("🔧 Apply fixes")
-
-    if ast_transforms:
-        mode_info.append("🔬 AST transforms")
-    if backup and not dry_run:
-        mode_info.append("💾 With backup")
-
-    console.print(
-        Panel.fit(
-            f"🔧 [bold green]Code Fixing[/bold green]\n"
-            f"Mode: [cyan]{' + '.join(mode_info)}[/cyan]\n"
-            f"Target: [yellow]{path_obj}[/yellow]",
-            title="Fix Configuration",
-        )
-    )
-
-    # 1. Create backup if requested and not dry run
-    if backup and not dry_run:
-        backup_result = create_migration_backup(path_obj)
-        if backup_result:
-            console.print(f"✅ [green]Backup created: {backup_result}[/green]")
-
-    # 2. Interactive Mode
-    if interactive:
-        console.print(
-            "\n🎯 [bold magenta]Starting interactive fixing...[/bold magenta]"
-        )
-        transformer = InteractiveTransformer()
-
-        if path_obj.is_file():
-            transformer.transform_file_interactive(path_obj)
-        else:
-            # For directories, process files one by one (respecting gitignore)
-            from .gitignore_utils import filter_python_files
-            python_files = filter_python_files(path_obj, respect_gitignore=True)
-            for py_file in python_files:
-                console.print(f"\n📁 Processing: {py_file}")
-                if typer.confirm(f"Fix {py_file.name}?"):
-                    transformer.transform_file_interactive(py_file)
-        return
-
-    # 3. Automatic AST-based fixing
-    if ast_transforms:
-        console.print("\n🔬 [bold blue]Running AST-based fixes...[/bold blue]")
-        assistant = AdvancedAssistant(verbose=verbose)
-
-        # Configure patterns if specified
-        if patterns:
-            for pattern_name in patterns:
-                for ast_pattern in assistant.patterns:
-                    if pattern_name.lower() in ast_pattern.name.lower():
-                        ast_pattern.enabled = True
-                    else:
-                        ast_pattern.enabled = False
-
-        # Apply fixes
-        if path_obj.is_file():
-            transform_result = assistant.transform_file(path_obj, dry_run=dry_run)
-            _display_transformation_result(transform_result, dry_run)
-
-            if not transform_result.changes_made:
-                console.print(
-                    "ℹ️ [blue]No fixes needed - code is already optimal[/blue]"
-                )
-        else:
-            from .gitignore_utils import filter_python_files
-            python_files = filter_python_files(path_obj, respect_gitignore=True)
-            if not python_files:
-                console.print("❌ [red]No Python files found in directory (after applying .gitignore)[/red]")
-                sys.exit(1)
-
-            transform_results = []
-
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                for py_file in python_files:
-                    task = progress.add_task(f"Fixing {py_file.name}...", total=None)
-                    result = assistant.transform_file(py_file, dry_run=dry_run)
-                    transform_results.append(result)
-                    progress.remove_task(task)
-
-            _display_directory_transformation(transform_results, dry_run)
-
-            # Summary
-            total_changes = sum(len(r.changes) for r in transform_results)
-            if total_changes == 0:
-                console.print(
-                    "\nℹ️ [blue]No fixes needed - all code is already optimal[/blue]"
-                )
-            elif dry_run:
-                console.print(
-                    f"\n[blue]ℹ️ Run without --dry-run to apply {total_changes} fixes[/blue]"
-                )
-            else:
-                console.print(
-                    f"\n✅ [green]Successfully applied {total_changes} fixes[/green]"
-                )
-
-    # 4. Basic linting fixes (fallback if AST disabled)
-    else:
-        console.print("\n📋 [bold blue]Running basic linting fixes...[/bold blue]")
-        from .linter import lint_directory
-
-        success = lint_directory(path_obj)
-
-        if success:
-            console.print("✅ [green]All basic checks passed![/green]")
-        else:
-            console.print(
-                "❌ [red]Some issues remain. Consider using --ast for advanced fixes.[/red]"
-            )
-            sys.exit(1)
 
 
 # Helper functions for AST operations
@@ -1152,12 +1031,6 @@ def _display_directory_transformation(
 # Additional CLI commands
 
 
-
-
-
-
-
-
 @app.command()
 def migrate(
     path: Annotated[str, typer.Argument(help="Project path to analyze/migrate")] = ".",
@@ -1335,16 +1208,18 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = F
     """Run the web dashboard."""
     try:
         from .web_dashboard import run_dashboard
+
         run_dashboard(host=host, port=port, debug=debug)
-    except ImportError as e:
+    except ImportError:
         import typer
+
         typer.echo(
             "❌ Flask is not installed. The web dashboard requires Flask.\n"
             "Install it with:\n"
             "  pip install 'nicestlog[web]'\n"
             "or\n"
             "  pip install flask>=3.0.3",
-            err=True
+            err=True,
         )
         raise typer.Exit(1)
 
@@ -2499,12 +2374,14 @@ def _display_project_analysis(result):
     console.print("3. Validate: [cyan]nicestlog check . --ast[/cyan]")
 
 
-def _configure_logging_focused_patterns(assistant: AdvancedAssistant, user_patterns: Optional[List[str]] = None):
+def _configure_logging_focused_patterns(
+    assistant: AdvancedAssistant, user_patterns: Optional[List[str]] = None
+):
     """Configure AST patterns to focus on logging-related issues only."""
     if user_patterns:
         # User specified patterns, don't override
         return
-    
+
     # Disable general complexity patterns that aren't logging-related
     for pattern in assistant.patterns:
         if pattern.name in ["add_missing_docstrings"]:
@@ -2516,7 +2393,7 @@ def _configure_logging_focused_patterns(assistant: AdvancedAssistant, user_patte
         else:
             # Keep other patterns as they are
             pass
-    
+
     log.debug(
         "patterns-configured-for-logging",
         _replace_msg="🎯 Configured AST patterns for logging focus",
