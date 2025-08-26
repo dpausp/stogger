@@ -704,6 +704,7 @@ def main():
 
             # Mock logging patterns with wrapper patterns
             from nicestlog.project_analyzer import LoggingPattern
+
             mock_result.logging_patterns = [
                 LoggingPattern(
                     pattern_type="wrapper",
@@ -757,8 +758,6 @@ def main():
             assert "wrapper" in result.stdout.lower() or "Wrapper" in result.stdout
             # Check that the warning count is shown
             assert "3" in result.stdout
-
-
 
 
 class TestBackwardCompatibility:

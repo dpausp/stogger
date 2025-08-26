@@ -55,8 +55,6 @@ tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")
 app.add_typer(tools_app, name="tools")
 
 
-
-
 # Add generate-service command to tools
 @tools_app.command("generate-service")
 def tools_generate_service(
@@ -70,10 +68,6 @@ def tools_generate_service(
 ):
     """🔧 Generate systemd service file."""
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
-
-
-
-
 
 
 # Sub-app for i18n related commands
@@ -177,8 +171,6 @@ def i18n_check(
     except Exception as e:
         console.print(f"❌ [red]Error checking translations: {e}[/red]")
         sys.exit(2)
-
-
 
 
 def init_config():
@@ -730,14 +722,6 @@ def fix(
                 "❌ [red]Some issues remain. Consider using --ast for advanced fixes.[/red]"
             )
             sys.exit(1)
-
-
-
-
-
-
-
-
 
 
 # Helper functions for AST operations

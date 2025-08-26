@@ -75,7 +75,7 @@ Prioritized work items (with checkboxes)
      - docs/ files
      - examples/ (potentially)
    - Steps:
-     - [ ] Document log wrapper anti-patterns
-     - [ ] Add examples of problematic vs good logging patterns
-     - [ ] Update CLI help text if needed
-     - [ ] Commit with message: "docs: add log wrapper anti-pattern documentation"
+     - [x] Document log wrapper anti-patterns
+     - [x] Add examples of problematic vs good logging patterns
+     - [x] Update CLI help text if needed
+     - [x] Commit with message: "docs: add log wrapper anti-pattern documentation"

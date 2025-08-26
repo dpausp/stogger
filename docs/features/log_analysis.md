@@ -163,6 +163,63 @@ log.info("this-is-a-very-long-event-id-that-exceeds-the-recommended-maximum-leng
 log.info("long-operation-completed", operation_type="data-processing")
 ```
 
+### Log Wrapper Anti-Patterns
+
+**Issue**: `wrapper_function`
+**Description**: Functions that unnecessarily wrap logging calls with additional indirection.
+
+Log wrapper functions create unnecessary abstraction layers that make debugging harder and reduce the effectiveness of structured logging. They often hide the actual location where logging occurs and can make it difficult to trace log statements back to their source.
+
+```python
+# ❌ Problematic - Wrapper functions
+def log_debug(message):
+    print(f"DEBUG: {message}")
+
+def write_info(msg):
+    logging.info(msg)
+
+def emit_warning(text):
+    logger.warning(text)
+
+def log_user_action(user_id, action):
+    log.info(f"User {user_id} performed {action}")
+
+# Usage
+log_debug("Starting application")
+write_info("Processing data")
+emit_warning("Low disk space")
+log_user_action(123, "login")
+
+# ✅ Fixed - Direct logging calls
+import structlog
+log = structlog.get_logger()
+
+# Usage
+log.debug("application-starting")
+log.info("data-processing", status="started")
+log.warning("disk-space-low", available_gb=2.1)
+log.info("user-action", user_id=123, action="login")
+```
+
+**Why wrapper functions are problematic:**
+
+1. **Hidden source location**: Stack traces and debugging tools show the wrapper function, not the actual call site
+2. **Reduced flexibility**: Wrapper functions often limit the structured data you can pass
+3. **Maintenance overhead**: Extra functions to maintain and test
+4. **Inconsistent patterns**: Different developers create different wrapper styles
+5. **Lost context**: The wrapper function becomes a bottleneck that loses calling context
+
+**Common wrapper patterns detected:**
+- Functions with names containing "log", "write_", "emit_", "debug_", "info_", "warn_", "error_"
+- Functions that only call logging methods internally
+- Utility functions that format and log messages
+
+**Migration strategy:**
+1. Replace wrapper function calls with direct `log.*` calls
+2. Convert string formatting to structured keyword arguments
+3. Use proper event IDs instead of dynamic messages
+4. Remove the wrapper functions entirely
+
 ## Magic Arguments
 
 The analyzer recognizes these special "magic" arguments that don't count toward the keyword argument limit:

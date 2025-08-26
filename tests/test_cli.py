@@ -61,7 +61,6 @@ class TestInitConfig:
 class TestMainFunction:
     """Test cases for main function."""
 
-
     def test_main_requires_subcommand(self):
         """Test that main function requires a subcommand."""
         with patch("sys.argv", ["nicestlog"]):
@@ -84,7 +83,6 @@ class TestTyperCliRunner:
         assert "tools" in result.stdout
         assert "lint" in result.stdout
         assert "dashboard" in result.stdout
-
 
 
 class TestLintCommand:

@@ -265,6 +265,48 @@ log.error("User logged in successfully")  # Should be INFO
 log.info("user-login-successful", user_id=123)
 ```
 
+### 4. Log Wrapper Functions
+
+```python
+# ❌ Avoid: Wrapper functions hide source location
+def log_debug(message):
+    print(f"DEBUG: {message}")
+
+def write_info(msg):
+    logging.info(msg)
+
+def emit_warning(text):
+    logger.warning(text)
+
+def log_user_action(user_id, action):
+    log.info(f"User {user_id} performed {action}")
+
+# Usage creates problems
+log_debug("Starting application")  # Where did this actually happen?
+write_info("Processing data")      # Hard to trace back to source
+emit_warning("Low disk space")     # Lost structured data opportunity
+log_user_action(123, "login")      # No flexibility for additional context
+
+# ✅ Better: Direct logging with structure
+import structlog
+log = structlog.get_logger()
+
+# Direct calls with proper structure
+log.debug("application-starting", component="main", version="1.2.3")
+log.info("data-processing", status="started", batch_id="batch_001")
+log.warning("disk-space-low", available_gb=2.1, threshold_gb=5.0)
+log.info("user-action", user_id=123, action="login", ip="192.168.1.100")
+```
+
+**Why wrapper functions are problematic:**
+- **Hidden source location**: Stack traces show the wrapper, not the actual call site
+- **Reduced flexibility**: Wrappers limit structured data you can include
+- **Maintenance overhead**: Extra functions to test and maintain
+- **Inconsistent patterns**: Different developers create different wrapper styles
+- **Lost debugging context**: The actual call site information is obscured
+
+**Detection**: Use `nicestlog check . --ast` or `nicestlog migrate .` to automatically detect wrapper anti-patterns in your codebase.
+
 ## Summary
 
 Following these best practices will help you:
