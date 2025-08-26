@@ -32,10 +32,10 @@ Prioritized work items (with checkboxes)
    - Files to check/modify:
      - pyproject.toml
    - Steps:
-     - [ ] Move flask from dependencies to optional-dependencies
-     - [ ] Create new "web" or "dashboard" optional dependency group
-     - [ ] Update dependency groups if needed
-     - [ ] Commit with message: "feat: make Flask optional dependency for web dashboard"
+     - [x] Move flask from dependencies to optional-dependencies
+     - [x] Create new "web" or "dashboard" optional dependency group
+     - [x] Update dependency groups if needed
+     - [x] Commit with message: "feat: make Flask optional dependency for web dashboard"
 
 2) Add optional import handling for Flask
    - Context: Need graceful handling when Flask is not installed
@@ -43,20 +43,20 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/web_dashboard.py
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Add try/except for Flask imports in web_dashboard.py
-     - [ ] Add graceful error handling in CLI dashboard command
-     - [ ] Create helpful error messages for missing Flask
-     - [ ] Commit with message: "feat: add graceful handling for missing Flask dependency"
+     - [x] Add try/except for Flask imports in web_dashboard.py
+     - [x] Add graceful error handling in CLI dashboard command
+     - [x] Create helpful error messages for missing Flask
+     - [x] Commit with message: "feat: add graceful handling for missing Flask dependency"
 
 3) Hide dashboard command when Flask unavailable
    - Context: Dashboard command should be hidden if Flask not installed
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Conditionally register dashboard command based on Flask availability
-     - [ ] Add clear error message if command is called without Flask
-     - [ ] Update CLI help to reflect optional nature
-     - [ ] Commit with message: "feat: hide dashboard command when Flask not available"
+     - [x] Conditionally register dashboard command based on Flask availability
+     - [x] Add clear error message if command is called without Flask
+     - [x] Update CLI help to reflect optional nature
+     - [x] Commit with message: "feat: hide dashboard command when Flask not available"
 
 4) Update tests and documentation
    - Context: Tests need to handle optional Flask, docs need updating
