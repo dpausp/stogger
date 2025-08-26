@@ -115,6 +115,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
         renderer = ConsoleFileRenderer(  # type: ignore[assignment]
             min_level="debug" if config.verbose else "info",
             show_caller_info=config.show_caller_info,
+            safe_drop=True,  # Use safe_drop=True to avoid DropEvent issues in ProcessorFormatter
         )
         log.debug(
             "console-renderer-created", min_level="debug" if config.verbose else "info"

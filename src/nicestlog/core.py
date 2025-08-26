@@ -131,10 +131,11 @@ class ConsoleFileRenderer:
     ]
 
     def __init__(
-        self, min_level="info", show_caller_info=False, pad_event=_EVENT_WIDTH
+        self, min_level="info", show_caller_info=False, pad_event=_EVENT_WIDTH, safe_drop=False
     ):
         self.min_level = self.LEVELS.index(min_level.lower())
         self.show_caller_info = show_caller_info
+        self.safe_drop = safe_drop  # If True, return empty string instead of raising DropEvent
         if colorama is None:
             print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
         if sys.stdout.isatty():
@@ -175,7 +176,10 @@ class ConsoleFileRenderer:
         if level_name is not None:
             try:
                 if self.LEVELS.index(level_name) > self.min_level:
-                    raise structlog.DropEvent
+                    if self.safe_drop:
+                        return ""
+                    else:
+                        raise structlog.DropEvent
             except ValueError:
                 # Unknown level, do not drop
                 pass
@@ -292,7 +296,10 @@ class ConsoleFileRenderer:
         if isinstance(method_name, str):
             try:
                 if self.LEVELS.index(method_name.lower()) > self.min_level:
-                    return ""
+                    if self.safe_drop:
+                        return ""
+                    else:
+                        raise structlog.DropEvent
             except ValueError:
                 pass
 

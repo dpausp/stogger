@@ -2467,8 +2467,9 @@ def _display_project_analysis(result):
     
     # Next Steps
     console.print(f"\n[bold green]Next Steps:[/bold green]")
-    console.print(f"1. Run: [cyan]nicestlog migrate . --type {rec.strategy} --dry-run[/cyan]")
-    console.print(f"2. Review changes and apply: [cyan]nicestlog migrate . --type {rec.strategy} --backup[/cyan]")
+    console.print(f"To apply changes, run: [cyan]nicestlog migrate . --do-migrate[/cyan]")
+    console.print(f"1. Preview: [cyan]nicestlog migrate . --type {rec.strategy} --dry-run[/cyan]")
+    console.print(f"2. Apply: [cyan]nicestlog migrate . --type {rec.strategy} --do-migrate --backup[/cyan]")
     console.print(f"3. Validate: [cyan]nicestlog check . --ast[/cyan]")
 
 
