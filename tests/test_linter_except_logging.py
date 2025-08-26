@@ -43,7 +43,10 @@ def test_linter_accepts_log_exception_without_error_field(tmp_path: Path):
     p = _write(tmp_path, "b.py", code)
     stats, issues = linter.analyze_file(p)
     # Should not flag anything for except_logging category
-    assert not any(iss.category == "except_logging" and iss.current_level == "exception" for iss in issues)
+    assert not any(
+        iss.category == "except_logging" and iss.current_level == "exception"
+        for iss in issues
+    )
 
 
 def test_linter_flags_log_error_without_exc_info_in_except(tmp_path: Path):
@@ -59,4 +62,7 @@ def test_linter_flags_log_error_without_exc_info_in_except(tmp_path: Path):
     """
     p = _write(tmp_path, "c.py", code)
     stats, issues = linter.analyze_file(p)
-    assert any(iss.category == "except_logging" and iss.current_level == "error" for iss in issues)
+    assert any(
+        iss.category == "except_logging" and iss.current_level == "error"
+        for iss in issues
+    )

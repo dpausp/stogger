@@ -52,7 +52,7 @@ def tools_init_config_deprecated():
     """🔧 [DEPRECATED] Use 'nicestlog init' instead."""
     console.print("[yellow]⚠️ DEPRECATED: 'tools init-config' is deprecated.[/yellow]")
     console.print("[yellow]   Use 'nicestlog init' instead.[/yellow]")
-    
+
     # Redirect to original function
     init_config()
 
@@ -76,36 +76,62 @@ def tools_generate_service(
 @app.command()
 def analyze(
     path: str = typer.Argument(".", help="Project path to analyze"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output JSON file"),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Output JSON file"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
     json_output: bool = typer.Option(False, "--json", help="JSON output for agents"),
 ):
     """🔍 [DEPRECATED] Use 'nicestlog migrate' instead (analysis is default behavior)."""
     console.print("[yellow]⚠️ DEPRECATED: 'analyze' command is deprecated.[/yellow]")
-    console.print("[yellow]   Use 'nicestlog migrate' instead (analysis is default behavior).[/yellow]")
-    
+    console.print(
+        "[yellow]   Use 'nicestlog migrate' instead (analysis is default behavior).[/yellow]"
+    )
+
     # Redirect to migrate command
-    migrate(path=path, do_migrate=False, migration_type="print-to-structlog", 
-           json_output=json_output, output=output, verbose=verbose, 
-           interactive=False, backup=True, force=False)
+    migrate(
+        path=path,
+        do_migrate=False,
+        migration_type="print-to-structlog",
+        json_output=json_output,
+        output=output,
+        verbose=verbose,
+        interactive=False,
+        backup=True,
+        force=False,
+    )
 
 
 # DEPRECATED: Keep old command with deprecation warning
 @tools_app.command("analyze-project")
 def tools_analyze_project_deprecated(
     path: str = typer.Argument(".", help="Project path to analyze"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output JSON file"),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Output JSON file"
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
-    agent_mode: bool = typer.Option(False, "--agent", help="Agent-friendly JSON output"),
+    agent_mode: bool = typer.Option(
+        False, "--agent", help="Agent-friendly JSON output"
+    ),
 ):
     """🔍 [DEPRECATED] Use 'nicestlog migrate --json' instead."""
-    console.print("[yellow]⚠️ DEPRECATED: 'tools analyze-project' is deprecated.[/yellow]")
+    console.print(
+        "[yellow]⚠️ DEPRECATED: 'tools analyze-project' is deprecated.[/yellow]"
+    )
     console.print("[yellow]   Use 'nicestlog migrate --json' instead.[/yellow]")
-    
+
     # Redirect to migrate command
-    migrate(path=path, do_migrate=False, migration_type="print-to-structlog", 
-           json_output=agent_mode, output=output, verbose=verbose, 
-           interactive=False, backup=True, force=False)
+    migrate(
+        path=path,
+        do_migrate=False,
+        migration_type="print-to-structlog",
+        json_output=agent_mode,
+        output=output,
+        verbose=verbose,
+        interactive=False,
+        backup=True,
+        force=False,
+    )
 
 
 # Sub-app for i18n related commands
@@ -317,25 +343,28 @@ def docs(
 @app.command("init")
 def init_config_cmd(
     path: str = typer.Argument(".", help="Project path to initialize"),
-    template: Optional[str] = typer.Option(None, "--template", help="Configuration template"),
+    template: Optional[str] = typer.Option(
+        None, "--template", help="Configuration template"
+    ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
 ):
     """🔧 Initialize nicestlog configuration."""
     # Enhanced init command that works with any project path
     original_cwd = Path.cwd()
     target_path = Path(path).resolve()
-    
+
     if not target_path.exists():
         console.print(f"❌ [red]Path {path} does not exist[/red]")
         raise typer.Exit(1)
-    
+
     if target_path.is_file():
         target_path = target_path.parent
-    
+
     # Change to target directory for init_config
     import os
+
     os.chdir(target_path)
-    
+
     try:
         init_config()
         console.print(f"✅ [green]Configuration initialized in {target_path}[/green]")
@@ -779,21 +808,32 @@ def ast_analyze_deprecated(
     """🔍 [DEPRECATED] Use 'nicestlog check --ast' instead."""
     console.print("[yellow]⚠️ DEPRECATED: 'tools ast analyze' is deprecated.[/yellow]")
     console.print("[yellow]   Use 'nicestlog check --ast' instead.[/yellow]")
-    
+
     # Redirect to check command with AST enabled
     from typer.testing import CliRunner
+
     runner = CliRunner()
-    
+
     # Build command args
     args = [str(path), "--ast"]
     if verbose:
         args.append("--verbose")
     if json_output:
-        console.print("[yellow]   Note: JSON output available via 'nicestlog analyze'[/yellow]")
-    
+        console.print(
+            "[yellow]   Note: JSON output available via 'nicestlog analyze'[/yellow]"
+        )
+
     # Call check command directly
-    check(str(path), fix=False, interactive=False, dry_run=False, 
-          ast_analysis=True, complexity=False, patterns=None, verbose=verbose)
+    check(
+        str(path),
+        fix=False,
+        interactive=False,
+        dry_run=False,
+        ast_analysis=True,
+        complexity=False,
+        patterns=None,
+        verbose=verbose,
+    )
 
 
 @ast_app.command("transform")
@@ -815,10 +855,17 @@ def ast_transform_deprecated(
     """🔄 [DEPRECATED] Use 'nicestlog fix --ast' instead."""
     console.print("[yellow]⚠️ DEPRECATED: 'tools ast transform' is deprecated.[/yellow]")
     console.print("[yellow]   Use 'nicestlog fix --ast' instead.[/yellow]")
-    
+
     # Redirect to fix command
-    fix(str(path), dry_run=dry_run, interactive=interactive, 
-        ast_transforms=True, backup=True, patterns=None, verbose=verbose)
+    fix(
+        str(path),
+        dry_run=dry_run,
+        interactive=interactive,
+        ast_transforms=True,
+        backup=True,
+        patterns=None,
+        verbose=verbose,
+    )
 
 
 @ast_app.command("interactive")
@@ -829,12 +876,21 @@ def ast_interactive_deprecated(
     ),
 ):
     """🎯 [DEPRECATED] Use 'nicestlog fix --interactive' instead."""
-    console.print("[yellow]⚠️ DEPRECATED: 'tools ast interactive' is deprecated.[/yellow]")
+    console.print(
+        "[yellow]⚠️ DEPRECATED: 'tools ast interactive' is deprecated.[/yellow]"
+    )
     console.print("[yellow]   Use 'nicestlog fix --interactive' instead.[/yellow]")
-    
+
     # Redirect to fix command
-    fix(str(path), dry_run=False, interactive=True, 
-        ast_transforms=True, backup=True, patterns=None, verbose=verbose)
+    fix(
+        str(path),
+        dry_run=False,
+        interactive=True,
+        ast_transforms=True,
+        backup=True,
+        patterns=None,
+        verbose=verbose,
+    )
 
 
 @ast_app.command("patterns")
@@ -845,8 +901,10 @@ def ast_patterns_deprecated(
 ):
     """📋 [DEPRECATED] Use 'nicestlog check --ast --help' for pattern info."""
     console.print("[yellow]⚠️ DEPRECATED: 'tools ast patterns' is deprecated.[/yellow]")
-    console.print("[yellow]   Pattern information available in 'nicestlog check --ast --help'[/yellow]")
-    
+    console.print(
+        "[yellow]   Pattern information available in 'nicestlog check --ast --help'[/yellow]"
+    )
+
     # Still show patterns for now
     assistant = AdvancedAssistant()
     patterns = assistant.patterns
@@ -1193,7 +1251,10 @@ def review(
 def migrate(
     path: Annotated[str, typer.Argument(help="Project path to analyze/migrate")] = ".",
     do_migrate: Annotated[
-        bool, typer.Option("--do-migrate", help="Actually apply changes (default: analyze only)")
+        bool,
+        typer.Option(
+            "--do-migrate", help="Actually apply changes (default: analyze only)"
+        ),
     ] = False,
     migration_type: Annotated[
         str, typer.Option("--type", "-t", help="Migration type")
@@ -1202,7 +1263,8 @@ def migrate(
         bool, typer.Option("--json", help="JSON output for agents")
     ] = False,
     output: Annotated[
-        Optional[str], typer.Option("--output", "-o", help="Output JSON file or directory")
+        Optional[str],
+        typer.Option("--output", "-o", help="Output JSON file or directory"),
     ] = None,
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Verbose output")
@@ -1220,35 +1282,34 @@ def migrate(
     """🔄 Analyze project and optionally migrate code.
 
     Default behavior: Analyze project for migration opportunities (safe, fast)
-    
+
     Examples:
       nicestlog migrate                                   # Analyze current project
-      nicestlog migrate /path/to/project                  # Analyze specific project  
+      nicestlog migrate /path/to/project                  # Analyze specific project
       nicestlog migrate . --json                          # Agent analysis output
       nicestlog migrate . --do-migrate                    # Actually apply changes
       nicestlog migrate . --do-migrate --type logging-to-structlog  # Specific migration
       nicestlog migrate . --do-migrate --interactive      # Interactive migration
     """
-    
+
     if not do_migrate:
         # Default behavior: Analysis only
         from .project_analyzer import analyze_project_for_agents
-        
+
         # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
         import nicestlog
+
         nicestlog.init_logging(
-            verbose=verbose,
-            syslog_identifier="nicestlog-migrate",
-            log_format="console"
+            verbose=verbose, syslog_identifier="nicestlog-migrate", log_format="console"
         )
-        
+
         try:
             result = analyze_project_for_agents(path, verbose=verbose)
-            
-            if json_output or (output and output.endswith('.json')):
+
+            if json_output or (output and output.endswith(".json")):
                 # JSON output for agents or file output
                 json_content = result.to_json()
-                
+
                 if output:
                     Path(output).write_text(json_content)
                     console.print(f"✅ [green]Analysis saved to {output}[/green]")
@@ -1257,17 +1318,23 @@ def migrate(
             else:
                 # Human-readable output
                 _display_project_analysis(result)
-                
+
                 # Enhanced user guidance based on analysis
                 _display_next_steps_guidance(result, path)
-                
+
         except Exception as e:
             console.print(f"❌ [red]Analysis failed: {e}[/red]")
             raise typer.Exit(1)
     else:
         # Migration behavior: Apply changes
         run_migrate_command(
-            path, output, migration_type, dry_run=False, interactive=interactive, backup=backup, force=force
+            path,
+            output,
+            migration_type,
+            dry_run=False,
+            interactive=interactive,
+            backup=backup,
+            force=force,
         )
 
 
@@ -1922,7 +1989,9 @@ def migrate_single_file(
                         tofile=str(target),
                     )
                 )
-                console.print("\n[bold blue]📄 Preview of CLI output migration:[/bold blue]")
+                console.print(
+                    "\n[bold blue]📄 Preview of CLI output migration:[/bold blue]"
+                )
                 for line in diff_lines[:20]:  # Show first 20 lines
                     if line.startswith("+"):
                         console.print(f"[green]{line.rstrip()}[/green]")
@@ -1941,7 +2010,9 @@ def migrate_single_file(
 
         except Exception as exc:
             error_msg = str(exc)
-            console.print(f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]")
+            console.print(
+                f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]"
+            )
 
             class CompatibleResult:
                 def __init__(self):
@@ -2090,10 +2161,12 @@ def migrate_directory_recursive(
     # For print-to-structlog, use existing directory migration
     if config["handler"] == "migrate_print_to_structlog":
         return migrate_directory(source, target, dry_run)
-    
+
     # For CLI outputs migration, use custom directory migration
     elif config["handler"] == "migrate_cli_outputs_to_structlog":
-        return migrate_directory_with_handler(source, target, migrate_cli_outputs_file, dry_run)
+        return migrate_directory_with_handler(
+            source, target, migrate_cli_outputs_file, dry_run
+        )
 
     # For other migrations: Process files individually
     python_files = list(source.rglob("*.py"))
@@ -2204,7 +2277,7 @@ def migrate_directory_with_handler(
     dry_run: bool = True,
 ) -> MigrationResult:
     """Migrate Python files using a custom migration handler function."""
-    
+
     class CompatibleResult:
         def __init__(self):
             self.files_processed = 0
@@ -2212,7 +2285,7 @@ def migrate_directory_with_handler(
             self.errors = 0
             self.warnings = []
             self.diffs = {}
-    
+
     result = CompatibleResult()
     input_dir = Path(input_dir)
     if output_dir:
@@ -2229,11 +2302,11 @@ def migrate_directory_with_handler(
             original = py.read_text(encoding="utf-8")
         except Exception:
             continue
-        
+
         try:
             new_code, changed = migration_handler(original)
             result.files_processed += 1
-            
+
             if not changed:
                 # No transformation; in dry-run collect no diff. When writing to separate dir, still mirror original.
                 if output_dir is not None and not dry_run:
@@ -2246,6 +2319,7 @@ def migrate_directory_with_handler(
             if changed:
                 result.transformations_applied += 1
                 import difflib
+
                 diff_lines = list(
                     difflib.unified_diff(
                         original.splitlines(keepends=True),
@@ -2259,11 +2333,13 @@ def migrate_directory_with_handler(
             # Write transformed code only if not dry-run
             if not dry_run:
                 target_path = (
-                    py if output_dir is None else (output_dir / py.relative_to(input_dir))
+                    py
+                    if output_dir is None
+                    else (output_dir / py.relative_to(input_dir))
                 )
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_text(new_code, encoding="utf-8")
-                
+
         except Exception as exc:
             result.errors += 1
             result.warnings.append(f"Error processing {py}: {exc}")
@@ -2337,110 +2413,150 @@ def show_migration_report(result: MigrationResult, dry_run: bool):
 
 def _display_next_steps_guidance(result, path: str):
     """Display helpful next-step guidance based on analysis results."""
-    console.print(f"\n🎯 [bold green]Next Steps & Guidance[/bold green]")
-    
+    console.print("\n🎯 [bold green]Next Steps & Guidance[/bold green]")
+
     # Check if config exists
     config_path = Path(path) / "pyproject.toml"
     has_config = config_path.exists()
-    
+
     if not has_config:
-        console.print("📋 [yellow]No pyproject.toml found - initialize configuration first:[/yellow]")
+        console.print(
+            "📋 [yellow]No pyproject.toml found - initialize configuration first:[/yellow]"
+        )
         console.print(f"   [cyan]nicestlog init {path}[/cyan]")
         console.print("")
-    
+
     # Strategy-specific guidance
     rec = result.recommendation
     if rec.strategy == "print-to-structlog":
         console.print("🔄 [blue]Print-to-Structlog Migration:[/blue]")
-        console.print(f"   1. Preview changes: [cyan]nicestlog migrate {path} --dry-run[/cyan]")
-        console.print(f"   2. Apply migration: [cyan]nicestlog migrate {path} --do-migrate --backup[/cyan]")
+        console.print(
+            f"   1. Preview changes: [cyan]nicestlog migrate {path} --dry-run[/cyan]"
+        )
+        console.print(
+            f"   2. Apply migration: [cyan]nicestlog migrate {path} --do-migrate --backup[/cyan]"
+        )
         console.print(f"   3. Validate results: [cyan]nicestlog check {path}[/cyan]")
     elif rec.strategy == "logging-to-structlog":
         console.print("🔄 [blue]Logging-to-Structlog Migration:[/blue]")
-        console.print(f"   1. Interactive preview: [cyan]nicestlog migrate {path} --interactive[/cyan]")
-        console.print(f"   2. Apply changes: [cyan]nicestlog migrate {path} --do-migrate --type logging-to-structlog[/cyan]")
-        console.print(f"   3. Update imports: [cyan]nicestlog check {path} --fix[/cyan]")
+        console.print(
+            f"   1. Interactive preview: [cyan]nicestlog migrate {path} --interactive[/cyan]"
+        )
+        console.print(
+            f"   2. Apply changes: [cyan]nicestlog migrate {path} --do-migrate --type logging-to-structlog[/cyan]"
+        )
+        console.print(
+            f"   3. Update imports: [cyan]nicestlog check {path} --fix[/cyan]"
+        )
     elif rec.strategy == "enhancement":
         console.print("✨ [blue]Enhancement Recommendations:[/blue]")
-        console.print(f"   1. Check current code: [cyan]nicestlog check {path} --ast[/cyan]")
+        console.print(
+            f"   1. Check current code: [cyan]nicestlog check {path} --ast[/cyan]"
+        )
         console.print(f"   2. Apply fixes: [cyan]nicestlog fix {path} --ast[/cyan]")
-        console.print(f"   3. Add translations: [cyan]nicestlog i18n check {path}/src[/cyan]")
+        console.print(
+            f"   3. Add translations: [cyan]nicestlog i18n check {path}/src[/cyan]"
+        )
     else:  # greenfield
         console.print("🌱 [blue]Greenfield Setup:[/blue]")
         console.print(f"   1. Initialize config: [cyan]nicestlog init {path}[/cyan]")
-        console.print(f"   2. Set up logging: [cyan]nicestlog docs --feature logging[/cyan]")
-        console.print(f"   3. Run demos: [cyan]nicestlog demo basic[/cyan]")
-    
+        console.print(
+            "   2. Set up logging: [cyan]nicestlog docs --feature logging[/cyan]"
+        )
+        console.print("   3. Run demos: [cyan]nicestlog demo basic[/cyan]")
+
     # Risk warnings
     if rec.risk_level == "high":
-        console.print(f"\n⚠️  [red]High Risk Migration - Consider:[/red]")
+        console.print("\n⚠️  [red]High Risk Migration - Consider:[/red]")
         console.print("   • Create full project backup first")
         console.print("   • Use interactive mode for review")
         console.print("   • Test thoroughly before committing")
     elif rec.risk_level == "medium":
-        console.print(f"\n⚠️  [yellow]Medium Risk - Recommended:[/yellow]")
+        console.print("\n⚠️  [yellow]Medium Risk - Recommended:[/yellow]")
         console.print("   • Use --backup flag for safety")
         console.print("   • Review changes before applying")
-    
+
     # Prerequisites
     if rec.prerequisites:
-        console.print(f"\n📋 [yellow]Prerequisites:[/yellow]")
+        console.print("\n📋 [yellow]Prerequisites:[/yellow]")
         for prereq in rec.prerequisites:
             console.print(f"   • {prereq}")
-    
-    console.print(f"\n💡 [blue]Need help? Run: [cyan]nicestlog docs[/cyan] or [cyan]nicestlog demo[/cyan][/blue]")
+
+    console.print(
+        "\n💡 [blue]Need help? Run: [cyan]nicestlog docs[/cyan] or [cyan]nicestlog demo[/cyan][/blue]"
+    )
 
 
 def _display_project_analysis(result):
     """Display human-readable project analysis results."""
-    from .project_analyzer import ProjectAnalysisResult
-    
-    console.print(f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]")
-    
+
+    console.print(
+        f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]"
+    )
+
     # Project Overview
     overview_table = Table(title="📊 Project Overview")
     overview_table.add_column("Metric", style="cyan")
     overview_table.add_column("Value", style="green", justify="right")
-    
+
     overview_table.add_row("Total Files", str(result.complexity.total_files))
     overview_table.add_row("Python Files", str(result.complexity.python_files))
     overview_table.add_row("Total Lines", str(result.complexity.total_lines))
     overview_table.add_row("Complexity", result.complexity.complexity_category.title())
-    overview_table.add_row("Package Manager", result.dependencies.package_manager.title())
-    
+    overview_table.add_row(
+        "Package Manager", result.dependencies.package_manager.title()
+    )
+
     console.print(overview_table)
-    
+
     # Logging Patterns
     if result.logging_patterns:
         patterns_table = Table(title="🔍 Logging Patterns Found")
         patterns_table.add_column("Type", style="cyan")
         patterns_table.add_column("Count", style="yellow", justify="right")
         patterns_table.add_column("Priority", style="red", justify="right")
-        
+
         pattern_counts = {}
         for pattern in result.logging_patterns:
-            pattern_counts[pattern.pattern_type] = pattern_counts.get(pattern.pattern_type, 0) + 1
-        
+            pattern_counts[pattern.pattern_type] = (
+                pattern_counts.get(pattern.pattern_type, 0) + 1
+            )
+
         for pattern_type, count in pattern_counts.items():
-            priority = "High" if pattern_type == "print" else "Medium" if pattern_type == "logging" else "Low"
+            priority = (
+                "High"
+                if pattern_type == "print"
+                else "Medium"
+                if pattern_type == "logging"
+                else "Low"
+            )
             patterns_table.add_row(pattern_type.title(), str(count), priority)
-        
+
         console.print(patterns_table)
-    
+
     # Dependencies
     deps_table = Table(title="📦 Dependencies Analysis")
     deps_table.add_column("Package", style="cyan")
     deps_table.add_column("Status", style="green")
-    
-    deps_table.add_row("Standard Logging", "✅ Present" if result.dependencies.has_logging else "❌ Missing")
-    deps_table.add_row("Structlog", "✅ Present" if result.dependencies.has_structlog else "❌ Missing")
-    deps_table.add_row("Loguru", "✅ Present" if result.dependencies.has_loguru else "❌ Missing")
-    
+
+    deps_table.add_row(
+        "Standard Logging",
+        "✅ Present" if result.dependencies.has_logging else "❌ Missing",
+    )
+    deps_table.add_row(
+        "Structlog", "✅ Present" if result.dependencies.has_structlog else "❌ Missing"
+    )
+    deps_table.add_row(
+        "Loguru", "✅ Present" if result.dependencies.has_loguru else "❌ Missing"
+    )
+
     if result.dependencies.has_other_logging:
-        deps_table.add_row("Other Logging", ", ".join(result.dependencies.has_other_logging))
-    
+        deps_table.add_row(
+            "Other Logging", ", ".join(result.dependencies.has_other_logging)
+        )
+
     console.print(deps_table)
-    
+
     # Recommendation
     rec = result.recommendation
     rec_panel = Panel.fit(
@@ -2449,28 +2565,34 @@ def _display_project_analysis(result):
         f"[bold blue]Effort:[/bold blue] {rec.estimated_effort}\n"
         f"[bold magenta]Approach:[/bold magenta] {rec.recommended_approach}\n"
         f"[bold red]Risk:[/bold red] {rec.risk_level}",
-        title="🎯 Migration Recommendation"
+        title="🎯 Migration Recommendation",
     )
     console.print(rec_panel)
-    
+
     # Steps
     if rec.steps:
         console.print("\n📋 [bold blue]Recommended Steps:[/bold blue]")
         for step in rec.steps:
             console.print(f"  {step}")
-    
+
     # Warnings
     if result.warnings:
         console.print("\n[yellow]⚠️ Warnings:[/yellow]")
         for warning in result.warnings:
             console.print(f"  • {warning}")
-    
+
     # Next Steps
-    console.print(f"\n[bold green]Next Steps:[/bold green]")
-    console.print(f"To apply changes, run: [cyan]nicestlog migrate . --do-migrate[/cyan]")
-    console.print(f"1. Preview: [cyan]nicestlog migrate . --type {rec.strategy} --dry-run[/cyan]")
-    console.print(f"2. Apply: [cyan]nicestlog migrate . --type {rec.strategy} --do-migrate --backup[/cyan]")
-    console.print(f"3. Validate: [cyan]nicestlog check . --ast[/cyan]")
+    console.print("\n[bold green]Next Steps:[/bold green]")
+    console.print(
+        "To apply changes, run: [cyan]nicestlog migrate . --do-migrate[/cyan]"
+    )
+    console.print(
+        f"1. Preview: [cyan]nicestlog migrate . --type {rec.strategy} --dry-run[/cyan]"
+    )
+    console.print(
+        f"2. Apply: [cyan]nicestlog migrate . --type {rec.strategy} --do-migrate --backup[/cyan]"
+    )
+    console.print("3. Validate: [cyan]nicestlog check . --ast[/cyan]")
 
 
 def main():

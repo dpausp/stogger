@@ -55,7 +55,7 @@ def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set
 
 def scan_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str], Set[str]]:
     """Scan Python files for all translation-related keys in a single pass.
-    
+
     This optimized function reduces IO by scanning files once and extracting
     all needed information: event keys, message keys, and debug events.
 

@@ -35,7 +35,9 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
         log.debug(
             "building-shared-processors",
             pii_scrubbing=config.enable_pii_scrubbing,
-            translation_dir=str(config.translation_dir) if config.translation_dir else None,
+            translation_dir=str(config.translation_dir)
+            if config.translation_dir
+            else None,
         )
 
     processors = [
@@ -51,7 +53,9 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
     # Add PII scrubbing if enabled
     if config.enable_pii_scrubbing:
         if config.verbose:
-            log.debug("enabling-pii-scrubbing", redaction_text=config.pii_redaction_text)
+            log.debug(
+                "enabling-pii-scrubbing", redaction_text=config.pii_redaction_text
+            )
         from .pii_scrubber import create_pii_processor
 
         processors.append(
@@ -206,12 +210,12 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
         log.debug("starting-queue-listener", handler_count=len(all_handlers))
         listener = QueueListener(log_queue, *all_handlers)
         listener.start()
-        
+
         # Register cleanup handler to stop listener on exit
         def cleanup_listener():
             log.debug("stopping-queue-listener")
             listener.stop()
-        
+
         atexit.register(cleanup_listener)
         root_logger = logging.getLogger()
         root_logger.addHandler(queue_handler)

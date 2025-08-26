@@ -8,13 +8,12 @@ run and see the actual transformations in action.
 
 import sys
 import tempfile
-import shutil
 from pathlib import Path
 
 
 def create_example_files():
     """Create example files showing different logging patterns."""
-    
+
     # Example 1: Print statements
     print_example = '''#!/usr/bin/env python3
 """Example with print statements - BEFORE migration."""
@@ -54,7 +53,7 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-    
+
     # Example 2: Standard logging
     logging_example = '''#!/usr/bin/env python3
 """Example with standard logging - BEFORE migration."""
@@ -148,7 +147,7 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-    
+
     # Example 3: Mixed patterns (realistic scenario)
     mixed_example = '''#!/usr/bin/env python3
 """Example with mixed logging patterns - BEFORE migration."""
@@ -283,154 +282,156 @@ def main():
 if __name__ == "__main__":
     main()
 '''
-    
+
     return {
         "print_example.py": print_example,
-        "logging_example.py": logging_example, 
-        "mixed_example.py": mixed_example
+        "logging_example.py": logging_example,
+        "mixed_example.py": mixed_example,
     }
 
 
 def demonstrate_migration():
     """Demonstrate the migration process with real examples."""
-    
+
     print("🎯 Nicestlog Migration Examples")
     print("=" * 50)
-    
+
     # Create temporary directory
     with tempfile.TemporaryDirectory(prefix="nicestlog_migration_") as temp_dir:
         temp_path = Path(temp_dir)
         print(f"📁 Working in: {temp_path}")
-        
+
         # Create example files
         examples = create_example_files()
-        
+
         for filename, content in examples.items():
             file_path = temp_path / filename
             file_path.write_text(content)
             print(f"📝 Created: {filename}")
-        
+
         print("\n🔍 Analysis Phase")
         print("-" * 30)
-        
+
         # Show what files we have
         print("Example files created:")
         for filename in examples.keys():
             file_path = temp_path / filename
-            lines = len(file_path.read_text().split('\n'))
+            lines = len(file_path.read_text().split("\n"))
             print(f"  • {filename} ({lines} lines)")
-        
-        print(f"\n📊 To analyze these files, run:")
+
+        print("\n📊 To analyze these files, run:")
         print(f"  cd {temp_path}")
-        print(f"  nicestlog migrate .")
-        
-        print(f"\n🔄 To migrate these files, run:")
+        print("  nicestlog migrate .")
+
+        print("\n🔄 To migrate these files, run:")
         print(f"  cd {temp_path}")
-        print(f"  nicestlog migrate . --do-migrate --type print-to-structlog --backup")
-        
-        print(f"\n🎬 To see the actual migration in action:")
-        print(f"  # Run the original examples")
+        print("  nicestlog migrate . --do-migrate --type print-to-structlog --backup")
+
+        print("\n🎬 To see the actual migration in action:")
+        print("  # Run the original examples")
         for filename in examples.keys():
             print(f"  python {temp_path / filename}")
-        
-        print(f"\n  # Then migrate and run again to see the difference")
+
+        print("\n  # Then migrate and run again to see the difference")
         print(f"  nicestlog migrate {temp_path} --do-migrate --type print-to-structlog")
-        
+
         print(f"\n📚 Example files will remain in: {temp_path}")
         print("   (until system cleanup)")
-        
+
         # Keep the directory path for user reference
         return temp_path
 
 
 def show_library_comparison():
     """Show comparison of different logging libraries and migration paths."""
-    
+
     print("\n📚 Logging Library Migration Paths")
     print("=" * 50)
-    
+
     libraries = {
         "print() statements": {
             "migration_type": "print-to-structlog",
             "difficulty": "Easy",
             "command": "nicestlog migrate . --do-migrate --type print-to-structlog",
-            "notes": "Automatic transformation, very safe"
+            "notes": "Automatic transformation, very safe",
         },
         "Standard logging": {
-            "migration_type": "logging-to-structlog", 
+            "migration_type": "logging-to-structlog",
             "difficulty": "Medium",
             "command": "nicestlog migrate . --do-migrate --type logging-to-structlog --interactive",
-            "notes": "Interactive review recommended"
+            "notes": "Interactive review recommended",
         },
         "Loguru": {
             "migration_type": "manual + enhancement",
-            "difficulty": "Medium", 
+            "difficulty": "Medium",
             "command": "nicestlog check . --ast --fix",
-            "notes": "Manual conversion + nicestlog enhancement"
+            "notes": "Manual conversion + nicestlog enhancement",
         },
         "Eliot": {
             "migration_type": "enhancement",
             "difficulty": "Easy",
             "command": "Already compatible! Use nicestlog.eliot_integration",
-            "notes": "Nicestlog enhances Eliot with beautiful output"
+            "notes": "Nicestlog enhances Eliot with beautiful output",
         },
         "Sentry": {
             "migration_type": "integration",
             "difficulty": "Easy",
             "command": "Use Sentry's StructlogIntegration",
-            "notes": "Works seamlessly with nicestlog"
+            "notes": "Works seamlessly with nicestlog",
         },
         "Rich logging": {
             "migration_type": "enhancement",
-            "difficulty": "Easy", 
+            "difficulty": "Easy",
             "command": "nicestlog already uses Rich for beautiful output",
-            "notes": "Complementary - nicestlog uses Rich internally"
-        }
+            "notes": "Complementary - nicestlog uses Rich internally",
+        },
     }
-    
+
     for library, info in libraries.items():
         print(f"\n🔧 {library}")
         print(f"   Migration: {info['migration_type']}")
         print(f"   Difficulty: {info['difficulty']}")
         print(f"   Command: {info['command']}")
         print(f"   Notes: {info['notes']}")
-    
-    print(f"\n💡 Pro Tips:")
-    print(f"   • Always run 'nicestlog migrate .' first to analyze")
-    print(f"   • Use --backup flag for safety")
-    print(f"   • Use --interactive for complex projects")
-    print(f"   • Run 'nicestlog check . --ast' after migration")
+
+    print("\n💡 Pro Tips:")
+    print("   • Always run 'nicestlog migrate .' first to analyze")
+    print("   • Use --backup flag for safety")
+    print("   • Use --interactive for complex projects")
+    print("   • Run 'nicestlog check . --ast' after migration")
 
 
 def main():
     """Main demo function."""
-    
+
     if len(sys.argv) > 1 and sys.argv[1] == "--create-examples":
         # Create examples and exit
         temp_path = demonstrate_migration()
         print(f"\n✅ Examples created in: {temp_path}")
         return
-    
+
     print("🚀 Nicestlog Migration Examples Demo")
     print("=" * 50)
     print()
     print("This demo shows:")
     print("• Real before/after migration examples")
-    print("• Different logging library migration paths") 
+    print("• Different logging library migration paths")
     print("• Practical commands you can run")
     print()
-    
+
     # Show the examples
     demonstrate_migration()
-    
+
     # Show library comparison
     show_library_comparison()
-    
-    print(f"\n🎯 Next Steps:")
-    print(f"   1. Try: nicestlog demo basic")
-    print(f"   2. Analyze your project: nicestlog migrate /path/to/your/project")
-    print(f"   3. Apply migration: nicestlog migrate /path/to/your/project --do-migrate --backup")
-    print(f"   4. Validate: nicestlog check /path/to/your/project")
+
+    print("\n🎯 Next Steps:")
+    print("   1. Try: nicestlog demo basic")
+    print("   2. Analyze your project: nicestlog migrate /path/to/your/project")
+    print(
+        "   3. Apply migration: nicestlog migrate /path/to/your/project --do-migrate --backup"
+    )
+    print("   4. Validate: nicestlog check /path/to/your/project")
 
 
 if __name__ == "__main__":

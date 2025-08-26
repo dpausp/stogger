@@ -131,11 +131,17 @@ class ConsoleFileRenderer:
     ]
 
     def __init__(
-        self, min_level="info", show_caller_info=False, pad_event=_EVENT_WIDTH, safe_drop=False
+        self,
+        min_level="info",
+        show_caller_info=False,
+        pad_event=_EVENT_WIDTH,
+        safe_drop=False,
     ):
         self.min_level = self.LEVELS.index(min_level.lower())
         self.show_caller_info = show_caller_info
-        self.safe_drop = safe_drop  # If True, return empty string instead of raising DropEvent
+        self.safe_drop = (
+            safe_drop  # If True, return empty string instead of raising DropEvent
+        )
         if colorama is None:
             print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
         if sys.stdout.isatty():
@@ -560,9 +566,9 @@ def init_logging(simple_format_settings=None, **kwargs: Any):
     # Clear any early initialization to allow full reconfiguration
     if structlog.is_configured():
         structlog.reset_defaults()
-    
+
     config = NicestLogConfig(**kwargs)
-    
+
     # Only log debug messages if verbose mode is enabled
     if config.verbose:
         log.debug("initializing-nicestlog", config_kwargs=list(kwargs.keys()))
@@ -591,14 +597,14 @@ def init_logging(simple_format_settings=None, **kwargs: Any):
 def init_early_logging():
     """
     Initialize minimal logging format early to reduce uninitialized structlog messages.
-    
+
     This sets up a basic structlog configuration with minimal dependencies
     to avoid the block of uninitialized messages at startup. Falls back
     gracefully if initialization fails.
     """
     if structlog.is_configured():
         return  # Already configured
-    
+
     try:
         # Minimal processors for early initialization - avoid logging during setup
         processors = [
@@ -606,7 +612,7 @@ def init_early_logging():
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
             SimpleConsoleRenderer(min_level="info"),
         ]
-        
+
         # Configure structlog with minimal setup
         structlog.configure(
             processors=processors,
@@ -614,15 +620,16 @@ def init_early_logging():
             wrapper_class=structlog.stdlib.BoundLogger,
             cache_logger_on_first_use=False,  # Allow reconfiguration
         )
-        
+
         # Set up basic stdlib logging
         import logging
+
         logging.basicConfig(
             level=logging.INFO,  # Allow info messages through
             format="%(message)s",
             force=True,
         )
-        
+
     except Exception:
         # Graceful fallback - let structlog use its defaults
         # Don't log the error to avoid recursion

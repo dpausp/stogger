@@ -303,12 +303,16 @@ def hello():
     print(f"User {user_id} logged in")
 """)
 
-        with patch("nicestlog.project_analyzer.analyze_project_for_agents") as mock_analyzer:
+        with patch(
+            "nicestlog.project_analyzer.analyze_project_for_agents"
+        ) as mock_analyzer:
             # Create a more complete mock that matches ProjectAnalysisResult structure
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = '{"recommendations": ["Convert print statements"]}'
-            
+            mock_result.to_json.return_value = (
+                '{"recommendations": ["Convert print statements"]}'
+            )
+
             # Mock the complexity object
             mock_complexity = MagicMock()
             mock_complexity.total_files = 1
@@ -316,7 +320,7 @@ def hello():
             mock_complexity.total_lines = 4
             mock_complexity.complexity_category = "simple"
             mock_result.complexity = mock_complexity
-            
+
             # Mock the dependencies object
             mock_deps = MagicMock()
             mock_deps.package_manager = "pip"
@@ -325,10 +329,10 @@ def hello():
             mock_deps.has_loguru = False
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
-            
+
             # Mock logging patterns
             mock_result.logging_patterns = []
-            
+
             # Mock recommendation
             mock_rec = MagicMock()
             mock_rec.strategy = "print-to-structlog"
@@ -338,14 +342,14 @@ def hello():
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
             mock_result.recommendation = mock_rec
-            
+
             # Mock warnings
             mock_result.warnings = []
-            
+
             mock_analyzer.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_file)])
-            
+
             assert result.exit_code == 0
             assert "Project Analysis" in result.stdout
             assert "To apply changes, run:" in result.stdout
@@ -360,11 +364,15 @@ print("Test migration")
 
         # Note: --dry-run is not a valid flag for migrate command in new structure
         # The default behavior is analysis only (safe), so we test that
-        with patch("nicestlog.project_analyzer.analyze_project_for_agents") as mock_analyzer:
+        with patch(
+            "nicestlog.project_analyzer.analyze_project_for_agents"
+        ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = '{"recommendations": ["Convert print statements"]}'
-            
+            mock_result.to_json.return_value = (
+                '{"recommendations": ["Convert print statements"]}'
+            )
+
             # Mock the complexity object
             mock_complexity = MagicMock()
             mock_complexity.total_files = 1
@@ -372,7 +380,7 @@ print("Test migration")
             mock_complexity.total_lines = 4
             mock_complexity.complexity_category = "simple"
             mock_result.complexity = mock_complexity
-            
+
             # Mock the dependencies object
             mock_deps = MagicMock()
             mock_deps.package_manager = "pip"
@@ -381,10 +389,10 @@ print("Test migration")
             mock_deps.has_loguru = False
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
-            
+
             # Mock logging patterns
             mock_result.logging_patterns = []
-            
+
             # Mock recommendation
             mock_rec = MagicMock()
             mock_rec.strategy = "print-to-structlog"
@@ -394,10 +402,10 @@ print("Test migration")
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
             mock_result.recommendation = mock_rec
-            
+
             # Mock warnings
             mock_result.warnings = []
-            
+
             mock_analyzer.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_file)])
@@ -418,11 +426,15 @@ print("Interactive migration test")
         mock_transformer = MagicMock()
         mock_transformer_class.return_value = mock_transformer
 
-        with patch("nicestlog.project_analyzer.analyze_project_for_agents") as mock_analyzer:
+        with patch(
+            "nicestlog.project_analyzer.analyze_project_for_agents"
+        ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = '{"recommendations": ["Interactive migration available"]}'
-            
+            mock_result.to_json.return_value = (
+                '{"recommendations": ["Interactive migration available"]}'
+            )
+
             # Mock the complexity object
             mock_complexity = MagicMock()
             mock_complexity.total_files = 1
@@ -430,7 +442,7 @@ print("Interactive migration test")
             mock_complexity.total_lines = 4
             mock_complexity.complexity_category = "simple"
             mock_result.complexity = mock_complexity
-            
+
             # Mock the dependencies object
             mock_deps = MagicMock()
             mock_deps.package_manager = "pip"
@@ -439,10 +451,10 @@ print("Interactive migration test")
             mock_deps.has_loguru = False
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
-            
+
             # Mock logging patterns
             mock_result.logging_patterns = []
-            
+
             # Mock recommendation
             mock_rec = MagicMock()
             mock_rec.strategy = "print-to-structlog"
@@ -452,13 +464,15 @@ print("Interactive migration test")
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
             mock_result.recommendation = mock_rec
-            
+
             # Mock warnings
             mock_result.warnings = []
-            
+
             mock_analyzer.return_value = mock_result
 
-            result = self.runner.invoke(app, ["migrate", str(test_file), "--interactive"])
+            result = self.runner.invoke(
+                app, ["migrate", str(test_file), "--interactive"]
+            )
 
             assert result.exit_code == 0
             assert "Project Analysis" in result.stdout
@@ -474,11 +488,15 @@ print("Interactive migration test")
         (test_dir / "file1.py").write_text('print("File 1")')
         (test_dir / "file2.py").write_text('print("File 2")')
 
-        with patch("nicestlog.project_analyzer.analyze_project_for_agents") as mock_analyzer:
+        with patch(
+            "nicestlog.project_analyzer.analyze_project_for_agents"
+        ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_dir)
-            mock_result.to_json.return_value = '{"recommendations": ["Convert print statements in multiple files"]}'
-            
+            mock_result.to_json.return_value = (
+                '{"recommendations": ["Convert print statements in multiple files"]}'
+            )
+
             # Mock the complexity object
             mock_complexity = MagicMock()
             mock_complexity.total_files = 2
@@ -486,7 +504,7 @@ print("Interactive migration test")
             mock_complexity.total_lines = 8
             mock_complexity.complexity_category = "simple"
             mock_result.complexity = mock_complexity
-            
+
             # Mock the dependencies object
             mock_deps = MagicMock()
             mock_deps.package_manager = "pip"
@@ -495,10 +513,10 @@ print("Interactive migration test")
             mock_deps.has_loguru = False
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
-            
+
             # Mock logging patterns
             mock_result.logging_patterns = []
-            
+
             # Mock recommendation
             mock_rec = MagicMock()
             mock_rec.strategy = "print-to-structlog"
@@ -508,10 +526,10 @@ print("Interactive migration test")
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
             mock_result.recommendation = mock_rec
-            
+
             # Mock warnings
             mock_result.warnings = []
-            
+
             mock_analyzer.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_dir)])
@@ -527,11 +545,15 @@ print("Interactive migration test")
 
         test_file.write_text('print("Source file")')
 
-        with patch("nicestlog.project_analyzer.analyze_project_for_agents") as mock_analyzer:
+        with patch(
+            "nicestlog.project_analyzer.analyze_project_for_agents"
+        ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = '{"recommendations": ["Convert print to structured logging"]}'
-            
+            mock_result.to_json.return_value = (
+                '{"recommendations": ["Convert print to structured logging"]}'
+            )
+
             # Mock the complexity object
             mock_complexity = MagicMock()
             mock_complexity.total_files = 1
@@ -539,7 +561,7 @@ print("Interactive migration test")
             mock_complexity.total_lines = 4
             mock_complexity.complexity_category = "simple"
             mock_result.complexity = mock_complexity
-            
+
             # Mock the dependencies object
             mock_deps = MagicMock()
             mock_deps.package_manager = "pip"
@@ -548,10 +570,10 @@ print("Interactive migration test")
             mock_deps.has_loguru = False
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
-            
+
             # Mock logging patterns
             mock_result.logging_patterns = []
-            
+
             # Mock recommendation
             mock_rec = MagicMock()
             mock_rec.strategy = "print-to-structlog"
@@ -561,10 +583,10 @@ print("Interactive migration test")
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
             mock_result.recommendation = mock_rec
-            
+
             # Mock warnings
             mock_result.warnings = []
-            
+
             mock_analyzer.return_value = mock_result
 
             result = self.runner.invoke(
@@ -583,11 +605,15 @@ import logging
 logging.info("Test message")
 """)
 
-        with patch("nicestlog.project_analyzer.analyze_project_for_agents") as mock_analyzer:
+        with patch(
+            "nicestlog.project_analyzer.analyze_project_for_agents"
+        ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = '{"recommendations": ["Convert logging to structlog"]}'
-            
+            mock_result.to_json.return_value = (
+                '{"recommendations": ["Convert logging to structlog"]}'
+            )
+
             # Mock the complexity object
             mock_complexity = MagicMock()
             mock_complexity.total_files = 1
@@ -595,7 +621,7 @@ logging.info("Test message")
             mock_complexity.total_lines = 4
             mock_complexity.complexity_category = "simple"
             mock_result.complexity = mock_complexity
-            
+
             # Mock the dependencies object
             mock_deps = MagicMock()
             mock_deps.package_manager = "pip"
@@ -604,10 +630,10 @@ logging.info("Test message")
             mock_deps.has_loguru = False
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
-            
+
             # Mock logging patterns
             mock_result.logging_patterns = []
-            
+
             # Mock recommendation
             mock_rec = MagicMock()
             mock_rec.strategy = "logging-to-structlog"
@@ -617,10 +643,10 @@ logging.info("Test message")
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert logging calls", "Add structlog imports"]
             mock_result.recommendation = mock_rec
-            
+
             # Mock warnings
             mock_result.warnings = []
-            
+
             mock_analyzer.return_value = mock_result
 
             result = self.runner.invoke(
