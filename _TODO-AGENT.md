@@ -41,50 +41,50 @@ Prioritized work items (with checkboxes)
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Move review command to tools_app
-     - [ ] Update command registration
-     - [ ] Test the new command path
-     - [ ] Commit with message: "feat: move review command to tools subgroup"
+     - [x] Move review command to tools_app
+     - [x] Update command registration
+     - [x] Test the new command path
+     - [x] Commit with message: "feat: move review command to tools subgroup"
 
 3) Move journal command to tools
    - Context: Journal viewer is a specialized systemd tool
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Move journal command to tools_app
-     - [ ] Update command registration
-     - [ ] Test the new command path
-     - [ ] Commit with message: "feat: move journal command to tools subgroup"
+     - [x] Move journal command to tools_app
+     - [x] Update command registration
+     - [x] Test the new command path
+     - [x] Commit with message: "feat: move journal command to tools subgroup"
 
 4) Move dashboard command to tools (if Flask available)
    - Context: Dashboard is a specialized web tool
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Move dashboard command to tools_app
-     - [ ] Update Flask availability check for tools context
-     - [ ] Test the new command path
-     - [ ] Commit with message: "feat: move dashboard command to tools subgroup"
+     - [x] Move dashboard command to tools_app
+     - [x] Update Flask availability check for tools context
+     - [x] Test the new command path
+     - [x] Commit with message: "feat: move dashboard command to tools subgroup"
 
 5) Move demo command to tools
    - Context: Demo is a utility/educational tool
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Move demo command to tools_app
-     - [ ] Update command registration
-     - [ ] Test the new command path
-     - [ ] Commit with message: "feat: move demo command to tools subgroup"
+     - [x] Move demo command to tools_app
+     - [x] Update command registration
+     - [x] Test the new command path
+     - [x] Commit with message: "feat: move demo command to tools subgroup"
 
 6) Move i18n subgroup to tools
    - Context: i18n is a specialized development tool
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Move i18n_app to be under tools_app
-     - [ ] Update nested subgroup structure
-     - [ ] Test the new command path: tools i18n check
-     - [ ] Commit with message: "feat: move i18n commands to tools subgroup"
+     - [x] Move i18n_app to be under tools_app
+     - [x] Update nested subgroup structure
+     - [x] Test the new command path: tools i18n check
+     - [x] Commit with message: "feat: move i18n commands to tools subgroup"
 
 7) Update tests and documentation
    - Context: All references need to be updated to new command paths
