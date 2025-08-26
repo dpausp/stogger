@@ -1253,9 +1253,20 @@ def run_linter(
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
     """Run the web dashboard."""
-    from .web_dashboard import run_dashboard
-
-    run_dashboard(host=host, port=port, debug=debug)
+    try:
+        from .web_dashboard import run_dashboard
+        run_dashboard(host=host, port=port, debug=debug)
+    except ImportError as e:
+        import typer
+        typer.echo(
+            "❌ Flask is not installed. The web dashboard requires Flask.\n"
+            "Install it with:\n"
+            "  pip install 'nicestlog[web]'\n"
+            "or\n"
+            "  pip install flask>=3.0.3",
+            err=True
+        )
+        raise typer.Exit(1)
 
 
 def run_journal_viewer(

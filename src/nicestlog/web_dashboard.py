@@ -8,9 +8,18 @@ import queue
 import threading
 import time
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
-from flask import Flask, render_template_string, request
+try:
+    from flask import Flask, render_template_string, request
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+    # Create dummy classes for type hints when Flask is not available
+    Flask = None
+    render_template_string = None
+    request = None
+
 import structlog
 
 # Simple in-memory log storage
@@ -294,6 +303,10 @@ LOG_ENTRY_TEMPLATE = """
 
 def create_dashboard_app():
     """Create the Flask dashboard app."""
+    if not FLASK_AVAILABLE:
+        raise ImportError(
+            "Flask is not installed. Install it with: pip install 'nicestlog[web]' or pip install flask>=3.0.3"
+        )
     app = Flask(__name__)
 
     @app.route("/")
@@ -411,6 +424,14 @@ def setup_web_logging():
 
 def run_dashboard(host="127.0.0.1", port=8080, debug=False):
     """Run the web dashboard."""
+    if not FLASK_AVAILABLE:
+        raise ImportError(
+            "Flask is not installed. To use the web dashboard, install it with:\n"
+            "  pip install 'nicestlog[web]'\n"
+            "or\n"
+            "  pip install flask>=3.0.3"
+        )
+    
     print(f"🚀 Starting Nicestlog Dashboard on http://{host}:{port}")
     print("📊 View your logs in real-time with style!")
 
