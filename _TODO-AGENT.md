@@ -1,21 +1,21 @@
-# Unified AST Analysis Output Integration
+# Fix CLI Test Failures
 
 Task goal
-- Merge the two separate tables from `nicestlog check` with AST analysis into one unified table
-- Integrate AST analysis insights directly into the main metrics table and suggestions
-- Remove the second table that is currently not helpful
-- Create a single, comprehensive output that combines basic metrics with AST findings
+- Fix 40 failing tests that expect old CLI command structure
+- Update tests to use correct command paths (e.g., `tools dashboard` instead of `dashboard`)
+- Ensure all CLI commands work correctly with their current structure
+- Restore test suite to passing state
 
 Success criteria
-- Only one table showing combined metrics (basic + AST analysis)
-- AST insights flow into the main suggestions section above the table
-- Better user experience with clearer, more actionable output
-- No loss of useful information from current AST analysis
+- All tests pass (347 tests, 0 failures)
+- CLI commands work correctly with current structure
+- Tests use proper command paths (tools subcommands)
+- No regression in CLI functionality
 
 Out-of-scope for this task
-- Changing the underlying AST analysis logic
-- Modifying the core analysis algorithms
-- Adding new AST patterns or transformations
+- Changing CLI command structure or organization
+- Adding new CLI commands or features
+- Modifying command functionality
 - Performance optimizations
 
 General approach (guardrails)
@@ -27,47 +27,47 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze current table structure
-   - Context: Understand the current two-table output and identify what's useful vs redundant
+1) Analyze failing tests and CLI structure
+   - Context: Understand which tests are failing and why (command structure mismatch)
    - Files to check/modify:
-     - src/nicestlog/cli.py (check command and display functions)
-     - src/nicestlog/advanced_assistant.py (AST analysis results)
+     - tests/test_cli.py (main CLI tests)
+     - tests/test_cli_integration.py (integration tests)
+     - tests/test_cli_more_demos.py (demo tests)
    - Steps:
-     - [x] Run check command on various files to see current output
-     - [x] Identify the two tables and their content
-     - [x] Determine which information is valuable and which is redundant
-     - [x] Map out the desired unified structure
-     - [x] Commit with message: "docs: analyze current AST table output structure"
+     - [x] Run pytest to identify failing tests
+     - [x] Identify that commands moved under 'tools' subcommand
+     - [x] Understand current CLI structure vs test expectations
+     - [ ] Commit with message: "docs: analyze CLI test failures and command structure"
 
-2) Design unified table structure
-   - Context: Create a single table that combines the best of both current tables
+2) Fix main CLI tests (test_cli.py)
+   - Context: Update tests to use correct command paths
    - Files to check/modify:
-     - src/nicestlog/cli.py (_display_check_analysis_result function)
+     - tests/test_cli.py (dashboard, journal, review command tests)
    - Steps:
-     - [x] Design new unified table schema
-     - [x] Plan how AST insights integrate into suggestions section
-     - [x] Ensure all useful information is preserved
-     - [x] Create mockup of desired output format
-     - [x] Commit with message: "design: unified AST analysis table structure"
+     - [ ] Update dashboard tests to use "tools dashboard"
+     - [ ] Update journal tests to use "tools journal" 
+     - [ ] Update review tests to use "tools review"
+     - [ ] Fix help command test expectations
+     - [ ] Commit with message: "fix: update CLI tests for tools subcommand structure"
 
-3) Implement unified table display
-   - Context: Modify the display functions to show single unified table
+3) Fix integration tests
+   - Context: Update integration tests for correct command structure
    - Files to check/modify:
-     - src/nicestlog/cli.py (_display_check_analysis_result, _display_check_directory_analysis)
+     - tests/test_cli_integration.py
+     - tests/test_cli_ast_integration.py
    - Steps:
-     - [x] Modify _display_check_analysis_result to show unified table
-     - [x] Update _display_check_directory_analysis for consistency
-     - [x] Integrate AST insights into suggestions section
-     - [x] Remove redundant second table
-     - [x] Commit with message: "feat: unified AST analysis table display"
+     - [ ] Update all integration tests to use correct command paths
+     - [ ] Fix AST integration tests
+     - [ ] Update i18n check tests
+     - [ ] Commit with message: "fix: update integration tests for tools subcommand"
 
-4) Test and validate changes
-   - Context: Ensure the new output is better and contains all necessary information
+4) Fix remaining test failures
+   - Context: Address any remaining test issues
    - Files to check/modify:
-     - Test with various Python files
+     - tests/test_cli_more_demos.py
+     - tests/test_advanced_assistant.py
    - Steps:
-     - [x] Test on files with different complexity levels
-     - [x] Test on files with and without logging issues
-     - [x] Validate that all useful information is still present
-     - [x] Ensure suggestions are actionable and clear
-     - [x] Commit with message: "test: validate unified AST analysis output"
+     - [ ] Fix demo command tests
+     - [ ] Fix advanced assistant AST analysis test
+     - [ ] Run full test suite to verify all fixes
+     - [ ] Commit with message: "fix: resolve remaining CLI test failures"
