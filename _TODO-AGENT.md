@@ -59,7 +59,7 @@ Prioritized work items (with checkboxes)
      - [x] Update _display_check_directory_analysis for consistency
      - [x] Integrate AST insights into suggestions section
      - [x] Remove redundant second table
-     - [ ] Commit with message: "feat: unified AST analysis table display"
+     - [x] Commit with message: "feat: unified AST analysis table display"
 
 4) Test and validate changes
    - Context: Ensure the new output is better and contains all necessary information
