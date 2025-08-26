@@ -31,10 +31,10 @@ Prioritized work items (with checkboxes)
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] List all current top-level commands
-     - [ ] Identify core vs specialized commands
-     - [ ] Plan the new structure
-     - [ ] Commit with message: "docs: analyze current CLI command structure"
+     - [x] List all current top-level commands
+     - [x] Identify core vs specialized commands
+     - [x] Plan the new structure
+     - [x] Commit with message: "docs: analyze current CLI command structure"
 
 2) Move review command to tools
    - Context: Review is a specialized analysis tool
