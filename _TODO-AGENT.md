@@ -1,31 +1,21 @@
-# ✅ COMPLETED: Move Specialized Commands to Tools Subgroup
+# Fix AST Integration Issues in Check Command
 
 Task goal
-- Move `review`, `journal`, `dashboard`, `demo`, `i18n` commands to `tools` subgroup
-- Clean up main CLI interface to focus on core functionality (check, fix, migrate)
-- Maintain backward compatibility where possible
-- Improve CLI organization and discoverability
+- Fix the broken AST integration in the check command that's analyzing irrelevant code and flagging normal functions
+- Implement proper gitignore respect for AST analysis
+- Improve AST output to be more focused on logging-related issues
+- Remove irrelevant complexity checks that flag normal functions like `init` with 6 parameters
 
 Success criteria
-- ✅ Commands moved to tools subgroup: `tools review`, `tools journal`, etc.
-- ✅ Main CLI shows only core commands: check, fix, migrate, init, docs
-- ✅ All existing functionality preserved
-- ✅ Tests updated to reflect new command structure
-- ✅ Documentation updated with new command paths
-
-## 🎉 TASK COMPLETED SUCCESSFULLY!
-
-All objectives have been achieved:
-- CLI reorganized with clean 5 core commands + tools subgroup
-- All specialized commands moved to tools: review, journal, dashboard, demo, i18n
-- Flask dashboard properly handles optional dependency
-- All commands tested and working in new structure
-- Clean commits with proper messages
+- AST analysis only analyzes project files (respects .gitignore)
+- AST analysis focuses on logging-related patterns, not general code complexity
+- Clean, organized output that's actually useful for logging improvements
+- No false positives about function parameter counts for non-logging functions
 
 Out-of-scope for this task
-- Changing the underlying functionality of moved commands
-- Removing any features
-- Breaking existing scripts (provide deprecation warnings if needed)
+- Rewriting the entire AST system
+- Changing the core AdvancedAssistant functionality beyond filtering
+- Adding new AST patterns (focus on fixing existing integration)
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -35,76 +25,61 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze current command structure
-   - Context: Understand current CLI layout and identify commands to move
+1) Investigate current AST integration issues
+   - Context: Understand why AST is analyzing irrelevant code and flagging normal functions
+   - Files to check/modify:
+     - src/nicestlog/cli.py (check command)
+     - src/nicestlog/advanced_assistant.py
+     - src/nicestlog/linter.py
+   - Steps:
+     - [x] Create test file to reproduce issues
+     - [x] Run check --ast to see current behavior
+     - [x] Analyze why it's flagging init function with 6 parameters
+     - [x] Check if gitignore is being respected
+     - [ ] Commit with message: "docs: analyze AST integration issues in check command"
+
+2) Fix gitignore respect in AST analysis
+   - Context: AST should not analyze files that are in .gitignore
+   - Files to check/modify:
+     - src/nicestlog/cli.py
+     - src/nicestlog/advanced_assistant.py
+   - Steps:
+     - [ ] Add gitignore parsing functionality
+     - [ ] Filter files before AST analysis
+     - [ ] Test with common gitignore patterns
+     - [ ] Commit with message: "feat: respect .gitignore in AST analysis"
+
+3) Focus AST patterns on logging-related issues
+   - Context: Remove irrelevant complexity checks, focus on logging quality
+   - Files to check/modify:
+     - src/nicestlog/advanced_assistant.py
+     - src/nicestlog/cli.py
+   - Steps:
+     - [ ] Disable general complexity patterns for check command
+     - [ ] Enable only logging-related patterns
+     - [ ] Update pattern filtering logic
+     - [ ] Test with logging-focused analysis
+     - [ ] Commit with message: "feat: focus AST analysis on logging patterns in check command"
+
+4) Improve AST output formatting and organization
+   - Context: Make output more useful and less cluttered
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [x] List all current top-level commands
-     - [x] Identify core vs specialized commands
-     - [x] Plan the new structure
-     - [x] Commit with message: "docs: analyze current CLI command structure"
+     - [ ] Improve issue categorization (logging vs general)
+     - [ ] Add better descriptions for logging-specific issues
+     - [ ] Clean up output formatting
+     - [ ] Add summary of logging improvements suggested
+     - [ ] Commit with message: "feat: improve AST analysis output for logging focus"
 
-2) Move review command to tools
-   - Context: Review is a specialized analysis tool
+5) Add configuration for AST analysis scope
+   - Context: Allow users to control what AST analyzes
    - Files to check/modify:
+     - src/nicestlog/config.py
      - src/nicestlog/cli.py
    - Steps:
-     - [x] Move review command to tools_app
-     - [x] Update command registration
-     - [x] Test the new command path
-     - [x] Commit with message: "feat: move review command to tools subgroup"
-
-3) Move journal command to tools
-   - Context: Journal viewer is a specialized systemd tool
-   - Files to check/modify:
-     - src/nicestlog/cli.py
-   - Steps:
-     - [x] Move journal command to tools_app
-     - [x] Update command registration
-     - [x] Test the new command path
-     - [x] Commit with message: "feat: move journal command to tools subgroup"
-
-4) Move dashboard command to tools (if Flask available)
-   - Context: Dashboard is a specialized web tool
-   - Files to check/modify:
-     - src/nicestlog/cli.py
-   - Steps:
-     - [x] Move dashboard command to tools_app
-     - [x] Update Flask availability check for tools context
-     - [x] Test the new command path
-     - [x] Commit with message: "feat: move dashboard command to tools subgroup"
-
-5) Move demo command to tools
-   - Context: Demo is a utility/educational tool
-   - Files to check/modify:
-     - src/nicestlog/cli.py
-   - Steps:
-     - [x] Move demo command to tools_app
-     - [x] Update command registration
-     - [x] Test the new command path
-     - [x] Commit with message: "feat: move demo command to tools subgroup"
-
-6) Move i18n subgroup to tools
-   - Context: i18n is a specialized development tool
-   - Files to check/modify:
-     - src/nicestlog/cli.py
-   - Steps:
-     - [x] Move i18n_app to be under tools_app
-     - [x] Update nested subgroup structure
-     - [x] Test the new command path: tools i18n check
-     - [x] Commit with message: "feat: move i18n commands to tools subgroup"
-
-7) Update tests and documentation
-   - Context: All references need to be updated to new command paths
-   - Files to check/modify:
-     - tests/test_cli.py
-     - tests/test_cli_integration.py
-     - docs/ files
-     - README.md
-   - Steps:
-     - [x] Update all test command invocations (will be done in separate task)
-     - [x] Update documentation examples (will be done in separate task)  
-     - [x] Add migration notes for users (will be done in separate task)
-     - [x] Test all new command paths (all working)
-     - [x] Commit with message: "docs: update for reorganized CLI command structure"
+     - [ ] Add AST configuration options
+     - [ ] Allow disabling specific pattern categories
+     - [ ] Add logging-only mode
+     - [ ] Update documentation
+     - [ ] Commit with message: "feat: add configuration for AST analysis scope"
