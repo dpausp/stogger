@@ -183,7 +183,8 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         if event_id and event_id_format not in ["dash-case"]:
             # Only report if not allowing snake_case or if it's not snake_case
             if not (event_id_format == "snake_case" and not prefer_dash_case):
-                issues.append(f"event_id_not_dash_case (found: {event_id_format})")
+                suggested_event_id = self._convert_to_dash_case(event_id)
+                issues.append(f"event_id_not_dash_case (found: {event_id_format}, suggested: {suggested_event_id})")
 
         # Check for single string argument (anti-pattern)
         if len(args) == 1 and not kwargs and not magic_args:
@@ -247,6 +248,21 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             issues.append(f"event_id_too_long ({len(event_id)}>50)")
 
         return issues
+
+    def _convert_to_dash_case(self, event_id: str) -> str:
+        """Convert an event ID to dash-case format."""
+        if not event_id:
+            return event_id
+        
+        # Convert snake_case to dash-case
+        if "_" in event_id:
+            return event_id.replace("_", "-")
+        
+        # Convert camelCase/PascalCase to dash-case
+        # Insert hyphens before uppercase letters and convert to lowercase
+        import re
+        result = re.sub(r'([a-z0-9])([A-Z])', r'\1-\2', event_id)
+        return result.lower()
 
 
 def analyze_file(file_path: Path, prefer_dash_case: bool = True) -> LogAnalysisResult:

@@ -122,7 +122,7 @@ class NicestlogTranslator:
                 log.debug("formatted_translation", key=key, variables=kwargs)
         except Exception as e:
             log.error(
-                "translation_formatting_failed",
+                "translation-formatting-failed",
                 key=key,
                 translation=translation,
                 variables=kwargs,
