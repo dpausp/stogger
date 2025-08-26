@@ -383,8 +383,8 @@ def check(
     dry_run: Annotated[
         bool, typer.Option("--dry-run", help="Show what would be fixed")
     ] = False,
-    ast_analysis: Annotated[
-        bool, typer.Option("--ast", help="Enable AST-based analysis")
+    no_ast: Annotated[
+        bool, typer.Option("--no-ast", help="Disable AST-based analysis")
     ] = False,
     complexity: Annotated[
         bool, typer.Option("--complexity", help="Check code complexity")
@@ -397,12 +397,12 @@ def check(
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
     ] = False,
 ):
-    """🔍 Check code for logging best practices with optional AST analysis.
+    """🔍 Check code for logging best practices with AST analysis by default.
 
     Examples:
-      nicestlog check file.py                    # Basic linting
-      nicestlog check file.py --ast              # With AST analysis
-      nicestlog check file.py --fix --ast        # Fix with AST transforms
+      nicestlog check file.py                    # Basic linting + AST analysis
+      nicestlog check file.py --no-ast           # Basic linting only
+      nicestlog check file.py --fix              # Fix with AST transforms
       nicestlog check file.py --interactive      # Interactive mode
       nicestlog check file.py --complexity       # Complexity analysis
     """
@@ -423,7 +423,7 @@ def check(
         else:
             mode_info.append("🔧 Auto-fixing")
 
-    if ast_analysis:
+    if not no_ast:
         mode_info.append("🔬 AST analysis")
     if complexity:
         mode_info.append("📊 Complexity check")
@@ -435,9 +435,9 @@ def check(
     console.print("\n📋 [bold blue]Running basic linting...[/bold blue]")
     basic_success = lint_directory(path_obj)
 
-    # 2. AST Analysis (if requested)
+    # 2. AST Analysis (enabled by default, disabled with --no-ast)
     ast_issues = None
-    if ast_analysis or interactive or patterns or complexity:
+    if not no_ast or interactive or patterns or complexity:
         console.print("\n🔬 [bold blue]Running AST analysis...[/bold blue]")
 
         assistant = AdvancedAssistant(verbose=verbose)
@@ -502,7 +502,7 @@ def check(
                     transformer.transform_file_interactive(py_file)
 
     # 4. AST-based Fixes
-    elif fix and ast_analysis and ast_issues:
+    elif fix and not no_ast and ast_issues:
         console.print("\n🔧 [bold green]Applying AST-based fixes...[/bold green]")
         assistant = AdvancedAssistant(verbose=verbose)
 

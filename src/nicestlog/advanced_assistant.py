@@ -282,7 +282,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             )
 
     def _analyze_function(self, node: ast.FunctionDef) -> None:
-        """Analyze function definitions."""
+        """Analyze function definitions - focus only on logging-related functions."""
         arg_count = len(node.args.args)
         has_docstring = (
             node.body
@@ -291,31 +291,52 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             and isinstance(node.body[0].value.value, str)
         )
 
+        # Check if this function contains logging calls
+        has_logging_calls = self._function_has_logging_calls(node)
+
         log.debug(
             "function-analyzed",
-            _replace_msg="🔧 Function '{name}' analyzed: {arg_count} args, docstring: {has_docstring}",
+            _replace_msg="🔧 Function '{name}' analyzed: {arg_count} args, docstring: {has_docstring}, logging: {has_logging}",
             name=node.name,
             arg_count=arg_count,
             has_docstring=has_docstring,
+            has_logging=has_logging_calls,
             line_number=node.lineno,
         )
 
-        # Check for potential issues - but be more lenient for common patterns
-        # Only flag functions with excessive parameters (8+) and avoid common patterns
-        if arg_count > 7 and not self._is_common_function_pattern(node.name):
-            issue = f"Function '{node.name}' has many parameters ({arg_count})"
+        # Only analyze parameter count for logging-related functions
+        # Skip general function complexity analysis for non-logging functions
+        if has_logging_calls and arg_count > 7 and not self._is_common_function_pattern(node.name):
+            issue = f"Logging function '{node.name}' has many parameters ({arg_count}) - consider reducing complexity"
             self.potential_issues.append(issue)
             log.warning(
-                "function-too-many-params",
+                "logging-function-too-many-params",
                 _replace_msg="⚠️ {issue}",
                 issue=issue,
                 function_name=node.name,
                 param_count=arg_count,
             )
 
-        if not has_docstring:
-            suggestion = f"Add docstring to function '{node.name}'"
+        # Only suggest docstrings for logging-related functions
+        if has_logging_calls and not has_docstring:
+            suggestion = f"Add docstring to logging function '{node.name}'"
             self.transformation_suggestions.append(suggestion)
+
+    def _function_has_logging_calls(self, node: ast.FunctionDef) -> bool:
+        """Check if a function contains logging calls (log.info, log.error, etc.)."""
+        for child in ast.walk(node):
+            if isinstance(child, ast.Call):
+                # Check for log.method() calls
+                if isinstance(child.func, ast.Attribute):
+                    if (isinstance(child.func.value, ast.Name) and 
+                        child.func.value.id in ['log', 'logger', 'logging'] and
+                        child.func.attr in ['debug', 'info', 'warning', 'error', 'exception', 'critical']):
+                        return True
+                # Check for logging.method() calls
+                elif isinstance(child.func, ast.Name):
+                    if child.func.id in ['print']:  # Also consider print statements as logging-related
+                        return True
+        return False
 
     def _analyze_class(self, node: ast.ClassDef) -> None:
         """Analyze class definitions."""

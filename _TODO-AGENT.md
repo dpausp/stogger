@@ -1,21 +1,23 @@
-# Fix AST Integration Issues in Check Command
+# Fix Log Statement Analysis in AST Integration
 
 Task goal
-- Fix the broken AST integration in the check command that's analyzing irrelevant code and flagging normal functions
-- Implement proper gitignore respect for AST analysis
-- Improve AST output to be more focused on logging-related issues
-- Remove irrelevant complexity checks that flag normal functions like `init` with 6 parameters
+- Focus AST analysis exclusively on log statements (Log, Error, Info, Logger calls)
+- Fix event ID case recommendations to use kebab-case or KeepUpCase (never underscore)
+- Integrate --ast into check command by default with --no-ast option
+- Combine fixers to provide comprehensive suggestions (log level + event ID case together)
+- Remove irrelevant function parameter analysis that's not related to logging
 
 Success criteria
-- AST analysis only analyzes project files (respects .gitignore)
-- AST analysis focuses on logging-related patterns, not general code complexity
-- Clean, organized output that's actually useful for logging improvements
-- No false positives about function parameter counts for non-logging functions
+- AST analysis only analyzes actual log statements, not general functions
+- Event ID case recommendations are correct (kebab-case/KeepUpCase, no underscores)
+- check command runs AST analysis by default, --no-ast to disable
+- Combined suggestions when multiple issues exist (e.g., wrong level + wrong case)
+- No false positives about non-logging function parameters
 
 Out-of-scope for this task
-- Rewriting the entire AST system
-- Changing the core AdvancedAssistant functionality beyond filtering
-- Adding new AST patterns (focus on fixing existing integration)
+- General code complexity analysis
+- Non-logging function parameter checking
+- Rewriting the entire AST system architecture
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -25,61 +27,61 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Investigate current AST integration issues
-   - Context: Understand why AST is analyzing irrelevant code and flagging normal functions
+1) Analyze current AST check output and identify issues
+   - Context: Understand what's currently being flagged incorrectly
    - Files to check/modify:
      - src/nicestlog/cli.py (check command)
      - src/nicestlog/advanced_assistant.py
-     - src/nicestlog/linter.py
+     - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [x] Create test file to reproduce issues
-     - [x] Run check --ast to see current behavior
-     - [x] Analyze why it's flagging init function with 6 parameters
-     - [x] Check if gitignore is being respected
-     - [x] Commit with message: "docs: analyze AST integration issues in check command"
+     - [x] Run `uv run python -m nicestlog check --ast` to see current output
+     - [x] Identify non-logging issues being flagged
+     - [x] Check event ID case recommendation logic
+     - [x] Commit with message: "docs: analyze current AST check issues"
 
-2) Fix gitignore respect in AST analysis
-   - Context: AST should not analyze files that are in .gitignore
-   - Files to check/modify:
-     - src/nicestlog/cli.py
-     - src/nicestlog/advanced_assistant.py
-   - Steps:
-     - [x] Add gitignore parsing functionality
-     - [x] Filter files before AST analysis
-     - [x] Test with common gitignore patterns
-     - [x] Commit with message: "feat: respect .gitignore in AST analysis"
-
-3) Focus AST patterns on logging-related issues
-   - Context: Remove irrelevant complexity checks, focus on logging quality
+2) Focus AST analysis on log statements only
+   - Context: Remove analysis of non-logging functions and focus on logger calls
    - Files to check/modify:
      - src/nicestlog/advanced_assistant.py
-     - src/nicestlog/cli.py
+     - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [x] Disable general complexity patterns for check command
-     - [x] Enable only logging-related patterns
-     - [x] Update pattern filtering logic
-     - [x] Test with logging-focused analysis
-     - [x] Commit with message: "feat: focus AST analysis on logging patterns in check command"
+     - [ ] Identify log statement detection logic
+     - [ ] Filter out non-logging function analysis
+     - [ ] Ensure only Log, Error, Info, Logger calls are analyzed
+     - [ ] Test with sample code containing both logging and non-logging functions
+     - [ ] Commit with message: "feat: focus AST analysis on log statements only"
 
-4) Improve AST output formatting and organization
-   - Context: Make output more useful and less cluttered
+3) Fix event ID case recommendations
+   - Context: Ensure recommendations use kebab-case or KeepUpCase, never underscores
+   - Files to check/modify:
+     - src/nicestlog/advanced_assistant.py
+     - src/nicestlog/log_statement_analyzer.py
+   - Steps:
+     - [ ] Find event ID case checking logic
+     - [ ] Fix recommendations to suggest kebab-case/KeepUpCase
+     - [ ] Remove underscore suggestions
+     - [ ] Test with various event ID formats
+     - [ ] Commit with message: "fix: correct event ID case recommendations"
+
+4) Integrate AST into check command by default
+   - Context: Make --ast the default behavior with --no-ast option to disable
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [x] Improve issue categorization (logging vs general)
-     - [x] Add better descriptions for logging-specific issues
-     - [x] Clean up output formatting
-     - [x] Add summary of logging improvements suggested
-     - [x] Commit with message: "feat: improve AST analysis output for logging focus"
+     - [ ] Change check command to run AST by default
+     - [ ] Add --no-ast boolean flag to disable
+     - [ ] Update help text and documentation
+     - [ ] Test both modes work correctly
+     - [ ] Commit with message: "feat: integrate AST analysis into check command by default"
 
-5) Add configuration for AST analysis scope
-   - Context: Allow users to control what AST analyzes
+5) Combine fixers for comprehensive suggestions
+   - Context: When multiple issues exist, provide combined fix suggestions
    - Files to check/modify:
-     - src/nicestlog/config.py
-     - src/nicestlog/cli.py
+     - src/nicestlog/advanced_assistant.py
+     - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [x] Add AST configuration options
-     - [x] Allow disabling specific pattern categories
-     - [x] Add logging-only mode
-     - [ ] Update documentation
-     - [x] Commit with message: "feat: add configuration for AST analysis scope"
+     - [ ] Identify how suggestions are generated
+     - [ ] Combine multiple fixes into single comprehensive suggestion
+     - [ ] Test with log statements having multiple issues
+     - [ ] Ensure final suggestion has correct level + correct case
+     - [ ] Commit with message: "feat: combine multiple fixes into comprehensive suggestions"
