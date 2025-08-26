@@ -66,10 +66,10 @@ Prioritized work items (with checkboxes)
    - Files to check/modify:
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Improve issue categorization (logging vs general)
-     - [ ] Add better descriptions for logging-specific issues
-     - [ ] Clean up output formatting
-     - [ ] Add summary of logging improvements suggested
+     - [x] Improve issue categorization (logging vs general)
+     - [x] Add better descriptions for logging-specific issues
+     - [x] Clean up output formatting
+     - [x] Add summary of logging improvements suggested
      - [ ] Commit with message: "feat: improve AST analysis output for logging focus"
 
 5) Add configuration for AST analysis scope
@@ -78,8 +78,8 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/config.py
      - src/nicestlog/cli.py
    - Steps:
-     - [ ] Add AST configuration options
-     - [ ] Allow disabling specific pattern categories
-     - [ ] Add logging-only mode
+     - [x] Add AST configuration options
+     - [x] Allow disabling specific pattern categories
+     - [x] Add logging-only mode
      - [ ] Update documentation
      - [ ] Commit with message: "feat: add configuration for AST analysis scope"

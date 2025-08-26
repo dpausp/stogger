@@ -562,17 +562,44 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
 
     console.print(metrics_table)
 
-    # Issues found
+    # Issues found - categorize by type
     if result.issues:
-        issues_table = Table(title="⚠️ Issues Found")
-        issues_table.add_column("Type", style="red")
-        issues_table.add_column("Line", style="yellow", justify="right")
-        issues_table.add_column("Description", style="white")
-
-        for i, issue in enumerate(result.issues):
-            issues_table.add_row("Issue", str(i + 1), issue)
-
-        console.print(issues_table)
+        # Separate logging issues from general issues
+        logging_issues = []
+        general_issues = []
+        
+        for issue in result.issues:
+            if any(keyword in issue.lower() for keyword in ["print", "log", "logging"]):
+                logging_issues.append(issue)
+            else:
+                general_issues.append(issue)
+        
+        if logging_issues:
+            logging_table = Table(title="🔍 Logging Improvement Opportunities")
+            logging_table.add_column("Priority", style="yellow")
+            logging_table.add_column("Suggestion", style="cyan")
+            
+            for i, issue in enumerate(logging_issues, 1):
+                priority = "High" if "print" in issue.lower() else "Medium"
+                logging_table.add_row(priority, issue)
+            
+            console.print(logging_table)
+        
+        if general_issues:
+            general_table = Table(title="⚠️ Code Quality Issues")
+            general_table.add_column("Type", style="red")
+            general_table.add_column("Description", style="white")
+            
+            for issue in general_issues:
+                general_table.add_row("Complexity", issue)
+            
+            console.print(general_table)
+        
+        # Add summary with actionable suggestions
+        if logging_issues:
+            console.print("\n💡 [bold blue]Logging Improvements:[/bold blue]")
+            console.print("  • Run with --fix to automatically convert print statements")
+            console.print("  • Consider adding structured logging to functions without logs")
     else:
         console.print("✅ [green]No AST issues found![/green]")
 
