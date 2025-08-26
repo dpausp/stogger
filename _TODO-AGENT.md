@@ -33,10 +33,10 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/cli.py (check command and display functions)
      - src/nicestlog/advanced_assistant.py (AST analysis results)
    - Steps:
-     - [ ] Run check command on various files to see current output
-     - [ ] Identify the two tables and their content
-     - [ ] Determine which information is valuable and which is redundant
-     - [ ] Map out the desired unified structure
+     - [x] Run check command on various files to see current output
+     - [x] Identify the two tables and their content
+     - [x] Determine which information is valuable and which is redundant
+     - [x] Map out the desired unified structure
      - [ ] Commit with message: "docs: analyze current AST table output structure"
 
 2) Design unified table structure
