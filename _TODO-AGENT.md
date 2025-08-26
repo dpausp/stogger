@@ -1,19 +1,22 @@
-# Run pytest and fix failing tests
+# Detect Log Wrappers Anti-Pattern
 
 Task goal
-- Execute `uv run pytest` to identify all failing tests
-- Fix all test failures to ensure the test suite passes completely
-- Maintain code quality and test coverage
+- Implement detection of log wrapper anti-patterns in both `check` and `migrate` commands
+- Identify code that unnecessarily wraps logging calls with additional indirection
+- Warn users about these patterns without automatically fixing them
+- Help developers recognize when they're building unnecessary abstractions around logging
 
 Success criteria
-- All tests pass when running `uv run pytest`
-- No breaking changes to existing functionality
-- All fixes follow project conventions and best practices
+- `check` command detects and reports log wrapper patterns
+- `migrate` command warns about log wrappers during migration analysis
+- Clear warning messages that explain why log wrappers are problematic
+- No automatic fixes - just detection and warnings
 
 Out-of-scope for this task
-- Adding new features or functionality
-- Refactoring unrelated code
+- Automatically fixing or migrating log wrapper patterns
+- Complex static analysis beyond basic pattern recognition
 - Performance optimizations
+- Adding new CLI commands
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -23,38 +26,56 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Run pytest and analyze failures (COMPLETED)
-   - Context: Need to identify what tests are failing and why
+1) Analyze existing codebase for log wrapper detection patterns
+   - Context: Need to understand current architecture and where to add detection
    - Files to check/modify:
-     - tests/ directory (various test files)
-     - src/nicestlog/ (source files that may need fixes)
+     - src/nicestlog/linter.py (likely place for check command logic)
+     - src/nicestlog/cli.py (check and migrate commands)
+     - src/nicestlog/project_analyzer.py (migration analysis)
    - Steps:
-     - [x] Run `uv run pytest` to see current test status
-     - [x] Analyze failure output and categorize issues
-     - [x] Identify root causes of failures
-     - [x] All tests now pass (346 passed)
+     - [ ] Examine current linter and analyzer architecture
+     - [ ] Identify common log wrapper patterns to detect
+     - [ ] Research AST patterns for wrapper detection
 
-2) Fix linting errors (COMPLETED)
-   - Context: Pre-commit and dodo linting errors found
-   - Files to check/modify: 
-     - [x] src/nicestlog/__init__.py (module level imports)
-     - [x] src/nicestlog/cli.py (unused variable)
-   - Steps:
-     - [x] Move imports to top of file in __init__.py
-     - [x] Remove unused `runner` variable in cli.py
-     - [x] Verify pre-commit passes
-     - [x] Commit with message: "fix: resolve linting errors"
-
-3) Address type checking errors (COMPLETED)
-   - Context: MyPy found 48 type errors in 4 files
+2) Define log wrapper patterns to detect
+   - Context: Need clear criteria for what constitutes a problematic log wrapper
    - Files to check/modify:
-     - [x] src/nicestlog/cli_output_transformer.py
-     - [x] src/nicestlog/systemd_integration.py  
-     - [x] src/nicestlog/project_analyzer.py
-     - [x] src/nicestlog/cli.py
+     - New pattern definitions (possibly in linter.py or separate module)
    - Steps:
-     - [x] Fix type annotations and assignments
-     - [x] Resolve incompatible return types
-     - [x] Fix attribute access errors
-     - [x] Verify mypy passes
-     - [x] Commit with message: "fix: resolve type checking errors"
+     - [ ] Define AST patterns for function wrappers around logging calls
+     - [ ] Identify indirect logging call patterns
+     - [ ] Create examples of good vs bad logging patterns
+     - [ ] Document detection criteria
+
+3) Implement detection in check command
+   - Context: Add log wrapper detection to existing linting functionality
+   - Files to check/modify:
+     - src/nicestlog/linter.py
+     - tests/test_linter_*.py
+   - Steps:
+     - [ ] Add log wrapper detection logic to linter
+     - [ ] Create appropriate warning messages
+     - [ ] Write tests for wrapper detection
+     - [ ] Commit with message: "feat: add log wrapper detection to check command"
+
+4) Implement detection in migrate command
+   - Context: Warn about log wrappers during migration analysis
+   - Files to check/modify:
+     - src/nicestlog/project_analyzer.py or relevant migration module
+     - tests/test_cli_*.py (migration tests)
+   - Steps:
+     - [ ] Add wrapper detection to migration analysis
+     - [ ] Create migration-specific warning messages
+     - [ ] Write tests for migration wrapper warnings
+     - [ ] Commit with message: "feat: add log wrapper warnings to migrate command"
+
+5) Documentation and examples
+   - Context: Help users understand what log wrappers are and why to avoid them
+   - Files to check/modify:
+     - docs/ files
+     - examples/ (potentially)
+   - Steps:
+     - [ ] Document log wrapper anti-patterns
+     - [ ] Add examples of problematic vs good logging patterns
+     - [ ] Update CLI help text if needed
+     - [ ] Commit with message: "docs: add log wrapper anti-pattern documentation"
