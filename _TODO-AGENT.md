@@ -1,31 +1,23 @@
-# ✅ COMPLETED: Detect Log Wrappers Anti-Pattern
+# Make Flask Web Dashboard Optional
 
 Task goal
-- ✅ Implement detection of log wrapper anti-patterns in both `check` and `migrate` commands
-- ✅ Identify code that unnecessarily wraps logging calls with additional indirection
-- ✅ Warn users about these patterns without automatically fixing them
-- ✅ Help developers recognize when they're building unnecessary abstractions around logging
+- Make Flask and web dashboard functionality optional dependencies
+- Hide the dashboard command since it's not mature and has too many dependencies
+- Reduce the core dependency footprint of nicestlog
+- Keep web dashboard available for users who explicitly want it
 
 Success criteria
-- ✅ `check` command detects and reports log wrapper patterns
-- ✅ `migrate` command warns about log wrappers during migration analysis
-- ✅ Clear warning messages that explain why log wrappers are problematic
-- ✅ No automatic fixes - just detection and warnings
-
-## 🎉 TASK COMPLETED SUCCESSFULLY!
-
-All objectives have been achieved:
-- Log wrapper detection implemented in both check and migrate commands
-- 7 comprehensive tests passing (test_linter_wrapper_detection.py)
-- Documentation added explaining anti-patterns
-- Clean commits with proper messages
-- No breaking changes or dependency issues
+- Flask moved from required to optional dependencies
+- Dashboard command hidden/disabled when Flask not available
+- Core nicestlog functionality works without Flask
+- Clear error messages when trying to use dashboard without Flask
+- No breaking changes for existing users who have Flask installed
 
 Out-of-scope for this task
-- Automatically fixing or migrating log wrapper patterns
-- Complex static analysis beyond basic pattern recognition
+- Removing the web dashboard code entirely
+- Rewriting the dashboard with different technology
+- Adding new dashboard features
 - Performance optimizations
-- Adding new CLI commands
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -35,56 +27,47 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze existing codebase for log wrapper detection patterns
-   - Context: Need to understand current architecture and where to add detection
+1) Move Flask to optional dependencies
+   - Context: Flask is currently required but only needed for web dashboard
    - Files to check/modify:
-     - src/nicestlog/linter.py (likely place for check command logic)
-     - src/nicestlog/cli.py (check and migrate commands)
-     - src/nicestlog/project_analyzer.py (migration analysis)
+     - pyproject.toml
    - Steps:
-     - [x] Examine current linter and analyzer architecture
-     - [x] Identify common log wrapper patterns to detect
-     - [x] Research AST patterns for wrapper detection
+     - [ ] Move flask from dependencies to optional-dependencies
+     - [ ] Create new "web" or "dashboard" optional dependency group
+     - [ ] Update dependency groups if needed
+     - [ ] Commit with message: "feat: make Flask optional dependency for web dashboard"
 
-2) Define log wrapper patterns to detect
-   - Context: Need clear criteria for what constitutes a problematic log wrapper
+2) Add optional import handling for Flask
+   - Context: Need graceful handling when Flask is not installed
    - Files to check/modify:
-     - New pattern definitions (possibly in linter.py or separate module)
+     - src/nicestlog/web_dashboard.py
+     - src/nicestlog/cli.py
    - Steps:
-     - [x] Define AST patterns for function wrappers around logging calls
-     - [x] Identify indirect logging call patterns
-     - [x] Create examples of good vs bad logging patterns
-     - [x] Document detection criteria
+     - [ ] Add try/except for Flask imports in web_dashboard.py
+     - [ ] Add graceful error handling in CLI dashboard command
+     - [ ] Create helpful error messages for missing Flask
+     - [ ] Commit with message: "feat: add graceful handling for missing Flask dependency"
 
-3) Implement detection in check command
-   - Context: Add log wrapper detection to existing linting functionality
+3) Hide dashboard command when Flask unavailable
+   - Context: Dashboard command should be hidden if Flask not installed
    - Files to check/modify:
-     - src/nicestlog/linter.py
-     - tests/test_linter_*.py
+     - src/nicestlog/cli.py
    - Steps:
-     - [x] Add log wrapper detection logic to linter
-     - [x] Create appropriate warning messages
-     - [x] Write tests for wrapper detection
-     - [x] Commit with message: "feat: add log wrapper detection to check command"
+     - [ ] Conditionally register dashboard command based on Flask availability
+     - [ ] Add clear error message if command is called without Flask
+     - [ ] Update CLI help to reflect optional nature
+     - [ ] Commit with message: "feat: hide dashboard command when Flask not available"
 
-4) Implement detection in migrate command
-   - Context: Warn about log wrappers during migration analysis
+4) Update tests and documentation
+   - Context: Tests need to handle optional Flask, docs need updating
    - Files to check/modify:
-     - src/nicestlog/project_analyzer.py or relevant migration module
-     - tests/test_cli_*.py (migration tests)
-   - Steps:
-     - [x] Add wrapper detection to migration analysis
-     - [x] Create migration-specific warning messages
-     - [x] Write tests for migration wrapper warnings
-     - [x] Commit with message: "feat: add log wrapper warnings to migrate command"
-
-5) Documentation and examples
-   - Context: Help users understand what log wrappers are and why to avoid them
-   - Files to check/modify:
+     - tests/test_cli.py
+     - tests/test_cli_integration.py
      - docs/ files
-     - examples/ (potentially)
+     - README.md
    - Steps:
-     - [x] Document log wrapper anti-patterns
-     - [x] Add examples of problematic vs good logging patterns
-     - [x] Update CLI help text if needed
-     - [x] Commit with message: "docs: add log wrapper anti-pattern documentation"
+     - [ ] Add tests for missing Flask scenarios
+     - [ ] Update existing tests to handle optional Flask
+     - [ ] Update documentation about optional web dashboard
+     - [ ] Add installation instructions for web dashboard
+     - [ ] Commit with message: "docs: update for optional Flask web dashboard"
