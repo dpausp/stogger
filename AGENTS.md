@@ -9,7 +9,7 @@ These rules are set by the human maintainer. AI agents must abide all rules here
 3. **No dependency YOLOing** - Never pip install, always use `uv run` prefix for all Python commands. When you see dependency problems, permission denied or shell tools don't work as expected: STOP IMMEDIATELY and ask the user!
 4. **Test- and logging-driven** - always write tests and add structured debug logging when adding/changing code. Run tests with `uv run pytest`.
 5. **no commit without linting** - If linters are broken or missing: stop and ask the user for instructions.
-6. **respect pre-commit** - observe pre-commit checks! Fix lint errors yourself. IMPORTANT: When pre-commit makes fixes, use `git commit --amend --no-edit` to preserve the original commit message unchanged. Pre-commit fixes are just cleanup and should not alter the meaningful commit message. 
+6. **respect pre-commit** - observe pre-commit checks! Fix lint errors yourself. IMPORTANT: When pre-commit makes fixes, preserve the original commit message unchanged. Pre-commit fixes are just cleanup and should not alter the meaningful commit message. 
 7. **English artifacts** - Code, docs, commits must be in English
 
 ## 📋 Quick Checklist 
