@@ -8,7 +8,7 @@ wheels/
 src/nicestlog/_docs
 
 # doit cache
-.doit.db
+.doit.db*
 
 # Virtual environments
 .venv
@@ -18,3 +18,4 @@ src/nicestlog/_docs
 
 # Nix
 result
+
