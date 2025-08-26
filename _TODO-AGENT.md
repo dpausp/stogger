@@ -57,11 +57,11 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/log_statement_analyzer.py
      - src/nicestlog/advanced_assistant.py
    - Steps:
-     - [ ] Apply logger whitelist to filter function calls
-     - [ ] Ignore calls that aren't on identified loggers
-     - [ ] Test with mixed codebase (logging + business logic)
-     - [ ] Ensure no false positives on normal functions
-     - [ ] Commit with message: "feat: filter analysis to log statements only"
+     - [x] Apply logger whitelist to filter function calls
+     - [x] Ignore calls that aren't on identified loggers
+     - [x] Test with mixed codebase (logging + business logic)
+     - [x] Ensure no false positives on normal functions
+     - [x] Commit with message: "feat: filter analysis to log statements only"
 
 4) Test with real-world examples
    - Context: Validierung mit echtem Code der logging + normale Funktionen mischt
