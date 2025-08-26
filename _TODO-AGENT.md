@@ -1,75 +1,73 @@
-# Pure Log Statement Analysis with AST
+# Unified AST Analysis Output Integration
 
 Task goal
-- AST tools sollen NUR Log-Statements analysieren: log.info(), logger.error(), etc.
-- Imports und Type Hints checken um echte Logger zu identifizieren (z.B. structlog.get_logger())
-- Nur die direkten Aufrufe von Logging-Statements zählen und analysieren
-- Keine Funktionsanalyse, keine allgemeine Parameter-Analyse
-- Nur: log.info(blah...) → analysiere die Argumente von diesem Call
+- Merge the two separate tables from `nicestlog check` with AST analysis into one unified table
+- Integrate AST analysis insights directly into the main metrics table and suggestions
+- Remove the second table that is currently not helpful
+- Create a single, comprehensive output that combines basic metrics with AST findings
 
 Success criteria
-- AST erkennt echte Logger durch Import-Analyse (structlog, logging, etc.)
-- Nur tatsächliche Log-Statement-Calls werden analysiert
-- Keine False Positives bei normalen Funktionen
-- Type Hints werden berücksichtigt zur Logger-Erkennung
+- Only one table showing combined metrics (basic + AST analysis)
+- AST insights flow into the main suggestions section above the table
+- Better user experience with clearer, more actionable output
+- No loss of useful information from current AST analysis
 
 Out-of-scope for this task
-- Funktionsanalyse jeder Art
-- Allgemeine Code-Komplexität
-- Parameter-Analyse von Nicht-Logging-Funktionen
-- Architektur-Umschreibung
+- Changing the underlying AST analysis logic
+- Modifying the core analysis algorithms
+- Adding new AST patterns or transformations
+- Performance optimizations
 
 General approach (guardrails)
 - English artifacts (Rule 7)
 - No dependency YOLOing (Rule 3). Use `uv run` for Python commands
 - Lint before committing (Rule 5). Respect pre-commit if present (Rule 6)
 - Only add tests when we change code (Rule 4)
-- **Dogfooding**: Regelmäßig `uv run python -m nicestlog check` auf eigenem Code ausführen um zu validieren dass Änderungen Sinn ergeben
+- **Dogfooding**: Use `uv run python -m nicestlog check` on our own code to validate changes
 
 Prioritized work items (with checkboxes)
 
-1) Understand current AST log detection
-   - Context: Wie erkennt das System aktuell Log-Statements vs normale Funktionen?
+1) Analyze current table structure
+   - Context: Understand the current two-table output and identify what's useful vs redundant
    - Files to check/modify:
-     - src/nicestlog/log_statement_analyzer.py
-     - src/nicestlog/advanced_assistant.py
+     - src/nicestlog/cli.py (check command and display functions)
+     - src/nicestlog/advanced_assistant.py (AST analysis results)
    - Steps:
-     - [x] Analyze current log detection logic
-     - [x] Check how imports are handled (logging, structlog, etc.)
-     - [x] See if type hints are considered
-     - [x] Test current behavior with mixed code (logging + normal functions)
-     - [x] Commit with message: "docs: analyze current log statement detection"
+     - [ ] Run check command on various files to see current output
+     - [ ] Identify the two tables and their content
+     - [ ] Determine which information is valuable and which is redundant
+     - [ ] Map out the desired unified structure
+     - [ ] Commit with message: "docs: analyze current AST table output structure"
 
-2) Improve Logger identification through imports
-   - Context: AST soll imports scannen um echte Logger zu finden
+2) Design unified table structure
+   - Context: Create a single table that combines the best of both current tables
    - Files to check/modify:
-     - src/nicestlog/log_statement_analyzer.py
+     - src/nicestlog/cli.py (_display_check_analysis_result function)
    - Steps:
-     - [x] Add import scanning for logging libraries (logging, structlog, loguru, etc.)
-     - [x] Track logger variable assignments (logger = structlog.get_logger())
-     - [x] Consider type hints for logger identification
-     - [x] Build whitelist of known logging patterns
-     - [x] Commit with message: "feat: improve logger identification through import analysis"
+     - [ ] Design new unified table schema
+     - [ ] Plan how AST insights integrate into suggestions section
+     - [ ] Ensure all useful information is preserved
+     - [ ] Create mockup of desired output format
+     - [ ] Commit with message: "design: unified AST analysis table structure"
 
-3) Filter out non-logging function calls
-   - Context: Nur echte Log-Statements analysieren, alles andere ignorieren
+3) Implement unified table display
+   - Context: Modify the display functions to show single unified table
    - Files to check/modify:
-     - src/nicestlog/log_statement_analyzer.py
-     - src/nicestlog/advanced_assistant.py
+     - src/nicestlog/cli.py (_display_check_analysis_result, _display_check_directory_analysis)
    - Steps:
-     - [x] Apply logger whitelist to filter function calls
-     - [x] Ignore calls that aren't on identified loggers
-     - [x] Test with mixed codebase (logging + business logic)
-     - [x] Ensure no false positives on normal functions
-     - [x] Commit with message: "feat: filter analysis to log statements only"
+     - [ ] Modify _display_check_analysis_result to show unified table
+     - [ ] Update _display_check_directory_analysis for consistency
+     - [ ] Integrate AST insights into suggestions section
+     - [ ] Remove redundant second table
+     - [ ] Commit with message: "feat: unified AST analysis table display"
 
-4) Test with real-world examples
-   - Context: Validierung mit echtem Code der logging + normale Funktionen mischt
+4) Test and validate changes
+   - Context: Ensure the new output is better and contains all necessary information
    - Files to check/modify:
-     - Create test files with mixed content
+     - Test with various Python files
    - Steps:
-     - [x] Create test file with structlog + normal functions
-     - [x] Create test file with stdlib logging + business logic
-     - [x] Run AST analysis and verify only log statements are flagged
-     - [x] Document expected vs actual behavior
-     - [x] Commit with message: "test: validate log-only analysis with mixed code"
+     - [ ] Test on files with different complexity levels
+     - [ ] Test on files with and without logging issues
+     - [ ] Validate that all useful information is still present
+     - [ ] Ensure suggestions are actionable and clear
+     - [ ] Commit with message: "test: validate unified AST analysis output"
