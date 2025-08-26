@@ -69,7 +69,7 @@ class TestInitConfigIntegration:
             original_cwd = os.getcwd()
             try:
                 os.chdir(self.temp_path)
-                result = self.runner.invoke(app, ["tools", "init-config"])
+                result = self.runner.invoke(app, ["init"])
 
                 assert result.exit_code == 0
 

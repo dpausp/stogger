@@ -55,15 +55,6 @@ tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")
 app.add_typer(tools_app, name="tools")
 
 
-# DEPRECATED: Keep old command with deprecation warning
-@tools_app.command("init-config")
-def tools_init_config_deprecated():
-    """🔧 [DEPRECATED] Use 'nicestlog init' instead."""
-    console.print("[yellow]⚠️ DEPRECATED: 'tools init-config' is deprecated.[/yellow]")
-    console.print("[yellow]   Use 'nicestlog init' instead.[/yellow]")
-
-    # Redirect to original function
-    init_config()
 
 
 # Add generate-service command to tools
@@ -81,66 +72,8 @@ def tools_generate_service(
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
 
-# DEPRECATED: Top-level analyze command (use 'migrate' instead)
-@app.command()
-def analyze(
-    path: str = typer.Argument(".", help="Project path to analyze"),
-    output: Optional[str] = typer.Option(
-        None, "--output", "-o", help="Output JSON file"
-    ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
-    json_output: bool = typer.Option(False, "--json", help="JSON output for agents"),
-):
-    """🔍 [DEPRECATED] Use 'nicestlog migrate' instead (analysis is default behavior)."""
-    console.print("[yellow]⚠️ DEPRECATED: 'analyze' command is deprecated.[/yellow]")
-    console.print(
-        "[yellow]   Use 'nicestlog migrate' instead (analysis is default behavior).[/yellow]"
-    )
-
-    # Redirect to migrate command
-    migrate(
-        path=path,
-        do_migrate=False,
-        migration_type="print-to-structlog",
-        json_output=json_output,
-        output=output,
-        verbose=verbose,
-        interactive=False,
-        backup=True,
-        force=False,
-    )
 
 
-# DEPRECATED: Keep old command with deprecation warning
-@tools_app.command("analyze-project")
-def tools_analyze_project_deprecated(
-    path: str = typer.Argument(".", help="Project path to analyze"),
-    output: Optional[str] = typer.Option(
-        None, "--output", "-o", help="Output JSON file"
-    ),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
-    agent_mode: bool = typer.Option(
-        False, "--agent", help="Agent-friendly JSON output"
-    ),
-):
-    """🔍 [DEPRECATED] Use 'nicestlog migrate --json' instead."""
-    console.print(
-        "[yellow]⚠️ DEPRECATED: 'tools analyze-project' is deprecated.[/yellow]"
-    )
-    console.print("[yellow]   Use 'nicestlog migrate --json' instead.[/yellow]")
-
-    # Redirect to migrate command
-    migrate(
-        path=path,
-        do_migrate=False,
-        migration_type="print-to-structlog",
-        json_output=agent_mode,
-        output=output,
-        verbose=verbose,
-        interactive=False,
-        backup=True,
-        force=False,
-    )
 
 
 # Sub-app for i18n related commands
@@ -246,9 +179,6 @@ def i18n_check(
         sys.exit(2)
 
 
-# DEPRECATED: Create AST subcommand group under tools (will be removed)
-ast_app = typer.Typer(help="🔬 [DEPRECATED] Use 'check --ast' and 'fix --ast' instead")
-tools_app.add_typer(ast_app, name="ast")
 
 
 def init_config():
@@ -802,121 +732,12 @@ def fix(
             sys.exit(1)
 
 
-# DEPRECATED AST Commands - redirect to main commands
-@ast_app.command("analyze")
-def ast_analyze_deprecated(
-    path: Path = typer.Argument(..., help="Python file or directory to analyze"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose logging"
-    ),
-    json_output: bool = typer.Option(
-        False, "--json", "-j", help="Output results as JSON"
-    ),
-    pattern: str = typer.Option(
-        "*.py", "--pattern", "-p", help="File pattern for directories"
-    ),
-):
-    """🔍 [DEPRECATED] Use 'nicestlog check --ast' instead."""
-    console.print("[yellow]⚠️ DEPRECATED: 'tools ast analyze' is deprecated.[/yellow]")
-    console.print("[yellow]   Use 'nicestlog check --ast' instead.[/yellow]")
-
-    # Redirect to check command with AST enabled
-
-    # Build command args
-    args = [str(path), "--ast"]
-    if verbose:
-        args.append("--verbose")
-    if json_output:
-        console.print(
-            "[yellow]   Note: JSON output available via 'nicestlog analyze'[/yellow]"
-        )
-
-    # Call check command directly
-    check(
-        str(path),
-        fix=False,
-        interactive=False,
-        dry_run=False,
-        ast_analysis=True,
-        complexity=False,
-        patterns=None,
-        verbose=verbose,
-    )
 
 
-@ast_app.command("transform")
-def ast_transform_deprecated(
-    path: Path = typer.Argument(..., help="Python file or directory to transform"),
-    dry_run: bool = typer.Option(
-        True, "--dry-run/--apply", help="Preview changes without applying"
-    ),
-    interactive: bool = typer.Option(
-        False,
-        "--interactive",
-        "-i",
-        help="Interactive mode with user confirmation",
-    ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose logging"
-    ),
-):
-    """🔄 [DEPRECATED] Use 'nicestlog fix --ast' instead."""
-    console.print("[yellow]⚠️ DEPRECATED: 'tools ast transform' is deprecated.[/yellow]")
-    console.print("[yellow]   Use 'nicestlog fix --ast' instead.[/yellow]")
-
-    # Redirect to fix command
-    fix(
-        str(path),
-        dry_run=dry_run,
-        interactive=interactive,
-        ast_transforms=True,
-        backup=True,
-        patterns=None,
-        verbose=verbose,
-    )
 
 
-@ast_app.command("interactive")
-def ast_interactive_deprecated(
-    path: Path = typer.Argument(..., help="Python file to transform interactively"),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose logging"
-    ),
-):
-    """🎯 [DEPRECATED] Use 'nicestlog fix --interactive' instead."""
-    console.print(
-        "[yellow]⚠️ DEPRECATED: 'tools ast interactive' is deprecated.[/yellow]"
-    )
-    console.print("[yellow]   Use 'nicestlog fix --interactive' instead.[/yellow]")
-
-    # Redirect to fix command
-    fix(
-        str(path),
-        dry_run=False,
-        interactive=True,
-        ast_transforms=True,
-        backup=True,
-        patterns=None,
-        verbose=verbose,
-    )
 
 
-@ast_app.command("patterns")
-def ast_patterns_deprecated(
-    show_details: bool = typer.Option(
-        False, "--details", "-d", help="Show detailed pattern information"
-    ),
-):
-    """📋 [DEPRECATED] Use 'nicestlog check --ast --help' for pattern info."""
-    console.print("[yellow]⚠️ DEPRECATED: 'tools ast patterns' is deprecated.[/yellow]")
-    console.print(
-        "[yellow]   Pattern information available in 'nicestlog check --ast --help'[/yellow]"
-    )
-
-    # Still show patterns for now
-    assistant = AdvancedAssistant()
-    patterns = assistant.patterns
-    _display_patterns(patterns, show_details)
 
 
 # Helper functions for AST operations

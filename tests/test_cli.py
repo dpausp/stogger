@@ -61,15 +61,6 @@ class TestInitConfig:
 class TestMainFunction:
     """Test cases for main function."""
 
-    @patch("sys.argv", ["nicestlog", "tools", "init-config"])
-    @patch("nicestlog.cli.init_config")
-    def test_main_init_config_subcommand(self, mock_init_config):
-        """Test main function with tools init-config subcommand."""
-        with pytest.raises(SystemExit) as exc_info:
-            main()
-        # Typer exits with code 0 on successful command execution
-        assert exc_info.value.code == 0
-        mock_init_config.assert_called_once()
 
     def test_main_requires_subcommand(self):
         """Test that main function requires a subcommand."""
@@ -94,19 +85,6 @@ class TestTyperCliRunner:
         assert "lint" in result.stdout
         assert "dashboard" in result.stdout
 
-    @patch("nicestlog.cli.init_config")
-    def test_init_config_command(self, mock_init_config):
-        """Test tools init-config command via CliRunner."""
-        result = self.runner.invoke(app, ["tools", "init-config"])
-        assert result.exit_code == 0
-        mock_init_config.assert_called_once()
-
-    def test_init_config_help(self):
-        """Test tools init-config help (deprecated command)."""
-        result = self.runner.invoke(app, ["tools", "init-config", "--help"])
-        assert result.exit_code == 0
-        assert "DEPRECATED" in result.stdout
-        assert "Use 'nicestlog init' instead" in result.stdout
 
 
 class TestLintCommand:

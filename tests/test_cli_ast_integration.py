@@ -658,69 +658,6 @@ logging.info("Test message")
             # Type is only used when actually migrating with --do-migrate
 
 
-class TestASTToolsSubcommands:
-    """Test the tools ast subcommands still work."""
-
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.runner = CliRunner()
-        self.temp_dir = tempfile.mkdtemp()
-        self.temp_path = Path(self.temp_dir)
-
-    def teardown_method(self):
-        """Clean up test fixtures."""
-        import shutil
-
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
-    def test_tools_ast_analyze(self):
-        """Test that tools ast analyze still works (deprecated command)."""
-        test_file = self.temp_path / "analyze_test.py"
-        test_file.write_text("""
-def test_function():
-    print("Hello")
-    return True
-""")
-
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
-            mock_assistant_class.return_value = mock_assistant
-
-            mock_result = MagicMock()
-            mock_result.file_path = test_file
-            mock_result.lines_of_code = 4
-            mock_result.function_count = 1
-            mock_result.class_count = 0
-            mock_result.complexity_score = 1.5
-            mock_result.issues = []
-            mock_assistant.analyze_file.return_value = mock_result
-
-            result = self.runner.invoke(
-                app, ["tools", "ast", "analyze", str(test_file)]
-            )
-
-            assert result.exit_code == 0
-            assert "DEPRECATED" in result.stdout
-            assert "AST analysis" in result.stdout  # Updated expectation
-
-    def test_tools_ast_patterns(self):
-        """Test that tools ast patterns still works."""
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
-            mock_assistant_class.return_value = mock_assistant
-
-            mock_pattern = MagicMock()
-            mock_pattern.name = "test_pattern"
-            mock_pattern.enabled = True
-            mock_pattern.priority = 1
-            mock_pattern.description = "Test pattern"
-            mock_pattern.node_type.value = "Call"
-            mock_assistant.patterns = [mock_pattern]
-
-            result = self.runner.invoke(app, ["tools", "ast", "patterns"])
-
-            assert result.exit_code == 0
-            assert "Available Transformation Patterns" in result.stdout
 
 
 class TestBackwardCompatibility:
