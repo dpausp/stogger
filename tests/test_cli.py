@@ -4,7 +4,6 @@ Comprehensive tests for the CLI module functionality.
 
 import pytest
 from unittest.mock import patch, MagicMock, mock_open
-from pathlib import Path
 
 from nicestlog.cli import (
     main,
@@ -81,9 +80,8 @@ class TestTyperCliRunner:
         assert "Nicestlog utility" in result.stdout
         assert "tools" in result.stdout
         assert "check" in result.stdout
-        assert "dashboard" in result.stdout
-
-
+        # dashboard is under tools subcommand, not main help
+        assert "docs" in result.stdout
 
 
 class TestDashboardCommand:
@@ -95,7 +93,7 @@ class TestDashboardCommand:
 
     def test_dashboard_help(self):
         """Test dashboard command help."""
-        result = self.runner.invoke(app, ["dashboard", "--help"])
+        result = self.runner.invoke(app, ["tools", "dashboard", "--help"])
         assert result.exit_code == 0
         assert "Start the web dashboard" in result.stdout
         assert "--host" in result.stdout
@@ -105,7 +103,7 @@ class TestDashboardCommand:
     @patch("nicestlog.cli.run_dashboard_cmd")
     def test_dashboard_default_args(self, mock_dashboard):
         """Test dashboard command with default arguments."""
-        result = self.runner.invoke(app, ["dashboard"])
+        result = self.runner.invoke(app, ["tools", "dashboard"])
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("127.0.0.1", 8080, False)
 
@@ -113,7 +111,8 @@ class TestDashboardCommand:
     def test_dashboard_custom_args(self, mock_dashboard):
         """Test dashboard command with custom arguments."""
         result = self.runner.invoke(
-            app, ["dashboard", "--host", "0.0.0.0", "--port", "9000", "--debug"]
+            app,
+            ["tools", "dashboard", "--host", "0.0.0.0", "--port", "9000", "--debug"],
         )
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("0.0.0.0", 9000, True)
@@ -136,13 +135,17 @@ class TestDashboardCommand:
         # Note: This test may pass even with Flask available due to import timing
         # but demonstrates the intended behavior
 
-    @patch("nicestlog.web_dashboard.run_dashboard", side_effect=ImportError("No module named 'flask'"))
+    @patch(
+        "nicestlog.web_dashboard.run_dashboard",
+        side_effect=ImportError("No module named 'flask'"),
+    )
     def test_run_dashboard_cmd_missing_flask(self, mock_run_dashboard):
         """Test run_dashboard_cmd function when Flask is missing."""
         import typer
+
         with pytest.raises(typer.Exit) as exc_info:
             run_dashboard_cmd("localhost", 3000, True)
-        
+
         assert exc_info.value.exit_code == 1
         mock_run_dashboard.assert_called_once()
 
@@ -151,11 +154,12 @@ class TestDashboardCommand:
     def test_run_dashboard_cmd_flask_not_available(self, mock_run_dashboard):
         """Test run_dashboard_cmd when Flask is not available in web_dashboard module."""
         import typer
+
         mock_run_dashboard.side_effect = ImportError("Flask is not installed")
-        
+
         with pytest.raises(typer.Exit) as exc_info:
             run_dashboard_cmd("localhost", 3000, True)
-        
+
         assert exc_info.value.exit_code == 1
 
 
@@ -269,7 +273,7 @@ class TestJournalCommand:
 
     def test_journal_help(self):
         """Test journal command help."""
-        result = self.runner.invoke(app, ["journal", "--help"])
+        result = self.runner.invoke(app, ["tools", "journal", "--help"])
         assert result.exit_code == 0
         assert "Beautiful systemd journal viewer" in result.stdout
         assert "--unit" in result.stdout or "--service" in result.stdout
@@ -281,7 +285,7 @@ class TestJournalCommand:
     @patch("nicestlog.cli.run_journal_viewer")
     def test_journal_default_args(self, mock_journal):
         """Test journal command with default arguments."""
-        result = self.runner.invoke(app, ["journal"])
+        result = self.runner.invoke(app, ["tools", "journal"])
         assert result.exit_code == 0
         mock_journal.assert_called_once_with(None, 50, False, None, None)
 
@@ -291,6 +295,7 @@ class TestJournalCommand:
         result = self.runner.invoke(
             app,
             [
+                "tools",
                 "journal",
                 "--unit",
                 "nginx.service",
@@ -310,7 +315,7 @@ class TestJournalCommand:
 
     def test_journal_invalid_level(self):
         """Test journal command with invalid level."""
-        result = self.runner.invoke(app, ["journal", "--level", "invalid"])
+        result = self.runner.invoke(app, ["tools", "journal", "--level", "invalid"])
         assert result.exit_code == 1
         # Use result.output when stderr is mixed with stdout
         error_output = result.output
@@ -338,7 +343,7 @@ class TestReviewCommand:
 
     def test_review_help(self):
         """Test review command help."""
-        result = self.runner.invoke(app, ["review", "--help"])
+        result = self.runner.invoke(app, ["tools", "review", "--help"])
         assert result.exit_code == 0
         assert "Review log quality" in result.stdout
         assert "--format" in result.stdout
@@ -347,7 +352,7 @@ class TestReviewCommand:
     @patch("nicestlog.cli.run_log_reviewer")
     def test_review_required_args(self, mock_reviewer):
         """Test review command with required arguments."""
-        result = self.runner.invoke(app, ["review", "/path/to/logs"])
+        result = self.runner.invoke(app, ["tools", "review", "/path/to/logs"])
         assert result.exit_code == 0
         mock_reviewer.assert_called_once_with("/path/to/logs", "text", 70.0)
 
@@ -355,7 +360,16 @@ class TestReviewCommand:
     def test_review_custom_args(self, mock_reviewer):
         """Test review command with custom arguments."""
         result = self.runner.invoke(
-            app, ["review", "/path/to/logs", "--format", "json", "--min-score", "80"]
+            app,
+            [
+                "tools",
+                "review",
+                "/path/to/logs",
+                "--format",
+                "json",
+                "--min-score",
+                "80",
+            ],
         )
         assert result.exit_code == 0
         mock_reviewer.assert_called_once_with("/path/to/logs", "json", 80.0)
@@ -363,7 +377,7 @@ class TestReviewCommand:
     def test_review_invalid_format(self):
         """Test review command with invalid format."""
         result = self.runner.invoke(
-            app, ["review", "/path/to/logs", "--format", "invalid"]
+            app, ["tools", "review", "/path/to/logs", "--format", "invalid"]
         )
         assert result.exit_code == 1
         # Use result.output when stderr is mixed with stdout
@@ -372,7 +386,7 @@ class TestReviewCommand:
 
     def test_review_missing_path(self):
         """Test review command with missing path argument."""
-        result = self.runner.invoke(app, ["review"])
+        result = self.runner.invoke(app, ["tools", "review"])
         assert result.exit_code != 0
         # Use result.output when stderr is mixed with stdout
         error_output = result.output
@@ -393,12 +407,12 @@ class TestParameterValidation:
 
     def test_dashboard_invalid_port_type(self):
         """Test dashboard command with invalid port type."""
-        result = self.runner.invoke(app, ["dashboard", "--port", "invalid"])
+        result = self.runner.invoke(app, ["tools", "dashboard", "--port", "invalid"])
         assert result.exit_code != 0
 
     def test_journal_invalid_lines_type(self):
         """Test journal command with invalid lines type."""
-        result = self.runner.invoke(app, ["journal", "--lines", "invalid"])
+        result = self.runner.invoke(app, ["tools", "journal", "--lines", "invalid"])
         assert result.exit_code != 0
 
 
