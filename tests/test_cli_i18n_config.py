@@ -81,7 +81,7 @@ def test_run_i18n_demo_passes_config_to_init(tmp_path, monkeypatch):
 
     # Change into temp project and invoke CLI
     monkeypatch.chdir(proj)
-    result = runner.invoke(cli.app, ["demo", "i18n"])  # should succeed
+    result = runner.invoke(cli.app, ["tools", "demo", "i18n"])  # should succeed
     assert result.exit_code == 0
 
     # Verify kwargs include our config

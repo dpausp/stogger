@@ -18,7 +18,7 @@ def test_cli_demo_async_invokes_function(monkeypatch):
         called["count"] += 1
 
     monkeypatch.setattr(cli, "run_async_demo", stub)
-    result = runner.invoke(cli.app, ["demo", "async"])
+    result = runner.invoke(cli.app, ["tools", "demo", "async"])
     assert result.exit_code == 0
     assert called["count"] == 1
 
@@ -30,7 +30,7 @@ def test_cli_demo_complete_invokes_function(monkeypatch):
         called["count"] += 1
 
     monkeypatch.setattr(cli, "run_complete_demo", stub)
-    result = runner.invoke(cli.app, ["demo", "complete"])
+    result = runner.invoke(cli.app, ["tools", "demo", "complete"])
     assert result.exit_code == 0
     assert called["count"] == 1
 

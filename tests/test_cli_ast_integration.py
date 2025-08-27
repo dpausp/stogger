@@ -200,7 +200,9 @@ def test():
             mock_result.transformed_code = 'import structlog\nlog = structlog.get_logger()\n\ndef test():\n    log.info("debug-message", message="Debug message")\n    return True'
             mock_assistant.transform_file.return_value = mock_result
 
-            result = self.runner.invoke(app, ["fix", str(test_file)])
+            result = self.runner.invoke(
+                app, ["migrate", str(test_file), "--do-migrate"]
+            )
 
             assert result.exit_code == 0
             assert "AST-based fixes" in result.stdout
@@ -224,7 +226,7 @@ print("This should be fixed")
             mock_result.transformed_code = 'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="This should be fixed")'
             mock_assistant.transform_file.return_value = mock_result
 
-            result = self.runner.invoke(app, ["fix", str(test_file), "--dry-run"])
+            result = self.runner.invoke(app, ["migrate", str(test_file)])
 
             assert result.exit_code == 0
             assert "Preview" in result.stdout
@@ -242,7 +244,7 @@ def test():
         mock_transformer = MagicMock()
         mock_transformer_class.return_value = mock_transformer
 
-        result = self.runner.invoke(app, ["fix", str(test_file), "--interactive"])
+        result = self.runner.invoke(app, ["migrate", str(test_file), "--interactive"])
 
         assert result.exit_code == 0
         assert "interactive fixing" in result.stdout.lower()
@@ -272,7 +274,7 @@ logging.info("test")
             mock_assistant.transform_file.return_value = mock_result
 
             result = self.runner.invoke(
-                app, ["fix", str(test_file), "--pattern", "logging"]
+                app, ["migrate", str(test_file), "--pattern", "logging"]
             )
 
             assert result.exit_code == 0
@@ -797,8 +799,8 @@ def test():
 
     def test_existing_commands_unchanged(self):
         """Test that existing commands like lint, dashboard etc. are unchanged."""
-        # Test lint command
-        result = self.runner.invoke(app, ["lint", "--help"])
+        # Test check command (lint was renamed to check)
+        result = self.runner.invoke(app, ["check", "--help"])
         assert result.exit_code == 0
         assert "Check logging coverage" in result.stdout
 
