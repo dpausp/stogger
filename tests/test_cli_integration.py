@@ -122,10 +122,10 @@ def main():
     logging.info(f"Result: {result}")
 ''')
 
-        result = self.runner.invoke(app, ["lint", str(test_file)])
+        result = self.runner.invoke(app, ["check", str(test_file)])
 
         # The linter expects a directory, so let's test with directory path
-        result = self.runner.invoke(app, ["lint", str(self.temp_path)])
+        result = self.runner.invoke(app, ["check", str(self.temp_path)])
 
         # The test file has 14.3% coverage which is within good range (5-15%),
         # but it has warnings about "possibly too much logging", so it should fail
@@ -167,7 +167,7 @@ def main():
     return formatted
 ''')
 
-        result = self.runner.invoke(app, ["lint", str(self.temp_path)])
+        result = self.runner.invoke(app, ["check", str(self.temp_path)])
 
         # This should have good logging coverage (around 6-10%)
         assert result.exit_code == 0
@@ -197,7 +197,7 @@ def main():
 ''')
 
         # Test with directory path since linter works on directories
-        result = self.runner.invoke(app, ["lint", str(self.temp_path)])
+        result = self.runner.invoke(app, ["check", str(self.temp_path)])
 
         # Should fail due to insufficient logging
         assert result.exit_code == 1
@@ -230,7 +230,7 @@ def another_bad_function():
     return value * 2
 """)
 
-        result = self.runner.invoke(app, ["lint", str(self.temp_path)])
+        result = self.runner.invoke(app, ["check", str(self.temp_path)])
 
         # Should fail overall due to bad file
         assert result.exit_code == 1
@@ -255,8 +255,8 @@ def func3():
 """)
 
         # Normal mode might pass, but strict mode should be more demanding
-        self.runner.invoke(app, ["lint", str(test_file)])
-        result_strict = self.runner.invoke(app, ["lint", str(test_file), "--strict"])
+        self.runner.invoke(app, ["check", str(test_file)])
+        result_strict = self.runner.invoke(app, ["check", str(test_file), "--strict"])
 
         # Strict mode should be more demanding
         assert result_strict.exit_code in [0, 1]  # Could pass or fail, but should run
@@ -339,7 +339,7 @@ class TestJournalIntegration:
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False)
     def test_journal_no_systemd_dependency(self):
         """Test journal command when systemd is not available."""
-        result = self.runner.invoke(app, ["journal"])
+        result = self.runner.invoke(app, ["tools", "journal"])
 
         assert result.exit_code == 1
         # Use result.output when stderr is mixed with stdout
@@ -364,7 +364,7 @@ class TestJournalIntegration:
         )
 
         result = self.runner.invoke(
-            app, ["journal", "--unit", "test.service", "--lines", "10"]
+            app, ["tools", "journal", "--unit", "test.service", "--lines", "10"]
         )
 
         assert result.exit_code == 0
@@ -412,7 +412,7 @@ class TestReviewIntegration:
             mock_reviewer.analyze_log_file.return_value = mock_report
 
             with patch("nicestlog.log_reviewer.print_report") as mock_print_report:
-                result = self.runner.invoke(app, ["review", str(log_file)])
+                result = self.runner.invoke(app, ["tools", "review", str(log_file)])
 
                 assert result.exit_code == 0
                 mock_reviewer.analyze_log_file.assert_called_once()
@@ -445,6 +445,7 @@ class TestReviewIntegration:
                     result = self.runner.invoke(
                         app,
                         [
+                            "tools",
                             "review",
                             str(self.temp_path),
                             "--format",
@@ -472,7 +473,7 @@ class TestReviewIntegration:
             mock_reviewer.analyze_log_file.return_value = mock_report
 
             with patch("nicestlog.log_reviewer.print_report"):
-                result = self.runner.invoke(app, ["review", str(log_file)])
+                result = self.runner.invoke(app, ["tools", "review", str(log_file)])
 
                 assert result.exit_code == 1  # Should fail due to low score
 
@@ -490,7 +491,7 @@ class TestDashboardIntegration:
         # Mock the dashboard to avoid actually starting a web server
         mock_run_dashboard.return_value = None
 
-        result = self.runner.invoke(app, ["dashboard"])
+        result = self.runner.invoke(app, ["tools", "dashboard"])
 
         assert result.exit_code == 0
         mock_run_dashboard.assert_called_once_with(
@@ -503,7 +504,8 @@ class TestDashboardIntegration:
         mock_run_dashboard.return_value = None
 
         result = self.runner.invoke(
-            app, ["dashboard", "--host", "0.0.0.0", "--port", "9000", "--debug"]
+            app,
+            ["tools", "dashboard", "--host", "0.0.0.0", "--port", "9000", "--debug"],
         )
 
         assert result.exit_code == 0
@@ -532,7 +534,7 @@ class TestRealExecutionIntegration:
     def test_lint_help_subprocess(self):
         """Test running lint help as a real subprocess."""
         result = subprocess.run(
-            [sys.executable, "-m", "nicestlog", "lint", "--help"],
+            [sys.executable, "-m", "nicestlog", "check", "--help"],
             capture_output=True,
             text=True,
             cwd=Path(__file__).parent.parent,
