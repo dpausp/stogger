@@ -784,16 +784,15 @@ def lint_directory(
         # Check if AST metrics are available for unified display
         ast_metrics = {}
         try:
-            import json
-            ast_data = os.getenv('NICESTLOG_AST_METRICS')
+            ast_data = os.getenv("NICESTLOG_AST_METRICS")
             if ast_data:
                 ast_metrics = json.loads(ast_data)
         except Exception:
             pass
-        
+
         # Human-friendly table output with subtle colors
         colorama_init(autoreset=True)
-        
+
         # Add AST metrics to rows if available
         for r in rows:
             if r["module"] in ast_metrics:
@@ -802,12 +801,16 @@ def lint_directory(
             else:
                 r["functions"] = 0
                 r["classes"] = 0
-        
+
         # Determine dynamic column widths
         module_width = max([len("MODULE")] + [len(r["module"]) for r in rows])
         lines_width = max(len("LINES"), *(len(str(r["lines"])) for r in rows))
-        funcs_width = max(len("FUNCS"), *(len(str(r.get("functions", 0))) for r in rows))
-        classes_width = max(len("CLASSES"), *(len(str(r.get("classes", 0))) for r in rows))
+        funcs_width = max(
+            len("FUNCS"), *(len(str(r.get("functions", 0))) for r in rows)
+        )
+        classes_width = max(
+            len("CLASSES"), *(len(str(r.get("classes", 0))) for r in rows)
+        )
         logs_width = max(len("LOGS"), *(len(str(r["logs"])) for r in rows))
         cov_width = max(len("COVERAGE"), *(len(f"{r['coverage']:.1f}%") for r in rows))
         # Compute width for ISSUES based on visible content (E#/W#), ignoring ANSI codes
@@ -855,16 +858,28 @@ def lint_directory(
         # Calculate separator width based on whether AST metrics are included
         if ast_metrics:
             sep_width = (
-                module_width + lines_width + funcs_width + classes_width + 
-                logs_width + cov_width + issues_width + primary_width + 14
+                module_width
+                + lines_width
+                + funcs_width
+                + classes_width
+                + logs_width
+                + cov_width
+                + issues_width
+                + primary_width
+                + 14
             )
         else:
             sep_width = (
-                module_width + lines_width + logs_width + 
-                cov_width + issues_width + primary_width + 10
+                module_width
+                + lines_width
+                + logs_width
+                + cov_width
+                + issues_width
+                + primary_width
+                + 10
             )
         sep = "-" * sep_width
-        
+
         print(header)
         print(sep)
         for r in rows:

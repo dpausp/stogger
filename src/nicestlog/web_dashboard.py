@@ -8,10 +8,11 @@ import queue
 import threading
 import time
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 try:
     from flask import Flask, render_template_string, request
+
     FLASK_AVAILABLE = True
 except ImportError:
     FLASK_AVAILABLE = False
@@ -431,7 +432,7 @@ def run_dashboard(host="127.0.0.1", port=8080, debug=False):
             "or\n"
             "  pip install flask>=3.0.3"
         )
-    
+
     print(f"🚀 Starting Nicestlog Dashboard on http://{host}:{port}")
     print("📊 View your logs in real-time with style!")
 

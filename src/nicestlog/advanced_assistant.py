@@ -306,7 +306,11 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
         # Only analyze parameter count for functions that actually contain logging calls
         # This prevents false positives on CLI commands, constructors, etc.
-        if has_logging_calls and arg_count > 7 and not self._is_common_function_pattern(node.name):
+        if (
+            has_logging_calls
+            and arg_count > 7
+            and not self._is_common_function_pattern(node.name)
+        ):
             issue = f"Logging function '{node.name}' has many parameters ({arg_count}) - consider reducing complexity (line {node.lineno})"
             self.potential_issues.append(issue)
             log.warning(
@@ -320,31 +324,53 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
         # Only suggest docstrings for logging-related functions
         if has_logging_calls and not has_docstring:
-            suggestion = f"Add docstring to logging function '{node.name}' (line {node.lineno})"
+            suggestion = (
+                f"Add docstring to logging function '{node.name}' (line {node.lineno})"
+            )
             self.transformation_suggestions.append(suggestion)
 
     def _function_has_logging_calls(self, node: ast.FunctionDef) -> bool:
         """Check if a function contains actual logging calls (log.info, log.error, etc.)."""
         logging_call_count = 0
-        
+
         for child in ast.walk(node):
             if isinstance(child, ast.Call):
                 # Check for log.method() calls (structured logging)
                 if isinstance(child.func, ast.Attribute):
-                    if (isinstance(child.func.value, ast.Name) and 
-                        child.func.value.id in ['log', 'logger'] and
-                        child.func.attr in ['debug', 'info', 'warning', 'error', 'exception', 'critical']):
+                    if (
+                        isinstance(child.func.value, ast.Name)
+                        and child.func.value.id in ["log", "logger"]
+                        and child.func.attr
+                        in [
+                            "debug",
+                            "info",
+                            "warning",
+                            "error",
+                            "exception",
+                            "critical",
+                        ]
+                    ):
                         logging_call_count += 1
                     # Check for logging.method() calls (standard logging)
-                    elif (hasattr(child.func.value, 'id') and 
-                          child.func.value.id == 'logging' and
-                          child.func.attr in ['debug', 'info', 'warning', 'error', 'exception', 'critical']):
+                    elif (
+                        hasattr(child.func.value, "id")
+                        and child.func.value.id == "logging"
+                        and child.func.attr
+                        in [
+                            "debug",
+                            "info",
+                            "warning",
+                            "error",
+                            "exception",
+                            "critical",
+                        ]
+                    ):
                         logging_call_count += 1
                 # Check for print statements (also considered logging-related)
                 elif isinstance(child.func, ast.Name):
-                    if child.func.id == 'print':
+                    if child.func.id == "print":
                         logging_call_count += 1
-        
+
         # Only consider it a "logging function" if it has multiple logging calls
         # or if it's primarily focused on logging (more than just incidental logging)
         return logging_call_count >= 2
@@ -418,29 +444,29 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
         # Common patterns that often have many parameters
         common_patterns = [
             "__init__",  # Constructor methods
-            "__new__",   # Constructor methods
-            "init",      # Initialization functions
-            "setup",     # Setup functions
-            "configure", # Configuration functions
-            "create",    # Factory functions
-            "build",     # Builder functions
-            "main",      # Main functions (often have CLI args)
-            "migrate",   # Migration/transformation functions
-            "transform", # Transformation functions
-            "analyze",   # Analysis functions
-            "process",   # Processing functions
-            "handle",    # Handler functions
-            "run",       # Runner functions
-            "execute",   # Execution functions
-            "command",   # Command functions
+            "__new__",  # Constructor methods
+            "init",  # Initialization functions
+            "setup",  # Setup functions
+            "configure",  # Configuration functions
+            "create",  # Factory functions
+            "build",  # Builder functions
+            "main",  # Main functions (often have CLI args)
+            "migrate",  # Migration/transformation functions
+            "transform",  # Transformation functions
+            "analyze",  # Analysis functions
+            "process",  # Processing functions
+            "handle",  # Handler functions
+            "run",  # Runner functions
+            "execute",  # Execution functions
+            "command",  # Command functions
         ]
-        
+
         # Check if function name matches common patterns
         name_lower = function_name.lower()
         for pattern in common_patterns:
             if pattern in name_lower:
                 return True
-        
+
         return False
 
 

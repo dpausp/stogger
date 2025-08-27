@@ -4,7 +4,7 @@ Utilities for respecting .gitignore patterns in file analysis.
 
 import fnmatch
 from pathlib import Path
-from typing import List, Set
+from typing import List
 import structlog
 
 log = structlog.get_logger(__name__)
@@ -14,7 +14,7 @@ def load_gitignore_patterns(directory: Path) -> List[str]:
     """Load patterns from .gitignore file."""
     gitignore_path = directory / ".gitignore"
     patterns = []
-    
+
     if gitignore_path.exists():
         try:
             content = gitignore_path.read_text(encoding="utf-8")
@@ -23,7 +23,7 @@ def load_gitignore_patterns(directory: Path) -> List[str]:
                 # Skip empty lines and comments
                 if line and not line.startswith("#"):
                     patterns.append(line)
-            
+
             log.debug(
                 "gitignore-loaded",
                 _replace_msg="📋 Loaded {count} patterns from .gitignore",
@@ -37,7 +37,7 @@ def load_gitignore_patterns(directory: Path) -> List[str]:
                 error=str(e),
                 gitignore_path=str(gitignore_path),
             )
-    
+
     # Add common patterns that should always be ignored for AST analysis
     default_patterns = [
         ".git/*",
@@ -55,7 +55,7 @@ def load_gitignore_patterns(directory: Path) -> List[str]:
         "build/*",
         "dist/*",
     ]
-    
+
     patterns.extend(default_patterns)
     return patterns
 
@@ -66,13 +66,13 @@ def should_ignore_path(file_path: Path, base_dir: Path, patterns: List[str]) -> 
         # Get relative path from base directory
         rel_path = file_path.relative_to(base_dir)
         rel_path_str = str(rel_path)
-        
+
         # Check each pattern
         for pattern in patterns:
             # Handle directory patterns (ending with /)
             if pattern.endswith("/"):
                 pattern = pattern.rstrip("/") + "/*"
-            
+
             # Check if pattern matches
             if fnmatch.fnmatch(rel_path_str, pattern):
                 log.debug(
@@ -82,7 +82,7 @@ def should_ignore_path(file_path: Path, base_dir: Path, patterns: List[str]) -> 
                     pattern=pattern,
                 )
                 return True
-                
+
             # Also check if any parent directory matches
             for parent in rel_path.parents:
                 parent_str = str(parent)
@@ -95,9 +95,9 @@ def should_ignore_path(file_path: Path, base_dir: Path, patterns: List[str]) -> 
                         pattern=pattern,
                     )
                     return True
-        
+
         return False
-        
+
     except ValueError:
         # File is not relative to base_dir, ignore it
         log.debug(
@@ -117,12 +117,12 @@ def filter_python_files(directory: Path, respect_gitignore: bool = True) -> List
         directory=str(directory),
         respect_gitignore=respect_gitignore,
     )
-    
+
     # Load gitignore patterns if requested
     patterns = []
     if respect_gitignore:
         patterns = load_gitignore_patterns(directory)
-    
+
     # Find all Python files
     python_files = []
     for py_file in directory.rglob("*.py"):
@@ -130,9 +130,9 @@ def filter_python_files(directory: Path, respect_gitignore: bool = True) -> List
             # Check if file should be ignored
             if respect_gitignore and should_ignore_path(py_file, directory, patterns):
                 continue
-            
+
             python_files.append(py_file)
-    
+
     log.debug(
         "filter-files-completed",
         _replace_msg="✅ Found {count} Python files to analyze",
@@ -140,5 +140,5 @@ def filter_python_files(directory: Path, respect_gitignore: bool = True) -> List
         directory=str(directory),
         total_patterns=len(patterns) if respect_gitignore else 0,
     )
-    
+
     return python_files

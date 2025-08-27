@@ -58,15 +58,19 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             "trace",
         }
         self.magic_args = {"_replace_msg", "exc_info", "_structured", "_level", "_name"}
-        
+
         # Track logging imports and logger variables
-        self.logging_imports: Set[str] = set()  # e.g., {'logging', 'structlog', 'loguru'}
+        self.logging_imports: Set[str] = (
+            set()
+        )  # e.g., {'logging', 'structlog', 'loguru'}
         self.logger_variables: Set[str] = set()  # e.g., {'log', 'logger', 'my_logger'}
-        self.logging_modules = {
-            'logging', 'structlog', 'loguru', 'logbook', 'eliot'
-        }
+        self.logging_modules = {"logging", "structlog", "loguru", "logbook", "eliot"}
         self.logger_factory_patterns = {
-            'get_logger', 'getLogger', 'logger', 'Logger', 'new'
+            "get_logger",
+            "getLogger",
+            "logger",
+            "Logger",
+            "new",
         }
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -85,7 +89,9 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
     def visit_Assign(self, node: ast.Assign) -> None:
         """Track logger variable assignments."""
-        if isinstance(node.value, ast.Call) and self._is_logger_factory_call(node.value):
+        if isinstance(node.value, ast.Call) and self._is_logger_factory_call(
+            node.value
+        ):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     self.logger_variables.add(target.id)
@@ -104,9 +110,11 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         try:
             if isinstance(node.func, ast.Attribute):
                 # Check for patterns like structlog.get_logger(), logging.getLogger()
-                if (isinstance(node.func.value, ast.Name) and 
-                    node.func.value.id in self.logging_imports and
-                    node.func.attr in self.logger_factory_patterns):
+                if (
+                    isinstance(node.func.value, ast.Name)
+                    and node.func.value.id in self.logging_imports
+                    and node.func.attr in self.logger_factory_patterns
+                ):
                     return True
                 # Check for direct factory calls like get_logger()
                 if node.func.attr in self.logger_factory_patterns:
@@ -126,7 +134,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                 # Check if method name is a log method
                 if node.func.attr not in self.log_methods:
                     return False
-                
+
                 # Check if the object is a known logger
                 if isinstance(node.func.value, ast.Name):
                     # Direct logger variable: logger.info()
@@ -136,21 +144,23 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                     if node.func.value.id in self.logging_imports:
                         return True
                     # Common logger names (fallback for untracked loggers)
-                    common_logger_names = {'log', 'logger', 'LOG', 'LOGGER'}
+                    common_logger_names = {"log", "logger", "LOG", "LOGGER"}
                     if node.func.value.id in common_logger_names:
                         return True
-                
+
                 # Check for attribute access like self.logger.info()
                 elif isinstance(node.func.value, ast.Attribute):
-                    if (isinstance(node.func.value.attr, str) and 
-                        'logger' in node.func.value.attr.lower()):
+                    if (
+                        isinstance(node.func.value.attr, str)
+                        and "logger" in node.func.value.attr.lower()
+                    ):
                         return True
-                
+
                 # Check for chained calls like structlog.get_logger().info()
                 if isinstance(node.func.value, ast.Call):
                     if self._is_logger_factory_call(node.func.value):
                         return True
-            
+
             return False
         except AttributeError:
             return False
@@ -263,7 +273,9 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             # Only report if not allowing snake_case or if it's not snake_case
             if not (event_id_format == "snake_case" and not prefer_dash_case):
                 suggested_event_id = self._convert_to_dash_case(event_id)
-                issues.append(f"event_id_not_dash_case (found: {event_id_format}, suggested: {suggested_event_id})")
+                issues.append(
+                    f"event_id_not_dash_case (found: {event_id_format}, suggested: {suggested_event_id})"
+                )
 
         # Check for single string argument (anti-pattern)
         if len(args) == 1 and not kwargs and not magic_args:
@@ -332,15 +344,16 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         """Convert an event ID to dash-case format."""
         if not event_id:
             return event_id
-        
+
         # Convert snake_case to dash-case
         if "_" in event_id:
             return event_id.replace("_", "-")
-        
+
         # Convert camelCase/PascalCase to dash-case
         # Insert hyphens before uppercase letters and convert to lowercase
         import re
-        result = re.sub(r'([a-z0-9])([A-Z])', r'\1-\2', event_id)
+
+        result = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", event_id)
         return result.lower()
 
 

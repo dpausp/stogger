@@ -63,13 +63,15 @@ class NicestLogConfig:
         self.enable_systemd: bool = config.get("enable_systemd", True)
         self.systemd_facility: Optional[str] = config.get("systemd_facility", None)
         self.src_dir: str = config.get("src_dir", "src")
-        
+
         # AST Analysis settings
         ast_config = config.get("ast", {})
         self.ast_respect_gitignore: bool = ast_config.get("respect_gitignore", True)
         self.ast_max_parameters: int = ast_config.get("max_parameters", 8)
         self.ast_logging_focus: bool = ast_config.get("logging_focus", True)
-        self.ast_enabled_patterns: Optional[list] = ast_config.get("enabled_patterns", None)
+        self.ast_enabled_patterns: Optional[list] = ast_config.get(
+            "enabled_patterns", None
+        )
 
         # Simple format settings
         simple_settings = config.get("simple_format", {})
