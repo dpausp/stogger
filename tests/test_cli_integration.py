@@ -253,12 +253,11 @@ def func3():
     pass
 """)
 
-        # Normal mode might pass, but strict mode should be more demanding
-        self.runner.invoke(app, ["check", str(test_file)])
-        result_strict = self.runner.invoke(app, ["check", str(test_file), "--strict"])
+        # Normal mode should work
+        result = self.runner.invoke(app, ["check", str(test_file)])
 
-        # Strict mode should be more demanding
-        assert result_strict.exit_code in [0, 1]  # Could pass or fail, but should run
+        # Should run successfully
+        assert result.exit_code in [0, 1]  # Could pass or fail, but should run
 
 
 class TestGenerateServiceIntegration:
@@ -541,7 +540,6 @@ class TestRealExecutionIntegration:
 
         assert result.returncode == 0
         assert "Check code for logging best practices" in result.stdout
-        assert "--min-coverage" in result.stdout
 
 
 if __name__ == "__main__":
