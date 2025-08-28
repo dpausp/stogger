@@ -1,21 +1,21 @@
-# Fix CLI Test Failures
+# Improve Codebase Logging Quality (Dogfooding)
 
 Task goal
-- Fix 40 failing tests that expect old CLI command structure
-- Update tests to use correct command paths (e.g., `tools dashboard` instead of `dashboard`)
-- Ensure all CLI commands work correctly with their current structure
-- Restore test suite to passing state
+- Fix logging quality issues found by our own nicestlog check tool
+- Improve log.error() calls to use log.exception() in except blocks
+- Address the 9 specific logging level issues identified
+- Practice what we preach - use nicestlog to improve nicestlog itself
 
 Success criteria
-- All tests pass (347 tests, 0 failures)
-- CLI commands work correctly with current structure
-- Tests use proper command paths (tools subcommands)
-- No regression in CLI functionality
+- All 9 log.error() → log.exception() issues fixed
+- Dogfooding check shows improvement in logging quality
+- No regression in functionality or tests
+- Better exception handling with proper tracebacks
 
 Out-of-scope for this task
-- Changing CLI command structure or organization
-- Adding new CLI commands or features
-- Modifying command functionality
+- Adding more logging statements (would change coverage significantly)
+- Restructuring logging architecture
+- Changing logging levels beyond the specific issues identified
 - Performance optimizations
 
 General approach (guardrails)
@@ -23,58 +23,58 @@ General approach (guardrails)
 - No dependency YOLOing (Rule 3). Use `uv run` for Python commands
 - Lint before committing (Rule 5). Respect pre-commit if present (Rule 6)
 - Only add tests when we change code (Rule 4)
-- **Dogfooding**: Use `uv run python -m nicestlog check` on our own code to validate changes
+- **Dogfooding**: Use `uv run python -m nicestlog check` to validate improvements
 
 Prioritized work items (with checkboxes)
 
-1) Analyze failing tests and CLI structure
-   - Context: Understand which tests are failing and why (command structure mismatch)
+1) Fix exception handling in interactive_transformer.py
+   - Context: Line 267 uses log.error() in except block, should use log.exception()
    - Files to check/modify:
-     - tests/test_cli.py (main CLI tests)
-     - tests/test_cli_integration.py (integration tests)
-     - tests/test_cli_more_demos.py (demo tests)
+     - src/nicestlog/interactive_transformer.py
    - Steps:
-     - [x] Run pytest to identify failing tests
-     - [x] Identify that commands moved under 'tools' subcommand
-     - [x] Understand current CLI structure vs test expectations
-     - [ ] Commit with message: "docs: analyze CLI test failures and command structure"
+     - [ ] Change log.error('interactive-transformation-error') to log.exception()
+     - [ ] Test that exception tracebacks are properly captured
+     - [ ] Commit with message: "fix: use log.exception for better error tracing in interactive_transformer"
 
-2) Fix main CLI tests (test_cli.py)
-   - Context: Update tests to use correct command paths
+2) Fix exception handling in factory.py
+   - Context: Line 176 uses log.error() in except block, should use log.exception()
    - Files to check/modify:
-     - tests/test_cli.py (dashboard, journal, review command tests)
+     - src/nicestlog/factory.py
    - Steps:
-     - [x] Update dashboard tests to use "tools dashboard"
-     - [x] Update journal tests to use "tools journal" 
-     - [x] Update review tests to use "tools review"
-     - [x] Fix help command test expectations
-     - [x] Commit with message: "fix: update CLI tests for tools subcommand structure"
+     - [ ] Change log.error('file-logging-setup-failed') to log.exception()
+     - [ ] Verify logging setup error handling works correctly
+     - [ ] Commit with message: "fix: use log.exception for file logging setup errors"
 
-3) Fix integration tests
-   - Context: Update integration tests for correct command structure
+3) Fix exception handling in advanced_assistant.py (4 instances)
+   - Context: Lines 576, 746, 848, 896 use log.error() in except blocks
    - Files to check/modify:
-     - tests/test_cli_integration.py
-     - tests/test_cli_ast_integration.py
+     - src/nicestlog/advanced_assistant.py
    - Steps:
-     - [x] Update all integration tests to use correct command paths
-     - [x] Fix AST integration tests
-     - [x] Update i18n check tests
-     - [x] Commit with message: "fix: update integration tests for tools subcommand"
+     - [ ] Fix line 576: transformation-error
+     - [ ] Fix line 746: file-analysis-failed  
+     - [ ] Fix line 848: file-transformation-failed
+     - [ ] Fix line 896: file-transformation-error
+     - [ ] Test AST analysis error handling
+     - [ ] Commit with message: "fix: use log.exception for better error tracing in advanced_assistant"
 
-4) Fix remaining test failures ✅ COMPLETED!
-   - Context: Address remaining test expectation vs behavior issues
+4) Fix exception handling in config.py and i18n.py
+   - Context: Remaining log.error() calls in except blocks
    - Files to check/modify:
-     - tests/test_cli_integration.py (4 lint integration tests)
-     - tests/test_cli_ast_integration.py (8 AST tests)
-     - tests/test_advanced_assistant.py (1 AST analysis test)
+     - src/nicestlog/config.py (line 110)
+     - src/nicestlog/i18n.py (lines 73, 124)
    - Steps:
-     - [x] Fix demo and i18n command tests
-     - [x] Fix remaining AST integration test expectations
-     - [x] Fix lint integration test expectations
-     - [x] Fix advanced assistant AST analysis test
-     - [x] Commit with message: "fix: resolve remaining CLI test failures"
+     - [ ] Fix config.py line 110: empty error message
+     - [ ] Fix i18n.py line 73: failed-to-load-translations
+     - [ ] Fix i18n.py line 124: translation-formatting-failed
+     - [ ] Test configuration and i18n error handling
+     - [ ] Commit with message: "fix: use log.exception for config and i18n error handling"
 
-🎯 TASK COMPLETED SUCCESSFULLY!
-- Started with: 40 failing tests, 307 passing
-- Final result: 0 failing tests, 347 passing
-- 100% test success rate achieved!
+5) Validate improvements with dogfooding
+   - Context: Verify that our changes actually improve the logging quality
+   - Files to check/modify:
+     - Run nicestlog check on the codebase
+   - Steps:
+     - [ ] Run `uv run python -m nicestlog check .` to verify improvements
+     - [ ] Ensure no new issues were introduced
+     - [ ] Document the improvement in logging quality
+     - [ ] Commit with message: "docs: validate logging quality improvements via dogfooding"
