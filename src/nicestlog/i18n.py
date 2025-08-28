@@ -70,7 +70,7 @@ class NicestlogTranslator:
                     keys_loaded=len(self.translations),
                 )
             except Exception as e:
-                log.error(
+                log.exception(
                     "failed-to-load-translations",
                     language=self.language,
                     file=str(lang_file),
@@ -121,7 +121,7 @@ class NicestlogTranslator:
                 translation = translation.format(**kwargs)
                 log.debug("formatted_translation", key=key, variables=kwargs)
         except Exception as e:
-            log.error(
+            log.exception(
                 "translation-formatting-failed",
                 key=key,
                 translation=translation,

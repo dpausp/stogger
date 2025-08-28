@@ -107,6 +107,6 @@ class NicestLogConfig:
             )
             return nicest_config
         except (tomllib.TOMLDecodeError, Exception) as e:
-            log.error(f"config-loading-failed: {pyproject_path} - {e}")
+            log.exception(f"config-loading-failed: {pyproject_path} - {e}")
             print(f"Error decoding pyproject.toml: {e}", file=sys.stderr)
             return {}
