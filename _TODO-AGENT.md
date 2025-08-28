@@ -44,7 +44,10 @@ Prioritized work items (with checkboxes)
    - Steps:
      - [x] Analyze advanced_assistant.py: TransformationStage enum and constants are unused
      - [x] Analyze cli.py: Several CLI commands are defined but not accessible
-     - [ ] Review each unused item for potential value
+     - [x] Remove TransformationStage enum (completely unused)
+     - [x] Remove unused NodeType constants (kept CALL which is used)
+     - [x] Remove rollback_data field (unused feature)
+     - [ ] Review remaining unused items for potential value
      - [ ] Document decision: keep, refactor, or remove
      - [ ] Commit with message: "refactor: cleanup unused code in core library"
 

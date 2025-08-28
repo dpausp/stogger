@@ -28,30 +28,16 @@ import structlog
 log = structlog.get_logger("nicestlog.advanced_assistant")
 
 
-class TransformationStage(Enum):
-    """Stages of the transformation pipeline."""
-
-    ANALYSIS = "analysis"
-    VALIDATION = "validation"
-    PREPARATION = "preparation"
-    TRANSFORMATION = "transformation"
-    POST_PROCESSING = "post_processing"
-    VERIFICATION = "verification"
+# NOTE: TransformationStage enum removed as it was unused
+# If needed in future, it can be restored from git history
 
 
 class NodeType(Enum):
     """Types of AST nodes we can analyze."""
 
     FUNCTION_DEF = "function_def"
-    CLASS_DEF = "class_def"
-    IMPORT = "import"
-    CALL = "call"
-    ASSIGN = "assign"
-    IF = "if"
-    FOR = "for"
-    WHILE = "while"
-    TRY = "try"
-    WITH = "with"
+    CALL = "call"  # Used by tests and patterns
+    # Other unused constants removed - can be restored from git history if needed
 
 
 @dataclass
@@ -145,7 +131,7 @@ class TransformationResult:
     metrics: TransformationMetrics
     success: bool
     changes_made: List[str] = field(default_factory=list)
-    rollback_data: Optional[Dict[str, Any]] = None
+    # rollback_data removed as unused - can be restored if rollback feature is implemented
 
     @property
     def file_path(self) -> Path:
