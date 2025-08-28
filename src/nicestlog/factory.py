@@ -173,7 +173,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
             file_handlers.append(file_handler)
             log.debug("file-logging-enabled", log_file=str(log_file))
         except (IOError, PermissionError) as e:
-            log.error(
+            log.exception(
                 "file-logging-setup-failed", logdir=str(config.logdir), error=str(e)
             )
             print(f"Warning: failed to set up file logging: {e}", file=sys.stderr)
