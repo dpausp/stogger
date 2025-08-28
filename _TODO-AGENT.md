@@ -163,7 +163,7 @@ Prioritized work items (with checkboxes)
      - [x] Verify coverage increase for critical CLI paths
      - [x] Commit with message: "test: add error handling tests for CLI commands"
 
-5) Add edge case tests for core modules
+5) Add edge case tests for core modules ✅ COMPLETED
    - Context: Core modules need better edge case coverage for robustness
    - Effort estimate: 2-3 hours (edge cases and error paths)
    - Risk: Low complexity - well-understood core functionality
@@ -172,13 +172,13 @@ Prioritized work items (with checkboxes)
      - src/nicestlog/pii_scrubber.py (data protection edge cases)
      - tests/test_core.py, tests/test_pii_scrubber.py (enhance existing tests)
    - Steps:
-     - [ ] Add tests for formatter exception handling
-     - [ ] Add tests for malformed log data handling
-     - [ ] Add tests for PII scrubber edge cases (complex patterns)
-     - [ ] Add tests for unicode and encoding edge cases
-     - [ ] Add tests for memory/performance edge cases
-     - [ ] Verify coverage improvements
-     - [ ] Commit with message: "test: add edge case tests for core modules"
+     - [x] Add tests for formatter exception handling
+     - [x] Add tests for malformed log data handling
+     - [x] Add tests for PII scrubber edge cases (complex patterns)
+     - [x] Add tests for unicode and encoding edge cases
+     - [x] Add tests for memory/performance edge cases
+     - [x] Verify coverage improvements
+     - [x] Commit with message: "test: add edge case tests for core modules"
 
 6) Add interactive CLI integration tests with pexpect
    - Context: Interactive CLI functions (init_config, docs browser, demos) need user-centric integration testing

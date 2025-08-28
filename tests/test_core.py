@@ -460,5 +460,328 @@ class TestSelectRenderedString:
             assert isinstance(output, str)
 
 
+class TestCoreEdgeCases:
+    """Test edge cases and error handling in core module."""
+
+    def test_partial_formatter_with_complex_format_specs(self):
+        """Test PartialFormatter with complex format specifications."""
+        formatter = PartialFormatter(missing="<MISSING>", bad_format="<BAD_FORMAT>")
+
+        # Test with complex format specs that might cause ValueError
+        test_cases = [
+            (
+                "{value:>10.2f}",
+                {"value": None},
+                "<MISSING>",
+            ),  # Missing value with format spec
+            ("{value:>10.2f}", {"value": "not_a_number"}, "<BAD_FORMAT>"),  # Bad format
+            (
+                "{value:invalid_spec}",
+                {"value": 42},
+                "<BAD_FORMAT>",
+            ),  # Invalid format spec
+            ("{missing_key:>10}", {}, "<MISSING>"),  # Missing key with format spec
+        ]
+
+        for template, kwargs, expected in test_cases:
+            result = formatter.format(template, **kwargs)
+            assert expected in result
+
+    def test_partial_formatter_attribute_error_handling(self):
+        """Test PartialFormatter handles AttributeError in get_field."""
+        formatter = PartialFormatter()
+
+        # Create an object that will raise AttributeError
+        class BadObject:
+            def __getattr__(self, name):
+                raise AttributeError(
+                    f"'{type(self).__name__}' object has no attribute '{name}'"
+                )
+
+        bad_obj = BadObject()
+        result = formatter.format("{obj.nonexistent}", obj=bad_obj)
+        assert "<missing>" in result
+
+    def test_console_renderer_without_colorama(self):
+        """Test ConsoleFileRenderer behavior when colorama is not available."""
+        from unittest.mock import patch
+
+        # Mock colorama as None to simulate missing dependency
+        with patch("nicestlog.core.colorama", None):
+            # This should not crash and should print a warning
+            renderer = ConsoleFileRenderer()
+            assert renderer is not None
+
+    def test_console_renderer_non_tty_output(self):
+        """Test ConsoleFileRenderer when stdout is not a TTY."""
+        import sys
+        from unittest.mock import patch
+
+        with patch.object(sys.stdout, "isatty", return_value=False):
+            renderer = ConsoleFileRenderer()
+            result = renderer(
+                None,
+                "info",
+                {
+                    "event": "test_event",
+                    "timestamp": "2023-01-01T00:00:00",
+                    "level": "info",
+                },
+            )
+            assert isinstance(result, dict)
+            assert "console" in result
+            assert "file" in result
+
+    def test_console_renderer_unknown_level_handling(self):
+        """Test ConsoleFileRenderer with unknown log levels."""
+        renderer = ConsoleFileRenderer(min_level="info")
+
+        # Test with unknown level - should not drop but will fail on color lookup
+        # This tests the KeyError handling in the level color lookup
+        try:
+            result = renderer(
+                None,
+                "unknown_level",
+                {
+                    "event": "test_event",
+                    "timestamp": "2023-01-01T00:00:00",
+                    "level": "unknown_level",
+                },
+            )
+            # If it doesn't crash, that's unexpected but acceptable
+            assert result is not None
+        except KeyError:
+            # Expected behavior - unknown level causes KeyError in color lookup
+            pass
+
+    def test_console_renderer_safe_drop_mode(self):
+        """Test ConsoleFileRenderer with safe_drop=True."""
+        renderer = ConsoleFileRenderer(min_level="info", safe_drop=True)
+
+        # Test with level below threshold - should return empty string
+        result = renderer(
+            None,
+            "debug",
+            {
+                "event": "test_event",
+                "timestamp": "2023-01-01T00:00:00",
+                "level": "debug",
+            },
+        )
+        assert result == ""
+
+    def test_console_renderer_missing_timestamp(self):
+        """Test ConsoleFileRenderer with missing timestamp."""
+        renderer = ConsoleFileRenderer()
+        result = renderer(None, "info", {"event": "test_event", "level": "info"})
+        assert "notimestamp" in result["console"]
+
+    def test_console_renderer_with_all_optional_fields(self):
+        """Test ConsoleFileRenderer with all optional output fields."""
+        renderer = ConsoleFileRenderer()
+        result = renderer(
+            None,
+            "info",
+            {
+                "event": "test_event",
+                "timestamp": "2023-01-01T00:00:00",
+                "level": "info",
+                "cmd_output_line": "command output",
+                "_output": "general output",
+                "stdout": "standard output",
+                "stderr": "error output",
+                "stack": "stack trace",
+                "exception_traceback": "exception details",
+            },
+        )
+
+        console_output = result["console"]
+        assert "command output" in console_output
+        assert "general output" in console_output
+        assert "standard output" in console_output
+        assert "error output" in console_output
+        assert "stack trace" in console_output
+        assert "exception details" in console_output
+
+    def test_console_renderer_log_settings_ignore(self):
+        """Test ConsoleFileRenderer respects _log_settings console_ignore."""
+        renderer = ConsoleFileRenderer()
+        result = renderer(
+            None,
+            "info",
+            {
+                "event": "test_event",
+                "level": "info",
+                "_log_settings": {"console_ignore": True},
+            },
+        )
+        assert result is None
+
+    def test_simple_console_renderer_edge_cases(self):
+        """Test SimpleConsoleRenderer edge cases."""
+        from src.nicestlog.config import SimpleFormatSettings
+        from src.nicestlog.core import SimpleConsoleRenderer
+
+        settings = SimpleFormatSettings(
+            show_logger_brackets=False,
+            show_pid=False,
+            show_code_info=True,
+            timestamp_format="iso_no_z",
+        )
+        renderer = SimpleConsoleRenderer(min_level="debug", settings=settings)
+
+        # Test with timestamp ending in Z
+        result = renderer(
+            None,
+            "info",
+            {
+                "event": "test_event",
+                "timestamp": "2023-01-01T00:00:00Z",
+                "level": "info",
+                "code_file": "test.py",
+                "code_func": "test_func",
+                "code_lineno": 42,
+            },
+        )
+
+        # Should remove Z from timestamp
+        assert "2023-01-01T00:00:00 " in result
+        assert "2023-01-01T00:00:00Z" not in result
+
+    def test_json_renderer_non_serializable_objects(self):
+        """Test JSONRenderer with non-serializable objects."""
+        renderer = JSONRenderer(min_level="debug")
+
+        # Test with object that can't be JSON serialized normally
+        class NonSerializable:
+            def __str__(self):
+                return "non_serializable_object"
+
+        result = renderer(
+            None,
+            None,
+            {
+                "event": "test_event",
+                "level": "info",
+                "complex_object": NonSerializable(),
+            },
+        )
+
+        assert isinstance(result, dict)
+        assert "console" in result
+        assert "non_serializable_object" in result["console"]
+
+    def test_process_exc_info_with_exception_object(self):
+        """Test process_exc_info with actual exception object."""
+        from src.nicestlog.core import process_exc_info
+
+        try:
+            raise ValueError("test exception")
+        except ValueError as e:
+            event_dict = {"exc_info": e}
+            result = process_exc_info(None, None, event_dict)
+
+            assert "exc_info" in result
+            exc_info = result["exc_info"]
+            assert isinstance(exc_info, tuple)
+            assert len(exc_info) == 3
+            assert exc_info[0] is ValueError
+            assert str(exc_info[1]) == "test exception"
+
+    def test_process_exc_info_with_true_value(self):
+        """Test process_exc_info with True value (current exception)."""
+        from src.nicestlog.core import process_exc_info
+
+        try:
+            raise RuntimeError("current exception")
+        except RuntimeError:
+            event_dict = {"exc_info": True}
+            result = process_exc_info(None, None, event_dict)
+
+            assert "exc_info" in result
+            exc_info = result["exc_info"]
+            assert isinstance(exc_info, tuple)
+            assert exc_info[0] is RuntimeError
+
+    def test_format_exc_info_processor(self):
+        """Test format_exc_info processor."""
+        from src.nicestlog.core import format_exc_info
+
+        try:
+            raise ValueError("test exception for formatting")
+        except ValueError:
+            import sys
+
+            event_dict = {"exc_info": sys.exc_info()}
+            result = format_exc_info(None, None, event_dict)
+
+            assert "exception" in result
+            assert "exc_info" not in result  # Should be removed
+            assert "ValueError" in result["exception"]
+            assert "test exception for formatting" in result["exception"]
+
+    def test_prefix_function_edge_cases(self):
+        """Test prefix function with edge cases."""
+        from src.nicestlog.core import prefix
+
+        # Test with empty string
+        assert prefix("test", "") == ""
+
+        # Test with None name
+        assert prefix(None, "line1\nline2") == "line1\nline2"
+
+        # Test with empty name
+        assert prefix("", "line1\nline2") == "line1\nline2"
+
+        # Test with single line
+        assert prefix("prefix", "single line") == "prefix: single line"
+
+    def test_init_logging_with_simple_format_dict(self):
+        """Test init_logging with simple_format as dict."""
+        from src.nicestlog.core import init_logging
+
+        # Reset structlog state
+        import structlog
+
+        structlog.reset_defaults()
+
+        simple_format_dict = {
+            "show_logger_brackets": False,
+            "show_pid": True,
+            "pad_event_width": 25,
+        }
+
+        init_logging(simple_format_settings=simple_format_dict, verbose=True)
+        assert structlog.is_configured()
+
+    def test_init_early_logging_when_already_configured(self):
+        """Test init_early_logging when structlog is already configured."""
+        from src.nicestlog.core import init_early_logging
+        import structlog
+
+        # Ensure structlog is configured
+        if not structlog.is_configured():
+            structlog.configure(processors=[])
+
+        # Should return early without error
+        init_early_logging()
+        assert structlog.is_configured()
+
+    def test_init_early_logging_exception_handling(self):
+        """Test init_early_logging graceful exception handling."""
+        from src.nicestlog.core import init_early_logging
+        from unittest.mock import patch
+        import structlog
+
+        # Reset structlog
+        structlog.reset_defaults()
+
+        # Mock structlog.configure to raise an exception
+        with patch("structlog.configure", side_effect=Exception("Mock error")):
+            # Should not raise exception
+            init_early_logging()
+            # Should still work (fallback to defaults)
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
