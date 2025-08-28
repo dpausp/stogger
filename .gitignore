@@ -7,6 +7,11 @@ wheels/
 *.egg-info
 src/nicestlog/_docs
 
+# Coverage files
+.coverage
+.coverage.*
+htmlcov/
+
 # doit cache
 .doit.db*
 
