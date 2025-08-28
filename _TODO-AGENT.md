@@ -52,10 +52,14 @@ Prioritized work items (with checkboxes)
      - [ ] Commit with message: "refactor: cleanup unused code in core library"
 
    **Key Findings:**
-   - TransformationStage enum (lines 31-39): Defined but never used - likely future feature
-   - CLI commands like tools_generate_service, tools_review, etc.: Defined but may not be properly registered
-   - transform_directory method in AdvancedAssistant: Public API that could be valuable
-   - Config attributes: May be planned features or dead configuration options
+   - ✅ TransformationStage enum: REMOVED (completely unused)
+   - ✅ NodeType constants: REMOVED unused ones, kept CALL (used by tests)
+   - ✅ rollback_data field: REMOVED (unused feature placeholder)
+   - ⚠️ CLI commands like tools_generate_service, tools_review, etc.: Need investigation
+   - ⚠️ transform_directory method in AdvancedAssistant: Public API that could be valuable
+   - ⚠️ Config attributes: May be planned features or dead configuration options
+
+   **Progress:** Successfully removed 3 categories of unused code, saving ~15 lines
 
 3) Analyze unused code in tests/ ⚠️ IN PROGRESS
    - Context: Test utilities and fixtures that might be unused but valuable
