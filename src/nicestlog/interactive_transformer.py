@@ -264,7 +264,7 @@ class InteractiveTransformer:
                 return self._create_empty_result(file_path)
 
         except Exception as e:
-            log.error(
+            log.exception(
                 "interactive-transformation-error",
                 _replace_msg="❌ Error in interactive transformation of {file_path}: {error}",
                 file_path=str(file_path),
