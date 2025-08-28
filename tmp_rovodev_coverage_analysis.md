@@ -74,12 +74,13 @@ This analysis examines test coverage across all nicestlog modules to classify un
 
 ### A. Unused Code (Remove) 🗑️
 Code that is never called and serves no purpose:
-- **cli_output_transformer.py (18%)**: Specialized AST transformation - likely unused in practice
-- **log_statement_analyzer.py (18%)**: Code analysis tool - likely unused in practice
 - **live_editor.py (24%)**: Live code editing - experimental feature, minimal usage
+- **CORRECTION**: cli_output_transformer.py and log_statement_analyzer.py are NOT unused!
 
 ### B. Needs Tests (High Priority) ⚠️
 Critical functionality lacking test coverage:
+- **cli_output_transformer.py (18%)**: Recently created CLI migration feature - needs comprehensive tests
+- **log_statement_analyzer.py (18%)**: Recently created linter enhancement - needs comprehensive tests
 - **cli.py error handling**: Exception paths in CLI commands
 - **systemd_integration.py (42%)**: System integration needs more robust testing
 - **core.py edge cases**: Exception handling in formatters and processors
@@ -163,10 +164,11 @@ Features that are work-in-progress:
 
 ### Immediate Actions (High Priority)
 
-1. **Remove Likely Unused Modules** 🗑️
-   - `cli_output_transformer.py` - 196 uncovered lines, specialized AST tool
-   - `log_statement_analyzer.py` - 195 uncovered lines, code analysis tool
-   - **Impact:** Remove ~391 lines, increase coverage from 62% to ~70%
+1. **Add Tests for Recently Created Features** 🚀
+   - `cli_output_transformer.py` - 196 uncovered lines, CLI migration feature (created Aug 26)
+   - `log_statement_analyzer.py` - 195 uncovered lines, linter enhancement (created Aug 15)
+   - **Impact:** Add ~391 lines of test coverage, increase overall coverage by ~8%
+   - **Priority:** CRITICAL - these are valuable, integrated features that need tests
 
 2. **Add Tests for Critical Error Handling** ⚠️
    - `systemd_integration.py` error paths - 60+ lines
@@ -213,7 +215,9 @@ Features that are work-in-progress:
 ## Summary
 
 **Current State:** 62% coverage (3154/5127 lines)
-**After Cleanup:** ~70% coverage (3154/4736 lines, removing 391 unused lines)
+**After Adding Tests for New Features:** ~70% coverage (3545/5127 lines, adding 391 lines of coverage)
 **Target State:** 80% coverage with realistic exclusions
 
-**Key Insight:** Much of the "low coverage" is actually unused or intentionally untested code. After proper classification and cleanup, the project has much better test coverage than the raw numbers suggest.
+**Key Insight:** The two modules with lowest coverage (cli_output_transformer.py and log_statement_analyzer.py) are actually valuable, recently created features that are fully integrated into the CLI system. They just need comprehensive tests! Much of the remaining "low coverage" is intentionally untested code (CLI wizards, demos, helpers).
+
+**Corrected Assessment:** No modules need removal - all code serves a purpose. The priority is adding tests for the newest features.

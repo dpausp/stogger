@@ -104,14 +104,44 @@ Prioritized work items (with checkboxes)
      - [ ] Prioritize critical vs nice-to-have coverage
      - [ ] Commit with message: "docs: classify uncovered code in utility modules"
 
-5) Create coverage improvement action plan
+5) Investigate potentially unused modules ✅ COMPLETED
+   - Context: Check if cli_output_transformer.py and log_statement_analyzer.py can be meaningfully used
+   - Files to check/modify:
+     - src/nicestlog/cli_output_transformer.py (18% coverage)
+     - src/nicestlog/log_statement_analyzer.py (18% coverage)
+     - Git history and integration points
+   - Steps:
+     - [x] Check git history - both modules created recently (Aug 15-26, 2025)
+     - [x] Analyze integration points in CLI and linter
+     - [x] Check for existing tests (none found)
+     - [x] Evaluate actual usage vs potential
+     - [x] Make recommendation: integrate and test vs remove
+     - [ ] Commit with decision and action plan
+
+   **Key Findings:**
+   - **cli_output_transformer.py**: Created Aug 26 for CLI migration feature
+     - ✅ **INTEGRATED**: Used in `nicestlog migrate --type cli-outputs-to-structlog`
+     - ✅ **VALUABLE**: Converts typer.echo(), click.echo(), rich.print() to structlog
+     - ❌ **UNTESTED**: No tests written yet (18% coverage = basic imports only)
+     - **DECISION**: KEEP and ADD COMPREHENSIVE TESTS
+   
+   - **log_statement_analyzer.py**: Created Aug 15 for linter enhancement
+     - ✅ **INTEGRATED**: Used in `nicestlog lint --analyze-statements`
+     - ✅ **VALUABLE**: Detects log statement issues (missing event IDs, format problems)
+     - ❌ **UNTESTED**: No tests written yet (18% coverage = basic imports only)
+     - **DECISION**: KEEP and ADD COMPREHENSIVE TESTS
+
+   **Recommendation**: Both modules are valuable, recently developed features that need tests, not removal!
+
+6) Create coverage improvement action plan ⚠️ IN PROGRESS
    - Context: Synthesize findings into actionable recommendations
    - Files to check/modify:
      - Coverage analysis summary document
      - Test priority recommendations
    - Steps:
-     - [ ] Summarize coverage gaps by priority
-     - [ ] Identify truly unused code for removal
-     - [ ] Create test writing priorities
-     - [ ] Document coverage targets and rationale
+     - [x] Summarize coverage gaps by priority
+     - [x] Identify truly unused code for removal (NONE - all code is valuable!)
+     - [x] Create test writing priorities
+     - [x] Document coverage targets and rationale
+     - [ ] Update action plan based on module investigation
      - [ ] Commit with message: "docs: create coverage improvement action plan"
