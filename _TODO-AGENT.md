@@ -2,24 +2,31 @@
 
 Task goal
 - Implement comprehensive tests for the highest priority uncovered code
+- Add interactive CLI integration tests with pexpect for user-centric testing
+- Add end-to-end integration tests for CLI migration and linter functionality
 - Increase overall test coverage from 62% to 75-80%
 - Focus on recently created features that lack tests but are fully functional
 - Ensure critical error handling paths are properly tested
+- Cover interactive CLI functions that were previously "intentionally untested"
 
 Success criteria
 - cli_output_transformer.py coverage: 18% → 80%+ (add ~160 lines of coverage)
 - log_statement_analyzer.py coverage: 18% → 80%+ (add ~155 lines of coverage)
 - systemd_integration.py coverage: 42% → 70%+ (add ~50 lines of coverage)
-- Overall project coverage: 62% → 75%+ (add ~365 lines of coverage)
+- Interactive CLI functions tested with pexpect (init_config, docs, demos)
+- End-to-end migration testing with real file transformations
+- Integration testing for linter with realistic codebases
+- Overall project coverage: 62% → 75%+ (add ~365+ lines of coverage)
 - All new tests pass and follow existing test patterns
 - No regression in existing functionality
+- Interactive functions work reliably in real user scenarios
 
 Out-of-scope for this task
 - Refactoring existing code (only add tests)
-- Testing intentionally untested code (CLI wizards, demos, display helpers)
-- Performance or integration testing
-- Testing experimental features (live_editor.py) - low priority
+- Performance benchmarking or stress testing
+- Testing experimental features (live_editor.py) - low priority  
 - Major architectural changes
+- Web dashboard testing (Flask optional dependency)
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -118,16 +125,77 @@ Prioritized work items (with checkboxes)
      - [ ] Verify coverage improvements
      - [ ] Commit with message: "test: add edge case tests for core modules"
 
-6) Verify overall coverage improvement and cleanup
+6) Add interactive CLI integration tests with pexpect
+   - Context: Interactive CLI functions (init_config, docs browser, demos) need user-centric integration testing
+   - Effort estimate: 3-4 hours (interactive testing setup and scenarios)
+   - Risk: Medium complexity - user interaction simulation and timing issues
+   - Files to check/modify:
+     - src/nicestlog/cli.py (interactive functions: init_config_cmd, _show_docs_interactive, tools_demo)
+     - tests/test_cli_interactive.py (create new test file)
+     - pyproject.toml (add pexpect dependency for testing)
+   - Steps:
+     - [ ] Add pexpect to test dependencies in pyproject.toml
+     - [ ] Create interactive test infrastructure with pexpect
+     - [ ] Test init_config_cmd wizard: user inputs, file creation, validation
+     - [ ] Test docs browser: navigation, search, exit scenarios
+     - [ ] Test demo runners: interactive prompts, user choices, error handling
+     - [ ] Test CLI help and --help interactions
+     - [ ] Test keyboard interrupts (Ctrl+C) and graceful exits
+     - [ ] Test invalid user inputs and error recovery
+     - [ ] Test timeout scenarios and hanging processes
+     - [ ] Verify interactive functions work end-to-end
+     - [ ] Commit with message: "test: add interactive CLI integration tests with pexpect"
+
+7) Add CLI migration integration tests
+   - Context: CLI migration commands need end-to-end testing with real file transformations
+   - Effort estimate: 2-3 hours (file-based integration testing)
+   - Risk: Medium complexity - file system operations and real code transformations
+   - Files to check/modify:
+     - src/nicestlog/cli.py (migrate command)
+     - src/nicestlog/cli_output_transformer.py (transformation logic)
+     - tests/test_cli_migration_integration.py (create new test file)
+   - Steps:
+     - [ ] Create test fixtures with sample Python files containing typer.echo(), click.echo(), rich.print()
+     - [ ] Test end-to-end migration: `nicestlog migrate --type cli-outputs-to-structlog`
+     - [ ] Verify file transformations are correct and preserve functionality
+     - [ ] Test migration with different file structures and edge cases
+     - [ ] Test migration error handling: permission denied, invalid files, backup failures
+     - [ ] Test migration dry-run mode and preview functionality
+     - [ ] Test migration with gitignore integration
+     - [ ] Verify no data loss and proper backup creation
+     - [ ] Commit with message: "test: add CLI migration integration tests"
+
+8) Add linter integration tests with real codebases
+   - Context: Linter functionality needs testing with realistic code examples
+   - Effort estimate: 2-3 hours (realistic codebase testing)
+   - Risk: Low-Medium complexity - code analysis on real examples
+   - Files to check/modify:
+     - src/nicestlog/linter.py (linting logic)
+     - src/nicestlog/log_statement_analyzer.py (analysis patterns)
+     - tests/test_linter_integration.py (create new test file)
+   - Steps:
+     - [ ] Create test fixtures with realistic Python codebases
+     - [ ] Test end-to-end linting: `nicestlog lint --analyze-statements`
+     - [ ] Test linter with various log statement patterns and issues
+     - [ ] Test linter performance with larger codebases
+     - [ ] Test linter configuration and customization options
+     - [ ] Test linter output formatting and reporting
+     - [ ] Test linter integration with pre-commit hooks
+     - [ ] Verify linter catches real issues and provides helpful suggestions
+     - [ ] Commit with message: "test: add linter integration tests with real codebases"
+
+9) Verify overall coverage improvement and cleanup
    - Context: Ensure coverage targets are met and cleanup temporary files
    - Effort estimate: 30 minutes (verification and cleanup)
    - Risk: Low - verification and cleanup task
    - Files to check/modify:
      - Coverage reports and temporary analysis files
+     - pyproject.toml (test dependencies)
    - Steps:
-     - [ ] Run comprehensive coverage report
+     - [ ] Run comprehensive coverage report including integration tests
      - [ ] Verify overall coverage increased to 75%+
      - [ ] Verify target modules reached coverage goals
+     - [ ] Verify interactive and integration tests provide meaningful coverage
      - [ ] Clean up temporary analysis files (tmp_rovodev_*)
-     - [ ] Update documentation with new coverage metrics
-     - [ ] Commit with message: "docs: update coverage metrics after test improvements"
+     - [ ] Update documentation with new coverage metrics and test types
+     - [ ] Commit with message: "docs: update coverage metrics after comprehensive test improvements"
