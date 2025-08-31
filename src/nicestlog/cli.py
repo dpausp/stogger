@@ -417,10 +417,27 @@ def check(
       nicestlog check file.py --complexity       # Complexity analysis
     """
     from .linter import lint_directory
+    from .config import detect_project_structure
 
     path_obj = Path(path)
     if not path_obj.exists():
         console.print(f"❌ [red]Path {path} does not exist[/red]")
+        sys.exit(1)
+
+    # Step 1: Detect and report project structure (Rule 2 requirement)
+    try:
+        if path_obj.is_dir():
+            project_structure = detect_project_structure(path_obj)
+            _display_project_context(project_structure, verbose)
+        else:
+            # For single files, detect from parent directory
+            project_structure = detect_project_structure(path_obj.parent)
+            _display_project_context(project_structure, verbose, single_file=path_obj)
+    except ValueError as e:
+        console.print(f"❌ [red]Project structure detection failed: {e}[/red]")
+        console.print(
+            "💡 [blue]Please configure [tool.nicestlog] section in pyproject.toml[/blue]"
+        )
         sys.exit(1)
 
     # Display mode information
@@ -445,7 +462,7 @@ def check(
     basic_success = True
     if no_ast and not interactive and not patterns and not complexity:
         console.print("\n📋 [bold blue]Running basic linting...[/bold blue]")
-        basic_success = lint_directory(path_obj)
+        basic_success = lint_directory(path_obj, project_structure=project_structure)
 
     # 2. AST Analysis (enabled by default, disabled with --no-ast)
     ast_issues = None
@@ -2264,6 +2281,76 @@ def _display_next_steps_guidance(result, path: str):
     console.print(
         "\n💡 [blue]Need help? Run: [cyan]nicestlog docs[/cyan] or [cyan]nicestlog demo[/cyan][/blue]"
     )
+
+
+def _display_project_context(
+    project_structure, verbose: bool, single_file: Optional[Path] = None
+):
+    """Display project context and configuration being used."""
+
+    console.print("\n🏗️ [bold blue]Project Context[/bold blue]")
+
+    # Create context table
+    context_table = Table(title="📋 Configuration")
+    context_table.add_column("Setting", style="cyan")
+    context_table.add_column("Value", style="green")
+    context_table.add_column("Source", style="yellow")
+
+    context_table.add_row(
+        "Project Root",
+        str(project_structure.project_root),
+        project_structure.detection_source,
+    )
+    context_table.add_row(
+        "Source Directories",
+        ", ".join(project_structure.source_dirs),
+        project_structure.detection_source,
+    )
+    context_table.add_row(
+        "Test Directories",
+        ", ".join(project_structure.test_dirs),
+        project_structure.detection_source,
+    )
+
+    console.print(context_table)
+
+    # Show scope information
+    if single_file:
+        # Single file analysis
+        is_excluded = project_structure.should_exclude_from_logging_analysis(
+            single_file
+        )
+        scope_status = (
+            "❌ Excluded from logging analysis"
+            if is_excluded
+            else "✅ Included in logging analysis"
+        )
+        console.print(f"\n📄 [bold]File Scope:[/bold] {scope_status}")
+        if is_excluded:
+            console.print(
+                "💡 [blue]This file is in a test directory or excluded pattern[/blue]"
+            )
+    else:
+        # Directory analysis
+        console.print("\n📁 [bold]Analysis Scope:[/bold]")
+        console.print(
+            f"  • [green]Logging analysis:[/green] Source directories only ({', '.join(project_structure.source_dirs)})"
+        )
+        console.print(
+            "  • [yellow]Excluded from logging:[/yellow] Tests and other patterns"
+        )
+        console.print(
+            "  • [blue]Code coverage:[/blue] All Python files (including tests)"
+        )
+
+        if verbose:
+            console.print("\n🔍 [bold]Exclude Patterns:[/bold]")
+            for pattern in project_structure.exclude_patterns[:5]:  # Show first 5
+                console.print(f"  • {pattern}")
+            if len(project_structure.exclude_patterns) > 5:
+                console.print(
+                    f"  • ... and {len(project_structure.exclude_patterns) - 5} more"
+                )
 
 
 def _display_project_analysis(result):

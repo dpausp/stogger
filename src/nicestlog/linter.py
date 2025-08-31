@@ -569,56 +569,80 @@ def lint_directory(
     analyze_statements: bool = False,
     verbose: bool = False,
     allow_snake_case: bool = False,
+    project_structure=None,
 ) -> bool:
     """Lint all Python files in a directory and its subdirectories.
 
-    Excludes common virtual env, cache and VCS directories (e.g., .venv, venv, __pycache__, .git).
+    Uses smart project structure detection to exclude tests from logging analysis.
     """
-    # Recursively find all Python files in the directory, excluding unwanted dirs
-    EXCLUDE_DIRS = {
-        ".venv",
-        "venv",
-        "__pycache__",
-        ".git",
-        ".tox",
-        ".nox",
-        ".mypy_cache",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".direnv",
-        "node_modules",
-        "build",
-        "dist",
-        ".eggs",
-    }
-    # Load exclusion globs from pyproject.toml [tool.nicestlog]
-    exclude_globs: list[str] = []
-    pyproject = directory / "pyproject.toml"
-    if pyproject.exists():
-        try:
-            cfg = toml.load(str(pyproject))
-            nl_cfg = cfg.get("tool", {}).get("nicestlog", {})
-            exclude_globs = list(nl_cfg.get("exclude", []))
-        except Exception:
-            exclude_globs = []
+    # Use project structure detection if provided, otherwise fall back to legacy method
+    if project_structure:
+        # Smart filtering: only analyze source files for logging coverage
+        python_files = []
+        for source_dir in project_structure.source_dirs:
+            source_path = directory / source_dir
+            if source_path.exists():
+                for py_file in source_path.rglob("*.py"):
+                    if not project_structure.should_exclude_from_logging_analysis(
+                        py_file
+                    ):
+                        python_files.append(py_file)
 
-    def is_excluded(path: Path) -> bool:
-        rel = path.relative_to(directory)
-        s = str(rel)
-        # Match any configured glob
-        for pattern in exclude_globs:
-            if fnmatch.fnmatch(s, pattern):
-                return True
-            # Also allow directory-style pattern without **/*.py
-            if rel.parts and pattern.rstrip("/") in rel.parts:
-                return True
-        return False
+        if verbose:
+            excluded_files = []
+            for py_file in directory.rglob("*.py"):
+                if project_structure.should_exclude_from_logging_analysis(py_file):
+                    excluded_files.append(py_file)
+            print(f"📁 Analyzing {len(python_files)} source files for logging coverage")
+            print(
+                f"🚫 Excluded {len(excluded_files)} files (tests, docs, etc.) from logging analysis"
+            )
+    else:
+        # Legacy filtering method
+        EXCLUDE_DIRS = {
+            ".venv",
+            "venv",
+            "__pycache__",
+            ".git",
+            ".tox",
+            ".nox",
+            ".mypy_cache",
+            ".pytest_cache",
+            ".ruff_cache",
+            ".direnv",
+            "node_modules",
+            "build",
+            "dist",
+            ".eggs",
+        }
+        # Load exclusion globs from pyproject.toml [tool.nicestlog]
+        exclude_globs: list[str] = []
+        pyproject = directory / "pyproject.toml"
+        if pyproject.exists():
+            try:
+                cfg = toml.load(str(pyproject))
+                nl_cfg = cfg.get("tool", {}).get("nicestlog", {})
+                exclude_globs = list(nl_cfg.get("exclude", []))
+            except Exception:
+                exclude_globs = []
 
-    python_files = [
-        p
-        for p in directory.rglob("*.py")
-        if not any(part in EXCLUDE_DIRS for part in p.parts) and not is_excluded(p)
-    ]
+        def is_excluded(path: Path) -> bool:
+            rel = path.relative_to(directory)
+            s = str(rel)
+            # Match any configured glob
+            for pattern in exclude_globs:
+                if fnmatch.fnmatch(s, pattern):
+                    return True
+                # Also allow directory-style pattern without **/*.py
+                if rel.parts and pattern.rstrip("/") in rel.parts:
+                    return True
+            return False
+
+        python_files = [
+            p
+            for p in directory.rglob("*.py")
+            if not any(part in EXCLUDE_DIRS for part in p.parts) and not is_excluded(p)
+        ]
 
     if not python_files:
         if os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower() in {"json", "toml"}:
