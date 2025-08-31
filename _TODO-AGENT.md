@@ -1,10 +1,10 @@
-# Fix Failing and Hanging Tests - Use pexpect for Interactive Tests
+# Build pexpect Tests Without Mocking for Direct Testing
 
 Task goal
-- Fix failing tests related to logging level issues and error handling
-- Identify and fix hanging tests, especially interactive ones
-- Implement proper pexpect usage for interactive tests that need real terminal interaction
-- Ensure all tests run reliably without hanging
+- Create pexpect-based tests that work without mocking and test directly
+- Add real terminal interaction tests for CLI interactive features
+- Mark these tests as slow using @pytest.mark.slow
+- Ensure tests have proper timeouts and error handling
 
 Out-of-scope for this task
 - Changing the core logging functionality beyond fixing the 'exception' level issue
@@ -31,28 +31,30 @@ Prioritized work items (with checkboxes)
      - [x] Update error handling to be graceful as tests expect
      - [x] Run interactive transformer tests to verify fixes
 
-2) Identify hanging tests
+2) Identify hanging tests ✅ COMPLETED
    - Context: Test suite hangs around 13% completion, need to find which tests
    - Files to check/modify:
      - tests/test_cli.py (check interactive mode tests)
      - tests/test_cli_ast_integration.py (check interactive tests)
      - Any other tests that might use real user input
    - Steps:
-     - [ ] Run individual test files to isolate hanging tests
-     - [ ] Check for tests that use real input() calls instead of mocked input
-     - [ ] Identify tests that need pexpect for proper terminal interaction
+     - [x] Run individual test files to isolate hanging tests
+     - [x] Check for tests that use real input() calls instead of mocked input
+     - [x] Identify tests that need pexpect for proper terminal interaction
+   - Result: Hanging was caused by the logging level issue, not interactive tests
 
-3) Implement pexpect for interactive tests
-   - Context: Some tests may need real terminal interaction that mocking can't handle
+3) Implement pexpect for interactive tests ✅ COMPLETED
+   - Context: Create new pexpect tests that test real terminal interaction without mocking
    - Files to check/modify:
-     - tests/test_cli.py (convert hanging interactive tests)
-     - tests/test_cli_ast_integration.py (convert interactive tests)
-     - Add new pexpect-based test utilities if needed
+     - tests/test_cli_pexpect.py (new file for pexpect-based CLI tests)
+     - tests/test_interactive_pexpect.py (new file for interactive transformer tests)
+     - Add pexpect test utilities and helpers
    - Steps:
-     - [ ] Create helper functions for pexpect-based testing
-     - [ ] Convert hanging interactive tests to use pexpect
-     - [ ] Ensure pexpect tests have proper timeouts
-     - [ ] Test that converted tests run reliably
+     - [x] Create helper functions for pexpect-based testing
+     - [x] Create new pexpect tests for CLI interactive commands
+     - [x] Create pexpect tests for interactive transformer
+     - [x] Ensure pexpect tests have proper timeouts and are marked as slow
+     - [x] Test that pexpect tests run reliably
 
 4) Fix specific failing tests
    - Context: Address the specific test failures identified

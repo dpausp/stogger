@@ -37,6 +37,11 @@ packages = ["src/nicestlog"]
 [tool.hatch.build.targets.sdist]
 include = ["README.md", "docs/**"]
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
 [tool.nicestlog]
 # Source directory (default: "src")
 src_dir = "src"
