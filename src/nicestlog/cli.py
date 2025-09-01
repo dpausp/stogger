@@ -1142,20 +1142,15 @@ def migrate(
 # Add demo command to tools
 @tools_app.command("demo")
 def tools_demo(
-    feature_arg: Annotated[
-        Optional[str], typer.Argument(help="Demo specific feature")
-    ] = None,
     feature: Annotated[
-        Optional[str], typer.Option("--feature", help="Demo specific feature")
+        Optional[str], typer.Argument(help="Demo specific feature")
     ] = None,
     all_features: Annotated[
         bool, typer.Option("--all", help="Demo all features")
     ] = False,
 ):
     """🎬 Run interactive demos."""
-    # Support both positional argument and --feature option
-    selected_feature = feature_arg or feature
-    run_demos(selected_feature, all_features)
+    run_demos(feature, all_features)
 
 
 # Helper functions for docs display

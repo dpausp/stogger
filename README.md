@@ -102,7 +102,7 @@ nicestlog check .                      # Check logging coverage and quality
 # Setup and utilities
 nicestlog init                         # Initialize configuration
 nicestlog docs                         # Browse documentation
-nicestlog demo                         # Run interactive demos
+nicestlog tools demo                   # Run interactive demos
 ```
 
 ## CLI Docs Viewer
