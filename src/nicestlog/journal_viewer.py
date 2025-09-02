@@ -12,6 +12,11 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Iterator, Optional
 from dataclasses import dataclass
 
+import structlog
+
+# Get a logger for this module
+log = structlog.get_logger(__name__)
+
 # Keep a reference to the real datetime class for type checks when tests patch the module symbol
 _REAL_DATETIME = datetime
 
@@ -19,9 +24,15 @@ try:
     from systemd import journal  # type: ignore[import-not-found]
 
     SYSTEMD_AVAILABLE = True
+    log.debug("systemd-journal-available", module="systemd.journal")
 except ImportError:
     SYSTEMD_AVAILABLE = False
     journal = None
+    log.warning(
+        "systemd-journal-unavailable",
+        _replace_msg="⚠️  systemd-python not available - journal viewing disabled",
+        suggestion="Install with: pip install systemd-python",
+    )
 
 try:
     from .core import RESET_ALL, BRIGHT, DIM, RED, BLUE, CYAN, MAGENTA, YELLOW, GREEN
@@ -106,24 +117,50 @@ class JournalViewer:
             show_service: Show service/identifier
             max_width: Maximum line width for formatting
         """
+        log.debug(
+            "initializing-journal-viewer",
+            show_hostname=show_hostname,
+            show_pid=show_pid,
+            show_service=show_service,
+            max_width=max_width,
+        )
+
         self.show_hostname = show_hostname
         self.show_pid = show_pid
         self.show_service = show_service
         self.max_width = max_width
 
         if not SYSTEMD_AVAILABLE:
+            log.error(
+                "systemd-unavailable-during-init",
+                _replace_msg="❌ Cannot initialize journal viewer - systemd-python not available",
+            )
             print(
                 "Warning: systemd-python not available. Install with: pip install systemd-python",
                 file=sys.stderr,
             )
+        else:
+            log.debug(
+                "journal-viewer-initialized", _replace_msg="✅ Journal viewer ready"
+            )
 
     def parse_journal_entry(self, entry: Dict[str, Any]) -> JournalEntry:
         """Parse a raw journal entry into structured format."""
+        log.debug(
+            "parsing-journal-entry",
+            has_timestamp=bool(entry.get("__REALTIME_TIMESTAMP")),
+            entry_keys=list(entry.keys())[:10],
+        )  # Limit keys for readability
+
         # Extract timestamp
         timestamp = entry.get("__REALTIME_TIMESTAMP")
         if timestamp:
             timestamp = datetime.fromtimestamp(timestamp.timestamp())
         else:
+            log.warning(
+                "missing-timestamp-in-entry",
+                _replace_msg="⚠️  Journal entry missing timestamp, using current time",
+            )
             timestamp = datetime.now()
 
         # Extract basic fields
@@ -152,6 +189,11 @@ class JournalViewer:
                     else:
                         fields[field_name] = value
                 except json.JSONDecodeError:
+                    log.debug(
+                        "json-decode-failed",
+                        field_name=field_name,
+                        value_preview=str(value)[:100],
+                    )
                     fields[field_name] = value
 
         return JournalEntry(
@@ -230,18 +272,36 @@ class JournalViewer:
             lines: Maximum number of lines
             follow: Follow new entries (like tail -f)
         """
+        log.info(
+            "starting-journal-query",
+            _replace_msg="🔍 Starting journal query",
+            service=service,
+            since=since,
+            until=until,
+            level=level,
+            lines=lines,
+            follow=follow,
+        )
+
         if not SYSTEMD_AVAILABLE:
+            log.error(
+                "journal-query-failed-no-systemd",
+                _replace_msg="❌ Cannot query journal - systemd-python not available",
+            )
             print("systemd-python not available", file=sys.stderr)
             return
 
         try:
+            log.debug("creating-journal-reader")
             j = journal.Reader()
 
             # Add filters
             if service:
+                log.debug("adding-service-filter", service=service)
                 j.add_match(SYSLOG_IDENTIFIER=service)
 
             if level:
+                log.debug("adding-level-filter", level=level)
                 # Filter by priority level
                 level_priorities = {
                     "critical": [0, 1, 2],
@@ -253,12 +313,16 @@ class JournalViewer:
                 priorities = level_priorities.get(
                     level.lower(), [0, 1, 2, 3, 4, 5, 6, 7]
                 )
+                log.debug(
+                    "mapped-level-to-priorities", level=level, priorities=priorities
+                )
                 for priority in priorities:
                     j.add_match(("PRIORITY", priority))
 
             # Set time range
             if since:
                 since_time = self.parse_time_string(since)
+                log.debug("setting-since-time", since=since, parsed_time=since_time)
                 j.seek_realtime(since_time)
 
             if until:
@@ -278,29 +342,54 @@ class JournalViewer:
                 j.seek_tail()
 
             count = 0
+            log.debug("starting-journal-iteration", follow=follow, lines=lines)
+
             for entry in j:
                 if lines and count >= lines and not follow:
+                    log.debug("reached-line-limit", count=count, lines=lines)
                     break
 
                 # Manual until filtering
                 if until:
                     entry_time = entry.get("__REALTIME_TIMESTAMP")
                     if entry_time and entry_time.timestamp() > until_time.timestamp():
+                        log.debug(
+                            "entry-after-until-time",
+                            entry_time=entry_time,
+                            until_time=until_time,
+                        )
                         continue
 
                 parsed_entry = self.parse_journal_entry(entry)
                 yield parsed_entry
                 count += 1
 
+                if count % 100 == 0:  # Log progress every 100 entries
+                    log.debug("processed-entries", count=count)
+
                 if follow:
                     # In follow mode, wait for new entries
+                    log.debug("waiting-for-new-entries")
                     j.wait()
 
+            log.info(
+                "journal-query-completed",
+                _replace_msg="✅ Journal query completed",
+                total_entries=count,
+            )
+
         except Exception as e:
+            log.error(
+                "journal-query-error",
+                _replace_msg="❌ Error reading journal",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             print(f"Error reading journal: {e}", file=sys.stderr)
 
     def parse_time_string(self, time_str: str) -> datetime:
         """Parse various time string formats."""
+        log.debug("parsing-time-string", time_str=time_str)
         time_str = time_str.strip().lower()
         # Support monkeypatching datetime in tests by keeping it as module attribute
         now = datetime.now()
@@ -344,7 +433,13 @@ class JournalViewer:
             if not isinstance(parsed, _REAL_DATETIME):
                 parsed = _REAL_DATETIME.fromisoformat(time_str.replace("T", " "))
             return parsed
-        except Exception:
+        except Exception as e:
+            log.warning(
+                "time-parse-failed",
+                time_str=time_str,
+                error=str(e),
+                fallback="1 hour ago",
+            )
             pass
 
         # Default to 1 hour ago
@@ -352,11 +447,15 @@ class JournalViewer:
         # Ensure result is a real datetime if datetime is patched
         if not isinstance(result, _REAL_DATETIME):
             result = _REAL_DATETIME.fromtimestamp(result.timestamp())
+        log.debug("parsed-time-result", original=time_str, result=result)
         return result
 
 
 def main():
     """CLI interface for journal viewer."""
+    log.info(
+        "journal-viewer-main-started", _replace_msg="🚀 Starting journal viewer CLI"
+    )
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -416,6 +515,10 @@ def main():
     args, _unknown = parser.parse_known_args()
 
     if not SYSTEMD_AVAILABLE:
+        log.error(
+            "main-systemd-unavailable",
+            _replace_msg="❌ Cannot start journal viewer - systemd-python not available",
+        )
         print(
             "Error: systemd-python not available. Install with: pip install systemd-python",
             file=sys.stderr,
@@ -425,18 +528,40 @@ def main():
 
     try:
         # Create viewer
+        log.debug(
+            "creating-journal-viewer-instance",
+            show_hostname=args.show_hostname,
+            show_pid=args.show_pid,
+            show_service=not args.no_service,
+        )
         viewer = JournalViewer(
             show_hostname=args.show_hostname,
             show_pid=args.show_pid,
             show_service=not args.no_service,
         )
+        log.info(
+            "journal-viewer-created", _replace_msg="✅ Journal viewer instance created"
+        )
     except Exception as e:
+        log.error(
+            "viewer-creation-failed",
+            _replace_msg="❌ Failed to create journal viewer",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
         return
 
     try:
         # Query and display entries
+        log.info(
+            "starting-journal-display",
+            _replace_msg="📖 Starting journal display",
+            output_format="json" if args.json else "formatted",
+        )
+
+        entry_count = 0
         for entry in viewer.query_journal(
             service=args.service,
             since=args.since,
@@ -452,10 +577,25 @@ def main():
                 # Beautiful formatted output
                 print(viewer.format_entry(entry))
 
+            entry_count += 1
+
+        log.info(
+            "journal-display-completed",
+            _replace_msg="✅ Journal display completed",
+            entries_displayed=entry_count,
+        )
+
     except KeyboardInterrupt:
+        log.info("user-interrupted", _replace_msg="👋 User interrupted journal viewer")
         print("\n👋 Goodbye!", file=sys.stderr)
         sys.exit(0)
     except Exception as e:
+        log.error(
+            "main-execution-error",
+            _replace_msg="❌ Error during journal viewing",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 

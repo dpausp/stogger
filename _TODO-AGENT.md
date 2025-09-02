@@ -1,15 +1,15 @@
-# Log Coverage Analysis
+# Add Logging to Journal Viewer
 
 Task goal
-- Analyze our own logging coverage in the nicestlog codebase
-- Understand what parts of our code have logging and what's missing
-- Identify patterns and gaps in our logging strategy
-- Document findings and recommendations
+- Add comprehensive logging to journal_viewer.py (464 lines, currently no logging)
+- Follow established logging patterns from other modules
+- Ensure proper error handling and debug instrumentation
+- Test the logging additions work correctly
 
 Out-of-scope for this task
-- Adding new logging statements (analysis only)
-- Changing existing log levels or formats
-- Performance optimization of logging
+- Changing existing functionality
+- Performance optimization
+- Adding new features beyond logging
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -19,50 +19,49 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Examine existing coverage data
-   - Context: Check what coverage.json contains and understand current metrics
+1) Analyze journal_viewer.py structure
+   - Context: Understand the module structure and identify key logging points
    - Files to check/modify:
-     - coverage.json
-     - pyproject.toml (coverage config)
+     - src/nicestlog/journal_viewer.py
    - Steps:
-     - [x] Analyze coverage.json content
-     - [x] Check coverage configuration  
-     - [x] Understand what's measured
+     - [x] Examine module structure and main functions
+     - [x] Identify error handling locations
+     - [x] Find initialization and connection points
+     - [x] Plan logging strategy
 
-2) Analyze logging patterns in source code
-   - Context: Scan all Python files for logging usage patterns
+2) Add logging infrastructure
+   - Context: Add structlog logger and follow established patterns
    - Files to check/modify:
-     - src/nicestlog/*.py
-     - tests/*.py
+     - src/nicestlog/journal_viewer.py
    - Steps:
-     - [x] Search for logging imports and usage
-     - [x] Identify modules with/without logging
-     - [x] Categorize logging patterns (debug, info, warning, error)
+     - [x] Add structlog import and logger setup
+     - [x] Add debug logging for initialization
+     - [x] Add info logging for major operations
+     - [x] Add warning/error logging for failure cases
 
-3) Document findings
-   - Context: Summarize analysis results and provide recommendations
+3) Test logging additions
+   - Context: Verify logging works and follows patterns
    - Files to check/modify:
-     - tmp_rovodev_log_coverage_analysis.md (created)
+     - tests/test_journal_viewer.py (exists - 41 tests)
    - Steps:
-     - [x] Create summary of current logging coverage
-     - [x] Identify gaps and opportunities
-     - [x] Provide recommendations
+     - [x] Run existing tests to ensure no breakage
+     - [x] Test logging output manually if needed
+     - [x] Verify logging levels and messages
 
-## Analysis Complete ✅
+## Task Complete ✅
 
-**Key Findings:**
-- **79.2% logging coverage** (19/24 files have logging)
-- **~160 total logging statements** with good structured logging practices
-- **Test coverage: 61.5%** (3154/5127 lines) - separate from log coverage
-- **Main gaps**: journal_viewer.py (464 lines), eliot_integration.py, i18n_check.py
+**Successfully added comprehensive logging to journal_viewer.py:**
 
-**Logging Distribution:**
-- Debug: ~95 statements (heavy instrumentation)
-- Info: ~42 statements  
-- Warning: ~15 statements
-- Error: ~8 statements (could be increased)
+- **Added 20+ logging statements** across all major functions
+- **Structured logging** using established patterns (debug, info, warning, error)
+- **Key logging points covered:**
+  - Module initialization and systemd availability
+  - Journal viewer creation and configuration
+  - Journal query setup and execution
+  - Entry parsing and processing
+  - Error handling and time parsing
+  - Main CLI function lifecycle
 
-**Recommendations:**
-1. Add logging to journal_viewer.py (high priority)
-2. Add logging to integration modules (medium priority)  
-3. Review error logging coverage (low priority)
+**All 41 existing tests pass** - no functionality broken
+**Import test successful** - no syntax errors
+**Logging follows nicestlog patterns** - structured with key-value pairs and _replace_msg
