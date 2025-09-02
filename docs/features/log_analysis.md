@@ -245,16 +245,16 @@ log.info("operation-failed",
 
 ```bash
 # Analyze a single file
-nicestlog analyze my_file.py
+nicestlog check my_file.py
 
 # Analyze a directory
-nicestlog analyze src/ --recursive
+nicestlog check src/
 
-# Generate detailed report
-nicestlog analyze src/ --format json --output analysis.json
+# Generate detailed analysis with complexity
+nicestlog check src/ --complexity --verbose
 
-# Check specific issue types
-nicestlog analyze src/ --check pii,levels,patterns
+# Check specific patterns
+nicestlog check src/ --pattern specific_pattern
 ```
 
 ### Programmatic Analysis
@@ -337,17 +337,17 @@ print(f"Magic args usage: {results.metrics.magic_args_usage}")
 Generate reports in various formats:
 
 ```bash
-# JSON report
-nicestlog analyze src/ --format json --output report.json
+# Basic analysis
+nicestlog check src/ --verbose
 
-# HTML report  
-nicestlog analyze src/ --format html --output report.html
+# Complexity analysis
+nicestlog check src/ --complexity
 
-# CSV report
-nicestlog analyze src/ --format csv --output report.csv
+# Pattern-specific analysis
+nicestlog check src/ --pattern specific_pattern
 
-# Console output with colors
-nicestlog analyze src/ --format console --color
+# Interactive analysis
+nicestlog check src/ --interactive
 ```
 
 ### Sample JSON Report
@@ -402,9 +402,9 @@ jobs:
         run: pip install nicestlog
       - name: Analyze logs
         run: |
-          nicestlog analyze src/ --format json --output analysis.json
-          # Fail if critical issues found
-          nicestlog analyze src/ --fail-on error,critical
+          nicestlog check src/ --complexity --verbose
+          # Use exit code to fail on issues
+          nicestlog check src/ --pattern critical_issues
 ```
 
 ### Pre-commit Hook
@@ -416,7 +416,7 @@ repos:
     hooks:
       - id: nicestlog-analysis
         name: nicestlog log analysis
-        entry: nicestlog analyze
+        entry: nicestlog check
         language: system
         files: \.py$
         args: [--fail-on, error]
@@ -478,10 +478,10 @@ Run analysis regularly as part of your development workflow:
 
 ```bash
 # Daily analysis
-nicestlog analyze src/ --since yesterday
+nicestlog check src/ --verbose
 
 # Pre-commit analysis
-nicestlog analyze --staged-files
+nicestlog check .
 ```
 
 ### 2. Gradual Improvement
@@ -490,10 +490,10 @@ Fix issues incrementally:
 
 ```bash
 # Fix high-priority issues first
-nicestlog analyze src/ --severity error,critical --fix-suggestions
+nicestlog check src/ --fix --pattern critical_issues
 
 # Then address warnings
-nicestlog analyze src/ --severity warning --fix-suggestions
+nicestlog check src/ --fix --verbose
 ```
 
 ### 3. Team Standards

@@ -3,7 +3,7 @@
 The Advanced AST Assistant provides AST-based analysis and transformations. The API and CLI described here reflect the current implementation.
 
 - Python API: see `src/nicestlog/advanced_assistant.py`
-- CLI: available under `nicestlog ast ...` (analyze/transform/patterns)
+- CLI: available under `nicestlog check` (with AST analysis by default)
 
 ## Quick Python examples
 
@@ -42,17 +42,16 @@ assistant.add_pattern(
 ## CLI usage
 
 ```bash
-# Analyze
-nicestlog ast analyze my_script.py --verbose
-nicestlog ast analyze src/ --pattern "*.py" --json
+# Analyze (check with AST analysis)
+nicestlog check my_script.py --verbose
+nicestlog check src/ --complexity
 
-# Transform
-nicestlog ast transform my_script.py --dry-run --verbose
-nicestlog ast transform src/ --enable print_to_structlog --disable add_missing_docstrings
+# Transform (check with fix)
+nicestlog check my_script.py --fix --dry-run --verbose
+nicestlog check src/ --fix --pattern specific_pattern
 
-# Patterns
-nicestlog ast patterns --list
-nicestlog ast patterns --details
+# Interactive demos
+nicestlog tools demo
 ```
 
 For details on detected issues in logging calls, see Log Statement Analysis.
@@ -88,7 +87,7 @@ logger.info("user-login", user_id=user_id, ip_address=ip_address)
 Transform entire codebases with a single command:
 
 ```bash
-nicestlog transform --input src/ --output src_transformed/
+nicestlog check src/ --fix --backup
 ```
 
 ### 📊 Code Quality Metrics
@@ -96,7 +95,7 @@ nicestlog transform --input src/ --output src_transformed/
 Get detailed reports on your logging quality:
 
 ```bash
-nicestlog analyze --path src/ --report-format json
+nicestlog check src/ --complexity --verbose
 ```
 
 ## Usage Examples
@@ -253,43 +252,43 @@ assistant = AdvancedAssistant(config=config)
 ### Transform Command
 
 ```bash
-# Transform a single file
-nicestlog transform my_file.py
+# Check and fix a single file
+nicestlog check my_file.py --fix
 
-# Transform a directory
-nicestlog transform src/ --recursive
+# Check and fix a directory
+nicestlog check src/ --fix
 
 # Dry run (preview changes)
-nicestlog transform src/ --dry-run
+nicestlog check src/ --fix --dry-run
 
 # Create backups
-nicestlog transform src/ --backup
+nicestlog check src/ --fix --backup
 
-# Custom configuration
-nicestlog transform src/ --config my_config.toml
+# Custom pattern analysis
+nicestlog check src/ --pattern specific_pattern
 ```
 
 ### Analyze Command
 
 ```bash
 # Analyze code quality
-nicestlog analyze src/
+nicestlog check src/
 
-# Generate detailed report
-nicestlog analyze src/ --report-format json --output report.json
+# Generate detailed analysis with complexity
+nicestlog check src/ --complexity --verbose
 
-# Check specific issues
-nicestlog analyze src/ --check-pii --check-levels --check-patterns
+# Check specific patterns
+nicestlog check src/ --pattern specific_pattern
 ```
 
 ### Interactive Mode
 
 ```bash
-# Start interactive transformation session
-nicestlog transform --interactive src/
+# Interactive mode for fixes
+nicestlog check src/ --fix --interactive
 
-# Review each change before applying
-nicestlog transform src/ --confirm-each
+# Dry run to preview changes
+nicestlog check src/ --fix --dry-run
 ```
 
 ## Integration with IDEs
@@ -399,8 +398,8 @@ assistant = AdvancedAssistant(
 Always analyze before transforming:
 
 ```bash
-nicestlog analyze src/ --output analysis.json
-nicestlog transform src/ --based-on analysis.json
+nicestlog check src/ --complexity --verbose
+nicestlog check src/ --fix --backup
 ```
 
 ### 2. Use Dry Run
@@ -408,7 +407,7 @@ nicestlog transform src/ --based-on analysis.json
 Preview changes before applying:
 
 ```bash
-nicestlog transform src/ --dry-run --show-diff
+nicestlog check src/ --fix --dry-run
 ```
 
 ### 3. Incremental Transformation
@@ -416,8 +415,8 @@ nicestlog transform src/ --dry-run --show-diff
 Transform in small batches:
 
 ```bash
-nicestlog transform src/module1/ --backup
-nicestlog transform src/module2/ --backup
+nicestlog check src/module1/ --fix --backup
+nicestlog check src/module2/ --fix --backup
 ```
 
 ### 4. Version Control Integration
@@ -426,7 +425,7 @@ Always commit before transformation:
 
 ```bash
 git add -A && git commit -m "Before nicestlog transformation"
-nicestlog transform src/
+nicestlog check src/ --fix --backup
 git add -A && git commit -m "After nicestlog transformation"
 ```
 
