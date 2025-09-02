@@ -1,15 +1,15 @@
-# Documentation Status Review and Update
+# Log Coverage Analysis
 
 Task goal
-- Review all documentation across the repository for accuracy and completeness
-- Ensure documentation reflects current CLI structure and features
-- Identify and fix outdated or missing documentation
-- Verify all examples and code snippets work correctly
+- Analyze our own logging coverage in the nicestlog codebase
+- Understand what parts of our code have logging and what's missing
+- Identify patterns and gaps in our logging strategy
+- Document findings and recommendations
 
 Out-of-scope for this task
-- Adding new features or functionality
-- Major architectural documentation changes
-- Translation updates (focus on English docs per Rule 7)
+- Adding new logging statements (analysis only)
+- Changing existing log levels or formats
+- Performance optimization of logging
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -19,48 +19,50 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Review main documentation files
-   - Context: Check core docs for accuracy after CLI changes
+1) Examine existing coverage data
+   - Context: Check what coverage.json contains and understand current metrics
    - Files to check/modify:
-     - README.md
-     - docs/user_guide/getting_started.md
-     - docs/user_guide/cli_migration_guide.md
-     - docs/user_guide/best_practices.md
+     - coverage.json
+     - pyproject.toml (coverage config)
    - Steps:
-     - [x] Review README.md for current CLI examples (looks good)
-     - [x] Check getting_started.md for accurate instructions (looks good)
-     - [x] Verify cli_migration_guide.md reflects current state (has outdated commands)
-     - [ ] Update any outdated examples or references
+     - [x] Analyze coverage.json content
+     - [x] Check coverage configuration  
+     - [x] Understand what's measured
 
-2) Fix outdated CLI command references
-   - Context: Many docs reference old CLI commands (analyze, transform, ast) instead of current structure
+2) Analyze logging patterns in source code
+   - Context: Scan all Python files for logging usage patterns
    - Files to check/modify:
-     - docs/features/advanced_assistant.md (many outdated commands)
-     - docs/features/log_analysis.md (outdated analyze commands)
-     - docs/user_guide/cli_migration_guide.md (outdated commands)
-     - docs/user_guide/best_practices.md (outdated commands)
-     - docs/user_guide/migration_examples.md (outdated commands)
+     - src/nicestlog/*.py
+     - tests/*.py
    - Steps:
-     - [x] Update advanced_assistant.md CLI examples to use current structure
-     - [x] Fix log_analysis.md command references
-     - [x] Update migration guide CLI examples
-     - [x] Fix best_practices.md CLI references (already correct)
-     - [x] Update migration_examples.md CLI commands
+     - [x] Search for logging imports and usage
+     - [x] Identify modules with/without logging
+     - [x] Categorize logging patterns (debug, info, warning, error)
 
-3) Review API and development documentation
-   - Context: Ensure technical docs match current codebase
+3) Document findings
+   - Context: Summarize analysis results and provide recommendations
    - Files to check/modify:
-     - docs/development/api_reference.rst
-     - docs/development/type_checking_guide.md
+     - tmp_rovodev_log_coverage_analysis.md (created)
    - Steps:
-     - [x] Check API reference accuracy (looks good, has note about CLI changes)
-     - [ ] Verify development guides are current
+     - [x] Create summary of current logging coverage
+     - [x] Identify gaps and opportunities
+     - [x] Provide recommendations
 
-4) Review examples and demos
-   - Context: Ensure all examples work with current CLI
-   - Files to check/modify:
-     - examples/*.py
-   - Steps:
-     - [x] Test example scripts for functionality (basic_usage.py works)
-     - [ ] Test other example scripts
-     - [ ] Update any examples using outdated CLI syntax
+## Analysis Complete ✅
+
+**Key Findings:**
+- **79.2% logging coverage** (19/24 files have logging)
+- **~160 total logging statements** with good structured logging practices
+- **Test coverage: 61.5%** (3154/5127 lines) - separate from log coverage
+- **Main gaps**: journal_viewer.py (464 lines), eliot_integration.py, i18n_check.py
+
+**Logging Distribution:**
+- Debug: ~95 statements (heavy instrumentation)
+- Info: ~42 statements  
+- Warning: ~15 statements
+- Error: ~8 statements (could be increased)
+
+**Recommendations:**
+1. Add logging to journal_viewer.py (high priority)
+2. Add logging to integration modules (medium priority)  
+3. Review error logging coverage (low priority)
