@@ -18,6 +18,14 @@ from nicestlog.cli import (
 )
 from typer.testing import CliRunner
 
+# Check if Flask is available for dashboard tests
+try:
+    import flask  # noqa: F401
+
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+
 
 class TestInitConfig:
     """Test cases for init_config function."""
@@ -87,6 +95,7 @@ class TestTyperCliRunner:
         assert "docs" in result.stdout
 
 
+@pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
 class TestDashboardCommand:
     """Test cases for dashboard command."""
 

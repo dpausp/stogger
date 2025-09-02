@@ -96,12 +96,13 @@ nicestlog migrate . --do-migrate      # Apply migration changes
 
 # Code quality and fixes
 nicestlog check .                      # Check logging best practices
-nicestlog fix . --interactive          # Fix issues interactively
-nicestlog check .                      # Check logging coverage and quality
+nicestlog check . --fix                # Fix issues automatically
+nicestlog check . --interactive        # Fix issues interactively
 
 # Setup and utilities
 nicestlog init                         # Initialize configuration
 nicestlog docs                         # Browse documentation
+nicestlog docs --pager                 # Browse documentation with pager
 nicestlog tools demo                   # Run interactive demos
 ```
 
@@ -119,25 +120,16 @@ uv run nicestlog docs README.md
 # Use a glob pattern
 uv run nicestlog docs 'docs/*.md'
 
-# Disable pager (useful in CI or when piping output)
-uv run nicestlog docs --no-pager
-
-# List available docs (no rendering)
-uv run nicestlog docs --list
-
-# Filter by text content
-uv run nicestlog docs --search "best practice"
-
-# Change code block theme
-uv run nicestlog docs --theme github
+# Use pager for displaying docs (uses glow, bat, or less/more)
+uv run nicestlog docs --pager
 ```
 
 Behavior:
 - Prefers local files: ./README.md and ./docs/*.md
 - Falls back to packaged docs when installed as a package
 - Supports selecting a specific file or glob pattern
-- Pager can be disabled via --no-pager
 - Uses Rich markdown rendering (with a code theme) for a pleasant reading experience
+- With --pager flag, uses glow (if installed), bat (if installed), or falls back to less/more
 
 
 ## i18n check (translation coverage)

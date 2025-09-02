@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import sys
 import time
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Annotated, Optional, List, cast, Protocol
 
@@ -329,19 +332,23 @@ def docs(
         Optional[str],
         typer.Option("--feature", "-f", help="Show docs for specific feature"),
     ] = None,
+    pager: Annotated[
+        bool, typer.Option("--pager", "-p", help="Use pager for displaying docs")
+    ] = False,
 ):
     """📚 Show documentation and examples."""
     if interactive:
-        _show_docs_interactive()
+        _show_docs_interactive(pager)
     elif feature:
-        _show_feature_docs(feature)
+        _show_feature_docs(feature, pager)
     else:
         _show_markdown_files(
             [
                 "README.md",
                 "user_guide/getting_started.md",
                 "user_guide/best_practices.md",
-            ]
+            ],
+            use_pager=pager,
         )
 
 
@@ -1154,12 +1161,15 @@ def tools_demo(
 
 
 # Helper functions for docs display
-def _show_markdown_files(filenames: list[str]):
+def _show_markdown_files(filenames: list[str], use_pager: bool = False):
     """Show markdown files with rich formatting."""
     # Determine if we're running from source or installed package
     package_root = Path(__file__).parent
     source_docs_path = package_root.parent.parent / "docs"
     source_readme_path = package_root.parent.parent / "README.md"
+
+    # Collect all content first
+    all_content = []
 
     for filename in filenames:
         content = None
@@ -1211,11 +1221,19 @@ def _show_markdown_files(filenames: list[str]):
             console.print(f"❌ [red]File not found: {filename}[/red]")
             continue
 
-        console.print(f"\n📄 [bold blue]{filename}[/bold blue]")
-        console.print(content)
+        all_content.append(f"📄 {filename}\n{content}")
+
+    # Combine all content
+    full_content = "\n\n".join(all_content)
+
+    # Use pager if requested
+    if use_pager:
+        _display_with_pager(full_content)
+    else:
+        console.print(full_content)
 
 
-def _show_docs_interactive():
+def _show_docs_interactive(use_pager: bool = False):
     """Show interactive documentation browser."""
     console.print("🔍 [bold blue]Interactive Documentation Browser[/bold blue]")
     console.print("Available documentation sections:")
@@ -1233,12 +1251,12 @@ def _show_docs_interactive():
     }
 
     if choice in docs_map:
-        _show_markdown_files(docs_map[choice])
+        _show_markdown_files(docs_map[choice], use_pager=use_pager)
     else:
         console.print("❌ [red]Invalid choice[/red]")
 
 
-def _show_feature_docs(feature: str):
+def _show_feature_docs(feature: str, use_pager: bool = False):
     """Show documentation for a specific feature."""
     feature_docs = {
         "logging": ["user_guide/getting_started.md"],
@@ -1248,9 +1266,72 @@ def _show_feature_docs(feature: str):
     }
 
     if feature in feature_docs:
-        _show_markdown_files(feature_docs[feature])
+        _show_markdown_files(feature_docs[feature], use_pager=use_pager)
     else:
         console.print(f"❌ [red]No documentation found for feature: {feature}[/red]")
+
+
+def _display_with_pager(content: str):
+    """Display content using an appropriate pager."""
+    import shutil
+
+    # Check if glow is available
+    if shutil.which("glow") is not None:
+        # Use glow as pager
+        try:
+            # Create a temporary file with the content
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+                f.write(content)
+                temp_file = f.name
+
+            # Run glow with the temporary file
+            subprocess.run(["glow", "--pager", temp_file])
+
+            # Clean up the temporary file
+            Path(temp_file).unlink()
+            return
+        except Exception as e:
+            console.print(f"❌ [red]Error using glow: {e}[/red]")
+            # Fall through to other pagers
+
+    # Check if bat is available
+    if shutil.which("bat") is not None:
+        try:
+            # Create a temporary file with the content
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+                f.write(content)
+                temp_file = f.name
+
+            # Run bat with the temporary file
+            subprocess.run(["bat", "--paging=always", temp_file])
+
+            # Clean up the temporary file
+            Path(temp_file).unlink()
+            return
+        except Exception as e:
+            console.print(f"❌ [red]Error using bat: {e}[/red]")
+            # Fall through to default pager
+
+    # Fallback to less or more
+    pager_cmd = shutil.which("less") or shutil.which("more")
+    if pager_cmd:
+        try:
+            # Create a temporary file with the content
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+                f.write(content)
+                temp_file = f.name
+
+            # Run the pager with the temporary file
+            subprocess.run([pager_cmd, temp_file])
+
+            # Clean up the temporary file
+            Path(temp_file).unlink()
+            return
+        except Exception as e:
+            console.print(f"❌ [red]Error using pager: {e}[/red]")
+
+    # If no pager is available, just print the content
+    console.print(content)
 
 
 # Implementation stubs for remaining functions
@@ -2180,7 +2261,6 @@ def migrate_directory_with_handler(
 
 def create_migration_backup(path: Path) -> Optional[str]:
     """Create backup of files before migration."""
-    import shutil
     import datetime
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")

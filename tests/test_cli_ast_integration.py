@@ -9,6 +9,16 @@ from unittest.mock import patch, MagicMock
 from typer.testing import CliRunner
 from nicestlog.cli import app
 
+# Check if Flask is available for dashboard tests
+try:
+    import flask  # noqa: F401
+
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+
+import pytest
+
 
 class TestCheckCommandASTIntegration:
     """Test the enhanced check command with AST features."""
@@ -793,6 +803,7 @@ def test():
             assert "ast analysis" in result.stdout.lower()
             # Note: check command now uses AST analysis by default, not the old linter
 
+    @pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
     def test_existing_commands_unchanged(self):
         """Test that existing commands like lint, dashboard etc. are unchanged."""
         # Test check command (lint was renamed to check)

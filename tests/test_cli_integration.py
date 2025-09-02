@@ -13,6 +13,14 @@ import sys
 from typer.testing import CliRunner
 from nicestlog.cli import app
 
+# Check if Flask is available for dashboard tests
+try:
+    import flask  # noqa: F401
+
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+
 
 class TestCliIntegration:
     """Integration tests that run actual CLI commands end-to-end."""
@@ -476,6 +484,7 @@ class TestReviewIntegration:
                 assert result.exit_code == 1  # Should fail due to low score
 
 
+@pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
 class TestDashboardIntegration:
     """Integration tests for dashboard command."""
 
