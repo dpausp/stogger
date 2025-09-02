@@ -361,10 +361,10 @@ def save_data(destination, data):
 ### Migration Command
 ```bash
 # Check for eliot integration opportunities
-nicestlog check . --ast --pattern eliot
+nicestlog check . --pattern eliot
 
 # Apply eliot-style transformations
-nicestlog fix . --ast --pattern action
+nicestlog check . --fix --pattern action
 ```
 
 ## 🔧 Other Logging Libraries
@@ -546,16 +546,16 @@ After migration, validate your changes:
 
 ```bash
 # Check code quality
-nicestlog check . --ast
+nicestlog check .
 
 # Fix any remaining issues
-nicestlog fix . --ast
+nicestlog check . --fix
 
 # Validate translations
 nicestlog i18n check src/
 
 # Run demos to see results
-nicestlog demo basic
+nicestlog tools demo
 ```
 
 ## 📚 Next Steps

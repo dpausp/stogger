@@ -112,7 +112,7 @@ nicestlog migrate . --json            # Machine-readable analysis
 **Before:**
 ```bash
 # Separate analysis and migration steps
-nicestlog analyze .
+nicestlog check .
 nicestlog migrate . --type print-to-structlog
 ```
 

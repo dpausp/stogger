@@ -43,9 +43,9 @@ Prioritized work items (with checkboxes)
    - Steps:
      - [x] Update advanced_assistant.md CLI examples to use current structure
      - [x] Fix log_analysis.md command references
-     - [ ] Update migration guide CLI examples
-     - [ ] Fix best_practices.md CLI references
-     - [ ] Update migration_examples.md CLI commands
+     - [x] Update migration guide CLI examples
+     - [x] Fix best_practices.md CLI references (already correct)
+     - [x] Update migration_examples.md CLI commands
 
 3) Review API and development documentation
    - Context: Ensure technical docs match current codebase
