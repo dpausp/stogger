@@ -339,8 +339,8 @@ def docs(
         _show_markdown_files(
             [
                 "README.md",
-                "docs/user_guide/getting_started.md",
-                "docs/user_guide/best_practices.md",
+                "user_guide/getting_started.md",
+                "user_guide/best_practices.md",
             ]
         )
 
@@ -1156,23 +1156,63 @@ def tools_demo(
 # Helper functions for docs display
 def _show_markdown_files(filenames: list[str]):
     """Show markdown files with rich formatting."""
-    for filename in filenames:
-        try:
-            try:
-                content = resources.files("nicestlog").joinpath(filename).read_text()
-            except (FileNotFoundError, AttributeError):
-                # Try relative path
-                path = Path(filename)
-                if path.exists():
-                    content = path.read_text()
-                else:
-                    console.print(f"❌ [red]File not found: {filename}[/red]")
-                    continue
+    # Determine if we're running from source or installed package
+    package_root = Path(__file__).parent
+    source_docs_path = package_root.parent.parent / "docs"
+    source_readme_path = package_root.parent.parent / "README.md"
 
-            console.print(f"\n📄 [bold blue]{filename}[/bold blue]")
-            console.print(content)
-        except Exception as e:
-            console.print(f"❌ [red]Error reading {filename}: {e}[/red]")
+    for filename in filenames:
+        content = None
+        # First try to load from package resources (_docs directory)
+        try:
+            content = (
+                resources.files("nicestlog")
+                .joinpath("_docs")
+                .joinpath(filename)
+                .read_text()
+            )
+        except (FileNotFoundError, AttributeError):
+            # Try alternative paths in package
+            try:
+                # For README.md, it might be directly in the package
+                if filename == "README.md":
+                    content = (
+                        resources.files("nicestlog").joinpath(filename).read_text()
+                    )
+                else:
+                    # For other docs, try without _docs prefix
+                    content = (
+                        resources.files("nicestlog").joinpath(filename).read_text()
+                    )
+            except (FileNotFoundError, AttributeError):
+                # Try to read from source tree
+                try:
+                    if filename == "README.md":
+                        content = source_readme_path.read_text()
+                    else:
+                        docs_path = source_docs_path / filename
+                        if docs_path.exists():
+                            content = docs_path.read_text()
+                except (FileNotFoundError, OSError):
+                    # Try relative path in current directory
+                    try:
+                        path = Path(filename)
+                        if path.exists():
+                            content = path.read_text()
+                        else:
+                            # Try with _docs prefix for relative paths
+                            docs_path = Path("_docs") / filename
+                            if docs_path.exists():
+                                content = docs_path.read_text()
+                    except (FileNotFoundError, OSError):
+                        pass
+
+        if content is None:
+            console.print(f"❌ [red]File not found: {filename}[/red]")
+            continue
+
+        console.print(f"\n📄 [bold blue]{filename}[/bold blue]")
+        console.print(content)
 
 
 def _show_docs_interactive():
@@ -1186,10 +1226,10 @@ def _show_docs_interactive():
 
     choice = input("\nSelect section (1-4): ")
     docs_map = {
-        "1": ["docs/user_guide/getting_started.md"],
-        "2": ["docs/user_guide/best_practices.md"],
-        "3": ["docs/user_guide/advanced_features.md"],
-        "4": ["docs/development/api_reference.rst"],
+        "1": ["user_guide/getting_started.md"],
+        "2": ["user_guide/best_practices.md"],
+        "3": ["user_guide/advanced_features.md"],
+        "4": ["development/api_reference.rst"],
     }
 
     if choice in docs_map:
@@ -1201,10 +1241,10 @@ def _show_docs_interactive():
 def _show_feature_docs(feature: str):
     """Show documentation for a specific feature."""
     feature_docs = {
-        "logging": ["docs/user_guide/getting_started.md"],
-        "linting": ["docs/user_guide/best_practices.md"],
-        "ast": ["docs/features/advanced_assistant.md"],
-        "dashboard": ["docs/features/integrations.md"],
+        "logging": ["user_guide/getting_started.md"],
+        "linting": ["user_guide/best_practices.md"],
+        "ast": ["features/advanced_assistant.md"],
+        "dashboard": ["features/integrations.md"],
     }
 
     if feature in feature_docs:
