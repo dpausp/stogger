@@ -102,8 +102,8 @@ nicestlog check . --fix                # Fix issues automatically
 nicestlog check . --interactive        # Fix issues interactively
 
 # Internationalization
-nicestlog i18n check .                 # Check translation coverage
-nicestlog i18n check . --strict        # Fail on missing translations
+nicestlog tools i18n check .           # Check translation coverage
+nicestlog tools i18n check . --strict  # Fail on missing translations
 
 # Setup and utilities
 nicestlog init                         # Initialize configuration

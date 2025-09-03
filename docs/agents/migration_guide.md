@@ -121,7 +121,7 @@ async_logging = true
 mkdir -p translations
 
 # Generate initial English translations
-nicestlog i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
+nicestlog tools i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
 
 # Create basic translation file
 cat > translations/en.toml << 'EOF'
@@ -138,7 +138,7 @@ EOF
 
 ```bash
 # Check translation completeness
-nicestlog i18n check . --translation-dir translations -l en --strict
+nicestlog tools i18n check . --translation-dir translations -l en --strict
 
 # Lint the migrated code
 nicestlog check . --ast --verbose
@@ -228,7 +228,7 @@ if log.isEnabledFor(logging.DEBUG):
 # .github/workflows/i18n-check.yml
 - name: Check translations
   run: |
-    uv run nicestlog i18n check . --translation-dir translations -l en --strict --fail-on-extra
+    uv run nicestlog tools i18n check . --translation-dir translations -l en --strict --fail-on-extra
 ```
 
 ## 🎯 Success Metrics

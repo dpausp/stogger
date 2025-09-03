@@ -2381,7 +2381,7 @@ def _display_next_steps_guidance(result, path: str):
         )
         console.print(f"   2. Apply fixes: [cyan]nicestlog fix {path} --ast[/cyan]")
         console.print(
-            f"   3. Add translations: [cyan]nicestlog i18n check {path}/src[/cyan]"
+            f"   3. Add translations: [cyan]nicestlog tools i18n check {path}/src[/cyan]"
         )
     else:  # greenfield
         console.print("🌱 [blue]Greenfield Setup:[/blue]")

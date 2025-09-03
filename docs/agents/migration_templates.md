@@ -44,12 +44,12 @@ nicestlog migrate . --type print-to-structlog --backup --dry-run
 nicestlog migrate . --type print-to-structlog --backup
 
 # 7. Generate translation file
-nicestlog i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
+nicestlog tools i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
 # Create basic translations based on missing keys
 
 # 8. Validate
 nicestlog check . --ast
-nicestlog i18n check . --translation-dir translations -l en --strict
+nicestlog tools i18n check . --translation-dir translations -l en --strict
 ```
 
 ### Expected Transformations
@@ -153,7 +153,7 @@ nicestlog check . --ast --fix --verbose
 
 # 3. Add translation support
 mkdir -p translations
-nicestlog i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
+nicestlog tools i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
 
 # 4. Create comprehensive translation file
 python << 'EOF'
@@ -246,7 +246,7 @@ EOF
 
 # 4. Validate setup
 python main.py
-nicestlog i18n check . --translation-dir translations -l en --strict
+nicestlog tools i18n check . --translation-dir translations -l en --strict
 ```
 
 ## Template 5: CI/CD Integration
@@ -284,7 +284,7 @@ jobs:
           
       - name: Check translation completeness
         run: |
-          uv run nicestlog i18n check . --translation-dir translations -l en --strict --fail-on-extra
+          uv run nicestlog tools i18n check . --translation-dir translations -l en --strict --fail-on-extra
           
       - name: Analyze project structure
         run: |
@@ -306,7 +306,7 @@ repos:
         
       - id: nicestlog-i18n
         name: nicestlog translation check
-        entry: uv run nicestlog i18n check . --translation-dir translations -l en --strict
+        entry: uv run nicestlog tools i18n check . --translation-dir translations -l en --strict
         language: system
         files: '^(.*\.py|translations/.*\.toml)$'
 ```
@@ -420,7 +420,7 @@ After applying any template, validate with:
 nicestlog check . --ast --verbose
 
 # ✅ Translation completeness  
-nicestlog i18n check . --translation-dir translations -l en --strict
+nicestlog tools i18n check . --translation-dir translations -l en --strict
 
 # ✅ Performance check
 python -c "

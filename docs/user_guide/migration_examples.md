@@ -552,7 +552,7 @@ nicestlog check .
 nicestlog check . --fix
 
 # Validate translations
-nicestlog i18n check src/
+nicestlog tools i18n check src/
 
 # Run demos to see results
 nicestlog tools demo
