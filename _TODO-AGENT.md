@@ -1,15 +1,14 @@
-# Add Logging to Journal Viewer
+# Sphinx HTML Documentation Integration Task
 
 Task goal
-- Add comprehensive logging to journal_viewer.py (464 lines, currently no logging)
-- Follow established logging patterns from other modules
-- Ensure proper error handling and debug instrumentation
-- Test the logging additions work correctly
+- Integrate Sphinx-generated HTML documentation into the package (like the existing MD files)
+- Create a `docs-serve` command that opens the HTML documentation in a browser
+- Ensure HTML docs are packaged and accessible when nicestlog is installed
 
 Out-of-scope for this task
-- Changing existing functionality
-- Performance optimization
-- Adding new features beyond logging
+- Changing the existing Sphinx configuration or themes
+- Modifying the existing `docs` command that handles MD files
+- Major restructuring of documentation content
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -19,49 +18,51 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze journal_viewer.py structure
-   - Context: Understand the module structure and identify key logging points
+1) Examine current documentation setup and CLI structure
+   - Context: Need to understand how MD docs are currently packaged and served
    - Files to check/modify:
-     - src/nicestlog/journal_viewer.py
+     - src/nicestlog/cli.py (existing docs command)
+     - pyproject.toml (packaging configuration)
+     - docs/ directory structure
    - Steps:
-     - [x] Examine module structure and main functions
-     - [x] Identify error handling locations
-     - [x] Find initialization and connection points
-     - [x] Plan logging strategy
+     - [x] Check current CLI docs command implementation (found in cli.py lines 326-352)
+     - [x] Understand how MD files are packaged via hatch.build.targets.wheel.force-include
+     - [x] Check if Sphinx HTML build process exists (found in docs/_build/html/)
 
-2) Add logging infrastructure
-   - Context: Add structlog logger and follow established patterns
+2) Build Sphinx HTML documentation
+   - Context: Need to generate HTML docs that can be packaged
    - Files to check/modify:
-     - src/nicestlog/journal_viewer.py
+     - docs/conf.py (Sphinx configuration)
+     - Build process for HTML generation
    - Steps:
-     - [x] Add structlog import and logger setup
-     - [x] Add debug logging for initialization
-     - [x] Add info logging for major operations
-     - [x] Add warning/error logging for failure cases
+     - [x] Test Sphinx HTML build process (works with uv run --group docs)
+     - [x] Determine output directory structure (docs/_build/html/)
+     - [x] Ensure HTML docs are complete and functional
 
-3) Test logging additions
-   - Context: Verify logging works and follows patterns
+3) Update packaging to include HTML docs
+   - Context: Extend existing force-include mechanism to include HTML docs
    - Files to check/modify:
-     - tests/test_journal_viewer.py (exists - 41 tests)
+     - pyproject.toml (add HTML docs to force-include)
    - Steps:
-     - [x] Run existing tests to ensure no breakage
-     - [x] Test logging output manually if needed
-     - [x] Verify logging levels and messages
+     - [x] Add HTML docs directory to hatch.build.targets.wheel.force-include
+     - [x] Test that HTML docs are included in built package
 
-## Task Complete ✅
+4) Implement docs-serve command
+   - Context: Create new CLI command that opens HTML docs in browser
+   - Files to check/modify:
+     - src/nicestlog/cli.py (add new command)
+   - Steps:
+     - [x] Add docs-serve command to CLI
+     - [x] Implement logic to find packaged HTML docs
+     - [x] Add browser opening functionality
+     - [x] Handle both local development and installed package scenarios
+     - [x] Add appropriate error handling and logging
 
-**Successfully added comprehensive logging to journal_viewer.py:**
-
-- **Added 20+ logging statements** across all major functions
-- **Structured logging** using established patterns (debug, info, warning, error)
-- **Key logging points covered:**
-  - Module initialization and systemd availability
-  - Journal viewer creation and configuration
-  - Journal query setup and execution
-  - Entry parsing and processing
-  - Error handling and time parsing
-  - Main CLI function lifecycle
-
-**All 41 existing tests pass** - no functionality broken
-**Import test successful** - no syntax errors
-**Logging follows nicestlog patterns** - structured with key-value pairs and _replace_msg
+5) Add tests for new functionality
+   - Context: Ensure docs-serve command works correctly
+   - Files to check/modify:
+     - tests/test_cli.py or new test file
+   - Steps:
+     - [x] Add tests for docs-serve command
+     - [x] Test HTML docs packaging
+     - [x] Commit with message: "feat(cli): add docs-serve command with HTML documentation integration"

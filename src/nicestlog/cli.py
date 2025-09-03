@@ -352,6 +352,21 @@ def docs(
         )
 
 
+@app.command("docs-serve")
+def docs_serve(
+    port: Annotated[int, typer.Option("--port", "-p", help="Port to serve on")] = 8000,
+    host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
+    open_browser: Annotated[
+        bool, typer.Option("--open/--no-open", help="Open browser automatically")
+    ] = True,
+    build: Annotated[
+        bool, typer.Option("--build/--no-build", help="Build docs before serving")
+    ] = True,
+):
+    """🌐 Serve HTML documentation in browser."""
+    _serve_html_docs(port, host, open_browser, build)
+
+
 @app.command("init")
 def init_config_cmd(
     path: str = typer.Argument(".", help="Project path to initialize"),
@@ -2602,6 +2617,153 @@ def _configure_logging_focused_patterns(
         enabled_patterns=[p.name for p in assistant.patterns if p.enabled],
         disabled_patterns=[p.name for p in assistant.patterns if not p.enabled],
     )
+
+
+def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
+    """Serve HTML documentation using a simple HTTP server."""
+    import http.server
+    import socketserver
+    import threading
+    import webbrowser
+    from pathlib import Path
+
+    # Try to find HTML docs in different locations
+    html_docs_path = None
+
+    # 1. Check local development build
+    local_html_path = Path("docs/_build/html")
+    if local_html_path.exists() and local_html_path.is_dir():
+        html_docs_path = local_html_path
+        console.print(f"📁 [green]Found local HTML docs at {local_html_path}[/green]")
+    else:
+        # 2. Check packaged docs
+        try:
+            import importlib.resources as resources
+
+            # Try to find the packaged HTML docs
+            html_package_path = resources.files("nicestlog").joinpath("_docs_html")
+            if html_package_path.is_dir():
+                # Extract to temporary directory for serving
+                import tempfile
+
+                temp_dir = Path(tempfile.mkdtemp(prefix="nicestlog_docs_"))
+                import shutil
+
+                shutil.copytree(html_package_path, temp_dir / "html")
+                html_docs_path = temp_dir / "html"
+                console.print(
+                    f"📦 [green]Using packaged HTML docs (extracted to {html_docs_path})[/green]"
+                )
+        except (ImportError, FileNotFoundError, AttributeError):
+            pass
+
+    # 3. Try to build docs if requested and no docs found
+    if not html_docs_path and build:
+        console.print("🔨 [blue]Building HTML documentation...[/blue]")
+        try:
+            import subprocess
+
+            subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    "--group",
+                    "docs",
+                    "sphinx-build",
+                    "-b",
+                    "html",
+                    "docs",
+                    "docs/_build/html",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            if local_html_path.exists():
+                html_docs_path = local_html_path
+                console.print("✅ [green]Documentation built successfully[/green]")
+            else:
+                console.print("❌ [red]Build completed but HTML docs not found[/red]")
+                raise typer.Exit(1)
+        except subprocess.CalledProcessError as e:
+            console.print(f"❌ [red]Failed to build documentation: {e}[/red]")
+            console.print(f"[yellow]Error output: {e.stderr}[/yellow]")
+            raise typer.Exit(1)
+        except FileNotFoundError:
+            console.print(
+                "❌ [red]uv command not found. Please install uv or build docs manually.[/red]"
+            )
+            raise typer.Exit(1)
+
+    if not html_docs_path:
+        console.print("❌ [red]No HTML documentation found.[/red]")
+        console.print(
+            "💡 [blue]Try running with --build to build docs first, or run:[/blue]"
+        )
+        console.print(
+            "   [cyan]uv run --group docs sphinx-build -b html docs docs/_build/html[/cyan]"
+        )
+        raise typer.Exit(1)
+
+    # Change to the docs directory
+    import os
+
+    original_cwd = os.getcwd()
+    os.chdir(html_docs_path)
+
+    try:
+        # Create HTTP server
+        handler = http.server.SimpleHTTPRequestHandler
+
+        # Try to bind to the specified port
+        try:
+            with socketserver.TCPServer((host, port), handler) as httpd:
+                server_url = f"http://{host}:{port}"
+                console.print(
+                    f"🌐 [bold green]Serving documentation at {server_url}[/bold green]"
+                )
+                console.print(f"📁 [blue]Serving from: {html_docs_path}[/blue]")
+                console.print("Press Ctrl+C to stop the server")
+
+                # Open browser if requested
+                if open_browser:
+
+                    def open_browser_delayed():
+                        import time
+
+                        time.sleep(1)  # Give server time to start
+                        try:
+                            webbrowser.open(server_url)
+                            console.print(
+                                f"🌍 [green]Opened {server_url} in browser[/green]"
+                            )
+                        except Exception as e:
+                            console.print(
+                                f"⚠️ [yellow]Could not open browser: {e}[/yellow]"
+                            )
+                            console.print(
+                                f"💡 [blue]Please open {server_url} manually[/blue]"
+                            )
+
+                    browser_thread = threading.Thread(target=open_browser_delayed)
+                    browser_thread.daemon = True
+                    browser_thread.start()
+
+                # Start serving
+                httpd.serve_forever()
+
+        except OSError as e:
+            if "Address already in use" in str(e):
+                console.print(f"❌ [red]Port {port} is already in use[/red]")
+                console.print("💡 [blue]Try a different port with --port[/blue]")
+            else:
+                console.print(f"❌ [red]Failed to start server: {e}[/red]")
+            raise typer.Exit(1)
+
+    except KeyboardInterrupt:
+        console.print("\n👋 [blue]Server stopped[/blue]")
+    finally:
+        os.chdir(original_cwd)
 
 
 def main():

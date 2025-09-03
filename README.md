@@ -86,6 +86,8 @@ log.info("Starting application", component="main")
 
 For more examples and best practices, see the [documentation](docs/user_guide/best_practices.md).
 
+For internationalization and translation coverage checking, see [i18n documentation](docs/features/i18n.md).
+
 ## Quick Command Reference
 
 ```bash
@@ -98,6 +100,10 @@ nicestlog migrate . --do-migrate      # Apply migration changes
 nicestlog check .                      # Check logging best practices
 nicestlog check . --fix                # Fix issues automatically
 nicestlog check . --interactive        # Fix issues interactively
+
+# Internationalization
+nicestlog i18n check .                 # Check translation coverage
+nicestlog i18n check . --strict        # Fail on missing translations
 
 # Setup and utilities
 nicestlog init                         # Initialize configuration
@@ -130,48 +136,6 @@ Behavior:
 - Supports selecting a specific file or glob pattern
 - Uses Rich markdown rendering (with a code theme) for a pleasant reading experience
 - With --pager flag, uses glow (if installed), bat (if installed), or falls back to less/more
-
-
-## i18n check (translation coverage)
-
-Use the built-in CLI to verify that your translation files contain entries for all messages used in your source code.
-
-- Includes .info events even when no `_replace_msg` is present
-- Ignores `.debug` events for coverage; warns if `.debug` uses `_replace_msg`
-
-Examples:
-
-```bash
-# Full report for English, using translations/en.toml
-nicestlog i18n check . --translation-dir translations -l en
-
-# Only print missing keys (one per line), good for CI scripting
-nicestlog i18n check src --translation-dir translations -l en --list-missing
-
-# Fail the check if missing keys exist
-nicestlog i18n check . --translation-dir translations -l en --strict
-
-# Also fail if extra (unused) keys exist in the translation file
-nicestlog i18n check . --translation-dir translations -l en --fail-on-extra
-
-# Combine list mode with strict/extra failure (machine-friendly + failing status)
-nicestlog i18n check src --translation-dir translations -l en --list-missing --strict --fail-on-extra
-```
-
-CI example (GitHub Actions):
-
-```yaml
-name: i18n-check
-on: [push, pull_request]
-jobs:
-  i18n:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
-      - run: uv sync --locked
-      - run: uv run nicestlog i18n check . --translation-dir translations -l en --list-missing --strict --fail-on-extra
-```
 
 
 ## 🚀 Project Migration & Code Analysis
@@ -221,4 +185,4 @@ See [Agent Migration Guide](docs/agents/migration_guide.md) for complete workflo
 
 ## License
 
-MIT License
+AGPL-3.0 License
