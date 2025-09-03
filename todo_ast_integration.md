@@ -1,11 +1,11 @@
-# TODO: AST-Tools Integration in Hauptkommandos
+# TODO: AST-Tools Integration in Main Commands
 
-## Übersicht
-Die AST-Tools sind aktuell nur über `tools ast` erreichbar, aber sollten in die Hauptkommandos `check`, `fix`, und `migrate` integriert werden für bessere Benutzerfreundlichkeit.
+## Overview
+The AST-Tools are currently only accessible via `tools ast`, but should be integrated into the main commands `check`, `fix`, and `migrate` for better user experience.
 
-## 1. CHECK-Kommando erweitern
+## 1. Extend CHECK Command
 
-### 1.1 Aktuelle Implementierung
+### 1.1 Current Implementation
 ```python
 # cli.py - check_command()
 def check_command(
@@ -13,14 +13,14 @@ def check_command(
     fix: bool = typer.Option(False, "--fix"),
     verbose: bool = typer.Option(False, "-v", "--verbose"),
 ):
-    # Aktuell: Nur Linter
+    # Currently: Only Linter
     linter = LogLinter()
     issues = linter.check_file(path)
     if fix:
-        linter.fix_issues(issues)  # Nur basic fixes
+        linter.fix_issues(issues)  # Only basic fixes
 ```
 
-### 1.2 Neue Parameter hinzufügen
+### 1.2 Add New Parameters
 ```python
 def check_command(
     path: str = typer.Argument(...),
@@ -33,16 +33,16 @@ def check_command(
 ):
 ```
 
-### 1.3 AST-Integration implementieren
+### 1.3 Implement AST Integration
 ```python
-# In check_command() hinzufügen:
+# Add to check_command():
 
-# 1. Advanced Assistant für umfassende Analyse
+# 1. Advanced Assistant for comprehensive analysis
 if ast_analysis or interactive or patterns or complexity:
     from .advanced_assistant import AdvancedAssistant
     assistant = AdvancedAssistant()
     
-    # AST-Analyse durchführen
+    # Perform AST analysis
     ast_issues = assistant.analyze_file(path)
     
     if complexity:
@@ -62,15 +62,15 @@ if interactive:
         console.print("Found issues. Starting interactive mode...")
         transformer.start_session(path, issues)
 
-# 3. AST-basierte Fixes
+# 3. AST-based Fixes
 if fix and ast_analysis:
-    # Erweiterte Fixes mit AST-Transformationen
+    # Extended fixes with AST transformations
     assistant.apply_fixes(path, ast_issues)
 ```
 
-### 1.4 Neue Ausgabe-Formate
+### 1.4 New Output Formats
 ```python
-# AST-spezifische Ausgaben
+# AST-specific outputs
 if ast_analysis:
     console.print("\n[bold blue]AST Analysis Results:[/bold blue]")
     console.print(f"Complexity Score: {ast_issues.complexity_score}")
@@ -78,9 +78,9 @@ if ast_analysis:
     console.print(f"Refactoring Suggestions: {len(ast_issues.suggestions)}")
 ```
 
-## 2. FIX-Kommando erstellen/erweitern
+## 2. Create/Extend FIX Command
 
-### 2.1 Neues Hauptkommando
+### 2.1 New Main Command
 ```python
 @app.command()
 def fix(
@@ -94,23 +94,23 @@ def fix(
     """Advanced code fixing with AST transformations."""
 ```
 
-### 2.2 Fix-Implementierung
+### 2.2 Fix Implementation
 ```python
 def fix_command(path, dry_run, interactive, ast_transforms, backup, patterns):
     from .advanced_assistant import AdvancedAssistant
     from .interactive_transformer import InteractiveTransformer
     from .linter import LogLinter
     
-    # 1. Basis-Linting
+    # 1. Basic Linting
     linter = LogLinter()
     lint_issues = linter.check_file(path)
     
-    # 2. AST-Analyse
+    # 2. AST Analysis
     if ast_transforms:
         assistant = AdvancedAssistant()
         ast_issues = assistant.analyze_file(path)
         
-        # Pattern-spezifische Fixes
+        # Pattern-specific fixes
         if patterns:
             ast_issues = assistant.filter_by_patterns(ast_issues, patterns)
     
@@ -121,23 +121,23 @@ def fix_command(path, dry_run, interactive, ast_transforms, backup, patterns):
         transformer.start_fix_session(path, all_issues, dry_run)
         return
     
-    # 4. Automatische Fixes
+    # 4. Automatic Fixes
     if backup and not dry_run:
         create_backup(path)
     
-    # Linter-Fixes
+    # Linter Fixes
     if lint_issues:
         linter.apply_fixes(path, lint_issues, dry_run)
     
-    # AST-Fixes
+    # AST Fixes
     if ast_transforms and ast_issues:
         assistant.apply_transformations(path, ast_issues, dry_run)
     
-    # Ergebnis-Report
+    # Result Report
     show_fix_report(lint_issues, ast_issues, dry_run)
 ```
 
-### 2.3 Fix-Report Funktion
+### 2.3 Fix Report Function
 ```python
 def show_fix_report(lint_issues, ast_issues, dry_run):
     action = "Would fix" if dry_run else "Fixed"
@@ -150,9 +150,9 @@ def show_fix_report(lint_issues, ast_issues, dry_run):
         console.print("\n[yellow]Run without --dry-run to apply changes[/yellow]")
 ```
 
-## 3. MIGRATE-Kommando erstellen
+## 3. Create MIGRATE Command
 
-### 3.1 Neues Hauptkommando
+### 3.1 New Main Command
 ```python
 @app.command()
 def migrate(
@@ -167,7 +167,7 @@ def migrate(
     """Migrate code using AST transformations."""
 ```
 
-### 3.2 Migration-Typen definieren
+### 3.2 Define Migration Types
 ```python
 MIGRATION_TYPES = {
     "print-to-structlog": {
@@ -188,14 +188,14 @@ MIGRATION_TYPES = {
 }
 ```
 
-### 3.3 Migration-Implementierung
+### 3.3 Migration Implementation
 ```python
 def migrate_command(path, output, migration_type, dry_run, interactive, backup, force):
     from .assistant import migrate_file, migrate_directory
     from .advanced_assistant import AdvancedAssistant
     from .interactive_transformer import InteractiveTransformer
     
-    # 1. Migration-Typ validieren
+    # 1. Validate migration type
     if migration_type not in MIGRATION_TYPES:
         console.print(f"[red]Unknown migration type: {migration_type}[/red]")
         console.print(f"Available types: {', '.join(MIGRATION_TYPES.keys())}")
@@ -203,14 +203,14 @@ def migrate_command(path, output, migration_type, dry_run, interactive, backup, 
     
     migration_config = MIGRATION_TYPES[migration_type]
     
-    # 2. Pfad-Verarbeitung
+    # 2. Path processing
     source_path = Path(path)
     if output:
         target_path = Path(output)
     else:
         target_path = source_path  # In-place migration
     
-    # 3. Backup erstellen
+    # 3. Create backup
     if backup and not dry_run and target_path == source_path:
         create_migration_backup(source_path)
     
@@ -222,7 +222,7 @@ def migrate_command(path, output, migration_type, dry_run, interactive, backup, 
         )
         return
     
-    # 5. Automatische Migration
+    # 5. Automatic migration
     if source_path.is_file():
         result = migrate_single_file(
             source_path, target_path, migration_config, dry_run, force
@@ -232,35 +232,35 @@ def migrate_command(path, output, migration_type, dry_run, interactive, backup, 
             source_path, target_path, migration_config, dry_run, force
         )
     
-    # 6. Ergebnis-Report
+    # 6. Result report
     show_migration_report(result, dry_run)
 ```
 
-### 3.4 Migration-Hilfsfunktionen
+### 3.4 Migration Helper Functions
 ```python
 def migrate_single_file(source, target, config, dry_run, force):
-    """Migriert eine einzelne Datei."""
+    """Migrates a single file."""
     from .assistant import migrate_file
     from .advanced_assistant import AdvancedAssistant
     
-    # Print-to-Structlog Migration (bestehend)
+    # Print-to-Structlog Migration (existing)
     if config["handler"] == "migrate_print_to_structlog":
         return migrate_file(source, target, dry_run)
     
-    # Erweiterte AST-Migrationen
+    # Extended AST migrations
     assistant = AdvancedAssistant()
     patterns = [assistant.get_pattern(p) for p in config["patterns"]]
     
     return assistant.apply_migration(source, target, patterns, dry_run)
 
 def migrate_directory_recursive(source, target, config, dry_run, force):
-    """Migriert ein ganzes Verzeichnis."""
+    """Migrates an entire directory."""
     from .assistant import migrate_directory
     
     if config["handler"] == "migrate_print_to_structlog":
         return migrate_directory(source, target, dry_run)
     
-    # Für andere Migrationen: Rekursiv durch Dateien
+    # For other migrations: Recursively through files
     results = []
     for py_file in source.rglob("*.py"):
         rel_path = py_file.relative_to(source)
@@ -272,7 +272,7 @@ def migrate_directory_recursive(source, target, config, dry_run, force):
     return combine_migration_results(results)
 
 def show_migration_report(result, dry_run):
-    """Zeigt Migration-Ergebnis an."""
+    """Shows migration result."""
     action = "Would migrate" if dry_run else "Migrated"
     
     console.print(f"\n[bold green]{action}:[/bold green]")
@@ -286,20 +286,20 @@ def show_migration_report(result, dry_run):
             console.print(f"  - {warning}")
 ```
 
-## 4. CLI-Struktur Änderungen
+## 4. CLI Structure Changes
 
-### 4.1 Import-Erweiterungen in cli.py
+### 4.1 Import Extensions in cli.py
 ```python
-# Neue Imports hinzufügen
+# Add new imports
 from .advanced_assistant import AdvancedAssistant, ASTPattern
 from .interactive_transformer import InteractiveTransformer  
 from .assistant import migrate_file, migrate_directory, MigrationResult
 from .live_editor import LiveCodeEditor
 ```
 
-### 4.2 Help-Text Verbesserungen
+### 4.2 Help Text Improvements
 ```python
-# check-Kommando Help erweitern
+# Extend check command help
 @app.command()
 def check(
     # ... Parameter ...
@@ -315,7 +315,7 @@ def check(
       nicestlog check file.py --complexity       # Complexity analysis
     """
 
-# migrate-Kommando Help
+# migrate command help
 @app.command() 
 def migrate(
     # ... Parameter ...
@@ -332,47 +332,47 @@ def migrate(
     """
 ```
 
-## 5. Implementierungs-Reihenfolge
+## 5. Implementation Order
 
-### Phase 1: Check-Kommando erweitern ✅ COMPLETED
-1. ✅ Parameter hinzufügen (`--ast`, `--interactive`, `--complexity`)
+### Phase 1: Extend Check Command ✅ COMPLETED
+1. ✅ Add parameters (`--ast`, `--interactive`, `--complexity`)
 2. ✅ Advanced Assistant Integration
 3. ✅ Interactive Transformer Integration  
-4. ✅ AST-basierte Fix-Funktionalität
+4. ✅ AST-based fix functionality
 
-### Phase 2: Fix-Kommando erstellen ✅ COMPLETED
-1. ✅ Neues Hauptkommando definieren
-2. ✅ Dry-run Funktionalität
-3. ✅ Backup-System
+### Phase 2: Create Fix Command ✅ COMPLETED
+1. ✅ Define new main command
+2. ✅ Dry-run functionality
+3. ✅ Backup system
 4. ✅ Interactive Mode
 
-### Phase 3: Migrate-Kommando erstellen  
-1. ✅ Migration-Typen definieren
-2. ✅ Bestehende Assistant-Integration
-3. ✅ Erweiterte AST-Migrationen
-4. ✅ Directory-Migration
+### Phase 3: Create Migrate Command  
+1. ✅ Define migration types
+2. ✅ Existing Assistant integration
+3. ✅ Extended AST migrations
+4. ✅ Directory migration
 
 ### Phase 4: Testing & Documentation ✅ COMPLETED
-1. ✅ Unit Tests für neue Funktionen
-2. ✅ Integration Tests für AST-enhanced CLI commands
-3. ✅ CLI Help-Texte
-4. ✅ Dokumentation aktualisieren
+1. ✅ Unit tests for new functions
+2. ✅ Integration tests for AST-enhanced CLI commands
+3. ✅ CLI help texts
+4. ✅ Update documentation
 
-## 6. Kompatibilität
+## 6. Compatibility
 
-### Rückwärtskompatibilität
-- Alle bestehenden Kommandos bleiben unverändert
-- `tools ast` Subkommandos bleiben verfügbar
-- Neue Parameter sind optional mit sinnvollen Defaults
+### Backward Compatibility
+- All existing commands remain unchanged
+- `tools ast` subcommands remain available
+- New parameters are optional with sensible defaults
 
-### Migration bestehender Nutzer
+### Migration for Existing Users
 - `tools ast analyze` → `check --ast`
 - `tools ast transform` → `fix --interactive`  
 - `tools ast interactive` → `migrate --interactive`
 
-## 7. Konfiguration
+## 7. Configuration
 
-### Config-File Erweiterungen
+### Config File Extensions
 ```toml
 # pyproject.toml
 [tool.nicestlog.ast]
@@ -387,39 +387,39 @@ preserve_comments = true
 update_imports = true
 ```
 
-Diese Integration macht die mächtigen AST-Tools für alle Benutzer zugänglich und integriert sie nahtlos in den normalen Workflow!
+This integration makes the powerful AST tools accessible to all users and integrates them seamlessly into the normal workflow!
 
-## 8. Abschluss - Phase 4 Implementierung
+## 8. Conclusion - Phase 4 Implementation
 
-### Was wurde in Phase 4 umgesetzt:
+### What was implemented in Phase 4:
 
-#### 8.1 Umfassende CLI Integration Tests ✅
-- **Neue Testdatei**: `tests/test_cli_ast_integration.py`
-- **TestCheckCommandASTIntegration**: Tests für `check --ast`, `--complexity`, `--pattern`, `--interactive`
-- **TestFixCommandASTIntegration**: Tests für `fix` mit AST-Transformationen, `--dry-run`, `--interactive`
-- **TestMigrateCommandASTIntegration**: Tests für `migrate` mit verschiedenen Typen und Modi
-- **TestASTToolsSubcommands**: Backward-compatibility Tests für `tools ast`
-- **TestBackwardCompatibility**: Sicherstellung dass bestehende Funktionalität unverändert bleibt
+#### 8.1 Comprehensive CLI Integration Tests ✅
+- **New test file**: `tests/test_cli_ast_integration.py`
+- **TestCheckCommandASTIntegration**: Tests for `check --ast`, `--complexity`, `--pattern`, `--interactive`
+- **TestFixCommandASTIntegration**: Tests for `fix` with AST transformations, `--dry-run`, `--interactive`
+- **TestMigrateCommandASTIntegration**: Tests for `migrate` with different types and modes
+- **TestASTToolsSubcommands**: Backward-compatibility tests for `tools ast`
+- **TestBackwardCompatibility**: Ensuring existing functionality remains unchanged
 
 #### 8.2 Test Coverage
-- **Check Command**: AST-Analyse, Komplexitäts-Checks, Pattern-spezifische Analyse, Interactive Mode
-- **Fix Command**: AST-Transformationen, Dry-run, Interactive Mode, Pattern-spezifische Fixes
-- **Migrate Command**: Verschiedene Migration-Typen, Output-Verzeichnisse, Interactive Mode
-- **Backward Compatibility**: Alle bestehenden Commands funktionieren unverändert
-- **Error Handling**: Tests für Fehlerbehandlung und Edge Cases
+- **Check Command**: AST analysis, complexity checks, pattern-specific analysis, Interactive Mode
+- **Fix Command**: AST transformations, Dry-run, Interactive Mode, pattern-specific fixes
+- **Migrate Command**: Different migration types, output directories, Interactive Mode
+- **Backward Compatibility**: All existing commands work unchanged
+- **Error Handling**: Tests for error handling and edge cases
 
-#### 8.3 Dokumentation (geplant)
-- **AST Integration Guide**: Umfassende Anleitung für alle neuen Features
-- **Migration Examples**: Praktische Beispiele für verschiedene Migration-Szenarien  
-- **Best Practices**: Empfehlungen für Team-Adoption und CI/CD Integration
-- **Troubleshooting**: Häufige Probleme und Lösungen
+#### 8.3 Documentation (planned)
+- **AST Integration Guide**: Comprehensive guide for all new features
+- **Migration Examples**: Practical examples for different migration scenarios  
+- **Best Practices**: Recommendations for team adoption and CI/CD integration
+- **Troubleshooting**: Common problems and solutions
 
-### Vollständige Integration erreicht! 🎉
+### Complete Integration Achieved! 🎉
 
-Alle vier Phasen der AST-Integration sind nun abgeschlossen:
-- ✅ **Phase 1**: Check-Kommando erweitert
-- ✅ **Phase 2**: Fix-Kommando erstellt  
-- ✅ **Phase 3**: Migrate-Kommando erstellt
+All four phases of AST integration are now completed:
+- ✅ **Phase 1**: Check command extended
+- ✅ **Phase 2**: Fix command created  
+- ✅ **Phase 3**: Migrate command created
 - ✅ **Phase 4**: Testing & Documentation
 
-Die AST-Tools sind jetzt vollständig in die Hauptkommandos integriert und für alle Benutzer über eine intuitive CLI verfügbar!
+The AST tools are now fully integrated into the main commands and available to all users via an intuitive CLI!

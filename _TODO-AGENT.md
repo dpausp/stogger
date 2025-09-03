@@ -1,14 +1,14 @@
-# Sphinx HTML Documentation Integration Task
+# Documentation Translation to English Task
 
 Task goal
-- Integrate Sphinx-generated HTML documentation into the package (like the existing MD files)
-- Create a `docs-serve` command that opens the HTML documentation in a browser
-- Ensure HTML docs are packaged and accessible when nicestlog is installed
+- Translate all documentation files to English (following Rule 7: English artifacts)
+- Ensure consistent English language across all docs, comments, and text content
+- Check and update any German or other non-English content
 
 Out-of-scope for this task
-- Changing the existing Sphinx configuration or themes
-- Modifying the existing `docs` command that handles MD files
-- Major restructuring of documentation content
+- Changing functionality or code logic
+- Modifying translation files in translations/ directory (these are for runtime i18n)
+- Restructuring documentation organization
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -18,51 +18,23 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Examine current documentation setup and CLI structure
-   - Context: Need to understand how MD docs are currently packaged and served
+1) Scan documentation for non-English content
+   - Context: Need to identify what needs translation
    - Files to check/modify:
-     - src/nicestlog/cli.py (existing docs command)
-     - pyproject.toml (packaging configuration)
-     - docs/ directory structure
+     - All .md and .rst files in docs/
+     - README.md and other root documentation
+     - Any comments or text in code files
    - Steps:
-     - [x] Check current CLI docs command implementation (found in cli.py lines 326-352)
-     - [x] Understand how MD files are packaged via hatch.build.targets.wheel.force-include
-     - [x] Check if Sphinx HTML build process exists (found in docs/_build/html/)
+     - [x] Search for German text patterns in documentation
+     - [x] Check translations directory structure
+     - [x] Identify specific files needing translation
+     - Found: todo_ast_integration.md contains German content
 
-2) Build Sphinx HTML documentation
-   - Context: Need to generate HTML docs that can be packaged
-   - Files to check/modify:
-     - docs/conf.py (Sphinx configuration)
-     - Build process for HTML generation
+2) Translate identified content to English
+   - Context: Convert non-English content to proper English
+   - Files to check/modify: 
+     - todo_ast_integration.md (German → English)
    - Steps:
-     - [x] Test Sphinx HTML build process (works with uv run --group docs)
-     - [x] Determine output directory structure (docs/_build/html/)
-     - [x] Ensure HTML docs are complete and functional
-
-3) Update packaging to include HTML docs
-   - Context: Extend existing force-include mechanism to include HTML docs
-   - Files to check/modify:
-     - pyproject.toml (add HTML docs to force-include)
-   - Steps:
-     - [x] Add HTML docs directory to hatch.build.targets.wheel.force-include
-     - [x] Test that HTML docs are included in built package
-
-4) Implement docs-serve command
-   - Context: Create new CLI command that opens HTML docs in browser
-   - Files to check/modify:
-     - src/nicestlog/cli.py (add new command)
-   - Steps:
-     - [x] Add docs-serve command to CLI
-     - [x] Implement logic to find packaged HTML docs
-     - [x] Add browser opening functionality
-     - [x] Handle both local development and installed package scenarios
-     - [x] Add appropriate error handling and logging
-
-5) Add tests for new functionality
-   - Context: Ensure docs-serve command works correctly
-   - Files to check/modify:
-     - tests/test_cli.py or new test file
-   - Steps:
-     - [x] Add tests for docs-serve command
-     - [x] Test HTML docs packaging
-     - [x] Commit with message: "feat(cli): add docs-serve command with HTML documentation integration"
+     - [x] Translate todo_ast_integration.md from German to English
+     - [x] Ensure consistent English terminology
+     - [x] Commit with message: "docs: translate all documentation to English"
