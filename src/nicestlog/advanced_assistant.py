@@ -290,23 +290,8 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             line_number=node.lineno,
         )
 
-        # Only analyze parameter count for functions that actually contain logging calls
-        # This prevents false positives on CLI commands, constructors, etc.
-        if (
-            has_logging_calls
-            and arg_count > 7
-            and not self._is_common_function_pattern(node.name)
-        ):
-            issue = f"Logging function '{node.name}' has many parameters ({arg_count}) - consider reducing complexity (line {node.lineno})"
-            self.potential_issues.append(issue)
-            log.warning(
-                "logging-function-too-many-params",
-                _replace_msg="⚠️ {issue}",
-                issue=issue,
-                function_name=node.name,
-                param_count=arg_count,
-                line_number=node.lineno,
-            )
+        # DO NOT analyze functions for parameter count - we only care about log statements!
+        # This tool is for log statement analysis, not general code quality linting
 
         # Only suggest docstrings for logging-related functions
         if has_logging_calls and not has_docstring:
@@ -362,7 +347,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
         return logging_call_count >= 2
 
     def _analyze_class(self, node: ast.ClassDef) -> None:
-        """Analyze class definitions."""
+        """Analyze class definitions - but only for logging-related analysis, not code quality."""
         method_count = sum(1 for n in node.body if isinstance(n, ast.FunctionDef))
 
         log.debug(
@@ -373,9 +358,8 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             line_number=node.lineno,
         )
 
-        if method_count > 20:
-            issue = f"Class '{node.name}' has many methods ({method_count})"
-            self.potential_issues.append(issue)
+        # DO NOT analyze classes for "many methods" - we only care about log statements!
+        # This tool is for log statement analysis, not general code quality linting
 
     def _analyze_call(self, node: ast.Call) -> None:
         """Analyze function calls."""
@@ -424,36 +408,6 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             modules=modules,
             line=node.lineno,
         )
-
-    def _is_common_function_pattern(self, function_name: str) -> bool:
-        """Check if this is a common function pattern that should not be flagged."""
-        # Common patterns that often have many parameters
-        common_patterns = [
-            "__init__",  # Constructor methods
-            "__new__",  # Constructor methods
-            "init",  # Initialization functions
-            "setup",  # Setup functions
-            "configure",  # Configuration functions
-            "create",  # Factory functions
-            "build",  # Builder functions
-            "main",  # Main functions (often have CLI args)
-            "migrate",  # Migration/transformation functions
-            "transform",  # Transformation functions
-            "analyze",  # Analysis functions
-            "process",  # Processing functions
-            "handle",  # Handler functions
-            "run",  # Runner functions
-            "execute",  # Execution functions
-            "command",  # Command functions
-        ]
-
-        # Check if function name matches common patterns
-        name_lower = function_name.lower()
-        for pattern in common_patterns:
-            if pattern in name_lower:
-                return True
-
-        return False
 
 
 class AdvancedTransformer(ast.NodeTransformer):

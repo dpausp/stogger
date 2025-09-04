@@ -49,7 +49,6 @@ class DependencyAnalysis:
 
     has_logging: bool
     has_structlog: bool
-    has_loguru: bool
     has_other_logging: List[str]
     dependency_conflicts: List[str]
     package_manager: str  # 'pip', 'poetry', 'pipenv', 'uv'
@@ -137,7 +136,6 @@ class ProjectAnalyzer:
 
         # Known logging libraries
         self.logging_libraries = {
-            "loguru",
             "colorlog",
             "rich",
             "click",
@@ -481,7 +479,6 @@ class ProjectAnalyzer:
         """Analyze project dependencies for logging-related packages."""
         has_logging = False
         has_structlog = False
-        has_loguru = False
         other_logging = []
         conflicts = []
         package_manager = "unknown"
@@ -504,8 +501,6 @@ class ProjectAnalyzer:
                 # Check for specific logging packages
                 if "structlog" in content:
                     has_structlog = True
-                if "loguru" in content:
-                    has_loguru = True
 
                 # Check for other logging libraries
                 for lib in self.logging_libraries:
@@ -518,8 +513,6 @@ class ProjectAnalyzer:
         has_logging = True
 
         # Detect potential conflicts
-        if has_structlog and has_loguru:
-            conflicts.append("Both structlog and loguru detected - may cause conflicts")
 
         if len(other_logging) > 2:
             conflicts.append(
@@ -529,7 +522,6 @@ class ProjectAnalyzer:
         return DependencyAnalysis(
             has_logging=has_logging,
             has_structlog=has_structlog,
-            has_loguru=has_loguru,
             has_other_logging=other_logging,
             dependency_conflicts=conflicts,
             package_manager=package_manager,

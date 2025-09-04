@@ -64,7 +64,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             set()
         )  # e.g., {'logging', 'structlog', 'loguru'}
         self.logger_variables: Set[str] = set()  # e.g., {'log', 'logger', 'my_logger'}
-        self.logging_modules = {"logging", "structlog", "loguru", "logbook", "eliot"}
+        self.logging_modules = {"logging", "structlog", "logbook", "eliot"}
         self.logger_factory_patterns = {
             "get_logger",
             "getLogger",

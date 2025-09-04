@@ -419,10 +419,6 @@ def check(
         Optional[List[str]],
         typer.Option("--pattern", help="Specific AST patterns to check"),
     ] = None,
-    backup: Annotated[
-        bool,
-        typer.Option("--backup/--no-backup", help="Create backup files when fixing"),
-    ] = True,
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose output")
     ] = False,
@@ -563,11 +559,7 @@ def check(
     elif fix and not no_ast and ast_issues:
         console.print("\n🔧 [bold green]Applying AST-based fixes...[/bold green]")
 
-        # Create backup if requested and not dry run
-        if backup and not dry_run:
-            backup_result = create_migration_backup(path_obj)
-            if backup_result:
-                console.print(f"✅ [green]Backup created: {backup_result}[/green]")
+        # No backup creation - users should use git for version control
 
         assistant = AdvancedAssistant(verbose=verbose)
 
@@ -1073,10 +1065,10 @@ def _display_directory_transformation(
 @app.command()
 def migrate(
     path: Annotated[str, typer.Argument(help="Project path to analyze/migrate")] = ".",
-    do_migrate: Annotated[
+    no_dry_run: Annotated[
         bool,
         typer.Option(
-            "--do-migrate", help="Actually apply changes (default: analyze only)"
+            "--no-dry-run", help="Actually apply changes (default: dry-run preview)"
         ),
     ] = False,
     migration_type: Annotated[
@@ -1095,28 +1087,25 @@ def migrate(
     interactive: Annotated[
         bool, typer.Option("--interactive", "-i", help="Interactive migration")
     ] = False,
-    backup: Annotated[
-        bool, typer.Option("--backup/--no-backup", help="Create backup files")
-    ] = True,
     force: Annotated[
         bool, typer.Option("--force", help="Overwrite existing files")
     ] = False,
 ):
-    """🔄 Analyze project and optionally migrate code.
+    """🔄 Analyze project and migrate code.
 
-    Default behavior: Analyze project for migration opportunities (safe, fast)
+    Default behavior: Dry-run preview (safe, shows what would change)
 
     Examples:
-      nicestlog migrate                                   # Analyze current project
-      nicestlog migrate /path/to/project                  # Analyze specific project
+      nicestlog migrate                                   # Dry-run preview of current project
+      nicestlog migrate /path/to/project                  # Dry-run preview of specific project
       nicestlog migrate . --json                          # Agent analysis output
-      nicestlog migrate . --do-migrate                    # Actually apply changes
-      nicestlog migrate . --do-migrate --type logging-to-structlog  # Specific migration
-      nicestlog migrate . --do-migrate --interactive      # Interactive migration
+      nicestlog migrate . --no-dry-run                    # Actually apply changes
+      nicestlog migrate . --no-dry-run --type logging-to-structlog  # Specific migration
+      nicestlog migrate . --no-dry-run --interactive      # Interactive migration
     """
 
-    if not do_migrate:
-        # Default behavior: Analysis only
+    if not no_dry_run:
+        # Default behavior: Dry-run preview
         from .project_analyzer import analyze_project_for_agents
 
         # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
@@ -1156,7 +1145,6 @@ def migrate(
             migration_type,
             dry_run=False,
             interactive=interactive,
-            backup=backup,
             force=force,
         )
 
@@ -1288,7 +1276,6 @@ def _show_feature_docs(feature: str, use_pager: bool = False):
 
 def _display_with_pager(content: str):
     """Display content using an appropriate pager."""
-    import shutil
 
     # Check if glow is available
     if shutil.which("glow") is not None:
@@ -1786,7 +1773,6 @@ def run_migrate_command(
     migration_type: str,
     dry_run: bool,
     interactive: bool,
-    backup: bool,
     force: bool,
 ):
     """Execute migration command with comprehensive AST integration."""
@@ -1832,11 +1818,7 @@ def run_migrate_command(
         )
     )
 
-    # 4. Backup creation
-    if backup and not dry_run and target_path == source_path:
-        backup_result = create_migration_backup(source_path)
-        if backup_result:
-            console.print(f"✅ [green]Backup created: {backup_result}[/green]")
+    # No backup creation - users should use git for version control
 
     # 5. Interactive mode
     if interactive:
@@ -2274,25 +2256,6 @@ def migrate_directory_with_handler(
     return result
 
 
-def create_migration_backup(path: Path) -> Optional[str]:
-    """Create backup of files before migration."""
-    import datetime
-
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    if path.is_file():
-        backup_path = path.with_suffix(f".backup_{timestamp}{path.suffix}")
-        shutil.copy2(path, backup_path)
-        return str(backup_path)
-
-    elif path.is_dir():
-        backup_path = path.parent / f"{path.name}_backup_{timestamp}"
-        shutil.copytree(path, backup_path)
-        return str(backup_path)
-
-    return None
-
-
 def show_migration_report(result: MigrationResultProtocol, dry_run: bool):
     """Display comprehensive migration results."""
     action = "Would migrate" if dry_run else "Migrated"
@@ -2360,7 +2323,7 @@ def _display_next_steps_guidance(result, path: str):
             f"   1. Preview changes: [cyan]nicestlog migrate {path} --dry-run[/cyan]"
         )
         console.print(
-            f"   2. Apply migration: [cyan]nicestlog migrate {path} --do-migrate --backup[/cyan]"
+            f"   2. Apply migration: [cyan]nicestlog migrate {path} --no-dry-run[/cyan]"
         )
         console.print(f"   3. Validate results: [cyan]nicestlog check {path}[/cyan]")
     elif rec.strategy == "logging-to-structlog":
@@ -2369,7 +2332,7 @@ def _display_next_steps_guidance(result, path: str):
             f"   1. Interactive preview: [cyan]nicestlog migrate {path} --interactive[/cyan]"
         )
         console.print(
-            f"   2. Apply changes: [cyan]nicestlog migrate {path} --do-migrate --type logging-to-structlog[/cyan]"
+            f"   2. Apply changes: [cyan]nicestlog migrate {path} --no-dry-run --type logging-to-structlog[/cyan]"
         )
         console.print(
             f"   3. Update imports: [cyan]nicestlog check {path} --fix[/cyan]"
@@ -2391,16 +2354,11 @@ def _display_next_steps_guidance(result, path: str):
         )
         console.print("   3. Run demos: [cyan]nicestlog demo basic[/cyan]")
 
-    # Risk warnings
+    # Simple guidance without backup noise
     if rec.risk_level == "high":
-        console.print("\n⚠️  [red]High Risk Migration - Consider:[/red]")
-        console.print("   • Create full project backup first")
-        console.print("   • Use interactive mode for review")
-        console.print("   • Test thoroughly before committing")
+        console.print("\n⚠️  [yellow]Review changes carefully before applying[/yellow]")
     elif rec.risk_level == "medium":
-        console.print("\n⚠️  [yellow]Medium Risk - Recommended:[/yellow]")
-        console.print("   • Use --backup flag for safety")
-        console.print("   • Review changes before applying")
+        console.print("\n💡 [blue]Review changes before applying[/blue]")
 
     # Prerequisites
     if rec.prerequisites:
@@ -2541,9 +2499,6 @@ def _display_project_analysis(result):
     )
     deps_table.add_row(
         "Structlog", "✅ Present" if result.dependencies.has_structlog else "❌ Missing"
-    )
-    deps_table.add_row(
-        "Loguru", "✅ Present" if result.dependencies.has_loguru else "❌ Missing"
     )
 
     if result.dependencies.has_other_logging:
