@@ -592,46 +592,29 @@ class ProjectAnalyzer:
         # Strategy-specific steps
         if strategy == "cli-outputs-to-structlog":
             steps = [
-                "1. Add nicestlog to dependencies",
-                "2. Initialize nicestlog configuration",
-                "3. Run: nicestlog migrate . --type cli-outputs-to-structlog --interactive",
-                "4. Review CLI styling preservation",
-                "5. Create translation files for CLI messages",
-                "6. Test CLI output formatting",
-                "7. Validate changes",
+                "1. Run: nicestlog migrate . --type cli-outputs-to-structlog --interactive",
+                "2. Validate changes",
             ]
         elif strategy == "print-to-structlog":
             steps = [
-                "1. Add nicestlog to dependencies",
-                "2. Initialize nicestlog configuration",
-                "3. Run: nicestlog migrate . --no-dry-run --type print-to-structlog",
-                "4. Create translation files",
-                "5. Test and validate changes",
+                "1. Run: nicestlog migrate . --no-dry-run --type print-to-structlog",
+                "2. Validate changes",
             ]
         elif strategy == "logging-to-structlog":
             steps = [
-                "1. Add nicestlog to dependencies",
-                "2. Initialize nicestlog configuration",
-                "3. Run: nicestlog migrate . --type logging-to-structlog --interactive",
-                "4. Update import statements",
-                "5. Create translation files",
-                "6. Test and validate changes",
+                "1. Run: nicestlog migrate . --type logging-to-structlog --interactive",
+                "2. Validate changes",
             ]
         elif strategy == "enhancement":
             steps = [
-                "1. Add nicestlog to dependencies",
-                "2. Run: nicestlog check . --ast --fix",
-                "3. Enhance existing structured logging",
-                "4. Add translation support",
-                "5. Optimize performance",
+                "1. Run: nicestlog check . --fix",
+                "2. Enhance existing structured logging",
             ]
         else:  # greenfield
             steps = [
-                "1. Add nicestlog to dependencies",
-                "2. Initialize nicestlog configuration",
-                "3. Set up logging in main application entry point",
-                "4. Create translation files",
-                "5. Implement logging throughout codebase",
+                "1. Initialize nicestlog configuration: nicestlog init .",
+                "2. Set up logging in main application entry point",
+                "3. Implement logging throughout codebase",
             ]
 
         return MigrationRecommendation(

@@ -2346,7 +2346,13 @@ def _display_next_steps_guidance(result, path: str):
 
     # Strategy-specific guidance
     rec = result.recommendation
-    if rec.strategy == "print-to-structlog":
+    if rec.strategy == "cli-outputs-to-structlog":
+        console.print("🔄 [blue]CLI Output Migration:[/blue]")
+        console.print(
+            f"   1. Run interactive migration: [cyan]nicestlog migrate {path} --type cli-outputs-to-structlog --interactive[/cyan]"
+        )
+        console.print(f"   2. Validate results: [cyan]nicestlog check {path}[/cyan]")
+    elif rec.strategy == "print-to-structlog":
         console.print("🔄 [blue]Print-to-Structlog Migration:[/blue]")
         console.print(f"   1. Preview changes: [cyan]nicestlog migrate {path}[/cyan]")
         console.print(
@@ -2368,16 +2374,10 @@ def _display_next_steps_guidance(result, path: str):
         console.print("✨ [blue]Enhancement Recommendations:[/blue]")
         console.print(f"   1. Check current code: [cyan]nicestlog check {path}[/cyan]")
         console.print(f"   2. Apply fixes: [cyan]nicestlog check {path} --fix[/cyan]")
-        console.print(
-            f"   3. Add translations: [cyan]nicestlog tools i18n check {path}/src[/cyan]"
-        )
     else:  # greenfield
         console.print("🌱 [blue]Greenfield Setup:[/blue]")
         console.print(f"   1. Initialize config: [cyan]nicestlog init {path}[/cyan]")
-        console.print(
-            "   2. Set up logging: [cyan]nicestlog docs --feature logging[/cyan]"
-        )
-        console.print("   3. Run demos: [cyan]nicestlog tools demo basic[/cyan]")
+        console.print("   2. Set up logging in your application entry point")
 
     # Simple guidance without backup noise
     if rec.risk_level == "high":
@@ -2391,9 +2391,7 @@ def _display_next_steps_guidance(result, path: str):
         for prereq in rec.prerequisites:
             console.print(f"   • {prereq}")
 
-    console.print(
-        "\n💡 [blue]Need help? Run: [cyan]nicestlog docs[/cyan] or [cyan]nicestlog tools demo[/cyan][/blue]"
-    )
+    console.print("\n💡 [blue]Need help? Run: [cyan]nicestlog --help[/cyan][/blue]")
 
 
 def _display_project_context(
