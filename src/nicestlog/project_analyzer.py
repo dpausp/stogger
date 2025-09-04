@@ -604,7 +604,7 @@ class ProjectAnalyzer:
             steps = [
                 "1. Add nicestlog to dependencies",
                 "2. Initialize nicestlog configuration",
-                "3. Run: nicestlog migrate . --type print-to-structlog --backup",
+                "3. Run: nicestlog migrate . --no-dry-run --type print-to-structlog",
                 "4. Create translation files",
                 "5. Test and validate changes",
             ]

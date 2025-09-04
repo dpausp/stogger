@@ -81,6 +81,8 @@ Prioritized work items (with checkboxes)
      - [x] Remove "High Risk Migration" warnings
      - [x] Remove trivial tips about backups and testing
      - [x] Simplify migration output to be clear and concise
-     - [x] All cleanup completed successfully!
-     - [ ] Commit with message: "fix: simplify migrate command - remove backup chaos, make dry-run default"
-   - Steps: ...
+     - [x] Fixed duplicate "Next Steps" sections in CLI output
+     - [x] Updated project_analyzer.py to use --no-dry-run instead of --backup
+     - [x] Fixed CLI help text to remove --backup references
+     - [ ] **STILL INVESTIGATING**: Some old commands still appearing in output
+     - [ ] Need to find remaining source of "--do-migrate" and "--backup" in output

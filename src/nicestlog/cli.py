@@ -429,7 +429,7 @@ def check(
       nicestlog check file.py                    # Basic linting + AST analysis
       nicestlog check file.py --no-ast           # Basic linting only
       nicestlog check file.py --fix              # Fix with AST transforms
-      nicestlog check file.py --fix --backup     # Fix with backup creation
+      nicestlog check file.py --fix              # Fix issues automatically
       nicestlog check file.py --interactive      # Interactive mode
       nicestlog check file.py --dry-run --fix    # Preview fixes
       nicestlog check file.py --complexity       # Complexity analysis
@@ -2319,9 +2319,7 @@ def _display_next_steps_guidance(result, path: str):
     rec = result.recommendation
     if rec.strategy == "print-to-structlog":
         console.print("🔄 [blue]Print-to-Structlog Migration:[/blue]")
-        console.print(
-            f"   1. Preview changes: [cyan]nicestlog migrate {path} --dry-run[/cyan]"
-        )
+        console.print(f"   1. Preview changes: [cyan]nicestlog migrate {path}[/cyan]")
         console.print(
             f"   2. Apply migration: [cyan]nicestlog migrate {path} --no-dry-run[/cyan]"
         )
@@ -2339,10 +2337,8 @@ def _display_next_steps_guidance(result, path: str):
         )
     elif rec.strategy == "enhancement":
         console.print("✨ [blue]Enhancement Recommendations:[/blue]")
-        console.print(
-            f"   1. Check current code: [cyan]nicestlog check {path} --ast[/cyan]"
-        )
-        console.print(f"   2. Apply fixes: [cyan]nicestlog fix {path} --ast[/cyan]")
+        console.print(f"   1. Check current code: [cyan]nicestlog check {path}[/cyan]")
+        console.print(f"   2. Apply fixes: [cyan]nicestlog check {path} --fix[/cyan]")
         console.print(
             f"   3. Add translations: [cyan]nicestlog tools i18n check {path}/src[/cyan]"
         )
@@ -2352,7 +2348,7 @@ def _display_next_steps_guidance(result, path: str):
         console.print(
             "   2. Set up logging: [cyan]nicestlog docs --feature logging[/cyan]"
         )
-        console.print("   3. Run demos: [cyan]nicestlog demo basic[/cyan]")
+        console.print("   3. Run demos: [cyan]nicestlog tools demo basic[/cyan]")
 
     # Simple guidance without backup noise
     if rec.risk_level == "high":
@@ -2367,7 +2363,7 @@ def _display_next_steps_guidance(result, path: str):
             console.print(f"   • {prereq}")
 
     console.print(
-        "\n💡 [blue]Need help? Run: [cyan]nicestlog docs[/cyan] or [cyan]nicestlog demo[/cyan][/blue]"
+        "\n💡 [blue]Need help? Run: [cyan]nicestlog docs[/cyan] or [cyan]nicestlog tools demo[/cyan][/blue]"
     )
 
 
@@ -2532,18 +2528,7 @@ def _display_project_analysis(result):
         for warning in result.warnings:
             console.print(f"  • {warning}")
 
-    # Next Steps
-    console.print("\n[bold green]Next Steps:[/bold green]")
-    console.print(
-        "To apply changes, run: [cyan]nicestlog migrate . --do-migrate[/cyan]"
-    )
-    console.print(
-        f"1. Preview: [cyan]nicestlog migrate . --type {rec.strategy} --dry-run[/cyan]"
-    )
-    console.print(
-        f"2. Apply: [cyan]nicestlog migrate . --type {rec.strategy} --do-migrate --backup[/cyan]"
-    )
-    console.print("3. Validate: [cyan]nicestlog check . --ast[/cyan]")
+    # Next Steps are handled by _display_next_steps_guidance - no duplication
 
 
 def _configure_logging_focused_patterns(
