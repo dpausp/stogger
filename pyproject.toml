@@ -1,6 +1,6 @@
 [project]
 name = "nicestlog"
-version = "0.3.1"
+version = "0.3.3"
 description = "A sophisticated multi-target structured logging system built on structlog"
 readme = "README.md"
 requires-python = ">=3.11"
