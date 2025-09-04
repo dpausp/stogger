@@ -19,6 +19,7 @@ import typer
 import structlog
 import nicestlog
 import importlib.resources as resources
+import importlib.metadata
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -50,8 +51,36 @@ class MigrationResultProtocol(Protocol):
 log = structlog.get_logger(__name__)
 console = Console()
 
-# Main app
+
+# Version callback function
+def version_callback(value: bool):
+    """Show version and exit."""
+    if value:
+        try:
+            version = importlib.metadata.version("nicestlog")
+            console.print(f"nicestlog version {version}")
+        except importlib.metadata.PackageNotFoundError:
+            console.print("nicestlog version unknown (development)")
+        raise typer.Exit()
+
+
+# Main app with version option
 app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
+
+
+# Add global version option
+@app.callback()
+def main_callback(
+    version: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--version", callback=version_callback, help="Show version and exit"
+        ),
+    ] = None,
+):
+    """Nicestlog utility."""
+    pass
+
 
 # Create tools subgroup for low-level utilities
 tools_app = typer.Typer(help="🛠️ Low-level utilities and advanced tools")

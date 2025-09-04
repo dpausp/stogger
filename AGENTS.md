@@ -22,6 +22,10 @@ Check the following at the very end of your turn. Place this checklist immediate
 - We can have fun while working but don't get too excited and avoid overselling success.
 - Ask user before making large structural changes.
 - Focus on edge cases and error handling in tests
+- **Version Management**: When making changes that affect functionality, bump the version appropriately using `uv version`:
+  - `uv version patch` for bug fixes and small improvements
+  - `uv version minor` for new features and enhancements  
+  - `uv version major` for breaking changes or major refactors
 - **Commit Message Preservation**: When pre-commit hooks make automatic fixes (ruff, black, etc.), use `git commit --amend --no-edit` to keep the original commit message unchanged. Pre-commit fixes are just cleanup work and should not be mentioned in commit messages. Examples:
   - ✅ Good: Keep original "feat: add voice feedback system" unchanged
   - ✅ Good: Keep original "fix: resolve timeout issue in notification pipeline" unchanged  

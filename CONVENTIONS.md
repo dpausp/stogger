@@ -19,6 +19,16 @@ Configuration is in `pyproject.toml`:
 - run commands with `uv run` to use the uv virtualenv
 - Prefer uv, other that that, [PyPA packaging guidelines](https://packaging.python.org/) apply.
 
+## Version Management
+
+- **Version is managed with uv**: Use `uv version` command to bump versions
+- Version is stored in `pyproject.toml` and automatically synced to `uv.lock`
+- Common version bump commands:
+  - `uv version patch` - for bug fixes (0.3.1 → 0.3.2)
+  - `uv version minor` - for new features (0.3.1 → 0.4.0)
+  - `uv version major` - for breaking changes (0.3.1 → 1.0.0)
+- Check current version: `uv run nicestlog --version`
+
 ## Project-Specific Patterns
 
 ### Important Packages
