@@ -84,5 +84,7 @@ Prioritized work items (with checkboxes)
      - [x] Fixed duplicate "Next Steps" sections in CLI output
      - [x] Updated project_analyzer.py to use --no-dry-run instead of --backup
      - [x] Fixed CLI help text to remove --backup references
-     - [ ] **STILL INVESTIGATING**: Some old commands still appearing in output
-     - [ ] Need to find remaining source of "--do-migrate" and "--backup" in output
+     - [x] **PROGRESS**: Fixed most duplicate sections and command references
+     - [ ] **STILL INVESTIGATING**: Mysterious "Next Steps:" section with old commands
+     - [ ] **FOUND**: Old commands still in examples/ and tests/ files (not affecting CLI output)
+     - [ ] **MYSTERY**: First "Next Steps:" section source not found in codebase search
