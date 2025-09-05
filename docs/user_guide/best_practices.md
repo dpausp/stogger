@@ -305,7 +305,7 @@ log.info("user-action", user_id=123, action="login", ip="192.168.1.100")
 - **Inconsistent patterns**: Different developers create different wrapper styles
 - **Lost debugging context**: The actual call site information is obscured
 
-**Detection**: Use `nicestlog check . --ast` or `nicestlog migrate .` to automatically detect wrapper anti-patterns in your codebase.
+**Detection**: Use `nicestlog check .` to automatically detect wrapper anti-patterns in structlog-based codebases. For legacy projects without structlog, use `nicestlog migrate .` to analyze and migrate to structured logging.
 
 ## Summary
 

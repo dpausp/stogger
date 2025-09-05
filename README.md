@@ -26,13 +26,13 @@ pip install nicestlog
 Already have a project with print statements or standard logging? Nicestlog can migrate it automatically:
 
 ```bash
-# Analyze your project (safe, no changes)
+# Analyze your legacy project (safe, no changes)
 nicestlog migrate /path/to/your/project
 
 # Apply migration with backup
 nicestlog migrate /path/to/your/project --do-migrate --backup
 
-# Validate results
+# Validate results in structlog-based projects
 nicestlog check /path/to/your/project
 ```
 
@@ -41,6 +41,8 @@ nicestlog check /path/to/your/project
 - ✅ Standard `logging` module → structlog  
 - ✅ Eliot integration (already compatible!)
 - ✅ Loguru, Sentry, and other libraries
+
+For ongoing code quality in structlog-based projects, use `nicestlog check` to identify logging anti-patterns and best practice violations.
 
 📚 See [Migration Examples](docs/user_guide/migration_examples.md) for concrete before/after code examples.
 
@@ -95,12 +97,12 @@ For internationalization and translation coverage checking, see [i18n documentat
 ## Quick Command Reference
 
 ```bash
-# Project analysis and migration
+# Project analysis and migration (for legacy projects without structlog)
 nicestlog migrate .                    # Analyze project (safe, default)
 nicestlog migrate . --json            # JSON output for agents
 nicestlog migrate . --do-migrate      # Apply migration changes
 
-# Code quality and fixes
+# Code quality and fixes (for structlog-based projects)
 nicestlog check .                      # Check logging best practices
 nicestlog check . --fix                # Fix issues automatically
 nicestlog check . --interactive        # Fix issues interactively
@@ -147,7 +149,7 @@ Behavior:
 nicestlog includes powerful tools for analyzing existing projects and migrating them to use structured logging:
 
 ```bash
-# Analyze project for migration opportunities (safe, fast)
+# Analyze legacy project for migration opportunities (safe, fast)
 nicestlog migrate .
 
 # Get JSON output for automated processing
@@ -162,6 +164,8 @@ nicestlog migrate . --do-migrate --interactive
 # Specific migration type
 nicestlog migrate . --do-migrate --type logging-to-structlog
 ```
+
+For ongoing code quality in structlog-based projects, use `nicestlog check` to identify logging anti-patterns and best practice violations.
 
 **Key Features:**
 - 🔍 **Project Analysis** - Comprehensive assessment of logging patterns
