@@ -818,7 +818,31 @@ class AdvancedAssistant:
             session_id=self.session_id,
         )
 
-        files = list(directory.glob(pattern))
+        # Use gitignore-aware file filtering and respect project structure
+        from .gitignore_utils import filter_python_files
+        from .config import detect_project_structure
+
+        # Detect project structure to get source directories
+        try:
+            project_structure = detect_project_structure(directory)
+
+            # Get Python files from source directories only
+            files = []
+            for src_dir in project_structure.source_dirs:
+                src_path = directory / src_dir
+                if src_path.exists():
+                    # Filter files respecting gitignore and project structure
+                    src_files = filter_python_files(src_path, respect_gitignore=True)
+                    # Additional filtering to exclude test files
+                    for py_file in src_files:
+                        if not project_structure.should_exclude_from_logging_analysis(
+                            py_file
+                        ):
+                            files.append(py_file)
+        except Exception:
+            # Fallback to original behavior if project structure detection fails
+            files = list(directory.glob(pattern))
+
         log.debug(
             "directory-files-selected",
             _replace_msg="📁 Selected {count} files for transformation in {directory}",

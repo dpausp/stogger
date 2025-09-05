@@ -596,7 +596,31 @@ def check(
             transform_result = assistant.transform_file(path_obj, dry_run=dry_run)
             _display_transformation_result(transform_result, dry_run)
         else:
-            python_files = list(path_obj.glob("**/*.py"))
+            # Use gitignore-aware file filtering and respect project structure
+            from .gitignore_utils import filter_python_files
+            from .config import detect_project_structure
+
+            # Detect project structure to get source directories
+            project_structure = detect_project_structure(path_obj)
+
+            # Get Python files from source directories only
+            python_files = []
+            for src_dir in project_structure.source_dirs:
+                src_path = (
+                    path_obj / src_dir
+                    if path_obj.is_dir()
+                    else path_obj.parent / src_dir
+                )
+                if src_path.exists():
+                    # Filter files respecting gitignore and project structure
+                    src_files = filter_python_files(src_path, respect_gitignore=True)
+                    # Additional filtering to exclude test files
+                    for py_file in src_files:
+                        if not project_structure.should_exclude_from_logging_analysis(
+                            py_file
+                        ):
+                            python_files.append(py_file)
+
             transform_results = []
 
             with Progress(
@@ -854,7 +878,31 @@ def _analyze_directory(
 ):
     """Analyze all Python files in a directory."""
 
-    files = list(path.glob(pattern))
+    # Use gitignore-aware file filtering and respect project structure
+    from .gitignore_utils import filter_python_files
+    from .config import detect_project_structure
+
+    # Detect project structure to get source directories
+    try:
+        project_structure = detect_project_structure(path)
+
+        # Get Python files from source directories only
+        files = []
+        for src_dir in project_structure.source_dirs:
+            src_path = path / src_dir
+            if src_path.exists():
+                # Filter files respecting gitignore and project structure
+                src_files = filter_python_files(src_path, respect_gitignore=True)
+                # Additional filtering to exclude test files
+                for py_file in src_files:
+                    if not project_structure.should_exclude_from_logging_analysis(
+                        py_file
+                    ):
+                        files.append(py_file)
+    except Exception:
+        # Fallback to original behavior if project structure detection fails
+        files = list(path.glob(pattern))
+
     if not files:
         console.print(f"❌ [red]No files matching pattern '{pattern}' found in {path}")
         return
