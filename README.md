@@ -81,7 +81,11 @@ nicestlog.init_logging(
 )
 
 log = structlog.get_logger()
-log.info("Starting application", component="main")
+log.info(
+    "application-started",
+    _replace_msg="Starting application",
+    component="main"
+)
 ```
 
 For more examples and best practices, see the [documentation](docs/user_guide/best_practices.md).

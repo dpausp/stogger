@@ -25,9 +25,9 @@ nicestlog.init_logging(verbose=True)
 log = structlog.get_logger()
 
 # Log with structured data
-log.info("user-login", user_id=123, username="alice", ip="192.168.1.1")
-log.warning("rate-limit-exceeded", user_id=123, attempts=5, limit=3)
-log.error("database-connection-failed", host="db.example.com", timeout=30)
+log.info("user-login", _replace_msg="User {username} logged in", user_id=123, username="alice", ip="192.168.1.1")
+log.warning("rate-limit-exceeded", _replace_msg="Rate limit exceeded for user {user_id}", user_id=123, attempts=5, limit=3)
+log.error("database-connection-failed", _replace_msg="Database connection failed to {host}", host="db.example.com", timeout=30)
 ```
 
 ## Key Concepts
@@ -38,7 +38,7 @@ nicestlog promotes event-style logging where each log entry represents a specifi
 
 ```python
 # ✅ Good: Event-style with structured data
-log.info("order-created", order_id=12345, customer_id=67890, amount=99.99)
+log.info("order-created", _replace_msg="Order {order_id} created for customer {customer_id}", order_id=12345, customer_id=67890, amount=99.99)
 
 # ❌ Avoid: String formatting without structure
 log.info(f"Order {order_id} created for customer {customer_id}")
@@ -50,6 +50,7 @@ Always include relevant context as keyword arguments:
 
 ```python
 log.info("payment-processed", 
+         _replace_msg="Payment {payment_id} processed for {amount} {currency}",
          payment_id="pay_123",
          amount=49.99,
          currency="USD",

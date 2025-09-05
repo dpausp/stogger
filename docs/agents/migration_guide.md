@@ -173,7 +173,7 @@ log = structlog.get_logger()
 
 start = time.time()
 for i in range(1000):
-    log.info('performance-test', iteration=i, data={'key': 'value'})
+    log.info('performance-test', _replace_msg="Performance test iteration {iteration}", iteration=i, data={'key': 'value'})
 end = time.time()
 
 print(f'1000 log entries in {end-start:.3f}s')

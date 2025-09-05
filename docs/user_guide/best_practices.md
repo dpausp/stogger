@@ -10,7 +10,7 @@ Structure your log messages as events rather than prose:
 
 ```python
 # ✅ Good: Event-style
-log.info("user-registration-completed", user_id=123, email="user@example.com")
+log.info("user-registration-completed", _replace_msg="User registration completed for user {user_id}", user_id=123, email="user@example.com")
 
 # ❌ Avoid: Prose-style
 log.info("User with ID 123 has completed registration")
@@ -39,7 +39,7 @@ Adopt a consistent naming convention for event IDs:
 
 ```python
 # ✅ Good: dash-case convention
-log.info("order-payment-processed")
+log.info("order-payment-processed", _replace_msg="Order payment processed")
 log.warning("inventory-low-stock")
 log.error("database-connection-timeout")
 
@@ -57,16 +57,16 @@ log.warning("inventory_low_stock")  # snake_case
 log.debug("cache-lookup", key="user:123", hit=True, ttl=300)
 
 # INFO: General operational events
-log.info("user-login", user_id=123, session_id="sess_abc")
+log.info("user-login", _replace_msg="User {user_id} logged in", user_id=123, session_id="sess_abc")
 
 # WARNING: Something unexpected but not critical
-log.warning("rate-limit-approaching", user_id=123, requests=95, limit=100)
+log.warning("rate-limit-approaching", _replace_msg="Rate limit approaching for user {user_id}", user_id=123, requests=95, limit=100)
 
 # ERROR: Error conditions that need attention
-log.error("payment-gateway-timeout", gateway="stripe", timeout_ms=5000)
+log.error("payment-gateway-timeout", _replace_msg="Payment gateway timeout for {gateway}", gateway="stripe", timeout_ms=5000)
 
 # CRITICAL: Serious errors requiring immediate action
-log.critical("database-unavailable", attempts=3, last_error="connection refused")
+log.critical("database-unavailable", _replace_msg="Database unavailable after {attempts} attempts", attempts=3, last_error="connection refused")
 ```
 
 ## Performance Considerations

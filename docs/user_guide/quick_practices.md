@@ -86,7 +86,7 @@ log.info(
 - Do:
 
 ```python
-log.info("order-created", order_id=oid, user_id=uid, total_cents=total)
+log.info("order-created", _replace_msg="Order {order_id} created for user {user_id}", order_id=oid, user_id=uid, total_cents=total)
 ```
 
 - Don’t:

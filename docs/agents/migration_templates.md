@@ -71,11 +71,11 @@ import structlog
 log = structlog.get_logger(__name__)
 
 def process_data(data):
-    log.info("processing-data", data=data)
+    log.info("processing-data", _replace_msg="Processing data", data=data)
     if not data:
-        log.warning("no-data-provided")
+        log.warning("no-data-provided", _replace_msg="No data provided")
         return None
-    log.info("processing-completed", items_count=len(data))
+    log.info("processing-completed", _replace_msg="Processing completed with {items_count} items", items_count=len(data))
     return data
 ```
 
@@ -129,11 +129,11 @@ import structlog
 log = structlog.get_logger(__name__)
 
 def authenticate_user(username, password):
-    log.info("authentication-attempt", username=username)
-    if not username:
-        log.error("username-required")
+    log.info("authentication-attempt", _replace_msg="Authentication attempt for {username}", username=username)
+    if not username or not password:
+        log.error("authentication-failed", _replace_msg="Authentication failed for {username}", username=username)
         return False
-    log.info("authentication-successful", username=username)
+    log.info("authentication-successful", _replace_msg="Authentication successful for {username}", username=username)
     return True
 ```
 
@@ -218,18 +218,14 @@ nicestlog.init_logging()
 log = structlog.get_logger(__name__)
 
 def main():
-    log.info("application-started", version="0.1.0")
-    
+    log.info("application-started", _replace_msg="Application started", version="0.1.0")
     try:
+        log.info("application-running", _replace_msg="Application running")
         # Your application logic here
-        log.info("application-running")
-        
     except Exception as e:
-        log.error("application-error", error=str(e), exc_info=True)
-        return 1
-    
-    log.info("application-completed")
-    return 0
+        log.exception("application-error", _replace_msg="Application error occurred", error=str(e))
+    finally:
+        log.info("application-completed", _replace_msg="Application completed")
 
 if __name__ == "__main__":
     exit(main())
