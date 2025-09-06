@@ -28,11 +28,7 @@ try:
 except ImportError:
     SYSTEMD_AVAILABLE = False
     journal = None
-    log.warning(
-        "systemd-journal-unavailable",
-        _replace_msg="⚠️  systemd-python not available - journal viewing disabled",
-        suggestion="Install with: pip install systemd-python",
-    )
+    print("⚠️  systemd-python not available - journal viewing disabled", file=sys.stderr)
 
 try:
     from .core import RESET_ALL, BRIGHT, DIM, RED, BLUE, CYAN, MAGENTA, YELLOW, GREEN

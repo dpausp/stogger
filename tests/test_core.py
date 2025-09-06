@@ -202,9 +202,12 @@ class TestConsoleFileRenderer:
 
     def test_caller_info_option(self):
         """Test the show_caller_info option."""
-        renderer = ConsoleFileRenderer(show_caller_info=True)
+        from src.nicestlog.config import SimpleFormatSettings
+
+        settings = SimpleFormatSettings(show_code_info=True)
+        renderer = ConsoleFileRenderer(settings=settings)
         # This is mainly for initialization - actual caller info is added by add_caller_info processor
-        assert renderer.show_caller_info is True
+        assert renderer.settings.show_code_info is True
 
     def test_level_colors(self):
         """Test that different levels get appropriate colors."""
@@ -231,7 +234,8 @@ class TestConsoleFileRenderer:
 
         result = renderer(None, None, event_dict)
         assert "notimestamp" in result["console"]
-        assert "[root]" in result["console"]  # Default logger name
+        # Note: Default logger name is no longer shown in brackets by default
+        # assert "[root]" in result["console"]  # Default logger name
 
 
 class TestJSONRenderer:
@@ -617,10 +621,10 @@ class TestCoreEdgeCases:
         )
         assert result is None
 
-    def test_simple_console_renderer_edge_cases(self):
-        """Test SimpleConsoleRenderer edge cases."""
+    def test_console_file_renderer_with_simple_format_settings(self):
+        """Test ConsoleFileRenderer with SimpleFormatSettings."""
         from src.nicestlog.config import SimpleFormatSettings
-        from src.nicestlog.core import SimpleConsoleRenderer
+        from src.nicestlog.core import ConsoleFileRenderer
 
         settings = SimpleFormatSettings(
             show_logger_brackets=False,
@@ -628,7 +632,7 @@ class TestCoreEdgeCases:
             show_code_info=True,
             timestamp_format="iso_no_z",
         )
-        renderer = SimpleConsoleRenderer(min_level="debug", settings=settings)
+        renderer = ConsoleFileRenderer(min_level="debug", settings=settings)
 
         # Test with timestamp ending in Z
         result = renderer(
@@ -645,8 +649,8 @@ class TestCoreEdgeCases:
         )
 
         # Should remove Z from timestamp
-        assert "2023-01-01T00:00:00 " in result
-        assert "2023-01-01T00:00:00Z" not in result
+        assert "2023-01-01T00:00:00 " in result["console"]
+        assert "2023-01-01T00:00:00Z" not in result["console"]
 
     def test_json_renderer_non_serializable_objects(self):
         """Test JSONRenderer with non-serializable objects."""

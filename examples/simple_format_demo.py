@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Demo showing the new simple format (now default) and SimpleFormatSettings.
+Demo showing the enhanced ConsoleFileRenderer with SimpleFormatSettings.
 """
 
 import nicestlog
@@ -8,17 +8,17 @@ import structlog
 
 
 def main():
-    print("=== Simple Format Examples ===\n")
+    print("=== Enhanced ConsoleFileRenderer Examples ===\n")
 
-    # Example 1: Default simple format
-    print("1. Default simple format (clean):")
+    # Example 1: Default console format
+    print("1. Default console format (clean):")
     print("   nicestlog.init_logging()")
     print(
         "   Output: 2025-08-16T00:18:57.672408 I lock-try Looks like another management command is running"
     )
     print()
 
-    # Example 2: With logger brackets and PID
+    # Example 2: With logger brackets and PID using SimpleFormatSettings
     print("2. With additional info:")
     settings = nicestlog.SimpleFormatSettings(
         show_logger_brackets=True,

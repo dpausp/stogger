@@ -137,18 +137,33 @@ class ConsoleFileRenderer:
         show_caller_info=False,
         pad_event=_EVENT_WIDTH,
         safe_drop=False,
+        settings=None,
     ):
+        from .config import SimpleFormatSettings
+
         self.min_level = self.LEVELS.index(min_level.lower())
-        self.show_caller_info = show_caller_info
         self.safe_drop = (
             safe_drop  # If True, return empty string instead of raising DropEvent
         )
+
+        # Use SimpleFormatSettings for enhanced configuration
+        if settings is None:
+            self.settings = SimpleFormatSettings(
+                show_logger_brackets=False,
+                show_pid=False,
+                show_code_info=show_caller_info,
+                timestamp_format="iso",
+                custom_timestamp_format=None,
+                pad_event_width=pad_event,
+            )
+        else:
+            self.settings = settings
+
         if colorama is None:
             print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
         if sys.stdout.isatty():
             colorama.init()
 
-        self._pad_event = pad_event
         self._level_to_color = {
             "alert": RED,
             "critical": RED,
@@ -220,7 +235,8 @@ class ConsoleFileRenderer:
         else:
             formatted_replace_msg = None
 
-        if not self.show_caller_info:
+        # Handle code information based on settings
+        if not self.settings.show_code_info:
             event_dict.pop("code_file", None)
             event_dict.pop("code_func", None)
             event_dict.pop("code_lineno", None)
@@ -231,9 +247,21 @@ class ConsoleFileRenderer:
         event_dict.pop("_original_event", None)
         event_dict.pop("_record", None)
         event_dict.pop("_translated_msg", None)
+        event_dict.pop("_log_settings", None)
 
+        # Format timestamp based on settings
         ts = event_dict.pop("timestamp", None)
         if ts is not None:
+            # Apply timestamp formatting based on settings
+            if self.settings.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
+                ts = str(ts)[:-1]
+            elif (
+                self.settings.timestamp_format == "custom"
+                and self.settings.custom_timestamp_format
+            ):
+                # For custom formatting, we would need to parse and reformat the timestamp
+                # This is a simplified approach - in practice, you might want more sophisticated handling
+                pass
             write(
                 # can be a number if timestamp is UNIXy
                 DIM + str(ts) + RESET_ALL + " "
@@ -242,17 +270,21 @@ class ConsoleFileRenderer:
             # Indicate missing timestamp explicitly for diagnostics/tests
             write(DIM + "notimestamp" + RESET_ALL + " ")
 
-        event_dict.pop("pid", None)
+        # Handle PID based on settings
+        pid = event_dict.pop("pid", None)
+        if self.settings.show_pid and pid is not None:
+            write("[" + DIM + str(pid) + RESET_ALL + "] ")
 
         level = event_dict.pop("level", None)
         if level is not None:
             write(self._level_to_color[level] + level[0].upper() + RESET_ALL + " ")
 
         event = event_dict.pop("event")
-        write(BRIGHT + _pad(event, self._pad_event) + RESET_ALL + " ")
+        write(BRIGHT + _pad(event, self.settings.pad_event_width) + RESET_ALL + " ")
 
+        # Handle logger brackets based on settings
         logger_name = event_dict.pop("logger", "root")
-        if logger_name:
+        if logger_name and self.settings.show_logger_brackets:
             write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
 
         cmd_output_line = event_dict.pop("cmd_output_line", None)
@@ -313,150 +345,6 @@ class ConsoleFileRenderer:
 
         message = {"console": console_io.getvalue(), "file": log_io.getvalue()}
         return message
-
-
-class SimpleConsoleRenderer:
-    """
-    Simple console renderer that produces clean format with colors:
-    2025-08-16T02:33:01.617569 D system-build-command           cmd='nix-build...'
-    2025-08-16T02:33:01.623929 I system-build-started           Nix build command started with PID: 184437
-    """
-
-    LEVELS = [
-        "alert",
-        "critical",
-        "error",
-        "exception",
-        "warn",
-        "warning",
-        "info",
-        "debug",
-        "trace",
-    ]
-
-    def __init__(self, min_level="info", settings=None):
-        from .config import SimpleFormatSettings
-
-        if settings is None:
-            settings = SimpleFormatSettings()
-
-        self.min_level = self.LEVELS.index(min_level.lower())
-        self.settings = settings
-
-        if colorama is None:
-            print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
-        if sys.stdout.isatty():
-            colorama.init()
-
-        self._level_to_color = {
-            "alert": RED,
-            "critical": RED,
-            "error": RED,
-            "exception": RED,
-            "warn": YELLOW,
-            "warning": YELLOW,
-            "info": GREEN,
-            "debug": GREEN,
-            "trace": GREEN,
-            "notset": BACKRED,
-        }
-        for key in self._level_to_color.keys():
-            self._level_to_color[key] += BRIGHT
-
-    def __call__(self, _, method_name, event_dict):
-        # Filter according to the -v switch
-        if self.LEVELS.index(method_name.lower()) > self.min_level:
-            # For stdlib ProcessorFormatter, raising DropEvent can bubble up via logging handlers.
-            # Return empty string to drop quietly in that context.
-            return ""
-
-        console_io = io.StringIO()
-        log_io = io.StringIO()
-
-        def write(line):
-            console_io.write(line)
-            if RESET_ALL:
-                for SYMB in [
-                    RESET_ALL,
-                    BRIGHT,
-                    DIM,
-                    RED,
-                    BACKRED,
-                    BLUE,
-                    CYAN,
-                    MAGENTA,
-                    YELLOW,
-                    GREEN,
-                ]:
-                    line = line.replace(SYMB, "")
-            log_io.write(line)
-
-        # Handle _replace_msg
-        replace_msg = event_dict.pop("_replace_msg", None)
-        if replace_msg:
-            formatter = PartialFormatter()
-            formatted_replace_msg = formatter.format(replace_msg, **event_dict)
-        else:
-            formatted_replace_msg = None
-
-        # Remove internal fields and caller info if not needed
-        if not self.settings.show_code_info:
-            event_dict.pop("code_file", None)
-            event_dict.pop("code_func", None)
-            event_dict.pop("code_lineno", None)
-            event_dict.pop("code_module", None)
-
-        # Remove internal structlog fields
-        event_dict.pop("_from_structlog", None)
-        event_dict.pop("_original_event", None)
-        event_dict.pop("_record", None)
-        event_dict.pop("_translated_msg", None)
-        event_dict.pop("_log_settings", None)
-
-        # Format timestamp
-        ts = event_dict.pop("timestamp", None)
-        if ts is not None:
-            if self.settings.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
-                ts = str(ts)[:-1]
-            write(DIM + str(ts) + RESET_ALL + " ")
-
-        # Remove PID if not wanted
-        if not self.settings.show_pid:
-            event_dict.pop("pid", None)
-
-        # Format level
-        level = event_dict.pop("level", None)
-        if level is not None:
-            write(self._level_to_color[level] + level[0].upper() + RESET_ALL + " ")
-
-        # Format event name
-        event = event_dict.pop("event")
-        write(BRIGHT + _pad(event, self.settings.pad_event_width) + RESET_ALL + " ")
-
-        # Handle logger brackets
-        logger_name = event_dict.pop("logger", None)
-        if self.settings.show_logger_brackets and logger_name is not None:
-            write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
-
-        # Show either formatted replace message or structured data
-        if formatted_replace_msg:
-            write(formatted_replace_msg)
-        else:
-            write(
-                " ".join(
-                    CYAN
-                    + key
-                    + RESET_ALL
-                    + "="
-                    + MAGENTA
-                    + repr(event_dict[key])
-                    + RESET_ALL
-                    for key in sorted(event_dict.keys())
-                )
-            )
-
-        # Return only the console output as string (no file output for simple renderer)
-        return console_io.getvalue()
 
 
 class JSONRenderer:
@@ -614,7 +502,7 @@ def init_early_logging():
         processors = [
             structlog.stdlib.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
-            SimpleConsoleRenderer(min_level="info"),
+            ConsoleFileRenderer(min_level="info"),
         ]
 
         # Configure structlog with minimal setup

@@ -19,7 +19,6 @@ from .core import (
     JSONRenderer,
     process_exc_info,
     SelectRenderedString,
-    SimpleConsoleRenderer,
     TranslationProcessor,
 )
 
@@ -106,19 +105,27 @@ def build_renderer(config: NicestLogConfig) -> Any:
         log.debug(
             "json-renderer-created", min_level="debug" if config.verbose else "info"
         )
-    elif config.log_format == "simple":
-        renderer = SimpleConsoleRenderer(  # type: ignore[assignment]
-            min_level="debug" if config.verbose else "info",
-            settings=config.simple_format_settings,
-        )
-        log.debug(
-            "simple-console-renderer-created",
-            min_level="debug" if config.verbose else "info",
-        )
     else:
+        # Use ConsoleFileRenderer for both "console" and "simple" formats
+        # For "simple" format, we use the simple_format_settings
+        if config.log_format == "simple":
+            settings = config.simple_format_settings
+        else:
+            # For "console" format, create settings based on legacy parameters
+            from .config import SimpleFormatSettings
+
+            settings = SimpleFormatSettings(
+                show_logger_brackets=False,
+                show_pid=False,
+                show_code_info=config.show_caller_info,
+                timestamp_format="iso",
+                custom_timestamp_format=None,
+                pad_event_width=30,
+            )
+
         renderer = ConsoleFileRenderer(  # type: ignore[assignment]
             min_level="debug" if config.verbose else "info",
-            show_caller_info=config.show_caller_info,
+            settings=settings,
             safe_drop=True,  # Use safe_drop=True to avoid DropEvent issues in ProcessorFormatter
         )
         log.debug(
@@ -139,27 +146,16 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: List[Any]):
     renderer = build_renderer(config)
 
     # Create separate formatters for console and file handlers
-    # For SimpleConsoleRenderer, we don't need SelectRenderedString since it returns a string directly
-    if config.log_format == "simple":
-        console_formatter = structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=processors,
-            processors=[renderer],
-        )
-        file_formatter = structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=processors,
-            processors=[renderer],
-        )
-    else:
-        # Each formatter ends with SelectRenderedString to ensure string output
-        console_formatter = structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=processors,
-            processors=[renderer, SelectRenderedString("console")],
-        )
+    # ConsoleFileRenderer always returns a dict, so we always need SelectRenderedString
+    console_formatter = structlog.stdlib.ProcessorFormatter(
+        foreign_pre_chain=processors,
+        processors=[renderer, SelectRenderedString("console")],
+    )
 
-        file_formatter = structlog.stdlib.ProcessorFormatter(
-            foreign_pre_chain=processors,
-            processors=[renderer, SelectRenderedString("file")],
-        )
+    file_formatter = structlog.stdlib.ProcessorFormatter(
+        foreign_pre_chain=processors,
+        processors=[renderer, SelectRenderedString("file")],
+    )
 
     console_handlers: List[logging.Handler] = []
     file_handlers: List[logging.Handler] = []
