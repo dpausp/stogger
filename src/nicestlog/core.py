@@ -503,6 +503,7 @@ def init_early_logging():
             structlog.stdlib.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
             ConsoleFileRenderer(min_level="info"),
+            SelectRenderedString(key="console"),
         ]
 
         # Configure structlog with minimal setup
