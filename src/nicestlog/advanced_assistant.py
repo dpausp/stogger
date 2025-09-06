@@ -515,6 +515,7 @@ class AdvancedTransformer(ast.NodeTransformer):
                         self.metrics.errors_encountered.append(error_msg)
                         log.exception(
                             "transformation-error",
+                            _replace_msg="❌ {error_msg}",
                             error_msg=error_msg,
                             pattern=pattern_name,
                             exception_type=type(e).__name__,
@@ -684,6 +685,7 @@ class AdvancedAssistant:
         except Exception as e:
             log.exception(
                 "file-analysis-failed",
+                _replace_msg="❌ Failed to analyze {file_path}: {error}",
                 file_path=str(file_path),
                 error=str(e),
                 exception_type=type(e).__name__,
@@ -785,6 +787,7 @@ class AdvancedAssistant:
         except Exception as e:
             log.exception(
                 "file-transformation-failed",
+                _replace_msg="❌ Failed to transform {file_path}: {error}",
                 file_path=str(file_path),
                 error=str(e),
                 exception_type=type(e).__name__,
@@ -856,6 +859,7 @@ class AdvancedAssistant:
                 except Exception as e:
                     log.exception(
                         "file-transformation-error",
+                        _replace_msg="❌ Error transforming {file_path}: {error}",
                         file_path=str(file_path),
                         error=str(e),
                     )
