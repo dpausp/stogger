@@ -1,7 +1,7 @@
-"""
-Core logging functionality for nicestlog.
+"""Core logging functionality for nicestlog.
 """
 
+from datetime import datetime
 import io
 import json
 import os
@@ -9,13 +9,12 @@ import string
 import subprocess
 import sys
 import syslog
-from datetime import datetime
 from typing import Any
 
 import structlog
 
 try:
-    import systemd.journal as journal
+    from systemd import journal
 except ImportError:
     journal = None
 
@@ -77,7 +76,7 @@ class PartialFormatter(string.Formatter):
 class TranslationProcessor:
     def __init__(self, translations):
         log.debug(
-            "initializing-translation-processor", translation_count=len(translations)
+            "initializing-translation-processor", translation_count=len(translations),
         )
         self.translations = translations
         self.formatter = PartialFormatter()
@@ -106,7 +105,7 @@ class TranslationProcessor:
 
 def _pad(s, length):
     missing = length - len(s)
-    return s + " " * (missing if missing > 0 else 0)
+    return s + " " * (max(0, missing))
 
 
 def prefix(name, s):
@@ -122,8 +121,7 @@ def prefix(name, s):
 
 
 class ConsoleFileRenderer:
-    """
-    Render `event_dict` nicely aligned, in colors, and ordered with
+    """Render `event_dict` nicely aligned, in colors, and ordered with
     specific knowledge about fc.agent structures.
     """
 
@@ -144,24 +142,16 @@ class ConsoleFileRenderer:
         min_level="info",
         show_caller_info=False,
         pad_event=_EVENT_WIDTH,
-        settings=None,
+        show_logger_brackets=False,
+        show_pid=False,
+        timestamp_format="iso",
     ):
-        from .config import SimpleFormatSettings
-
         self.min_level = self.LEVELS.index(min_level.lower())
-
-        # Use SimpleFormatSettings for enhanced configuration
-        if settings is None:
-            self.settings = SimpleFormatSettings(
-                show_logger_brackets=False,
-                show_pid=False,
-                show_code_info=show_caller_info,
-                timestamp_format="iso",
-                custom_timestamp_format=None,
-                pad_event_width=pad_event,
-            )
-        else:
-            self.settings = settings
+        self.show_caller_info = show_caller_info
+        self.pad_event = pad_event
+        self.show_logger_brackets = show_logger_brackets
+        self.show_pid = show_pid
+        self.timestamp_format = timestamp_format
 
         if colorama is None:
             print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
@@ -183,7 +173,7 @@ class ConsoleFileRenderer:
         for key in self._level_to_color.keys():
             self._level_to_color[key] += BRIGHT
         self._longest_level = len(
-            max(self._level_to_color.keys(), key=lambda e: len(e))
+            max(self._level_to_color.keys(), key=lambda e: len(e)),
         )
 
     def __call__(self, _, method_name, event_dict):
@@ -237,7 +227,7 @@ class ConsoleFileRenderer:
             formatted_replace_msg = None
 
         # Handle code information based on settings
-        if not self.settings.show_code_info:
+        if not self.show_caller_info:
             event_dict.pop("code_file", None)
             event_dict.pop("code_func", None)
             event_dict.pop("code_lineno", None)
@@ -254,18 +244,11 @@ class ConsoleFileRenderer:
         ts = event_dict.pop("timestamp", None)
         if ts is not None:
             # Apply timestamp formatting based on settings
-            if self.settings.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
+            if self.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
                 ts = str(ts)[:-1]
-            elif (
-                self.settings.timestamp_format == "custom"
-                and self.settings.custom_timestamp_format
-            ):
-                # For custom formatting, we would need to parse and reformat the timestamp
-                # This is a simplified approach - in practice, you might want more sophisticated handling
-                pass
             write(
                 # can be a number if timestamp is UNIXy
-                DIM + str(ts) + RESET_ALL + " "
+                DIM + str(ts) + RESET_ALL + " ",
             )
         else:
             # Indicate missing timestamp explicitly for diagnostics/tests
@@ -273,7 +256,7 @@ class ConsoleFileRenderer:
 
         # Handle PID based on settings
         pid = event_dict.pop("pid", None)
-        if self.settings.show_pid and pid is not None:
+        if self.show_pid and pid is not None:
             write("[" + DIM + str(pid) + RESET_ALL + "] ")
 
         level = event_dict.pop("level", None)
@@ -281,11 +264,11 @@ class ConsoleFileRenderer:
             write(self._level_to_color[level] + level[0].upper() + RESET_ALL + " ")
 
         event = event_dict.pop("event")
-        write(BRIGHT + _pad(event, self.settings.pad_event_width) + RESET_ALL + " ")
+        write(BRIGHT + _pad(event, self.pad_event) + RESET_ALL + " ")
 
         # Handle logger brackets based on settings
         logger_name = event_dict.pop("logger", "root")
-        if logger_name and self.settings.show_logger_brackets:
+        if logger_name and self.show_logger_brackets:
             write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
 
         cmd_output_line = event_dict.pop("cmd_output_line", None)
@@ -308,7 +291,7 @@ class ConsoleFileRenderer:
                     + repr(event_dict[key])
                     + RESET_ALL
                     for key in sorted(event_dict.keys())
-                )
+                ),
             )
 
         if cmd_output_line is not None:
@@ -366,7 +349,7 @@ def add_pid(_, __, event_dict):
 
 def add_caller_info(_, __, event_dict):
     frame, module_str = structlog._frames._find_first_app_frame_and_name(
-        additional_ignores=[__name__]
+        additional_ignores=[__name__],
     )
     event_dict["code_file"] = frame.f_code.co_filename
     event_dict["code_func"] = frame.f_code.co_name
@@ -404,19 +387,18 @@ def format_exc_info(logger, name, event_dict):
 
 
 class SelectRenderedString:
-    """
-    Processor that selects a string from the dict returned by ConsoleFileRenderer.
+    """Processor that selects a string from the dict returned by ConsoleFileRenderer.
 
     This ensures that structlog.stdlib.ProcessorFormatter receives a string
     as required, avoiding RuntimeWarnings.
     """
 
     def __init__(self, key: str = "console"):
-        """
-        Initialize the selector.
+        """Initialize the selector.
 
         Args:
             key: Which key to select from the renderer dict ("console" or "file")
+
         """
         self.key = key
 
@@ -437,34 +419,13 @@ class SelectRenderedString:
 
 
 def init_logging(*args, **kwargs):
-    """
-    Initialize logging with support for both new reference-style and legacy signatures.
+    """Initialize logging with the new reference-style signature.
 
     New signature (reference-style):
         init_logging(verbose, logdir=None, log_cmd_output=False, log_to_console=True,
                     syslog_identifier="nicestlog", show_caller_info=False)
-
-    Legacy signature (keyword-only):
-        init_logging(verbose=True, syslog_identifier="app", log_format="console", ...)
     """
-    # Detect if this is a legacy call (has unsupported kwargs) or new style
-    legacy_kwargs = {
-        "log_format",
-        "simple_format",
-        "async_logging",
-        "enable_pii_scrubbing",
-        "pii_redaction_text",
-        "translation_dir",
-        "language",
-    }
-
-    if any(k in kwargs for k in legacy_kwargs) or (
-        len(args) == 0 and "verbose" in kwargs
-    ):
-        # Legacy call - delegate to the legacy function
-        return init_logging_legacy(*args, **kwargs)
-
-    # New reference-style call - handle positional and keyword args
+    # Handle positional and keyword args
     if len(args) >= 1:
         verbose = args[0]
         logdir = args[1] if len(args) > 1 else kwargs.get("logdir")
@@ -557,64 +518,11 @@ def init_logging(*args, **kwargs):
         init_command_logging(log, logdir)
 
 
-def init_logging_legacy(simple_format_settings=None, **kwargs: Any):
-    """
-    Legacy init_logging function for backward compatibility.
 
-    Args:
-        simple_format_settings: SimpleFormatSettings instance or dict with settings
-        **kwargs: Other configuration options
-    """
-    # Import here to avoid circular import
-    from .factory import build_shared_processors, configure_stdlib_logging
-    from .config import SimpleFormatSettings
-
-    # Handle simple_format_settings parameter
-    if simple_format_settings is not None:
-        if isinstance(simple_format_settings, dict):
-            kwargs["simple_format"] = simple_format_settings
-        elif isinstance(simple_format_settings, SimpleFormatSettings):
-            # Convert to dict for config
-            kwargs["simple_format"] = {
-                "show_logger_brackets": simple_format_settings.show_logger_brackets,
-                "show_pid": simple_format_settings.show_pid,
-                "show_code_info": simple_format_settings.show_code_info,
-                "timestamp_format": simple_format_settings.timestamp_format,
-                "custom_timestamp_format": simple_format_settings.custom_timestamp_format,
-                "pad_event_width": simple_format_settings.pad_event_width,
-            }
-
-    # Clear any early initialization to allow full reconfiguration
-    if structlog.is_configured():
-        structlog.reset_defaults()
-
-    config = NicestLogConfig(**kwargs)
-
-    # Only log debug messages if verbose mode is enabled
-    if config.verbose:
-        log.debug("initializing-nicestlog", config_kwargs=list(kwargs.keys()))
-
-    shared_processors = build_shared_processors(config)
-    if config.verbose:
-        log.debug("built-shared-processors", processor_count=len(shared_processors))
-
-    structlog.configure(
-        processors=shared_processors,
-        logger_factory=structlog.PrintLoggerFactory(),
-        wrapper_class=structlog.BoundLogger,
-        cache_logger_on_first_use=True,
-    )
-    if config.verbose:
-        log.debug("configured-structlog")
-
-    configure_stdlib_logging(config, shared_processors)
-    if config.verbose:
-        log.debug("logging-initialization-complete")
 
 
 def init_early_logging():
-    """
-    Initialize minimal logging format early to reduce uninitialized structlog messages.
+    """Initialize minimal logging format early to reduce uninitialized structlog messages.
 
     This sets up a basic structlog configuration with minimal dependencies
     to avoid the block of uninitialized messages at startup. Falls back
@@ -630,7 +538,7 @@ def init_early_logging():
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
             ConsoleFileRenderer(min_level="info"),
             SelectRenderedString(
-                key="console"
+                key="console",
             ),  # Convert dict to string for PrintLogger
         ]
 
@@ -758,7 +666,7 @@ class SystemdJournalRenderer:
         }
 
         event_dict["PRIORITY"] = JOURNAL_LEVELS.get(
-            event_dict.get("LEVEL"), syslog.LOG_INFO
+            event_dict.get("LEVEL"), syslog.LOG_INFO,
         )
         event_dict["SYSLOG_FACILITY"] = self.syslog_facility
         event_dict["SYSLOG_IDENTIFIER"] = self.syslog_identifier
@@ -800,8 +708,7 @@ class CmdOutputFileRenderer:
 
 
 class MultiRenderer:
-    """
-    Calls multiple renderers with a shallow copy of the event dict and collects
+    """Calls multiple renderers with a shallow copy of the event dict and collects
     their messages in a dict with the renderer names as keys and their
     rendered output as values. It doesn't care about the rendered messages
     so different logger types can get different types of messages.
@@ -813,7 +720,7 @@ class MultiRenderer:
         self.renderers = renderers
 
     def __repr__(self):
-        return "<MultiRenderer {}>".format([repr(logger) for logger in self.renderers])
+        return f"<MultiRenderer {[repr(logger) for logger in self.renderers]}>"
 
     def __call__(self, logger, method_name, event_dict):
         merged_messages = {}
@@ -830,8 +737,7 @@ class MultiRenderer:
 
 
 class MultiOptimisticLoggerFactory:
-    """
-    A logger factory that creates MultiOptimisticLogger instances.
+    """A logger factory that creates MultiOptimisticLogger instances.
     Stores context and sub-logger factories.
     """
 
@@ -845,8 +751,7 @@ class MultiOptimisticLoggerFactory:
 
 
 class MultiOptimisticLogger:
-    """
-    A logger which distributes messages to multiple loggers.
+    """A logger which distributes messages to multiple loggers.
     It's initialized with a logger dict where the keys are the logger names
     which correspond to the keyword arguments given to the msg method.
     If the logger's name is not present in the arguments, the logger is skipped.
@@ -857,9 +762,7 @@ class MultiOptimisticLogger:
         self.loggers = loggers
 
     def __repr__(self):
-        return "<MultiOptimisticLogger {}>".format(
-            [repr(logger) for logger in self.loggers]
-        )
+        return f"<MultiOptimisticLogger {[repr(logger) for logger in self.loggers]}>"
 
     def msg(self, **messages):
         for name, logger in self.loggers.items():
@@ -877,8 +780,7 @@ class MultiOptimisticLogger:
 
 
 def init_command_logging(log, logdir=None):
-    """
-    Adds a cmd_output_file logger factory to an already configured
+    """Adds a cmd_output_file logger factory to an already configured
     MultiOptimisticLoggerFactory, used for logging Nix command output to a
     separate file.
     Overwrites existing log files. If called from a systemd unit, the file
@@ -895,7 +797,7 @@ def init_command_logging(log, logdir=None):
         logdir = logger_factory.context.get("logdir")
 
     if logdir is None:
-        log.warn(
+        log.warning(
             "logging-cmd-output-no-logdir",
             _replace_msg=(
                 "Cannot set up command logging: "
@@ -924,14 +826,15 @@ def init_command_logging(log, logdir=None):
     )
 
     logger_factory.factories["cmd_output_file"] = structlog.PrintLoggerFactory(
-        cmd_log_file
+        cmd_log_file,
     )
 
 
 def drop_cmd_output_logfile(log):
     """Deletes the log file used by the cmd_output_file logger.
     Used to throw away the command log file if nothing interesting has
-    happened."""
+    happened.
+    """
     logger_factory = structlog.get_config()["logger_factory"]
 
     if not isinstance(logger_factory, MultiOptimisticLoggerFactory):

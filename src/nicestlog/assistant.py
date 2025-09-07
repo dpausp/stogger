@@ -216,8 +216,6 @@ def migrate_directory(
     dry_run: bool = True,
 ) -> MigrationResult:
     """Migrate Python files under input_dir. Writes to output_dir if provided, else in-place.
-
-    translations_file is currently unused but kept for CLI compatibility and future enhancements.
     """
     result = MigrationResult()
     input_dir = Path(input_dir)

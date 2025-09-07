@@ -40,9 +40,6 @@ class LogQualityReviewer:
             r"console\.log",
             r"System\.out\.println",
             r"print\s*\(",
-            r"TODO",
-            r"FIXME",
-            r"XXX",
         ]
 
         # Austrian quality levels

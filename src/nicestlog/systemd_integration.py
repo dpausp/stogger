@@ -180,19 +180,16 @@ def detect_systemd_environment() -> Dict[str, Any]:
     info["invocation_id"] = invocation_id
     info["journal_stream"] = journal_stream
 
-    # Try to get unit name from systemd
+    # Try to get unit name from systemd environment
     if SYSTEMD_AVAILABLE:
+        # Use systemd library to get unit information if available
         try:
-            # This is a bit hacky but works
-            with open("/proc/self/cgroup", "r") as f:
-                for line in f:
-                    if "systemd:" in line and ".service" in line:
-                        parts = line.strip().split("/")
-                        for part in parts:
-                            if part.endswith(".service"):
-                                info["unit_name"] = part
-                                info["service_name"] = part.replace(".service", "")
-                                break
+            from systemd import daemon
+            unit_name = daemon.booted()
+            if unit_name:
+                info["unit_name"] = unit_name
+                if unit_name.endswith(".service"):
+                    info["service_name"] = unit_name[:-8]  # Remove .service suffix
         except Exception:
             pass
 

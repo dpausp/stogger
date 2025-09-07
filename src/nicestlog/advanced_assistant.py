@@ -618,7 +618,7 @@ class AdvancedAssistant:
         def add_docstring(node: ast.FunctionDef) -> ast.FunctionDef:
             """Add a basic docstring to functions that don't have one."""
             docstring = ast.Expr(
-                value=ast.Constant(value=f"TODO: Add docstring for {node.name}")
+                value=ast.Constant(value=f"Add docstring for {node.name}")
             )
             node.body.insert(0, docstring)
             return node

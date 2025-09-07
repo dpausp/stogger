@@ -311,6 +311,30 @@ class InteractiveTransformer:
 
         return results
 
+    def _present_proposal(
+        self, proposal: TransformationProposal, index: int, total: int
+    ) -> UserChoice:
+        """Present a transformation proposal to the user and get their choice."""
+        # Display the proposal
+        console.print(f"\n[bold blue]Proposal {index}/{total}[/bold blue]")
+        console.print(f"File: {proposal.file_path}")
+        console.print(f"Line: {proposal.line_number}")
+        console.print(f"Pattern: {proposal.pattern_name}")
+        console.print(f"Description: {proposal.pattern_description}")
+        console.print("\n[red]Original:[/red]")
+        syntax = Syntax(proposal.original_code, "python", theme="monokai")
+        console.print(syntax)
+        console.print("\n[green]Transformed:[/green]")
+        syntax = Syntax(proposal.transformed_code, "python", theme="monokai")
+        console.print(syntax)
+        # Ask for choice
+        choice = Prompt.ask(
+            "Accept this transformation? (y=yes, n=no, a=all, q=quit, s=skip file, p=preview, e=edit)",
+            choices=["y", "n", "a", "q", "s", "p", "e"],
+            default="n",
+        )
+        return UserChoice(choice)
+
     def _find_transformation_proposals(
         self, file_path: Path, tree: ast.Module, content: str
     ) -> List[TransformationProposal]:

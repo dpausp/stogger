@@ -52,16 +52,7 @@ class ProjectStructure:
             return True
 
 
-@dataclass
-class SimpleFormatSettings:
-    """Settings for the simple console format renderer."""
 
-    show_logger_brackets: bool = False
-    show_pid: bool = False
-    show_code_info: bool = False
-    timestamp_format: str = "iso"  # "iso", "iso_no_z", "custom"
-    custom_timestamp_format: Optional[str] = None
-    pad_event_width: int = 30
 
 
 class NicestLogConfig:
@@ -115,16 +106,7 @@ class NicestLogConfig:
             "enabled_patterns", None
         )
 
-        # Simple format settings
-        simple_settings = config.get("simple_format", {})
-        self.simple_format_settings = SimpleFormatSettings(
-            show_logger_brackets=simple_settings.get("show_logger_brackets", False),
-            show_pid=simple_settings.get("show_pid", False),
-            show_code_info=simple_settings.get("show_code_info", False),
-            timestamp_format=simple_settings.get("timestamp_format", "iso_no_z"),
-            custom_timestamp_format=simple_settings.get("custom_timestamp_format"),
-            pad_event_width=simple_settings.get("pad_event_width", 30),
-        )
+
 
     def _load_config(self) -> Dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""
