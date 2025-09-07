@@ -496,7 +496,7 @@ class TestCliErrorHandling:
                 [
                     "migrate",
                     str(test_file),
-                    "--do-migrate",
+                    "--no-dry-run",
                     "--type",
                     "invalid-migration-type",
                 ],

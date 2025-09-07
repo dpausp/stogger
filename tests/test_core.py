@@ -1,25 +1,25 @@
-"""
-Tests for the core module functionality.
+"""Tests for the core module functionality.
 """
 
-import pytest
 import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 import structlog
 
 from nicestlog.core import (
-    PartialFormatter,
-    TranslationProcessor,
     ConsoleFileRenderer,
     JSONRenderer,
+    PartialFormatter,
     SelectRenderedString,
-    add_pid,
+    TranslationProcessor,
+    _pad,
     add_caller_info,
-    process_exc_info,
+    add_pid,
     format_exc_info,
     init_logging,
     logging_initialized,
-    _pad,
+    process_exc_info,
 )
 
 
@@ -42,7 +42,7 @@ class TestPartialFormatter:
         """Test that normal formatting works correctly."""
         formatter = PartialFormatter()
         result = formatter.format(
-            "Hello {name}! You are {age} years old.", name="Alice", age=30
+            "Hello {name}! You are {age} years old.", name="Alice", age=30,
         )
         assert result == "Hello Alice! You are 30 years old."
 
@@ -359,7 +359,7 @@ class TestInitLogging:
     @patch("nicestlog.factory.build_shared_processors")
     @patch("nicestlog.core.structlog.configure")
     def test_init_logging_calls(
-        self, mock_structlog_configure, mock_build_processors, mock_configure_stdlib
+        self, mock_structlog_configure, mock_build_processors, mock_configure_stdlib,
     ):
         """Test that init_logging makes the correct calls."""
         mock_build_processors.return_value = []
@@ -418,9 +418,9 @@ class TestSelectRenderedString:
 
     def test_no_runtime_warning_with_structlog(self):
         """Test that SelectRenderedString prevents RuntimeWarning from structlog."""
-        import warnings
-        import logging
         from io import StringIO
+        import logging
+        import warnings
 
         # Capture warnings
         with warnings.catch_warnings(record=True) as w:
@@ -499,7 +499,7 @@ class TestCoreEdgeCases:
         class BadObject:
             def __getattr__(self, name):
                 raise AttributeError(
-                    f"'{type(self).__name__}' object has no attribute '{name}'"
+                    f"'{type(self).__name__}' object has no attribute '{name}'",
                 )
 
         bad_obj = BadObject()
@@ -557,7 +557,6 @@ class TestCoreEdgeCases:
         except KeyError:
             # Expected behavior - unknown level causes KeyError in color lookup
             pass
-
 
     def test_console_renderer_missing_timestamp(self):
         """Test ConsoleFileRenderer with missing timestamp."""
@@ -727,10 +726,10 @@ class TestCoreEdgeCases:
 
     def test_init_logging_with_simple_format_dict(self):
         """Test init_logging with simple_format as dict."""
-        from src.nicestlog.core import init_logging
-
         # Reset structlog state
         import structlog
+
+        from src.nicestlog.core import init_logging
 
         structlog.reset_defaults()
 
@@ -745,8 +744,9 @@ class TestCoreEdgeCases:
 
     def test_init_early_logging_when_already_configured(self):
         """Test init_early_logging when structlog is already configured."""
-        from src.nicestlog.core import init_early_logging
         import structlog
+
+        from src.nicestlog.core import init_early_logging
 
         # Ensure structlog is configured
         if not structlog.is_configured():
@@ -758,9 +758,11 @@ class TestCoreEdgeCases:
 
     def test_init_early_logging_exception_handling(self):
         """Test init_early_logging graceful exception handling."""
-        from src.nicestlog.core import init_early_logging
         from unittest.mock import patch
+
         import structlog
+
+        from src.nicestlog.core import init_early_logging
 
         # Reset structlog
         structlog.reset_defaults()
