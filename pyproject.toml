@@ -130,6 +130,10 @@ ipython = [
 ruff = [
     "ruff>=0.12.7",
 ]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
 
 [tool.ruff]
 line-length = 88
@@ -162,11 +166,6 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
-[dependency-groups.test]
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-]
 
 [tool.mypy]
 python_version = "3.11"
