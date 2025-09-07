@@ -950,7 +950,7 @@ def drop_cmd_output_logfile(log):
     try:
         cmd_output_file_factory = logger_factory.factories["cmd_output_file"]
     except KeyError:
-        log.error(
+        log.exception(
             "logging-cmd-output-file-not-found",
             _replace_msg=(
                 "cmd_output_file logger factory not found, there's something "

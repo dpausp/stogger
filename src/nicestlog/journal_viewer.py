@@ -268,9 +268,8 @@ class JournalViewer:
             lines: Maximum number of lines
             follow: Follow new entries (like tail -f)
         """
-        log.info(
+        log.debug(
             "starting-journal-query",
-            _replace_msg="🔍 Starting journal query",
             service=service,
             since=since,
             until=until,

@@ -1,5 +1,7 @@
 # Nicestlog Best Practices
 
+> 📖 **See also**: [Logging Conventions](logging_conventions.md) for detailed structlog/nicestlog coding standards and patterns.
+
 This guide covers proven patterns and best practices for effective logging with nicestlog.
 
 ## Core Principles

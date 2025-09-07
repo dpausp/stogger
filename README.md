@@ -92,6 +92,8 @@ log.info(
 
 For more examples and best practices, see the [documentation](docs/user_guide/best_practices.md).
 
+For detailed logging conventions and coding standards, see [Logging Conventions](docs/user_guide/logging_conventions.md).
+
 For internationalization and translation coverage checking, see [i18n documentation](docs/features/i18n.md).
 
 ## Quick Command Reference
