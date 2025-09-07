@@ -1,73 +1,179 @@
-# Fix Test Failures - Core Logging and CLI Issues
+# Legacy Code Cleanup - Remove Technical Debt
 
-Task goal
-- Fix 50 failing tests in the nicestlog test suite
-- Focus on core logging DropEvent issues and missing CLI functions
-- Don't build new features, only fix clear test issues
+Clean up legacy workarounds and compatibility issues that create technical debt.
 
-Out-of-scope for this task
-- Building new features to satisfy tests
-- Major architectural changes
-- Fixing unrelated test failures
+## Description
 
-General approach (guardrails)
-- English artifacts (Rule 7)
-- No dependency YOLOing (Rule 3). Use `uv run` for Python commands
-- Lint before committing (Rule 5). Respect pre-commit if present (Rule 6)
-- Test-driven fixes (Rule 4)
+*(Scope, Motivation, Research, Related work – no checkboxes here!)*
 
-Prioritized work items (with checkboxes)
+- Problem statement: Legacy code in core.py, systemd_integration.py, assistant.py etc. creates maintenance burden and technical debt.
+- Why we want to solve it: Cleaner codebase, easier maintenance, fewer bugs.
+- Research / references: Found through code search for legacy|workaround|compatibility|hack.
+- Constraints: Don't break existing functionality, update tests, document breaking changes.
 
-1) Fix ConsoleFileRenderer DropEvent issues
-   - Context: Many tests fail because ConsoleFileRenderer raises DropEvent by default when filtering log levels
-   - Root cause: safe_drop parameter was causing issues in logging pipeline
-   - Files to modify:
-     - src/nicestlog/core.py (remove safe_drop parameter and logic)
-     - tests/test_core.py (remove safe_drop test)
-     - src/nicestlog/factory.py (remove safe_drop usage)
-   - Steps:
-     - [x] Remove safe_drop parameter from ConsoleFileRenderer.__init__
-     - [x] Remove safe_drop logic from render methods
-     - [x] Remove safe_drop test from test_core.py
-     - [x] Remove safe_drop usage from factory.py
-     - [x] Run tests to verify DropEvent issues are resolved
+### Task Goal
 
-2) Add missing create_migration_backup function
-   - Context: CLI tests expect create_migration_backup function that doesn't exist
-   - Error: AttributeError: module 'src.nicestlog.cli' does not have attribute 'create_migration_backup'
-   - Files to modify:
-     - src/nicestlog/cli.py (add missing function)
-   - Steps:
-     - [ ] Add create_migration_backup function to CLI module
-     - [ ] Implement basic functionality or stub as needed
-     - [ ] Run CLI tests to verify fix
+- **Outcome we want**: All legacy workarounds removed, codebase cleaned.
+- **Success criteria**: No legacy code left, all tests pass, no regressions.
 
-3) Fix CLI exit code mismatches
-   - Context: Tests expect exit code 1 but getting 2 in several CLI scenarios
-   - Affected tests: test_migrate_command_invalid_type, test_migrate_interactive_mode_error
-   - Files to check:
-     - src/nicestlog/cli.py (check exit code logic)
-     - tests/test_cli.py (verify expected behavior)
-   - Steps:
-     - [ ] Analyze failing tests to understand expected vs actual exit codes
-     - [ ] Fix CLI exit code logic where appropriate
-     - [ ] Run tests to verify fixes
+______________________________________________________________________
 
-4) Fix journal viewer output format issues
-   - Context: Journal viewer tests expect specific output format but getting different format
-   - Affected tests: test_main_json_output, test_main_formatted_output
-   - Files to check:
-     - src/nicestlog/journal_viewer.py
-     - tests/test_journal_viewer.py
-   - Steps:
-     - [ ] Analyze expected vs actual output format
-     - [ ] Fix output formatting in journal viewer
-     - [ ] Run tests to verify fixes
+## Tasks
 
-5) Run comprehensive test validation
-   - Context: Ensure fixes don't break other functionality
-   - Steps:
-     - [ ] Run full test suite with `uv run pytest`
-     - [ ] Verify significant reduction in test failures
-     - [ ] Check that core functionality still works
-     - [ ] Document any remaining test failures with reasons
+*(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
+
+1. [ ] **Analyze legacy dependencies** – Identify dependencies on legacy features
+
+   - **Context**: Before removing, need to know what's affected.
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] Tests found that use legacy features
+     - [ ] Breaking changes documented
+
+   - **Files to check/modify**
+
+     - [ ] tests/test_core.py (Legacy init_logging tests)
+     - [ ] tests/test_systemd_integration.py (cgroup hack tests)
+     - [ ] tests/test_assistant.py (translations_file tests)
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Search for tests that call init_logging_legacy
+     - [ ] Search for tests that use cgroup hack
+     - [ ] Search for tests that use translations_file parameter
+     - [ ] Document all found dependencies
+
+   - **Commit message hint**: "Analyze legacy code dependencies"
+
+2. [ ] **Remove init_logging_legacy** – Clean up legacy compatibility in core.py
+
+   - **Context**: init_logging has legacy support for old signatures, creating technical debt.
+
+   - **Success criteria**
+
+     - [ ] init_logging_legacy function removed
+     - [ ] Legacy kwargs detection removed
+     - [ ] New signature as default
+
+   - **Files to check/modify**
+
+     - [ ] src/nicestlog/core.py
+     - [ ] src/nicestlog/__init__.py (remove export)
+     - [ ] tests/test_core.py (remove or update legacy tests)
+
+   - **Steps**
+
+     - [ ] Remove init_logging_legacy function
+     - [ ] Remove legacy kwargs logic from init_logging
+     - [ ] Remove export from __init__.py
+     - [ ] Update affected tests
+
+   - **Commit message hint**: "Remove init_logging_legacy compatibility"
+
+3. [ ] **Remove hacky cgroup code** – Clean up systemd integration
+
+   - **Context**: Hacky /proc/self/cgroup reading is ugly and error-prone.
+
+   - **Success criteria**
+
+     - [ ] Hacky cgroup code removed
+     - [ ] Alternative implementation or fallback
+
+   - **Files to check/modify**
+
+     - [ ] src/nicestlog/systemd_integration.py
+     - [ ] tests/test_systemd_integration.py
+
+   - **Steps**
+
+     - [ ] Replace hacky cgroup code with clean alternative
+     - [ ] Update tests
+
+   - **Commit message hint**: "Remove hacky cgroup reading in systemd integration"
+
+4. [ ] **Remove unused parameters** – translations_file and others
+
+   - **Context**: translations_file in assistant.py is unused but kept for compatibility.
+
+   - **Success criteria**
+
+     - [ ] Unused parameters removed
+     - [ ] CLI compatibility broken (documented)
+
+   - **Files to check/modify**
+
+     - [ ] src/nicestlog/assistant.py
+     - [ ] src/nicestlog/cli.py (migration command)
+     - [ ] tests/test_assistant.py
+
+   - **Steps**
+
+     - [ ] Remove translations_file parameter
+     - [ ] Update CLI interface
+     - [ ] Update tests
+
+   - **Commit message hint**: "Remove unused translations_file parameter"
+
+5. [ ] **Clean up TODO/FIXME patterns** – Clean up log reviewer
+
+   - **Context**: Patterns for TODO/FIXME/XXX might be unnecessary.
+
+   - **Success criteria**
+
+     - [ ] Unnecessary patterns removed
+     - [ ] Useful ones kept
+
+   - **Files to check/modify**
+
+     - [ ] src/nicestlog/log_reviewer.py
+     - [ ] tests/test_log_reviewer.py
+
+   - **Steps**
+
+     - [ ] Evaluate patterns
+     - [ ] Remove unnecessary ones
+     - [ ] Update tests
+
+   - **Commit message hint**: "Clean up TODO/FIXME patterns in log reviewer"
+
+6. [ ] **Clean up generated code** – Remove TODO from advanced_assistant.py
+
+   - **Context**: TODO in generated code is ugly.
+
+   - **Success criteria**
+
+     - [ ] TODO removed from generated code
+
+   - **Files to check/modify**
+
+     - [ ] src/nicestlog/advanced_assistant.py
+     - [ ] tests/test_advanced_assistant.py
+
+   - **Steps**
+
+     - [ ] Remove TODO from generated code
+     - [ ] Update tests
+
+   - **Commit message hint**: "Remove TODO from generated code"
+
+7. [ ] **Update tests and validate** – Run full test suite
+
+   - **Context**: Ensure nothing is broken.
+
+   - **Success criteria**
+
+     - [ ] All tests pass
+     - [ ] No regressions
+
+   - **Files to check/modify**
+
+     - [ ] tests/ (all affected tests)
+
+   - **Steps**
+
+     - [ ] Run uv run pytest
+     - [ ] Analyze failures and fix
+     - [ ] Check coverage
+
+   - **Commit message hint**: "Update tests for legacy cleanup"
