@@ -1,31 +1,47 @@
-# Task Title
+# Implementation TODO - Title
 
-Task goal
-- Clear description of what we want to achieve
-- Success criteria
+Describe the problem.
 
-Out-of-scope for this task
-- What we explicitly won't do
+## Description
 
-General approach (guardrails)
-- English artifacts (Rule 7)
-- No dependency YOLOing (Rule 3). Use `uv run` for Python commands
-- Lint before committing (Rule 5). Respect pre-commit if present (Rule 6)
-- Only add tests when we change code (Rule 4)
+*(Scope, Motivation, Research, Related work – no checkboxes here!)*
 
-Prioritized work items (with checkboxes)
+- Problem statement: What's wrong or missing?
+- Why we want to solve it (value, impact).
+- Research / references: Relevant repos, docs, related work.
+- Constraints: Out-of-scope items.
 
-1) First task item
-   - Context: Why this needs to be done
-   - Files to check/modify:
-     - file1.py
-     - file2.md
-   - Steps:
-     - [ ] Step 1
-     - [ ] Step 2
-     - [ ] Commit with message: "descriptive commit message"
+### Task Goal
 
-2) Second task item
-   - Context: ...
-   - Files to check/modify: ...
-   - Steps: ...
+- **Outcome we want** (clear + measurable).
+- **Success criteria** (how we know it's done).
+
+______________________________________________________________________
+
+## Tasks
+
+*(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
+
+1. [ ] **Task title** – short and actionable
+
+   - **Context**: Why this task matters
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] Criterion 1
+     - [ ] Criterion 2
+
+   - **Files to check/modify**
+
+     - [ ] `file1.py`
+     - [ ] `docs/file2.md`
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Step 1: …
+     - [ ] Step 2: …
+     - [ ] Step 3: …
+
+   - **Commit message hint**: "Short phrase about what changed"
+
+1. [ ] **Next task …**
