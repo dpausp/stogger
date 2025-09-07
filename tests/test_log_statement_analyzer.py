@@ -48,6 +48,103 @@ class TestLogStatement:
         assert statement.issues == []
 
 
+class TestElementCounting:
+    """Test event ID element counting functionality."""
+
+    def test_count_event_id_elements(self):
+        """Test the _count_event_id_elements method."""
+        analyzer = LogStatementAnalyzer()
+
+        # Test basic cases
+        assert analyzer._count_event_id_elements("user-login") == 2
+        assert analyzer._count_event_id_elements("simple") == 1
+        assert analyzer._count_event_id_elements("") == 0
+
+        # Test the problematic case from the issue
+        assert (
+            analyzer._count_event_id_elements(
+                "debug-logging-is-enabled-check-logs-above-for-http-details"
+            )
+            == 10
+        )
+
+        # Test camelCase
+        assert analyzer._count_event_id_elements("userLoginSuccess") == 3
+        assert analyzer._count_event_id_elements("HTTPResponseError") == 3
+
+        # Test snake_case
+        assert analyzer._count_event_id_elements("user_login_failed") == 3
+
+        # Test threshold cases
+        assert analyzer._count_event_id_elements("a-b-c-d-e") == 5  # warning threshold
+        assert (
+            analyzer._count_event_id_elements("a-b-c-d-e-f-g") == 7
+        )  # error threshold
+
+        # Test mixed cases
+        assert (
+            analyzer._count_event_id_elements("api-key-validation-failed-retry-needed")
+            == 6
+        )
+
+    def test_element_count_issues_detection(self):
+        """Test that element count issues are properly detected."""
+        analyzer = LogStatementAnalyzer()
+
+        # Test warning threshold (5+ elements)
+        issues_5 = analyzer._detect_issues(
+            method="info",
+            args=["'a-b-c-d-e'"],
+            kwargs={},
+            magic_args=set(),
+            event_id="a-b-c-d-e",
+            event_id_format="dash-case",
+        )
+        assert any("event_id_many_elements" in issue for issue in issues_5)
+        assert any("5>=5, warning" in issue for issue in issues_5)
+
+        # Test error threshold (7+ elements)
+        issues_7 = analyzer._detect_issues(
+            method="info",
+            args=["'a-b-c-d-e-f-g'"],
+            kwargs={},
+            magic_args=set(),
+            event_id="a-b-c-d-e-f-g",
+            event_id_format="dash-case",
+        )
+        assert any("event_id_too_many_elements" in issue for issue in issues_7)
+        assert any("7>=7, wtf!" in issue for issue in issues_7)
+
+        # Test the problematic case
+        issues_10 = analyzer._detect_issues(
+            method="debug",
+            args=["'debug-logging-is-enabled-check-logs-above-for-http-details'"],
+            kwargs={},
+            magic_args=set(),
+            event_id="debug-logging-is-enabled-check-logs-above-for-http-details",
+            event_id_format="dash-case",
+        )
+        assert any("event_id_too_many_elements" in issue for issue in issues_10)
+        assert any("10>=7, wtf!" in issue for issue in issues_10)
+
+        # Test that short event IDs don't trigger issues
+        issues_short = analyzer._detect_issues(
+            method="info",
+            args=["'user-login'"],
+            kwargs={},
+            magic_args=set(),
+            event_id="user-login",
+            event_id_format="dash-case",
+        )
+        element_issues = [
+            issue
+            for issue in issues_short
+            if "event_id_many_elements" in issue
+            or "event_id_too_many_elements" in issue
+        ]
+        assert len(element_issues) == 0
+
+
 class TestLogAnalysisResult:
     """Test LogAnalysisResult dataclass."""
 

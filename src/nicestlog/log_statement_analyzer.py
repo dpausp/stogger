@@ -261,7 +261,11 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         event_id_format: str,
         prefer_dash_case: bool = True,
     ) -> List[str]:
-        """Detect common issues in log statements."""
+        """Detect common issues in log statements.
+
+        This includes validation for overly long event IDs with too many elements.
+        Event IDs with 5+ elements trigger a warning, 7+ elements trigger an error.
+        """
         issues = []
 
         # Check for missing event ID
@@ -276,6 +280,14 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                 issues.append(
                     f"event_id_not_dash_case (found: {event_id_format}, suggested: {suggested_event_id})"
                 )
+
+        # Check for too many elements in event ID (readability)
+        if event_id:
+            element_count = self._count_event_id_elements(event_id)
+            if element_count >= 7:
+                issues.append(f"event_id_too_many_elements ({element_count}>=7, wtf!)")
+            elif element_count >= 5:
+                issues.append(f"event_id_many_elements ({element_count}>=5, warning)")
 
         # Check for single string argument (anti-pattern)
         if len(args) == 1 and not kwargs and not magic_args:
@@ -339,6 +351,40 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             issues.append(f"event_id_too_long ({len(event_id)}>50)")
 
         return issues
+
+    def _count_event_id_elements(self, event_id: str) -> int:
+        """Count the number of elements in an event ID.
+
+        Elements are separated by dashes, underscores, or camelCase boundaries.
+        Examples:
+        - 'user-login' -> 2 elements
+        - 'debug-logging-is-enabled-check-logs-above-for-http-details' -> 8 elements
+        - 'userLoginSuccess' -> 3 elements
+        - 'simple' -> 1 element
+        """
+        if not event_id:
+            return 0
+
+        # First, handle camelCase by inserting dashes before uppercase letters
+        # but be careful with consecutive uppercase letters (like HTTP)
+        import re
+
+        # Insert dash before uppercase letters that follow lowercase/digits
+        # This handles: userLogin -> user-Login, but keeps HTTP as one unit
+        normalized = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", event_id)
+
+        # Handle consecutive uppercase letters followed by lowercase
+        # This converts HTTPResponse -> HTTP-Response
+        normalized = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1-\2", normalized)
+
+        # Replace underscores with dashes for consistent splitting
+        normalized = normalized.replace("_", "-")
+
+        # Convert to lowercase and split by dashes
+        normalized = normalized.lower()
+        elements = [elem for elem in normalized.split("-") if elem.strip()]
+
+        return len(elements)
 
     def _convert_to_dash_case(self, event_id: str) -> str:
         """Convert an event ID to dash-case format."""

@@ -1,15 +1,14 @@
-# Align nicestlog with reference logger implementation
+# Add log string length validation to nicestlog
 
 Task goal
-- Analyze differences between current nicestlog and the provided reference logger
-- Identify key architectural patterns that should be adopted from the reference
-- Implement missing components like MultiOptimisticLogger, SystemdJournalRenderer, etc.
-- Ensure nicestlog follows the same robust multi-target logging approach
+- Add validation for log strings with too many elements/words (like 'debug-logging-is-enabled-check-logs-above-for-http-details')
+- Warn when log strings have 5+ elements, error when 7+ elements
+- Improve readability of log messages by encouraging shorter, more structured logging
 
 Out-of-scope for this task
-- Complete rewrite of the existing codebase
+- Changing existing log messages in the codebase
+- Modifying other linting rules
 - Breaking existing API compatibility
-- Adding new features not present in reference logger
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -19,54 +18,29 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze key differences between implementations
-   - Context: Need to understand what's missing or different in current nicestlog
+1) Implement log string length validation
+   - Context: Users report seeing very long log strings with many dashes that are hard to read
    - Files to check/modify:
-     - logging.py (reference)
-     - src/nicestlog/core.py
-     - src/nicestlog/factory.py
+     - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [x] Document missing components (MultiOptimisticLogger, SystemdJournalRenderer, etc.)
-     - [x] Identify architectural differences
-     - [x] List specific functions/classes to implement or modify
+     - [x] Add function to count elements in log strings (split by dashes/underscores)
+     - [x] Add validation in _detect_issues method
+     - [x] Add appropriate issue types for 5+ and 7+ elements
+     - [x] Test the new validation logic
 
-2) Implement missing core components
-   - Context: Reference has MultiOptimisticLogger pattern that's missing
+2) Add tests for the new validation
+   - Context: Need to ensure the new rule works correctly
    - Files to check/modify:
-     - src/nicestlog/core.py
-     - src/nicestlog/factory.py
+     - tests/test_log_statement_analyzer.py (or create if needed)
    - Steps:
-     - [x] Add MultiOptimisticLogger and MultiOptimisticLoggerFactory
-     - [x] Add SystemdJournalRenderer
-     - [x] Add proper journal integration components
-     - [x] Test basic functionality
+     - [x] Write test cases for strings with different element counts
+     - [x] Test edge cases (empty strings, single words, etc.)
+     - [x] Run tests with `uv run pytest`
 
-3) Align console rendering and formatting
-   - Context: Ensure output format matches reference implementation
+3) Update documentation and commit
+   - Context: Document the new validation rule
    - Files to check/modify:
-     - src/nicestlog/core.py (ConsoleFileRenderer)
+     - src/nicestlog/log_statement_analyzer.py (docstrings)
    - Steps:
-     - [x] Compare and align console output formatting
-     - [x] Ensure prefix() function works like reference
-     - [x] Test output formatting
-
-4) Add missing utility functions
-   - Context: Reference has several utility functions for command logging, etc.
-   - Files to check/modify:
-     - src/nicestlog/core.py
-   - Steps:
-     - [x] Add init_command_logging function
-     - [x] Add drop_cmd_output_logfile function
-     - [x] Add proper systemd detection and integration
-     - [x] Test utility functions
-
-5) Update init_logging to match reference pattern
-   - Context: Reference init_logging has different signature and behavior
-   - Files to check/modify:
-     - src/nicestlog/core.py
-   - Steps:
-     - [x] Align function signature with reference
-     - [x] Implement multi-target logger factory pattern
-     - [x] Ensure backward compatibility
-     - [x] Test initialization
-     - [x] Commit with message: "feat: align nicestlog with reference logger architecture"
+     - [x] Update docstrings to mention the new validation
+     - [x] Commit with message: "feat: add validation for overly long log strings with many elements"
