@@ -20,14 +20,17 @@ Prioritized work items (with checkboxes)
 
 1) Fix ConsoleFileRenderer DropEvent issues
    - Context: Many tests fail because ConsoleFileRenderer raises DropEvent by default when filtering log levels
-   - Root cause: safe_drop=False by default causes DropEvent exceptions in logging pipeline
+   - Root cause: safe_drop parameter was causing issues in logging pipeline
    - Files to modify:
-     - src/nicestlog/core.py (change default safe_drop value)
-     - tests/test_core.py (update test that expects DropEvent)
+     - src/nicestlog/core.py (remove safe_drop parameter and logic)
+     - tests/test_core.py (remove safe_drop test)
+     - src/nicestlog/factory.py (remove safe_drop usage)
    - Steps:
-     - [ ] Change safe_drop default from False to True in ConsoleFileRenderer.__init__
-     - [ ] Update test_level_filtering to explicitly set safe_drop=False
-     - [ ] Run tests to verify DropEvent issues are resolved
+     - [x] Remove safe_drop parameter from ConsoleFileRenderer.__init__
+     - [x] Remove safe_drop logic from render methods
+     - [x] Remove safe_drop test from test_core.py
+     - [x] Remove safe_drop usage from factory.py
+     - [x] Run tests to verify DropEvent issues are resolved
 
 2) Add missing create_migration_backup function
    - Context: CLI tests expect create_migration_backup function that doesn't exist

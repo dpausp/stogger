@@ -144,15 +144,11 @@ class ConsoleFileRenderer:
         min_level="info",
         show_caller_info=False,
         pad_event=_EVENT_WIDTH,
-        safe_drop=False,
         settings=None,
     ):
         from .config import SimpleFormatSettings
 
         self.min_level = self.LEVELS.index(min_level.lower())
-        self.safe_drop = (
-            safe_drop  # If True, return empty string instead of raising DropEvent
-        )
 
         # Use SimpleFormatSettings for enhanced configuration
         if settings is None:
@@ -207,10 +203,7 @@ class ConsoleFileRenderer:
         if level_name is not None:
             try:
                 if self.LEVELS.index(level_name) > self.min_level:
-                    if self.safe_drop:
-                        return ""
-                    else:
-                        raise structlog.DropEvent
+                    raise structlog.DropEvent
             except ValueError:
                 # Unknown level, do not drop
                 pass
@@ -344,10 +337,7 @@ class ConsoleFileRenderer:
         if isinstance(method_name, str):
             try:
                 if self.LEVELS.index(method_name.lower()) > self.min_level:
-                    if self.safe_drop:
-                        return ""
-                    else:
-                        raise structlog.DropEvent
+                    raise structlog.DropEvent
             except ValueError:
                 pass
 

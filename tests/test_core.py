@@ -558,21 +558,6 @@ class TestCoreEdgeCases:
             # Expected behavior - unknown level causes KeyError in color lookup
             pass
 
-    def test_console_renderer_safe_drop_mode(self):
-        """Test ConsoleFileRenderer with safe_drop=True."""
-        renderer = ConsoleFileRenderer(min_level="info", safe_drop=True)
-
-        # Test with level below threshold - should return empty string
-        result = renderer(
-            None,
-            "debug",
-            {
-                "event": "test_event",
-                "timestamp": "2023-01-01T00:00:00",
-                "level": "debug",
-            },
-        )
-        assert result == ""
 
     def test_console_renderer_missing_timestamp(self):
         """Test ConsoleFileRenderer with missing timestamp."""
