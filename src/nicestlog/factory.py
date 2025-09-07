@@ -41,7 +41,7 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
 
     processors = [
         structlog.stdlib.add_log_level,
-        structlog.stdlib.add_logger_name,
+        # Note: removed add_logger_name as it's incompatible with PrintLogger
         # Always add a timestamp to events so renderers have it available
         structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
         add_pid,
@@ -86,6 +86,20 @@ def build_shared_processors(config: NicestLogConfig) -> List[Any]:
                 f"Warning: failed to load translations from {translation_file}: {e}",
                 file=sys.stderr,
             )
+    # Add the final renderer
+    if config.log_format == "json":
+        processors.append(JSONRenderer(min_level="debug" if config.verbose else "info"))
+    else:
+        processors.append(
+            ConsoleFileRenderer(
+                min_level="debug" if config.verbose else "info",
+                show_caller_info=config.show_caller_info,
+                settings=getattr(config, "simple_format", None),
+            )
+        )
+        # Add SelectRenderedString to convert dict output to string for PrintLogger
+        processors.append(SelectRenderedString(key="console"))
+
     if config.verbose:
         log.debug("shared-processors-built", processor_count=len(processors))
     return processors

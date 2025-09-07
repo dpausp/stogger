@@ -7,7 +7,19 @@ systemd journal output.
 """
 
 from .config import NicestLogConfig, SimpleFormatSettings
-from .core import init_logging, logging_initialized, init_early_logging
+from .core import (
+    init_logging,
+    init_logging_legacy,
+    logging_initialized,
+    init_early_logging,
+    MultiOptimisticLogger,
+    MultiOptimisticLoggerFactory,
+    SystemdJournalRenderer,
+    JournalLogger,
+    JournalLoggerFactory,
+    init_command_logging,
+    drop_cmd_output_logfile,
+)
 from .factory import build_shared_processors, configure_stdlib_logging
 from .cli import main
 from .linter import main as lint_main
@@ -30,6 +42,7 @@ except Exception:  # pragma: no cover
 
 __all__ = [
     "init_logging",
+    "init_logging_legacy",
     "init_early_logging",
     "logging_initialized",
     "main",
@@ -46,4 +59,11 @@ __all__ = [
     "setup_systemd_logging",
     "detect_systemd_environment",
     "create_systemd_service_file",
+    "MultiOptimisticLogger",
+    "MultiOptimisticLoggerFactory",
+    "SystemdJournalRenderer",
+    "JournalLogger",
+    "JournalLoggerFactory",
+    "init_command_logging",
+    "drop_cmd_output_logfile",
 ]
