@@ -214,7 +214,6 @@ class TestLogStatementAnalyzer:
         code = """
 import structlog
 import logging
-import loguru
 import unrelated_module
 """
         tree = ast.parse(code)
@@ -223,7 +222,6 @@ import unrelated_module
 
         assert "structlog" in analyzer.logging_imports
         assert "logging" in analyzer.logging_imports
-        assert "loguru" in analyzer.logging_imports
         assert "unrelated_module" not in analyzer.logging_imports
 
     def test_visit_import_with_aliases(self):
@@ -246,7 +244,6 @@ import logging as log_module
         code = """
 from structlog import get_logger
 from logging import getLogger as get_log
-from loguru import logger
 """
         tree = ast.parse(code)
         analyzer = LogStatementAnalyzer()
@@ -254,7 +251,6 @@ from loguru import logger
 
         assert "get_logger" in analyzer.logging_imports
         assert "get_log" in analyzer.logging_imports
-        assert "logger" in analyzer.logging_imports
 
     def test_visit_assign_logger_variables(self):
         """Test detection of logger variable assignments."""

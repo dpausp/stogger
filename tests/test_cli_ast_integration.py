@@ -334,7 +334,7 @@ def hello():
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
-            mock_deps.has_loguru = False
+
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
 
@@ -394,7 +394,7 @@ print("Test migration")
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
-            mock_deps.has_loguru = False
+
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
 
@@ -456,7 +456,7 @@ print("Interactive migration test")
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
-            mock_deps.has_loguru = False
+
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
 
@@ -518,7 +518,7 @@ print("Interactive migration test")
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
-            mock_deps.has_loguru = False
+
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
 
@@ -575,7 +575,7 @@ print("Interactive migration test")
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
-            mock_deps.has_loguru = False
+
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
 
@@ -635,7 +635,7 @@ logging.info("Test message")
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = True
             mock_deps.has_structlog = False
-            mock_deps.has_loguru = False
+
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
 
@@ -706,7 +706,7 @@ def main():
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = True
             mock_deps.has_structlog = False
-            mock_deps.has_loguru = False
+
             mock_deps.has_other_logging = []
             mock_result.dependencies = mock_deps
 

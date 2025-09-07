@@ -40,7 +40,7 @@ nicestlog check /path/to/your/project
 - ✅ `print()` statements → structured logging
 - ✅ Standard `logging` module → structlog  
 - ✅ Eliot integration (already compatible!)
-- ✅ Loguru, Sentry, and other libraries
+- ✅ Sentry and other libraries
 
 For ongoing code quality in structlog-based projects, use `nicestlog check` to identify logging anti-patterns and best practice violations.
 

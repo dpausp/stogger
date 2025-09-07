@@ -31,7 +31,7 @@ nicestlog check . --ast --complexity --verbose
 ### Step 2: Dependency Analysis
 
 Check `pyproject.toml`, `requirements.txt`, or `setup.py` for:
-- Existing logging dependencies (logging, loguru, etc.)
+- Existing logging dependencies (logging, etc.)
 - Structlog already present
 - Conflicting logging frameworks
 

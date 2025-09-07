@@ -361,12 +361,6 @@ def show_library_comparison():
             "command": "nicestlog migrate . --do-migrate --type logging-to-structlog --interactive",
             "notes": "Interactive review recommended",
         },
-        "Loguru": {
-            "migration_type": "manual + enhancement",
-            "difficulty": "Medium",
-            "command": "nicestlog check . --ast --fix",
-            "notes": "Manual conversion + nicestlog enhancement",
-        },
         "Eliot": {
             "migration_type": "enhancement",
             "difficulty": "Easy",

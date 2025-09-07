@@ -1,14 +1,13 @@
-# Add log string length validation to nicestlog
+# Remove loguru references from codebase
 
 Task goal
-- Add validation for log strings with too many elements/words (like 'debug-logging-is-enabled-check-logs-above-for-http-details')
-- Warn when log strings have 5+ elements, error when 7+ elements
-- Improve readability of log messages by encouraging shorter, more structured logging
+- Remove all loguru references from the codebase since it's not needed
+- Clean up test files, documentation, and migration examples that mention loguru
+- Ensure no functionality is broken after removal
 
 Out-of-scope for this task
-- Changing existing log messages in the codebase
-- Modifying other linting rules
-- Breaking existing API compatibility
+- Changing core logging functionality (nicestlog uses structlog, not loguru)
+- Breaking existing migration capabilities for other logging libraries
 
 General approach (guardrails)
 - English artifacts (Rule 7)
@@ -18,29 +17,76 @@ General approach (guardrails)
 
 Prioritized work items (with checkboxes)
 
-1) Implement log string length validation
-   - Context: Users report seeing very long log strings with many dashes that are hard to read
-   - Files to check/modify:
+1) Analyze current loguru references
+   - Context: Found loguru references in tests, docs, and examples but not as dependency
+   - Files with loguru references:
+     - tests/test_log_statement_analyzer.py (import loguru, test assertions)
+     - tests/test_cli_ast_integration.py (mock_deps.has_loguru = False)
+     - docs/agents/migration_guide.md (mentions loguru migration)
+     - docs/user_guide/migration_examples.md (loguru migration example)
+     - docs/user_guide/cli_migration_guide.md (loguru migration table)
+     - examples/migration_examples.py (loguru migration example)
+     - src/nicestlog/log_statement_analyzer.py (comment mentioning loguru)
+     - README.md (mentions loguru support)
+   - Steps:
+     - [x] Identify all loguru references
+     - [x] Categorize by type (tests, docs, examples, code comments)
+     - [x] Plan removal strategy for each category
+
+2) Remove loguru from test files
+   - Context: Tests reference loguru but it's not actually used
+   - Files to modify:
+     - tests/test_log_statement_analyzer.py
+     - tests/test_cli_ast_integration.py
+   - Steps:
+     - [x] Remove loguru import and related test assertions
+     - [x] Remove has_loguru mock references
+     - [x] Run tests to ensure nothing breaks
+     - [x] Update test coverage if needed
+
+3) Clean up documentation references
+   - Context: Documentation mentions loguru migration but user doesn't want it
+   - Files to modify:
+     - docs/agents/migration_guide.md
+     - docs/user_guide/migration_examples.md
+     - docs/user_guide/cli_migration_guide.md
+     - README.md
+   - Steps:
+     - [x] Remove loguru migration examples
+     - [x] Update migration guides to remove loguru references
+     - [x] Update README.md to remove loguru mention
+     - [x] Ensure documentation still makes sense
+
+4) Remove loguru from examples
+   - Context: Migration examples include loguru but it's not needed
+   - Files to modify:
+     - examples/migration_examples.py
+   - Steps:
+     - [x] Remove loguru migration example
+     - [x] Ensure examples still demonstrate migration capabilities
+     - [x] Test examples still work
+
+5) Clean up code comments
+   - Context: Source code has comments mentioning loguru
+   - Files to modify:
      - src/nicestlog/log_statement_analyzer.py
    - Steps:
-     - [x] Add function to count elements in log strings (split by dashes/underscores)
-     - [x] Add validation in _detect_issues method
-     - [x] Add appropriate issue types for 5+ and 7+ elements
-     - [x] Test the new validation logic
+     - [ ] Remove loguru from comment examples
+     - [ ] Update comment to reflect actual supported libraries
+     - [ ] Ensure code functionality unchanged
 
-2) Add tests for the new validation
-   - Context: Need to ensure the new rule works correctly
-   - Files to check/modify:
-     - tests/test_log_statement_analyzer.py (or create if needed)
+6) Run comprehensive tests
+   - Context: Ensure removal doesn't break anything
    - Steps:
-     - [x] Write test cases for strings with different element counts
-     - [x] Test edge cases (empty strings, single words, etc.)
-     - [x] Run tests with `uv run pytest`
+     - [ ] Run full test suite with `uv run pytest`
+     - [ ] Check that migration functionality still works for other libraries
+     - [ ] Verify documentation builds correctly
+     - [ ] Test CLI commands still work
 
-3) Update documentation and commit
-   - Context: Document the new validation rule
-   - Files to check/modify:
-     - src/nicestlog/log_statement_analyzer.py (docstrings)
+7) Final cleanup and validation
+   - Context: Ensure complete removal and no broken references
    - Steps:
-     - [x] Update docstrings to mention the new validation
-     - [x] Commit with message: "feat: add validation for overly long log strings with many elements"
+     - [ ] Search for any remaining loguru references
+     - [ ] Run linting and type checking
+     - [ ] Update version if needed
+     - [ ] Commit changes with proper message

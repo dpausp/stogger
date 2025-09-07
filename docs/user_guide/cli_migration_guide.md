@@ -12,7 +12,6 @@ Nicestlog supports migration from various logging approaches:
 | **Standard logging** | `logging-to-structlog` | Medium | `nicestlog migrate . --do-migrate --type logging-to-structlog --interactive` |
 | **Format strings** | `format-strings` | Easy | `nicestlog migrate . --do-migrate --type format-strings` |
 | **Eliot** | Enhancement | Easy | Already compatible! Use `nicestlog.eliot_integration` |
-| **Loguru** | Manual + Enhancement | Medium | Manual conversion + `nicestlog migrate . --do-migrate --type logging-to-structlog` |
 | **Sentry** | Integration | Easy | Use Sentry's `StructlogIntegration` |
 
 ## 🎯 Quick Start Migration
