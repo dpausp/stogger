@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Simple syntax check for the modified ConsoleFileRenderer.
-"""
+"""Simple syntax check for the modified ConsoleFileRenderer."""
 
 # Check if the imports work
 try:
@@ -12,6 +10,7 @@ except Exception as e:
 # Try to check if the ConsoleFileRenderer class exists and has the right signature
 try:
     import inspect
+
     from nicestlog.core import ConsoleFileRenderer
 
     print("✓ ConsoleFileRenderer import successful")

@@ -1,11 +1,10 @@
-"""
-Simplified tests for the linter module functionality.
-"""
+"""Simplified tests for the linter module functionality."""
+
+from pathlib import Path
+import tempfile
+from unittest.mock import patch
 
 import pytest
-import tempfile
-from pathlib import Path
-from unittest.mock import patch
 
 from nicestlog.linter import (
     LoggingStats,

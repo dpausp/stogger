@@ -1,16 +1,15 @@
-"""
-Beautiful systemd journal viewer - makes journalctl actually usable!
+"""Beautiful systemd journal viewer - makes journalctl actually usable!
 
 Reads binary journal logs and displays them with nicestlog's beautiful formatting.
 """
 
-import sys
+from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 import json
 import re
-from datetime import datetime, timedelta
-
-from typing import Dict, Any, Iterator, Optional
-from dataclasses import dataclass
+import sys
+from typing import Any
 
 import structlog
 
@@ -31,7 +30,7 @@ except ImportError:
     print("⚠️  systemd-python not available - journal viewing disabled", file=sys.stderr)
 
 try:
-    from .core import RESET_ALL, BRIGHT, DIM, RED, BLUE, CYAN, MAGENTA, YELLOW, GREEN
+    from .core import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
 except ImportError:
     # When running as standalone script
     import sys
@@ -66,13 +65,12 @@ class JournalEntry:
     pid: str
     level: str
     message: str
-    fields: Dict[str, Any]
-    raw_entry: Dict[str, Any]
+    fields: dict[str, Any]
+    raw_entry: dict[str, Any]
 
 
 class JournalViewer:
-    """
-    Beautiful viewer for systemd journal logs.
+    """Beautiful viewer for systemd journal logs.
 
     Converts binary journal entries back into human-readable format
     with the same beautiful styling as nicestlog console output.
@@ -104,14 +102,14 @@ class JournalViewer:
         show_service: bool = True,
         max_width: int = 120,
     ):
-        """
-        Initialize journal viewer.
+        """Initialize journal viewer.
 
         Args:
             show_hostname: Show hostname in output
             show_pid: Show process ID
             show_service: Show service/identifier
             max_width: Maximum line width for formatting
+
         """
         log.debug(
             "initializing-journal-viewer",
@@ -137,10 +135,11 @@ class JournalViewer:
             )
         else:
             log.debug(
-                "journal-viewer-initialized", _replace_msg="✅ Journal viewer ready"
+                "journal-viewer-initialized",
+                _replace_msg="✅ Journal viewer ready",
             )
 
-    def parse_journal_entry(self, entry: Dict[str, Any]) -> JournalEntry:
+    def parse_journal_entry(self, entry: dict[str, Any]) -> JournalEntry:
         """Parse a raw journal entry into structured format."""
         log.debug(
             "parsing-journal-entry",
@@ -240,7 +239,7 @@ class JournalViewer:
                 else:
                     value_str = str(value)
                 field_parts.append(
-                    f"{CYAN}{key}{RESET_ALL}={MAGENTA}{value_str}{RESET_ALL}"
+                    f"{CYAN}{key}{RESET_ALL}={MAGENTA}{value_str}{RESET_ALL}",
                 )
 
             if field_parts:
@@ -250,15 +249,14 @@ class JournalViewer:
 
     def query_journal(
         self,
-        service: Optional[str] = None,
-        since: Optional[str] = None,
-        until: Optional[str] = None,
-        level: Optional[str] = None,
-        lines: Optional[int] = None,
+        service: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        level: str | None = None,
+        lines: int | None = None,
         follow: bool = False,
     ) -> Iterator[JournalEntry]:
-        """
-        Query systemd journal and yield formatted entries.
+        """Query systemd journal and yield formatted entries.
 
         Args:
             service: Filter by service/identifier
@@ -267,6 +265,7 @@ class JournalViewer:
             level: Minimum log level
             lines: Maximum number of lines
             follow: Follow new entries (like tail -f)
+
         """
         log.debug(
             "starting-journal-query",
@@ -306,10 +305,13 @@ class JournalViewer:
                     "debug": [0, 1, 2, 3, 4, 5, 6, 7],
                 }
                 priorities = level_priorities.get(
-                    level.lower(), [0, 1, 2, 3, 4, 5, 6, 7]
+                    level.lower(),
+                    [0, 1, 2, 3, 4, 5, 6, 7],
                 )
                 log.debug(
-                    "mapped-level-to-priorities", level=level, priorities=priorities
+                    "mapped-level-to-priorities",
+                    level=level,
+                    priorities=priorities,
                 )
                 for priority in priorities:
                     j.add_match(("PRIORITY", priority))
@@ -435,7 +437,6 @@ class JournalViewer:
                 error=str(e),
                 fallback="1 hour ago",
             )
-            pass
 
         # Default to 1 hour ago
         result = now - timedelta(hours=1)
@@ -449,7 +450,8 @@ class JournalViewer:
 def main():
     """CLI interface for journal viewer."""
     log.info(
-        "journal-viewer-main-started", _replace_msg="🚀 Starting journal viewer CLI"
+        "journal-viewer-main-started",
+        _replace_msg="🚀 Starting journal viewer CLI",
     )
     import argparse
 
@@ -483,7 +485,8 @@ def main():
         help="Follow new log entries (like tail -f)",
     )
     parser.add_argument(
-        "--since", help='Show logs since time (e.g., "1 hour ago", "today")'
+        "--since",
+        help='Show logs since time (e.g., "1 hour ago", "today")',
     )
     parser.add_argument("--until", help="Show logs until time")
     parser.add_argument(
@@ -492,7 +495,9 @@ def main():
         help="Minimum log level to show",
     )
     parser.add_argument(
-        "--show-hostname", action="store_true", help="Show hostname in output"
+        "--show-hostname",
+        action="store_true",
+        help="Show hostname in output",
     )
     parser.add_argument(
         "--show-pid",
@@ -501,10 +506,14 @@ def main():
         help="Show process ID (default: true)",
     )
     parser.add_argument(
-        "--no-service", action="store_true", help="Hide service/identifier"
+        "--no-service",
+        action="store_true",
+        help="Hide service/identifier",
     )
     parser.add_argument(
-        "--json", action="store_true", help="Output raw JSON instead of formatted text"
+        "--json",
+        action="store_true",
+        help="Output raw JSON instead of formatted text",
     )
 
     args, _unknown = parser.parse_known_args()
@@ -535,7 +544,8 @@ def main():
             show_service=not args.no_service,
         )
         log.info(
-            "journal-viewer-created", _replace_msg="✅ Journal viewer instance created"
+            "journal-viewer-created",
+            _replace_msg="✅ Journal viewer instance created",
         )
     except Exception as e:
         log.error(

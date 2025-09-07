@@ -1,15 +1,14 @@
-"""
-Eliot integration for nicestlog - Beautiful human-readable action tracing.
+"""Eliot integration for nicestlog - Beautiful human-readable action tracing.
 
 Combines Eliot's powerful action tracking with nicestlog's beautiful output.
 """
 
-import sys
-from typing import Any, Dict, Optional, TextIO
 from datetime import datetime
+import sys
+from typing import Any, TextIO
 
 try:
-    from eliot import start_action, log_message  # type: ignore[import-untyped]
+    from eliot import log_message, start_action  # type: ignore[import-untyped]
 
     ELIOT_AVAILABLE = True
 except ImportError:
@@ -17,7 +16,7 @@ except ImportError:
     start_action = log_message = None
 
 try:
-    from .core import RESET_ALL, BRIGHT, DIM, RED, BLUE, CYAN, MAGENTA, YELLOW, GREEN
+    from .core import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
 except ImportError:
     # When running as standalone script
     import sys
@@ -43,8 +42,7 @@ except ImportError:
 
 
 class HumanReadableEliotDestination:
-    """
-    Eliot destination that outputs beautiful, human-readable action traces.
+    """Eliot destination that outputs beautiful, human-readable action traces.
 
     Instead of ugly JSON, this creates beautiful nested action logs that
     show the flow of your application with proper indentation and colors.
@@ -52,7 +50,7 @@ class HumanReadableEliotDestination:
 
     def __init__(
         self,
-        file: Optional[TextIO] = None,
+        file: TextIO | None = None,
         show_timestamps: bool = True,
         show_task_ids: bool = False,
         max_width: int = 120,
@@ -61,10 +59,10 @@ class HumanReadableEliotDestination:
         self.show_timestamps = show_timestamps
         self.show_task_ids = show_task_ids
         self.max_width = max_width
-        self._action_stack: Dict[str, int] = {}  # task_id -> depth
-        self._action_names: Dict[str, str] = {}  # task_id -> action name
+        self._action_stack: dict[str, int] = {}  # task_id -> depth
+        self._action_names: dict[str, str] = {}  # task_id -> action name
 
-    def __call__(self, message: Dict[str, Any]):
+    def __call__(self, message: dict[str, Any]):
         """Process an Eliot message and output human-readable format."""
         if not isinstance(message, dict):
             return
@@ -83,7 +81,7 @@ class HumanReadableEliotDestination:
         else:
             self._handle_regular_message(message, task_uuid)
 
-    def _handle_action_start(self, message: Dict[str, Any], task_id: str):
+    def _handle_action_start(self, message: dict[str, Any], task_id: str):
         """Handle the start of an action."""
         action_type = message.get("action_type", "unknown")
         self._action_names[task_id] = action_type
@@ -108,12 +106,12 @@ class HumanReadableEliotDestination:
         params = {k: v for k, v in message.items() if k not in system_fields}
 
         self.file.write(
-            f"{timestamp}{indent}{BLUE}▶{RESET_ALL} {BRIGHT}{action_type}{RESET_ALL}"
+            f"{timestamp}{indent}{BLUE}▶{RESET_ALL} {BRIGHT}{action_type}{RESET_ALL}",
         )
 
         if params:
             param_str = " ".join(
-                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
+                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}"
                 for k, v in params.items()
             )
             self.file.write(f" {param_str}")
@@ -124,7 +122,7 @@ class HumanReadableEliotDestination:
         self.file.write("\n")
         self.file.flush()
 
-    def _handle_action_result(self, message: Dict[str, Any], task_id: str):
+    def _handle_action_result(self, message: dict[str, Any], task_id: str):
         """Handle successful action completion."""
         action_name = self._action_names.get(task_id, "unknown")
         depth = self._action_stack.get(task_id, 0)
@@ -141,12 +139,12 @@ class HumanReadableEliotDestination:
         }
 
         self.file.write(
-            f"{timestamp}{indent}{GREEN}✓{RESET_ALL} {DIM}{action_name}{RESET_ALL}"
+            f"{timestamp}{indent}{GREEN}✓{RESET_ALL} {DIM}{action_name}{RESET_ALL}",
         )
 
         if result_data:
             result_str = " ".join(
-                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
+                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}"
                 for k, v in result_data.items()
             )
             self.file.write(f" {result_str}")
@@ -158,7 +156,7 @@ class HumanReadableEliotDestination:
         self._action_stack.pop(task_id, None)
         self._action_names.pop(task_id, None)
 
-    def _handle_action_failure(self, message: Dict[str, Any], task_id: str):
+    def _handle_action_failure(self, message: dict[str, Any], task_id: str):
         """Handle failed action."""
         action_name = self._action_names.get(task_id, "unknown")
         depth = self._action_stack.get(task_id, 0)
@@ -170,7 +168,7 @@ class HumanReadableEliotDestination:
         reason = message.get("reason", "")
 
         self.file.write(
-            f"{timestamp}{indent}{RED}✗{RESET_ALL} {DIM}{action_name}{RESET_ALL} "
+            f"{timestamp}{indent}{RED}✗{RESET_ALL} {DIM}{action_name}{RESET_ALL} ",
         )
         self.file.write(f"{RED}FAILED{RESET_ALL}: {exception}")
 
@@ -184,7 +182,7 @@ class HumanReadableEliotDestination:
         self._action_stack.pop(task_id, None)
         self._action_names.pop(task_id, None)
 
-    def _handle_regular_message(self, message: Dict[str, Any], task_id: str):
+    def _handle_regular_message(self, message: dict[str, Any], task_id: str):
         """Handle regular log messages within actions."""
         # Try to find the current action depth
         task_level = message.get("task_level", [])
@@ -205,7 +203,7 @@ class HumanReadableEliotDestination:
 
         if msg_data:
             data_str = " ".join(
-                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{repr(v)}{RESET_ALL}"
+                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}"
                 for k, v in msg_data.items()
             )
             self.file.write(f" {data_str}")
@@ -213,7 +211,7 @@ class HumanReadableEliotDestination:
         self.file.write("\n")
         self.file.flush()
 
-    def _format_timestamp(self, timestamp: Optional[float]) -> str:
+    def _format_timestamp(self, timestamp: float | None) -> str:
         """Format timestamp for display."""
         if not self.show_timestamps or timestamp is None:
             return ""
@@ -223,13 +221,12 @@ class HumanReadableEliotDestination:
 
 
 def setup_eliot_logging(
-    destination: Optional[TextIO] = None,
+    destination: TextIO | None = None,
     human_readable: bool = True,
     show_timestamps: bool = True,
     show_task_ids: bool = False,
 ) -> bool:
-    """
-    Setup Eliot logging with nicestlog integration.
+    """Setup Eliot logging with nicestlog integration.
 
     Args:
         destination: Where to write logs (default: stdout)
@@ -239,6 +236,7 @@ def setup_eliot_logging(
 
     Returns:
         True if Eliot was successfully configured, False if not available
+
     """
     if not ELIOT_AVAILABLE:
         print(
@@ -247,7 +245,7 @@ def setup_eliot_logging(
         )
         return False
 
-    from eliot import to_file, add_destinations
+    from eliot import add_destinations, to_file
 
     if human_readable:
         dest = HumanReadableEliotDestination(
@@ -280,7 +278,7 @@ if ELIOT_AVAILABLE:
         """Return a context manager for logging an action with nicestlog formatting."""
         return _ActionContext(action_name, **kwargs)
 
-    def log_call(action_name: Optional[str] = None, **action_kwargs):
+    def log_call(action_name: str | None = None, **action_kwargs):
         """Decorator to log function calls as Eliot actions."""
 
         def decorator(func):
@@ -319,7 +317,7 @@ else:
     def log_action(action_name: str, **kwargs):
         return _DummyActionContext()
 
-    def log_call(action_name: Optional[str] = None, **action_kwargs):
+    def log_call(action_name: str | None = None, **action_kwargs):
         def decorator(func):
             return func
 

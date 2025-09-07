@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""
-🎯 Interactive Transformation Demo - Amber-style Code Transformation
+"""🎯 Interactive Transformation Demo - Amber-style Code Transformation
 
 This demo shows the interactive transformation capabilities,
 similar to the amber search & replace tool.
 """
 
-import tempfile
 from pathlib import Path
+import tempfile
 
 # Sample code with print statements to transform
 SAMPLE_CODE = """
@@ -83,7 +82,7 @@ def main():
     print()
     print('./demo.py:5                    print("Starting data processing")')
     print(
-        '        ->                     log.info("print-message", _replace_msg="Starting data processing")'
+        '        ->                     log.info("print-message", _replace_msg="Starting data processing")',
     )
     print("Replace keyword? [Y]es/[n]o/[a]ll/[p]review/[s]kip file/[q]uit:")
     print()

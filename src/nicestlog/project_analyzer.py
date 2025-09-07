@@ -1,5 +1,4 @@
-"""
-🔍 Project Analyzer for AI Agents
+"""🔍 Project Analyzer for AI Agents
 
 This module provides automated analysis of existing Python projects to determine
 the best nicestlog migration strategy and identify potential issues.
@@ -8,13 +7,14 @@ the best nicestlog migration strategy and identify potential issues.
 from __future__ import annotations
 
 import ast
-import json
-import re
-from dataclasses import dataclass, asdict
-from pathlib import Path
-from typing import Dict, List, Set, Any
-import structlog
+from dataclasses import asdict, dataclass
 import fnmatch
+import json
+from pathlib import Path
+import re
+from typing import Any
+
+import structlog
 
 log = structlog.get_logger(__name__)
 
@@ -49,8 +49,8 @@ class DependencyAnalysis:
 
     has_logging: bool
     has_structlog: bool
-    has_other_logging: List[str]
-    dependency_conflicts: List[str]
+    has_other_logging: list[str]
+    dependency_conflicts: list[str]
     package_manager: str  # 'pip', 'poetry', 'pipenv', 'uv'
 
 
@@ -65,8 +65,8 @@ class MigrationRecommendation:
     estimated_effort: str  # 'low', 'medium', 'high'
     recommended_approach: str  # 'automatic', 'interactive', 'manual'
     risk_level: str  # 'low', 'medium', 'high'
-    prerequisites: List[str]
-    steps: List[str]
+    prerequisites: list[str]
+    steps: list[str]
 
 
 @dataclass
@@ -75,13 +75,13 @@ class ProjectAnalysisResult:
 
     project_path: str
     analysis_timestamp: str
-    logging_patterns: List[LoggingPattern]
+    logging_patterns: list[LoggingPattern]
     complexity: ProjectComplexity
     dependencies: DependencyAnalysis
     recommendation: MigrationRecommendation
-    warnings: List[str]
+    warnings: list[str]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return asdict(self)
 
@@ -188,7 +188,9 @@ class ProjectAnalyzer:
 
         # Generate recommendation based on analysis
         recommendation = self._generate_recommendation(
-            logging_patterns, complexity, dependencies
+            logging_patterns,
+            complexity,
+            dependencies,
         )
 
         # Collect warnings
@@ -214,7 +216,7 @@ class ProjectAnalyzer:
 
         return result
 
-    def _load_ignore_patterns(self, project_path: Path) -> Set[str]:
+    def _load_ignore_patterns(self, project_path: Path) -> set[str]:
         """Load ignore patterns from .gitignore, .nicestlogignore and defaults."""
         ignore_patterns = set(self.default_ignore_patterns)
 
@@ -258,7 +260,10 @@ class ProjectAnalyzer:
         return ignore_patterns
 
     def _should_ignore_file(
-        self, file_path: Path, project_path: Path, ignore_patterns: Set[str]
+        self,
+        file_path: Path,
+        project_path: Path,
+        ignore_patterns: set[str],
     ) -> bool:
         """Check if a file should be ignored based on patterns."""
         # Get relative path from project root
@@ -280,7 +285,7 @@ class ProjectAnalyzer:
 
         return False
 
-    def _get_python_files(self, project_path: Path) -> List[Path]:
+    def _get_python_files(self, project_path: Path) -> list[Path]:
         """Get all Python files, respecting ignore patterns."""
         ignore_patterns = self._load_ignore_patterns(project_path)
         python_files = []
@@ -302,7 +307,7 @@ class ProjectAnalyzer:
 
         return python_files
 
-    def _analyze_logging_patterns(self, project_path: Path) -> List[LoggingPattern]:
+    def _analyze_logging_patterns(self, project_path: Path) -> list[LoggingPattern]:
         """Analyze the project for different logging patterns."""
         patterns = []
         python_files = self._get_python_files(project_path)
@@ -329,8 +334,10 @@ class ProjectAnalyzer:
         return patterns
 
     def _analyze_file_patterns(
-        self, file_path: Path, content: str
-    ) -> List[LoggingPattern]:
+        self,
+        file_path: Path,
+        content: str,
+    ) -> list[LoggingPattern]:
         """Analyze a single file for logging patterns."""
         patterns = []
         lines = content.split("\n")
@@ -352,7 +359,7 @@ class ProjectAnalyzer:
                             code_snippet=line,
                             severity="high",
                             migration_priority=8,
-                        )
+                        ),
                     )
                     cli_pattern_found = True
                     break
@@ -369,7 +376,7 @@ class ProjectAnalyzer:
                                 code_snippet=line,
                                 severity="high",
                                 migration_priority=9,
-                            )
+                            ),
                         )
 
             # Check for standard logging
@@ -383,7 +390,7 @@ class ProjectAnalyzer:
                             code_snippet=line,
                             severity="medium",
                             migration_priority=6,
-                        )
+                        ),
                     )
 
             # Check for structlog (already good!)
@@ -397,7 +404,7 @@ class ProjectAnalyzer:
                             code_snippet=line,
                             severity="low",
                             migration_priority=2,
-                        )
+                        ),
                     )
 
             # Check for log wrapper anti-patterns
@@ -411,7 +418,7 @@ class ProjectAnalyzer:
                             code_snippet=line,
                             severity="medium",
                             migration_priority=7,
-                        )
+                        ),
                     )
 
         return patterns
@@ -516,7 +523,7 @@ class ProjectAnalyzer:
 
         if len(other_logging) > 2:
             conflicts.append(
-                f"Multiple logging frameworks detected: {', '.join(other_logging)}"
+                f"Multiple logging frameworks detected: {', '.join(other_logging)}",
             )
 
         return DependencyAnalysis(
@@ -529,12 +536,11 @@ class ProjectAnalyzer:
 
     def _generate_recommendation(
         self,
-        patterns: List[LoggingPattern],
+        patterns: list[LoggingPattern],
         complexity: ProjectComplexity,
         dependencies: DependencyAnalysis,
     ) -> MigrationRecommendation:
         """Generate migration recommendation based on analysis."""
-
         # Count pattern types
         print_count = len([p for p in patterns if p.pattern_type == "print"])
         logging_count = len([p for p in patterns if p.pattern_type == "logging"])
@@ -629,10 +635,10 @@ class ProjectAnalyzer:
 
     def _generate_warnings(
         self,
-        patterns: List[LoggingPattern],
+        patterns: list[LoggingPattern],
         complexity: ProjectComplexity,
         dependencies: DependencyAnalysis,
-    ) -> List[str]:
+    ) -> list[str]:
         """Generate warnings based on analysis."""
         warnings = []
 
@@ -645,7 +651,7 @@ class ProjectAnalyzer:
         high_priority_patterns = [p for p in patterns if p.migration_priority >= 8]
         if len(high_priority_patterns) > 50:
             warnings.append(
-                f"Large number of high-priority patterns ({len(high_priority_patterns)}) - migration may be time-consuming"
+                f"Large number of high-priority patterns ({len(high_priority_patterns)}) - migration may be time-consuming",
             )
 
         if complexity.max_complexity > 20:
@@ -656,7 +662,7 @@ class ProjectAnalyzer:
         if wrapper_patterns:
             warnings.append(
                 f"Log wrapper anti-patterns detected ({len(wrapper_patterns)} functions) - "
-                "consider using log.* calls directly instead of wrapper functions"
+                "consider using log.* calls directly instead of wrapper functions",
             )
 
         return warnings
@@ -669,10 +675,10 @@ class ProjectAnalyzer:
 
 
 def analyze_project_for_agents(
-    project_path: str, verbose: bool = False
+    project_path: str,
+    verbose: bool = False,
 ) -> ProjectAnalysisResult:
-    """
-    Convenience function for AI agents to analyze a project.
+    """Convenience function for AI agents to analyze a project.
 
     Args:
         project_path: Path to the project to analyze
@@ -680,6 +686,7 @@ def analyze_project_for_agents(
 
     Returns:
         ProjectAnalysisResult with comprehensive analysis
+
     """
     analyzer = ProjectAnalyzer(verbose=verbose)
     return analyzer.analyze_project(Path(project_path))

@@ -1,10 +1,9 @@
-"""
-Tests for the Advanced AST Assistant.
-"""
+"""Tests for the Advanced AST Assistant."""
 
 import ast
-import tempfile
 from pathlib import Path
+import tempfile
+
 import pytest
 
 from nicestlog.advanced_assistant import (
@@ -12,13 +11,13 @@ from nicestlog.advanced_assistant import (
     AdvancedASTAnalyzer,
     AdvancedTransformer,
     ASTPattern,
+    CodeAnalysisResult,
     NodeType,
     TransformationMetrics,
-    CodeAnalysisResult,
     TransformationResult,
     analyze_python_file,
-    transform_python_file,
     create_advanced_assistant,
+    transform_python_file,
 )
 
 
@@ -121,7 +120,9 @@ class TestAdvancedTransformer:
 
         def transform_print_to_log(node: ast.Call) -> ast.Call:
             new_func = ast.Attribute(
-                value=ast.Name(id="log", ctx=ast.Load()), attr="info", ctx=ast.Load()
+                value=ast.Name(id="log", ctx=ast.Load()),
+                attr="info",
+                ctx=ast.Load(),
             )
 
             new_call = ast.Call(

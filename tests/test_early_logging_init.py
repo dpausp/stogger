@@ -1,15 +1,12 @@
-"""
-Tests for early logging initialization functionality.
-"""
+"""Tests for early logging initialization functionality."""
 
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 
 def test_early_logging_initialization():
     """Test that early logging initialization reduces uninitialized structlog messages."""
-
     # Test script that demonstrates early initialization
     test_script = """
 import nicestlog
@@ -27,6 +24,7 @@ log.info('after-full-init', message='Should show full format')
     # Run the test script
     result = subprocess.run(
         [sys.executable, "-c", test_script],
+        check=False,
         capture_output=True,
         text=True,
         cwd=Path(__file__).parent.parent / "src",
@@ -65,7 +63,6 @@ log.info('after-full-init', message='Should show full format')
 
 def test_early_logging_graceful_fallback():
     """Test that early logging fails gracefully if there are issues."""
-
     # Test that logging_initialized works
     test_script = """
 import nicestlog
@@ -81,6 +78,7 @@ print("Still configured:", nicestlog.logging_initialized())
 
     result = subprocess.run(
         [sys.executable, "-c", test_script],
+        check=False,
         capture_output=True,
         text=True,
         cwd=Path(__file__).parent.parent / "src",
@@ -96,10 +94,10 @@ print("Still configured:", nicestlog.logging_initialized())
 
 def test_no_uninitialized_messages_in_cli():
     """Test that CLI commands don't show uninitialized structlog messages."""
-
     # Test a simple CLI command that would trigger logging
     result = subprocess.run(
         [sys.executable, "-m", "nicestlog", "--help"],
+        check=False,
         capture_output=True,
         text=True,
         cwd=Path(__file__).parent.parent / "src",

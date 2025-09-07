@@ -9,8 +9,8 @@ See https://pydoit.org/ for complete documentation.
 """
 
 # Add paths for local development
-from pathlib import Path
 import os
+from pathlib import Path
 import sys
 
 # Add vendor directory for vendored mydevtools
@@ -21,12 +21,10 @@ sys.path.insert(0, str(vendor_dir))
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Visual output helpers
-from rich.console import Console
-
 from mydevtools.task_helpers import (
     create_uv_commands,
-    run_subprocess,
 )
+from rich.console import Console
 
 console = Console()
 
@@ -34,6 +32,7 @@ DODO_CONFIG = {
     "default_tasks": ["default"],
     "verbosity": 2,
 }
+
 
 def create_commands(*commands, **kwargs):
     """Create commands that work in both Nix and uv environments."""
@@ -46,6 +45,7 @@ def create_commands(*commands, **kwargs):
     else:
         # In uv environment, use uv run prefix
         return create_uv_commands(*commands, **kwargs)
+
 
 def task_default():
     """Run essential development tasks without agent events."""
@@ -71,8 +71,10 @@ def task_default():
 
 def task_tool_check():
     """Validate ALL expected tools are available."""
+
     def run_validation():
         from mydevtools.task_helpers import validate_all_tools
+
         return validate_all_tools()
 
     return {
@@ -83,8 +85,10 @@ def task_tool_check():
 
 def task_validate_todo():
     """Validate TODO syntax, structure, and mdformat compliance."""
+
     def run_validation():
         from mydevtools.task_helpers import validate_todo
+
         return validate_todo()
 
     return {
@@ -95,8 +99,13 @@ def task_validate_todo():
 
 def task_validate_todo_phase_discipline():
     """Validate TODO phase discipline - block [x] checkboxes in TODO phase."""
+
     def run_validation():
-        from mydevtools.task_helpers import validate_todo_discipline, validate_no_code_in_todo
+        from mydevtools.task_helpers import (
+            validate_no_code_in_todo,
+            validate_todo_discipline,
+        )
+
         validate_todo_discipline()
         validate_no_code_in_todo()
 
@@ -108,8 +117,10 @@ def task_validate_todo_phase_discipline():
 
 def task_validate_todo_files_only():
     """Validate that only _TODO-AGENT.md is modified in TODO phase."""
+
     def run_validation():
         from mydevtools.task_helpers import validate_todo_files_only
+
         return validate_todo_files_only()
 
     return {
@@ -120,8 +131,10 @@ def task_validate_todo_files_only():
 
 def task_validate_impl_progress():
     """Validate progress - no commit allowed without checkbox progress."""
+
     def run_validation():
         from mydevtools.task_helpers import validate_impl_progress
+
         return validate_impl_progress()
 
     return {
@@ -144,8 +157,10 @@ def task_format():
 
 def task_format_markdown():
     """Format markdown files with mdformat."""
+
     def run_format():
         from mydevtools.task_helpers import format_todo_markdown
+
         return format_todo_markdown()
 
     return {
@@ -224,7 +239,10 @@ def task_validate_pyproject():
     """Validate pyproject.toml files."""
     if os.environ.get("NIX_STORE") is not None:
         # In Nix environment, skip this check (validate-pyproject not available)
-        return {"actions": ["echo 'Skipping pyproject validation in Nix environment'"], "verbosity": 2}
+        return {
+            "actions": ["echo 'Skipping pyproject validation in Nix environment'"],
+            "verbosity": 2,
+        }
     else:
         # In uv environment, use validate-pyproject
         return create_commands("validate-pyproject pyproject.toml", verbosity=2)
@@ -237,8 +255,10 @@ def task_validate_python_syntax():
 
 def task_check():
     """Run all normal checks."""
+
     def run_checks():
         from mydevtools.task_helpers import run_linting_with_warnings
+
         return run_linting_with_warnings()
 
     return {
@@ -284,8 +304,10 @@ def task_test_cov():
 
 def task_cleanup():
     """Clean build/test artifacts and caches."""
+
     def run_cleanup():
         from mydevtools.task_helpers import clean_artifacts
+
         return clean_artifacts()
 
     return {
@@ -297,7 +319,9 @@ def task_cleanup():
 def task_build():
     """Build package."""
     return create_commands(
-        "python -m build", task_dep=["validate_pyproject", "test"], verbosity=2,
+        "python -m build",
+        task_dep=["validate_pyproject", "test"],
+        verbosity=2,
     )
 
 
@@ -319,8 +343,10 @@ def task_dev_setup():
 
 def task_agent_status():
     """Show comprehensive agent development status (enhanced version)."""
+
     def run_status():
         from mydevtools.task_helpers import show_agent_status
+
         return show_agent_status()
 
     yield {
@@ -332,8 +358,10 @@ def task_agent_status():
 
 def task_agent_start():
     """AGENTS start here, call this before doing anything else."""
+
     def run_start():
         from mydevtools.task_helpers import show_agent_start
+
         return show_agent_start()
 
     yield {
@@ -345,8 +373,10 @@ def task_agent_start():
 
 def task_agent_phase_todo():
     """Switch to TODO phase (planning phase)."""
+
     def run_switch():
         from mydevtools.task_helpers import switch_to_todo
+
         return switch_to_todo()
 
     yield {
@@ -358,8 +388,10 @@ def task_agent_phase_todo():
 
 def task_agent_phase_impl():
     """Switch to IMPL phase (implementation phase)."""
+
     def run_switch():
         from mydevtools.task_helpers import show_todo_end, switch_to_impl
+
         show_todo_end()
         switch_to_impl()
 
@@ -376,8 +408,10 @@ def task_agent_phase_impl():
 
 def task_agent_todo_start():
     """Agent event: Work on todos - planning workflow engaged."""
+
     def run_start():
         from mydevtools.task_helpers import show_todo_start
+
         return show_todo_start()
 
     yield {
@@ -393,8 +427,10 @@ def task_agent_todo_start():
 
 def task_agent_coding_start():
     """Agent event: Beginning of coding session (quick checks)."""
+
     def run_start():
         from mydevtools.task_helpers import show_start
+
         return show_start()
 
     yield {
@@ -407,8 +443,10 @@ def task_agent_coding_start():
 
 def task_agent_coding_checkpoint():
     """Agent event: During coding - fast validation and formatting."""
+
     def run_checkpoint():
         from mydevtools.task_helpers import show_checkpoint
+
         return show_checkpoint()
 
     yield {
@@ -421,8 +459,10 @@ def task_agent_coding_checkpoint():
 
 def task_agent_coding_task_finished():
     """Mark coding task as finished in agent workflow."""
+
     def run_finished():
         from mydevtools.task_helpers import show_coding_task_finished
+
         return show_coding_task_finished()
 
     yield {
@@ -437,8 +477,10 @@ def task_agent_coding_task_finished():
 
 def task_agent_pre_commit():
     """Agent event pre commit - strict check + tests with coverage + build."""
+
     def run_pre_commit():
         from mydevtools.task_helpers import show_pre_commit
+
         return show_pre_commit()
 
     yield {
@@ -450,8 +492,10 @@ def task_agent_pre_commit():
 
 def task_agent_post_commit():
     """Agent event post commit - cleanup."""
+
     def run_post_commit():
         from mydevtools.task_helpers import show_post_commit
+
         return show_post_commit()
 
     yield {
@@ -464,8 +508,10 @@ def task_agent_post_commit():
 
 def task_agent_show_workflow():
     """Agent event: Display workflow diagrams and guidance."""
+
     def run_show_workflow():
         from mydevtools.task_helpers import show_workflow
+
         return show_workflow()
 
     yield {

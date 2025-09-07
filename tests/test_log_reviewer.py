@@ -1,12 +1,11 @@
-"""
-Tests for log_reviewer module.
-"""
+"""Tests for log_reviewer module."""
 
+from io import StringIO
 import json
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
-from io import StringIO
+
+import pytest
 
 from src.nicestlog.log_reviewer import LogQualityReport, LogQualityReviewer
 
@@ -81,7 +80,8 @@ class TestLogQualityReviewer:
         reviewer = LogQualityReviewer()
 
         with patch(
-            "pathlib.Path.read_text", side_effect=FileNotFoundError("File not found")
+            "pathlib.Path.read_text",
+            side_effect=FileNotFoundError("File not found"),
         ):
             mock_path = Mock(spec=Path)
             report = reviewer.analyze_log_file(mock_path)
@@ -177,7 +177,7 @@ ERROR: Database connection failed"""
         assert reviewer._is_structured_log("level=info message=test")
         assert not reviewer._is_structured_log("just a message")
         assert reviewer._is_structured_log(
-            "single=value"
+            "single=value",
         )  # Single key=value is considered structured
 
     def test_is_structured_log_colon_format(self):
@@ -192,7 +192,7 @@ ERROR: Database connection failed"""
         reviewer = LogQualityReviewer()
 
         fields = reviewer._extract_fields(
-            '{"user_id": 123, "action": "login", "status": "success"}'
+            '{"user_id": 123, "action": "login", "status": "success"}',
         )
         assert set(fields) == {"user_id", "action", "status"}
 
@@ -516,7 +516,7 @@ class TestCLIFunctions:
     def test_review_logs_cli_single_file(self, mock_is_dir, mock_is_file):
         """Test CLI with single file."""
         with patch(
-            "src.nicestlog.log_reviewer.LogQualityReviewer"
+            "src.nicestlog.log_reviewer.LogQualityReviewer",
         ) as mock_reviewer_class:
             mock_reviewer = Mock()
             mock_reviewer_class.return_value = mock_reviewer
@@ -546,7 +546,7 @@ class TestCLIFunctions:
     def test_review_logs_cli_low_score_exit(self, mock_is_dir, mock_is_file):
         """Test CLI exits with code 1 when score is below minimum."""
         with patch(
-            "src.nicestlog.log_reviewer.LogQualityReviewer"
+            "src.nicestlog.log_reviewer.LogQualityReviewer",
         ) as mock_reviewer_class:
             mock_reviewer = Mock()
             mock_reviewer_class.return_value = mock_reviewer
@@ -579,7 +579,7 @@ class TestCLIFunctions:
     def test_review_logs_cli_directory(self, mock_is_dir, mock_is_file):
         """Test CLI with directory containing log files."""
         with patch(
-            "src.nicestlog.log_reviewer.LogQualityReviewer"
+            "src.nicestlog.log_reviewer.LogQualityReviewer",
         ) as mock_reviewer_class:
             mock_reviewer = Mock()
             mock_reviewer_class.return_value = mock_reviewer

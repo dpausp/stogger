@@ -1,16 +1,16 @@
-"""
-Pexpect-based tests for Interactive Transformer features.
+"""Pexpect-based tests for Interactive Transformer features.
 
 These tests use real terminal interaction without mocking to test
 the actual user experience of interactive code transformation.
 """
 
 import os
+from pathlib import Path
 import sys
 import tempfile
-from pathlib import Path
-import pytest
+
 import pexpect
+import pytest
 
 
 class InteractivePexpectHelper:
@@ -85,7 +85,7 @@ finally:
 '''
 
         child, script_path = InteractivePexpectHelper.spawn_python_interactive_script(
-            script_content
+            script_content,
         )
 
         try:
@@ -148,7 +148,7 @@ finally:
 '''
 
         child, script_path = InteractivePexpectHelper.spawn_python_interactive_script(
-            script_content
+            script_content,
         )
 
         try:
@@ -214,7 +214,7 @@ finally:
 '''
 
         child, script_path = InteractivePexpectHelper.spawn_python_interactive_script(
-            script_content
+            script_content,
         )
 
         try:
@@ -272,7 +272,7 @@ finally:
 '''
 
         child, script_path = InteractivePexpectHelper.spawn_python_interactive_script(
-            script_content
+            script_content,
         )
 
         try:
@@ -341,7 +341,7 @@ finally:
 '''
 
         child, script_path = InteractivePexpectHelper.spawn_python_interactive_script(
-            script_content
+            script_content,
         )
 
         try:

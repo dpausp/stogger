@@ -1,6 +1,4 @@
-"""
-Tests for the PII scrubber module functionality.
-"""
+"""Tests for the PII scrubber module functionality."""
 
 import pytest
 
@@ -404,8 +402,8 @@ class TestPIIScrubbingEdgeCases:
                             "Contact: user@test.com",
                             {"api_key": "sk_live_abc123"},
                         ],
-                    }
-                }
+                    },
+                },
             },
             "top_level_email": "top@example.com",
         }
@@ -584,7 +582,8 @@ class TestPIIScrubbingEdgeCases:
         }
 
         processor = create_pii_processor(
-            custom_patterns=custom_patterns, sensitive_fields=["custom_field"]
+            custom_patterns=custom_patterns,
+            sensitive_fields=["custom_field"],
         )
 
         test_event_dict = {

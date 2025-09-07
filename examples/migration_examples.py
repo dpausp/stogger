@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-"""
-Practical migration examples showing before/after code transformations.
+"""Practical migration examples showing before/after code transformations.
 
 This file demonstrates real-world migration scenarios that users can
 run and see the actual transformations in action.
 """
 
+from pathlib import Path
 import sys
 import tempfile
-from pathlib import Path
 
 
 def create_example_files():
     """Create example files showing different logging patterns."""
-
     # Example 1: Print statements
     print_example = '''#!/usr/bin/env python3
 """Example with print statements - BEFORE migration."""
@@ -292,7 +290,6 @@ if __name__ == "__main__":
 
 def demonstrate_migration():
     """Demonstrate the migration process with real examples."""
-
     print("🎯 Nicestlog Migration Examples")
     print("=" * 50)
 
@@ -344,7 +341,6 @@ def demonstrate_migration():
 
 def show_library_comparison():
     """Show comparison of different logging libraries and migration paths."""
-
     print("\n📚 Logging Library Migration Paths")
     print("=" * 50)
 
@@ -397,7 +393,6 @@ def show_library_comparison():
 
 def main():
     """Main demo function."""
-
     if len(sys.argv) > 1 and sys.argv[1] == "--create-examples":
         # Create examples and exit
         temp_path = demonstrate_migration()
@@ -423,7 +418,7 @@ def main():
     print("   1. Try: nicestlog demo basic")
     print("   2. Analyze your project: nicestlog migrate /path/to/your/project")
     print(
-        "   3. Apply migration: nicestlog migrate /path/to/your/project --do-migrate --backup"
+        "   3. Apply migration: nicestlog migrate /path/to/your/project --do-migrate --backup",
     )
     print("   4. Validate: nicestlog check /path/to/your/project")
 

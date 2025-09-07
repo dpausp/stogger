@@ -1,15 +1,14 @@
-"""
-Log Quality Reviewer - Analyzes your logs and tells you if they're "arsch" or not.
+"""Log Quality Reviewer - Analyzes your logs and tells you if they're "arsch" or not.
 
 Reviews log quality, structure, and usefulness with Austrian directness.
 """
 
-import re
-import json
-from typing import Dict, List, Any, Tuple, Optional
-from dataclasses import dataclass
-from pathlib import Path
 from collections import Counter
+from dataclasses import dataclass
+import json
+from pathlib import Path
+import re
+from typing import Any
 
 
 @dataclass
@@ -18,15 +17,14 @@ class LogQualityReport:
 
     overall_score: float  # 0-100
     overall_verdict: str  # "arsch", "verziehbar", "leiwand"
-    issues: List[str]
-    good_practices: List[str]
-    suggestions: List[str]
-    stats: Dict[str, Any]
+    issues: list[str]
+    good_practices: list[str]
+    suggestions: list[str]
+    stats: dict[str, Any]
 
 
 class LogQualityReviewer:
-    """
-    Reviews log quality with Austrian directness.
+    """Reviews log quality with Austrian directness.
 
     Analyzes logs for structure, usefulness, and best practices.
     Gives honest feedback about whether your logs are "arsch" or not.
@@ -73,12 +71,12 @@ class LogQualityReviewer:
         lines = log_content.splitlines()
         return self._analyze_log_lines(lines, "content")
 
-    def _analyze_log_lines(self, lines: List[str], _: str) -> LogQualityReport:
+    def _analyze_log_lines(self, lines: list[str], _: str) -> LogQualityReport:
         """Core analysis logic."""
         issues = []
         good_practices = []
         suggestions = []
-        stats: Dict[str, Any] = {
+        stats: dict[str, Any] = {
             "total_lines": len(lines),
             "empty_lines": 0,
             "structured_lines": 0,
@@ -161,7 +159,7 @@ class LogQualityReviewer:
         ]
         return any(re.search(pattern, line) for pattern in timestamp_patterns)
 
-    def _extract_log_level(self, line: str) -> Optional[str]:
+    def _extract_log_level(self, line: str) -> str | None:
         """Extract log level from line."""
         level_patterns = [
             r"\b(DEBUG|INFO|WARN|WARNING|ERROR|CRITICAL|FATAL)\b",
@@ -191,7 +189,7 @@ class LogQualityReviewer:
         field_count = len(re.findall(r"\w+[:=][^\s]+", line))
         return field_count >= 2
 
-    def _extract_fields(self, line: str) -> List[str]:
+    def _extract_fields(self, line: str) -> list[str]:
         """Extract field names from structured log."""
         fields = []
 
@@ -209,7 +207,7 @@ class LogQualityReviewer:
 
         return fields
 
-    def _extract_event_name(self, line: str) -> Optional[str]:
+    def _extract_event_name(self, line: str) -> str | None:
         """Extract event name from log line."""
         # Common patterns for event names
         patterns = [
@@ -225,7 +223,7 @@ class LogQualityReviewer:
 
         return None
 
-    def _calculate_quality_score(self, stats: Dict[str, Any]) -> float:
+    def _calculate_quality_score(self, stats: dict[str, Any]) -> float:
         """Calculate overall quality score (0-100)."""
         if stats["total_lines"] == 0:
             return 0
@@ -279,20 +277,20 @@ class LogQualityReviewer:
 
         return max(0, min(100, score))
 
-    def _get_verdict(self, score: float) -> Tuple[str, str]:
+    def _get_verdict(self, score: float) -> tuple[str, str]:
         """Get Austrian verdict based on score."""
         for (min_score, max_score), (verdict, message) in self.quality_levels.items():
             if min_score <= score <= max_score:
                 return verdict, message
         return "arsch", "💩 Komplett arsch!"
 
-    def _find_issues(self, stats: Dict[str, Any]) -> List[str]:
+    def _find_issues(self, stats: dict[str, Any]) -> list[str]:
         """Find specific issues with the logs."""
         issues = []
 
         if stats["debug_prints"] > 0:
             issues.append(
-                f"🚫 {stats['debug_prints']} Debug-Prints gefunden - des ghört weg!"
+                f"🚫 {stats['debug_prints']} Debug-Prints gefunden - des ghört weg!",
             )
 
         if stats["timestamps_found"] < stats["total_lines"] * 0.5:
@@ -312,7 +310,7 @@ class LogQualityReviewer:
 
         return issues
 
-    def _find_good_practices(self, stats: Dict[str, Any]) -> List[str]:
+    def _find_good_practices(self, stats: dict[str, Any]) -> list[str]:
         """Find good practices in the logs."""
         good = []
 
@@ -336,18 +334,18 @@ class LogQualityReviewer:
 
         return good
 
-    def _generate_suggestions(self, stats: Dict[str, Any]) -> List[str]:
+    def _generate_suggestions(self, stats: dict[str, Any]) -> list[str]:
         """Generate improvement suggestions."""
         suggestions = []
 
         if stats["structured_lines"] < stats["total_lines"] * 0.7:
             suggestions.append(
-                "💡 Mehr strukturierte Logs verwenden (JSON oder key=value)"
+                "💡 Mehr strukturierte Logs verwenden (JSON oder key=value)",
             )
 
         if len(stats["levels_found"]) < 3:
             suggestions.append(
-                "💡 Mehr Log-Level verwenden (DEBUG, INFO, WARNING, ERROR)"
+                "💡 Mehr Log-Level verwenden (DEBUG, INFO, WARNING, ERROR)",
             )
 
         if stats["timestamps_found"] < stats["total_lines"] * 0.8:
@@ -358,7 +356,7 @@ class LogQualityReviewer:
 
         if "user_id" not in stats["fields_found"]:
             suggestions.append(
-                "💡 User-Kontext zu Logs hinzufügen (user_id, session_id)"
+                "💡 User-Kontext zu Logs hinzufügen (user_id, session_id)",
             )
 
         if "request_id" not in stats["fields_found"]:
@@ -381,7 +379,10 @@ def review_logs_cli():
     )
     parser.add_argument("path", help="Log file or directory to review")
     parser.add_argument(
-        "--format", choices=["text", "json"], default="text", help="Output format"
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        help="Output format",
     )
     parser.add_argument(
         "--min-score",
@@ -440,7 +441,7 @@ def print_report(report: LogQualityReport, format_type: str = "text"):
                     "stats": report.stats,
                 },
                 indent=2,
-            )
+            ),
         )
         return
 

@@ -1,5 +1,4 @@
-"""
-Command-line interface for nicestlog.
+"""Command-line interface for nicestlog.
 
 This module provides the complete CLI interface including both basic and advanced
 AST functionality, previously split between cli.py and cli_advanced.py.
@@ -7,36 +6,37 @@ AST functionality, previously split between cli.py and cli_advanced.py.
 
 from __future__ import annotations
 
-import sys
-import time
+from importlib import resources
+import importlib.metadata
+from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
-from pathlib import Path
-from typing import Annotated, Optional, List, cast, Protocol
+import time
+from typing import Annotated, Protocol, cast
 
-import typer
-import structlog
-import nicestlog
-import importlib.resources as resources
-import importlib.metadata
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.syntax import Syntax
+from rich.table import Table
+import structlog
+import typer
+
+import nicestlog
 
 from .advanced_assistant import (
     AdvancedAssistant,
     ASTPattern,
-    TransformationResult,
     CodeAnalysisResult,
+    TransformationResult,
 )
+from .assistant import migrate_directory, migrate_file
+from .cli_output_transformer import migrate_cli_outputs_file
 from .interactive_transformer import (
     InteractiveTransformer,
 )
-from .assistant import migrate_file, migrate_directory
-from .cli_output_transformer import migrate_cli_outputs_file
 
 
 # Type protocol for migration results to handle different result types
@@ -72,14 +72,15 @@ app = typer.Typer(help="Nicestlog utility.", no_args_is_help=True)
 @app.callback()
 def main_callback(
     version: Annotated[
-        Optional[bool],
+        bool | None,
         typer.Option(
-            "--version", callback=version_callback, help="Show version and exit"
+            "--version",
+            callback=version_callback,
+            help="Show version and exit",
         ),
     ] = None,
 ):
     """Nicestlog utility."""
-    pass
 
 
 # Create tools subgroup for low-level utilities
@@ -92,11 +93,13 @@ app.add_typer(tools_app, name="tools")
 def tools_generate_service(
     service_name: str = typer.Argument(..., help="Name of the service"),
     exec_command: str = typer.Argument(..., help="Command to execute"),
-    user: Optional[str] = typer.Option(None, "--user", help="User to run service as"),
-    working_dir: Optional[str] = typer.Option(
-        None, "--working-dir", help="Working directory"
+    user: str | None = typer.Option(None, "--user", help="User to run service as"),
+    working_dir: str | None = typer.Option(
+        None,
+        "--working-dir",
+        help="Working directory",
     ),
-    output: Optional[str] = typer.Option(None, "--output", help="Output file path"),
+    output: str | None = typer.Option(None, "--output", help="Output file path"),
 ):
     """🔧 Generate systemd service file."""
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
@@ -107,17 +110,19 @@ def tools_generate_service(
 def tools_review(
     path: Annotated[str, typer.Argument(help="Path to review")],
     format_type: Annotated[
-        str, typer.Option("--format", help="Output format")
+        str,
+        typer.Option("--format", help="Output format"),
     ] = "text",
     min_score: Annotated[
-        float, typer.Option("--min-score", help="Minimum score")
+        float,
+        typer.Option("--min-score", help="Minimum score"),
     ] = 70.0,
 ):
     """📝 Review log quality and provide suggestions."""
     valid_formats = ["text", "json", "html"]
     if format_type not in valid_formats:
         console.print(
-            f"❌ [red]Invalid format '{format_type}'. Valid formats: {', '.join(valid_formats)}[/red]"
+            f"❌ [red]Invalid format '{format_type}'. Valid formats: {', '.join(valid_formats)}[/red]",
         )
         raise typer.Exit(1)
 
@@ -128,25 +133,30 @@ def tools_review(
 @tools_app.command("journal")
 def tools_journal(
     unit: Annotated[
-        Optional[str], typer.Option("--unit", "-u", help="Systemd unit")
+        str | None,
+        typer.Option("--unit", "-u", help="Systemd unit"),
     ] = None,
     lines: Annotated[
-        int, typer.Option("--lines", "-n", help="Number of lines to show")
+        int,
+        typer.Option("--lines", "-n", help="Number of lines to show"),
     ] = 50,
     follow: Annotated[
-        bool, typer.Option("--follow", "-f", help="Follow log output")
+        bool,
+        typer.Option("--follow", "-f", help="Follow log output"),
     ] = False,
     since: Annotated[
-        Optional[str], typer.Option("--since", help="Show logs since")
+        str | None,
+        typer.Option("--since", help="Show logs since"),
     ] = None,
     level: Annotated[
-        Optional[str], typer.Option("--level", help="Log level filter")
+        str | None,
+        typer.Option("--level", help="Log level filter"),
     ] = None,
 ):
     """📖 Beautiful systemd journal viewer."""
     if level and level not in ["debug", "info", "warning", "error", "critical"]:
         console.print(
-            f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]"
+            f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]",
         )
         raise typer.Exit(1)
 
@@ -167,7 +177,8 @@ if FLASK_AVAILABLE_FOR_CLI:
     @tools_app.command("dashboard")
     def tools_dashboard(
         host: Annotated[
-            str, typer.Option("--host", help="Host to bind to")
+            str,
+            typer.Option("--host", help="Host to bind to"),
         ] = "127.0.0.1",
         port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
         debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
@@ -185,17 +196,22 @@ tools_app.add_typer(i18n_app, name="i18n")
 @i18n_app.command("check")
 def i18n_check(
     src_dir: str = typer.Argument(..., help="Source directory to check"),
-    translation_dir: Optional[str] = typer.Option(
-        None, "--translation-dir", help="Translation directory"
+    translation_dir: str | None = typer.Option(
+        None,
+        "--translation-dir",
+        help="Translation directory",
     ),
     language: Annotated[
-        str, typer.Option("-l", "--language", help="Language code")
+        str,
+        typer.Option("-l", "--language", help="Language code"),
     ] = "en",
     list_missing: Annotated[
-        bool, typer.Option("--list-missing", help="List missing translations")
+        bool,
+        typer.Option("--list-missing", help="List missing translations"),
     ] = False,
     fail_on_extra: Annotated[
-        bool, typer.Option("--fail-on-extra", help="Fail on extra translations")
+        bool,
+        typer.Option("--fail-on-extra", help="Fail on extra translations"),
     ] = False,
     strict: Annotated[
         bool,
@@ -219,12 +235,14 @@ def i18n_check(
         )
 
         result = check_translations(
-            source_paths=source_paths, translation_dir=trans_dir, language=language
+            source_paths=source_paths,
+            translation_dir=trans_dir,
+            language=language,
         )
 
         # Handle list_missing and fail_on_extra logic
-        missing_keys = cast(List[str], result.get("missing_keys", []))
-        extra_keys = cast(List[str], result.get("extra_keys", []))
+        missing_keys = cast("list[str]", result.get("missing_keys", []))
+        extra_keys = cast("list[str]", result.get("extra_keys", []))
 
         if list_missing:
             for key in missing_keys:
@@ -243,7 +261,7 @@ def i18n_check(
             print(f"Translation check for language: {language}")
             print(f"Translation file: {result.get('translation_file', 'N/A')}")
             print(
-                f"Required keys: {len(cast(List[str], result.get('required_keys', [])))}"
+                f"Required keys: {len(cast('list[str]', result.get('required_keys', [])))}",
             )
 
             if missing_keys:
@@ -263,7 +281,9 @@ def i18n_check(
                 print("No extra keys")
 
             # Show debug events if present
-            debug_events = cast(List[str], result.get("debug_with_replace_events", []))
+            debug_events = cast(
+                "list[str]", result.get("debug_with_replace_events", []),
+            )
             if debug_events and verbose:
                 print("Debug events using _replace_msg (ignored for coverage):")
                 for key in debug_events:
@@ -284,7 +304,7 @@ def init_config():
     log.debug("starting-config-wizard")
     print("Nicestlog Configuration Wizard")
     print(
-        "This will help you create a `[tool.nicestlog]` section in your pyproject.toml."
+        "This will help you create a `[tool.nicestlog]` section in your pyproject.toml.",
     )
 
     pyproject_path = Path("pyproject.toml")
@@ -311,10 +331,10 @@ def init_config():
     if input("Enable file logging? [y/N]: ").lower() == "y":
         config["log_file"] = input("Log file path [app.log]: ") or "app.log"
         config["log_file_max_size"] = int(
-            input("Max log file size in MB [10]: ") or "10"
+            input("Max log file size in MB [10]: ") or "10",
         )
         config["log_file_backup_count"] = int(
-            input("Number of backup files to keep [3]: ") or "3"
+            input("Number of backup files to keep [3]: ") or "3",
         )
 
     print("\n--- Structured Logging ---")
@@ -335,7 +355,7 @@ def init_config():
     import toml
 
     try:
-        with open(pyproject_path, "r") as f:
+        with open(pyproject_path) as f:
             pyproject = toml.load(f)
     except Exception:
         pyproject = {}
@@ -355,14 +375,16 @@ def init_config():
 @app.command()
 def docs(
     interactive: Annotated[
-        bool, typer.Option("--interactive", "-i", help="Interactive docs browser")
+        bool,
+        typer.Option("--interactive", "-i", help="Interactive docs browser"),
     ] = False,
     feature: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--feature", "-f", help="Show docs for specific feature"),
     ] = None,
     pager: Annotated[
-        bool, typer.Option("--pager", "-p", help="Use pager for displaying docs")
+        bool,
+        typer.Option("--pager", "-p", help="Use pager for displaying docs"),
     ] = False,
 ):
     """📚 Show documentation and examples."""
@@ -386,10 +408,12 @@ def docs_serve(
     port: Annotated[int, typer.Option("--port", "-p", help="Port to serve on")] = 8000,
     host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
     open_browser: Annotated[
-        bool, typer.Option("--open/--no-open", help="Open browser automatically")
+        bool,
+        typer.Option("--open/--no-open", help="Open browser automatically"),
     ] = True,
     build: Annotated[
-        bool, typer.Option("--build/--no-build", help="Build docs before serving")
+        bool,
+        typer.Option("--build/--no-build", help="Build docs before serving"),
     ] = True,
 ):
     """🌐 Serve HTML documentation in browser."""
@@ -399,8 +423,10 @@ def docs_serve(
 @app.command("init")
 def init_config_cmd(
     path: str = typer.Argument(".", help="Project path to initialize"),
-    template: Optional[str] = typer.Option(
-        None, "--template", help="Configuration template"
+    template: str | None = typer.Option(
+        None,
+        "--template",
+        help="Configuration template",
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
 ):
@@ -433,23 +459,28 @@ def check(
     path: Annotated[str, typer.Argument(help="Path to check")] = ".",
     fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
     interactive: Annotated[
-        bool, typer.Option("--interactive", "-i", help="Interactive mode")
+        bool,
+        typer.Option("--interactive", "-i", help="Interactive mode"),
     ] = False,
     dry_run: Annotated[
-        bool, typer.Option("--dry-run", help="Show what would be fixed")
+        bool,
+        typer.Option("--dry-run", help="Show what would be fixed"),
     ] = False,
     no_ast: Annotated[
-        bool, typer.Option("--no-ast", help="Disable AST-based analysis")
+        bool,
+        typer.Option("--no-ast", help="Disable AST-based analysis"),
     ] = False,
     complexity: Annotated[
-        bool, typer.Option("--complexity", help="Check code complexity")
+        bool,
+        typer.Option("--complexity", help="Check code complexity"),
     ] = False,
     patterns: Annotated[
-        Optional[List[str]],
+        list[str] | None,
         typer.Option("--pattern", help="Specific AST patterns to check"),
     ] = None,
     verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Enable verbose output")
+        bool,
+        typer.Option("--verbose", "-v", help="Enable verbose output"),
     ] = False,
 ):
     """🔍 Check code for logging best practices with AST analysis by default.
@@ -462,9 +493,10 @@ def check(
       nicestlog check file.py --interactive      # Interactive mode
       nicestlog check file.py --dry-run --fix    # Preview fixes
       nicestlog check file.py --complexity       # Complexity analysis
+
     """
-    from .linter import lint_directory
     from .config import detect_project_structure
+    from .linter import lint_directory
 
     path_obj = Path(path)
     if not path_obj.exists():
@@ -483,7 +515,7 @@ def check(
     except ValueError as e:
         console.print(f"❌ [red]Project structure detection failed: {e}[/red]")
         console.print(
-            "💡 [blue]Please configure [tool.nicestlog] section in pyproject.toml[/blue]"
+            "💡 [blue]Please configure [tool.nicestlog] section in pyproject.toml[/blue]",
         )
         sys.exit(1)
 
@@ -543,7 +575,7 @@ def check(
 
             if python_files:
                 console.print(
-                    f"📁 [blue]Analyzing {len(python_files)} Python files (respecting .gitignore)[/blue]"
+                    f"📁 [blue]Analyzing {len(python_files)} Python files (respecting .gitignore)[/blue]",
                 )
                 ast_results = []
                 with Progress(
@@ -553,7 +585,8 @@ def check(
                 ) as progress:
                     for py_file in python_files:
                         task = progress.add_task(
-                            f"Analyzing {py_file.name}...", total=None
+                            f"Analyzing {py_file.name}...",
+                            total=None,
                         )
                         result = assistant.analyze_file(py_file)
                         ast_results.append(result)
@@ -564,7 +597,7 @@ def check(
                 ast_issues = ast_results
             else:
                 console.print(
-                    "❌ [red]No Python files found in directory (after applying .gitignore)[/red]"
+                    "❌ [red]No Python files found in directory (after applying .gitignore)[/red]",
                 )
 
     # 3. Interactive Mode
@@ -597,8 +630,8 @@ def check(
             _display_transformation_result(transform_result, dry_run)
         else:
             # Use gitignore-aware file filtering and respect project structure
-            from .gitignore_utils import filter_python_files
             from .config import detect_project_structure
+            from .gitignore_utils import filter_python_files
 
             # Detect project structure to get source directories
             project_structure = detect_project_structure(path_obj)
@@ -617,7 +650,7 @@ def check(
                     # Additional filtering to exclude test files
                     for py_file in src_files:
                         if not project_structure.should_exclude_from_logging_analysis(
-                            py_file
+                            py_file,
                         ):
                             python_files.append(py_file)
 
@@ -630,10 +663,12 @@ def check(
             ) as progress:
                 for py_file in python_files:
                     task = progress.add_task(
-                        f"Transforming {py_file.name}...", total=None
+                        f"Transforming {py_file.name}...",
+                        total=None,
                     )
                     transform_result = assistant.transform_file(
-                        py_file, dry_run=dry_run
+                        py_file,
+                        dry_run=dry_run,
                     )
                     transform_results.append(transform_result)
                     progress.remove_task(task)
@@ -645,7 +680,7 @@ def check(
 
     if has_issues:
         console.print(
-            "\n❌ [red]Issues found. Run with --fix to apply automatic fixes.[/red]"
+            "\n❌ [red]Issues found. Run with --fix to apply automatic fixes.[/red]",
         )
         sys.exit(1)
     else:
@@ -655,7 +690,7 @@ def check(
 def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: bool):
     """Display analysis results for check command."""
     console.print(
-        f"\n📊 [bold blue]Analysis Results for {result.file_path.name}[/bold blue]"
+        f"\n📊 [bold blue]Analysis Results for {result.file_path.name}[/bold blue]",
     )
 
     # Basic metrics
@@ -709,17 +744,18 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
         if logging_issues:
             console.print("\n💡 [bold blue]Logging Improvements:[/bold blue]")
             console.print(
-                "  • Run with --fix to automatically convert print statements"
+                "  • Run with --fix to automatically convert print statements",
             )
             console.print(
-                "  • Consider adding structured logging to functions without logs"
+                "  • Consider adding structured logging to functions without logs",
             )
     else:
         console.print("✅ [green]No AST issues found![/green]")
 
 
 def _display_unified_check_analysis(
-    results: List[CodeAnalysisResult], show_complexity: bool
+    results: list[CodeAnalysisResult],
+    show_complexity: bool,
 ):
     """Display unified analysis results combining logging quality and AST metrics."""
     from .linter import lint_directory
@@ -738,15 +774,15 @@ def _display_unified_check_analysis(
         total_ast_issues += len(result.issues)
         if result.issues:
             all_ast_insights.extend(
-                [f"  • {result.file_path.name}: {issue}" for issue in result.issues]
+                [f"  • {result.file_path.name}: {issue}" for issue in result.issues],
             )
 
     # Run the enhanced linter with AST metrics
     console.print("\n📊 [bold blue]Unified Code Quality Analysis[/bold blue]")
 
     # Set environment variable to pass AST metrics to linter
-    import os
     import json
+    import os
 
     os.environ["NICESTLOG_AST_METRICS"] = json.dumps(ast_metrics)
 
@@ -765,32 +801,33 @@ def _display_unified_check_analysis(
     if all_ast_insights:
         console.print("\n💡 [bold blue]AST Analysis Insights:[/bold blue]")
         console.print(
-            f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions"
+            f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",
         )
         console.print(
-            f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization"
+            f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",
         )
         if total_ast_issues > 0:
             console.print(
-                f"  • {total_ast_issues} code quality improvements identified:"
+                f"  • {total_ast_issues} code quality improvements identified:",
             )
             for insight in all_ast_insights[:5]:  # Show first 5 insights
                 console.print(insight)
             if len(all_ast_insights) > 5:
                 console.print(
-                    f"    ... and {len(all_ast_insights) - 5} more suggestions"
+                    f"    ... and {len(all_ast_insights) - 5} more suggestions",
                 )
         else:
             console.print(
-                "  • No code quality issues detected - excellent code structure!"
+                "  • No code quality issues detected - excellent code structure!",
             )
         console.print(
-            "  • Consider adding structured logging to functions without logs"
+            "  • Consider adding structured logging to functions without logs",
         )
 
 
 def _display_check_directory_analysis(
-    results: List[CodeAnalysisResult], show_complexity: bool
+    results: list[CodeAnalysisResult],
+    show_complexity: bool,
 ):
     """Display analysis results for check command on directories."""
     console.print("\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
@@ -874,13 +911,15 @@ def _analyze_single_file(assistant: AdvancedAssistant, path: Path, json_output: 
 
 
 def _analyze_directory(
-    assistant: AdvancedAssistant, path: Path, pattern: str, json_output: bool
+    assistant: AdvancedAssistant,
+    path: Path,
+    pattern: str,
+    json_output: bool,
 ):
     """Analyze all Python files in a directory."""
-
     # Use gitignore-aware file filtering and respect project structure
-    from .gitignore_utils import filter_python_files
     from .config import detect_project_structure
+    from .gitignore_utils import filter_python_files
 
     # Detect project structure to get source directories
     try:
@@ -896,7 +935,7 @@ def _analyze_directory(
                 # Additional filtering to exclude test files
                 for py_file in src_files:
                     if not project_structure.should_exclude_from_logging_analysis(
-                        py_file
+                        py_file,
                     ):
                         files.append(py_file)
     except Exception:
@@ -929,7 +968,10 @@ def _analyze_directory(
 
 
 def _transform_single_file(
-    assistant: AdvancedAssistant, path: Path, dry_run: bool, interactive: bool
+    assistant: AdvancedAssistant,
+    path: Path,
+    dry_run: bool,
+    interactive: bool,
 ):
     """Transform a single Python file."""
     with Progress(
@@ -952,7 +994,6 @@ def _transform_directory(
     interactive: bool,
 ):
     """Transform all Python files in a directory."""
-
     files = list(path.glob(pattern))
     if not files:
         console.print(f"❌ [red]No files matching pattern '{pattern}' found in {path}")
@@ -967,7 +1008,8 @@ def _transform_directory(
         for file_path in files:
             if file_path.is_file():
                 task = progress.add_task(
-                    f"Transforming {file_path.name}...", total=None
+                    f"Transforming {file_path.name}...",
+                    total=None,
                 )
                 result = assistant.transform_file(file_path, dry_run=dry_run)
                 results.append(result)
@@ -982,7 +1024,7 @@ def _transform_interactive(path: Path, verbose: bool):
     transformer.transform_file_interactive(path)
 
 
-def _display_patterns(patterns: List[ASTPattern], show_details: bool):
+def _display_patterns(patterns: list[ASTPattern], show_details: bool):
     """Display available transformation patterns."""
     table = Table(title="📋 Available Transformation Patterns")
     table.add_column("Name", style="cyan")
@@ -1008,7 +1050,7 @@ def _display_patterns(patterns: List[ASTPattern], show_details: bool):
 def _display_analysis_result(result: CodeAnalysisResult):
     """Display analysis results for a single file."""
     console.print(
-        f"\n📊 [bold blue]Analysis Results for {result.file_path}[/bold blue]"
+        f"\n📊 [bold blue]Analysis Results for {result.file_path}[/bold blue]",
     )
 
     # Basic metrics
@@ -1042,7 +1084,7 @@ def _display_transformation_result(result: TransformationResult, dry_run: bool):
     """Display transformation results for a single file."""
     mode = "Preview" if dry_run else "Applied"
     console.print(
-        f"\n🔄 [bold green]Transformation {mode} for {result.file_path}[/bold green]"
+        f"\n🔄 [bold green]Transformation {mode} for {result.file_path}[/bold green]",
     )
 
     if result.changes_made:
@@ -1059,14 +1101,17 @@ def _display_transformation_result(result: TransformationResult, dry_run: bool):
         if result.transformed_code and dry_run:
             console.print("\n📄 [bold]Transformed Code Preview:[/bold]")
             syntax = Syntax(
-                result.transformed_code, "python", theme="monokai", line_numbers=True
+                result.transformed_code,
+                "python",
+                theme="monokai",
+                line_numbers=True,
             )
             console.print(syntax)
     else:
         console.print("ℹ️ [blue]No changes needed[/blue]")
 
 
-def _display_directory_analysis(results: List[CodeAnalysisResult]):
+def _display_directory_analysis(results: list[CodeAnalysisResult]):
     """Display analysis results for multiple files."""
     console.print("\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
 
@@ -1112,7 +1157,8 @@ def _display_directory_analysis(results: List[CodeAnalysisResult]):
 
 
 def _display_directory_transformation(
-    results: List[TransformationResult], dry_run: bool
+    results: list[TransformationResult],
+    dry_run: bool,
 ):
     """Display transformation results for multiple files."""
     mode = "Preview" if dry_run else "Applied"
@@ -1145,27 +1191,33 @@ def migrate(
     no_dry_run: Annotated[
         bool,
         typer.Option(
-            "--no-dry-run", help="Actually apply changes (default: dry-run preview)"
+            "--no-dry-run",
+            help="Actually apply changes (default: dry-run preview)",
         ),
     ] = False,
     migration_type: Annotated[
-        str, typer.Option("--type", "-t", help="Migration type")
+        str,
+        typer.Option("--type", "-t", help="Migration type"),
     ] = "print-to-structlog",
     json_output: Annotated[
-        bool, typer.Option("--json", help="JSON output for agents")
+        bool,
+        typer.Option("--json", help="JSON output for agents"),
     ] = False,
     output: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--output", "-o", help="Output JSON file or directory"),
     ] = None,
     verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Verbose output")
+        bool,
+        typer.Option("--verbose", "-v", help="Verbose output"),
     ] = False,
     interactive: Annotated[
-        bool, typer.Option("--interactive", "-i", help="Interactive migration")
+        bool,
+        typer.Option("--interactive", "-i", help="Interactive migration"),
     ] = False,
     force: Annotated[
-        bool, typer.Option("--force", help="Overwrite existing files")
+        bool,
+        typer.Option("--force", help="Overwrite existing files"),
     ] = False,
 ):
     """🔄 Analyze project and migrate code.
@@ -1179,17 +1231,19 @@ def migrate(
       nicestlog migrate . --no-dry-run                    # Actually apply changes
       nicestlog migrate . --no-dry-run --type logging-to-structlog  # Specific migration
       nicestlog migrate . --no-dry-run --interactive      # Interactive migration
-    """
 
+    """
     if not no_dry_run:
         # Default behavior: Dry-run preview
-        from .project_analyzer import analyze_project_for_agents
-
         # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
         import nicestlog
 
+        from .project_analyzer import analyze_project_for_agents
+
         nicestlog.init_logging(
-            verbose=verbose, syslog_identifier="nicestlog-migrate", log_format="console"
+            verbose=verbose,
+            syslog_identifier="nicestlog-migrate",
+            log_format="console",
         )
 
         try:
@@ -1230,10 +1284,12 @@ def migrate(
 @tools_app.command("demo")
 def tools_demo(
     feature: Annotated[
-        Optional[str], typer.Argument(help="Demo specific feature")
+        str | None,
+        typer.Argument(help="Demo specific feature"),
     ] = None,
     all_features: Annotated[
-        bool, typer.Option("--all", help="Demo all features")
+        bool,
+        typer.Option("--all", help="Demo all features"),
     ] = False,
 ):
     """🎬 Run interactive demos."""
@@ -1353,7 +1409,6 @@ def _show_feature_docs(feature: str, use_pager: bool = False):
 
 def _display_with_pager(content: str):
     """Display content using an appropriate pager."""
-
     # Check if glow is available
     if shutil.which("glow") is not None:
         # Use glow as pager
@@ -1364,7 +1419,7 @@ def _display_with_pager(content: str):
                 temp_file = f.name
 
             # Run glow with the temporary file
-            subprocess.run(["glow", "--pager", temp_file])
+            subprocess.run(["glow", "--pager", temp_file], check=False)
 
             # Clean up the temporary file
             Path(temp_file).unlink()
@@ -1382,7 +1437,7 @@ def _display_with_pager(content: str):
                 temp_file = f.name
 
             # Run bat with the temporary file
-            subprocess.run(["bat", "--paging=always", temp_file])
+            subprocess.run(["bat", "--paging=always", temp_file], check=False)
 
             # Clean up the temporary file
             Path(temp_file).unlink()
@@ -1401,7 +1456,7 @@ def _display_with_pager(content: str):
                 temp_file = f.name
 
             # Run the pager with the temporary file
-            subprocess.run([pager_cmd, temp_file])
+            subprocess.run([pager_cmd, temp_file], check=False)
 
             # Clean up the temporary file
             Path(temp_file).unlink()
@@ -1437,14 +1492,14 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = F
 
 
 def run_journal_viewer(
-    unit: Optional[str] = None,
+    unit: str | None = None,
     lines: int = 50,
     follow: bool = False,
-    since: Optional[str] = None,
-    level: Optional[str] = None,
+    since: str | None = None,
+    level: str | None = None,
 ):
     """Run the journal viewer."""
-    from .journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
+    from .journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
 
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
@@ -1456,7 +1511,11 @@ def run_journal_viewer(
     # Query and display entries
     try:
         for entry in viewer.query_journal(
-            service=unit, since=since, level=level, lines=lines, follow=follow
+            service=unit,
+            since=since,
+            level=level,
+            lines=lines,
+            follow=follow,
         ):
             print(viewer.format_entry(entry))
     except KeyboardInterrupt:
@@ -1539,9 +1598,9 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 def generate_service_cmd(
     service_name: str,
     exec_command: str,
-    user: Optional[str] = None,
-    working_directory: Optional[str] = None,
-    output_file: Optional[str] = None,
+    user: str | None = None,
+    working_directory: str | None = None,
+    output_file: str | None = None,
 ):
     """Generate systemd service file."""
     from .systemd_integration import create_systemd_service_file
@@ -1566,7 +1625,7 @@ def generate_service_cmd(
         print(service_content)
 
 
-def run_demos(feature: Optional[str] = None, all_features: bool = False):
+def run_demos(feature: str | None = None, all_features: bool = False):
     """Run nicestlog feature demonstrations."""
     log.debug("starting-demos", feature=feature, all_features=all_features)
 
@@ -1599,12 +1658,12 @@ def run_demos(feature: Optional[str] = None, all_features: bool = False):
     demos_to_run = []
     if all_features:
         # Run all core demos, but skip heavy/side-effect demos like 'lint'
-        demos_to_run = [k for k in available_demos.keys() if k != "lint"]
+        demos_to_run = [k for k in available_demos if k != "lint"]
     elif feature in available_demos:
         demos_to_run = [feature]
     else:
         print(
-            f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}"
+            f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}",
         )
         sys.exit(1)
 
@@ -1646,7 +1705,8 @@ def print_demo_header(title: str, description: str):
 def run_basic_demo():
     """Demonstrate basic nicestlog features."""
     print_demo_header(
-        "Basic Structured Logging", "Console output with beautiful formatting"
+        "Basic Structured Logging",
+        "Console output with beautiful formatting",
     )
 
     # Initialize with console output
@@ -1736,7 +1796,10 @@ def run_pii_demo():
 
     print("🔒 Demonstrating PII scrubbing:")
     log.info(
-        "user-data", email="user@example.com", password="secret123", ssn="123-45-6789"
+        "user-data",
+        email="user@example.com",
+        password="secret123",
+        ssn="123-45-6789",
     )
     log.debug("api-call", token="Bearer abc123def456", api_key="sk_live_abc123")
 
@@ -1785,7 +1848,8 @@ def run_async_demo():
 def run_complete_demo():
     """Demonstrate complete application example."""
     print_demo_header(
-        "Complete Application Example", "Real-world application logging patterns"
+        "Complete Application Example",
+        "Real-world application logging patterns",
     )
     print("🏗️ Complete application demo - comprehensive logging")
 
@@ -1846,14 +1910,13 @@ MIGRATION_TYPES = {
 
 def run_migrate_command(
     path: str,
-    output: Optional[str],
+    output: str | None,
     migration_type: str,
     dry_run: bool,
     interactive: bool,
     force: bool,
 ):
     """Execute migration command with comprehensive AST integration."""
-
     # 1. Validate migration type
     if migration_type not in MIGRATION_TYPES:
         console.print(f"[red]❌ Unknown migration type: {migration_type}[/red]")
@@ -1892,7 +1955,7 @@ def run_migrate_command(
             f"Source: [green]{source_path}[/green]\n"
             f"Target: [green]{target_path}[/green]",
             title="Migration Configuration",
-        )
+        ),
     )
 
     # No backup creation - users should use git for version control
@@ -1900,11 +1963,15 @@ def run_migrate_command(
     # 5. Interactive mode
     if interactive:
         console.print(
-            "🎯 [bold magenta]Starting interactive migration...[/bold magenta]"
+            "🎯 [bold magenta]Starting interactive migration...[/bold magenta]",
         )
         transformer = InteractiveTransformer()
         result = run_interactive_migration(
-            transformer, source_path, target_path, migration_config, dry_run
+            transformer,
+            source_path,
+            target_path,
+            migration_config,
+            dry_run,
         )
         show_migration_report(result, dry_run)
         return
@@ -1914,11 +1981,19 @@ def run_migrate_command(
 
     if source_path.is_file():
         result = migrate_single_file(
-            source_path, target_path, migration_config, dry_run, force
+            source_path,
+            target_path,
+            migration_config,
+            dry_run,
+            force,
         )
     else:
         result = migrate_directory_recursive(
-            source_path, target_path, migration_config, dry_run, force
+            source_path,
+            target_path,
+            migration_config,
+            dry_run,
+            force,
         )
 
     # 7. Show results
@@ -1930,10 +2005,13 @@ def run_migrate_command(
 
 
 def migrate_single_file(
-    source: Path, target: Path, config: dict, dry_run: bool, force: bool
+    source: Path,
+    target: Path,
+    config: dict,
+    dry_run: bool,
+    force: bool,
 ) -> MigrationResultProtocol:
     """Migrate a single file using the appropriate handler."""
-
     # CLI-outputs-to-Structlog migration (new functionality)
     if config["handler"] == "migrate_cli_outputs_to_structlog":
         try:
@@ -1973,10 +2051,10 @@ def migrate_single_file(
                         new_content.splitlines(keepends=True),
                         fromfile=str(source),
                         tofile=str(target),
-                    )
+                    ),
                 )
                 console.print(
-                    "\n[bold blue]📄 Preview of CLI output migration:[/bold blue]"
+                    "\n[bold blue]📄 Preview of CLI output migration:[/bold blue]",
                 )
                 for line in diff_lines[:20]:  # Show first 20 lines
                     if line.startswith("+"):
@@ -1989,7 +2067,7 @@ def migrate_single_file(
                         console.print(line.rstrip())
                 if len(diff_lines) > 20:
                     console.print(
-                        f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]"
+                        f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]",
                     )
 
             return result
@@ -1997,7 +2075,7 @@ def migrate_single_file(
         except Exception as exc:
             error_msg = str(exc)
             console.print(
-                f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]"
+                f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]",
             )
 
             class CLIOutputErrorResult:
@@ -2049,7 +2127,7 @@ def migrate_single_file(
                         new_content.splitlines(keepends=True),
                         fromfile=str(source),
                         tofile=str(target),
-                    )
+                    ),
                 )
                 console.print("\n[bold blue]📄 Preview of changes:[/bold blue]")
                 for line in diff_lines[:20]:  # Show first 20 lines
@@ -2063,7 +2141,7 @@ def migrate_single_file(
                         console.print(line.rstrip())
                 if len(diff_lines) > 20:
                     console.print(
-                        f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]"
+                        f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]",
                     )
 
             return migration_result
@@ -2093,7 +2171,7 @@ def migrate_single_file(
 
     if not patterns:
         console.print(
-            f"[yellow]⚠️ No AST patterns found for {config['handler']}[/yellow]"
+            f"[yellow]⚠️ No AST patterns found for {config['handler']}[/yellow]",
         )
         # Fallback to basic analysis
         assistant.analyze_file(source)
@@ -2140,10 +2218,13 @@ def migrate_single_file(
 
 
 def migrate_directory_recursive(
-    source: Path, target: Path, config: dict, dry_run: bool, force: bool
+    source: Path,
+    target: Path,
+    config: dict,
+    dry_run: bool,
+    force: bool,
 ) -> MigrationResultProtocol:
     """Migrate all Python files in a directory recursively."""
-
     # For print-to-structlog, use existing directory migration
     if config["handler"] == "migrate_print_to_structlog":
         return migrate_directory(source, target, dry_run)  # type: ignore[return-value]
@@ -2151,7 +2232,10 @@ def migrate_directory_recursive(
     # For CLI outputs migration, use custom directory migration
     elif config["handler"] == "migrate_cli_outputs_to_structlog":
         return migrate_directory_with_handler(
-            source, target, migrate_cli_outputs_file, dry_run
+            source,
+            target,
+            migrate_cli_outputs_file,
+            dry_run,
         )
 
     # For other migrations: Process files individually
@@ -2213,7 +2297,6 @@ def run_interactive_migration(
     dry_run: bool,
 ) -> MigrationResultProtocol:
     """Run interactive migration using InteractiveTransformer."""
-
     console.print(f"🎯 Interactive migration: {config['description']}")
     console.print("Use the interactive interface to review and apply changes.")
 
@@ -2258,7 +2341,7 @@ def run_interactive_migration(
 
 def migrate_directory_with_handler(
     input_dir: Path,
-    output_dir: Optional[Path],
+    output_dir: Path | None,
     migration_handler,
     dry_run: bool = True,
 ) -> MigrationResultProtocol:
@@ -2312,7 +2395,7 @@ def migrate_directory_with_handler(
                         new_code.splitlines(keepends=True),
                         fromfile=str(py),
                         tofile=str(py),
-                    )
+                    ),
                 )
                 result.diffs[str(py)] = diff_lines
 
@@ -2344,7 +2427,8 @@ def show_migration_report(result: MigrationResultProtocol, dry_run: bool):
 
     results_table.add_row("Files processed", str(result.files_processed))
     results_table.add_row(
-        "Transformations applied", str(result.transformations_applied)
+        "Transformations applied",
+        str(result.transformations_applied),
     )
     results_table.add_row("Errors", str(result.errors))
     results_table.add_row("Warnings", str(len(result.warnings)))
@@ -2360,20 +2444,20 @@ def show_migration_report(result: MigrationResultProtocol, dry_run: bool):
     # Show status message
     if result.errors > 0:
         console.print(
-            f"\n[red]❌ Migration completed with {result.errors} errors[/red]"
+            f"\n[red]❌ Migration completed with {result.errors} errors[/red]",
         )
     elif result.transformations_applied > 0:
         if dry_run:
             console.print(
-                f"\n[blue]ℹ️ Run without --dry-run to apply {result.transformations_applied} changes[/blue]"
+                f"\n[blue]ℹ️ Run without --dry-run to apply {result.transformations_applied} changes[/blue]",
             )
         else:
             console.print(
-                f"\n[green]✅ Successfully applied {result.transformations_applied} transformations[/green]"
+                f"\n[green]✅ Successfully applied {result.transformations_applied} transformations[/green]",
             )
     else:
         console.print(
-            "\n[blue]ℹ️ No changes needed - code is already in target format[/blue]"
+            "\n[blue]ℹ️ No changes needed - code is already in target format[/blue]",
         )
 
 
@@ -2387,7 +2471,7 @@ def _display_next_steps_guidance(result, path: str):
 
     if not has_config:
         console.print(
-            "📋 [yellow]No pyproject.toml found - initialize configuration first:[/yellow]"
+            "📋 [yellow]No pyproject.toml found - initialize configuration first:[/yellow]",
         )
         console.print(f"   [cyan]nicestlog init {path}[/cyan]")
         console.print("")
@@ -2397,26 +2481,26 @@ def _display_next_steps_guidance(result, path: str):
     if rec.strategy == "cli-outputs-to-structlog":
         console.print("🔄 [blue]CLI Output Migration:[/blue]")
         console.print(
-            f"   1. Run interactive migration: [cyan]nicestlog migrate {path} --type cli-outputs-to-structlog --interactive[/cyan]"
+            f"   1. Run interactive migration: [cyan]nicestlog migrate {path} --type cli-outputs-to-structlog --interactive[/cyan]",
         )
         console.print(f"   2. Validate results: [cyan]nicestlog check {path}[/cyan]")
     elif rec.strategy == "print-to-structlog":
         console.print("🔄 [blue]Print-to-Structlog Migration:[/blue]")
         console.print(f"   1. Preview changes: [cyan]nicestlog migrate {path}[/cyan]")
         console.print(
-            f"   2. Apply migration: [cyan]nicestlog migrate {path} --no-dry-run[/cyan]"
+            f"   2. Apply migration: [cyan]nicestlog migrate {path} --no-dry-run[/cyan]",
         )
         console.print(f"   3. Validate results: [cyan]nicestlog check {path}[/cyan]")
     elif rec.strategy == "logging-to-structlog":
         console.print("🔄 [blue]Logging-to-Structlog Migration:[/blue]")
         console.print(
-            f"   1. Interactive preview: [cyan]nicestlog migrate {path} --interactive[/cyan]"
+            f"   1. Interactive preview: [cyan]nicestlog migrate {path} --interactive[/cyan]",
         )
         console.print(
-            f"   2. Apply changes: [cyan]nicestlog migrate {path} --no-dry-run --type logging-to-structlog[/cyan]"
+            f"   2. Apply changes: [cyan]nicestlog migrate {path} --no-dry-run --type logging-to-structlog[/cyan]",
         )
         console.print(
-            f"   3. Update imports: [cyan]nicestlog check {path} --fix[/cyan]"
+            f"   3. Update imports: [cyan]nicestlog check {path} --fix[/cyan]",
         )
     elif rec.strategy == "enhancement":
         console.print("✨ [blue]Enhancement Recommendations:[/blue]")
@@ -2443,10 +2527,11 @@ def _display_next_steps_guidance(result, path: str):
 
 
 def _display_project_context(
-    project_structure, verbose: bool, single_file: Optional[Path] = None
+    project_structure,
+    verbose: bool,
+    single_file: Path | None = None,
 ):
     """Display project context and configuration being used."""
-
     console.print("\n🏗️ [bold blue]Project Context[/bold blue]")
 
     # Create context table
@@ -2477,7 +2562,7 @@ def _display_project_context(
     if single_file:
         # Single file analysis
         is_excluded = project_structure.should_exclude_from_logging_analysis(
-            single_file
+            single_file,
         )
         scope_status = (
             "❌ Excluded from logging analysis"
@@ -2487,19 +2572,19 @@ def _display_project_context(
         console.print(f"\n📄 [bold]File Scope:[/bold] {scope_status}")
         if is_excluded:
             console.print(
-                "💡 [blue]This file is in a test directory or excluded pattern[/blue]"
+                "💡 [blue]This file is in a test directory or excluded pattern[/blue]",
             )
     else:
         # Directory analysis
         console.print("\n📁 [bold]Analysis Scope:[/bold]")
         console.print(
-            f"  • [green]Logging analysis:[/green] Source directories only ({', '.join(project_structure.source_dirs)})"
+            f"  • [green]Logging analysis:[/green] Source directories only ({', '.join(project_structure.source_dirs)})",
         )
         console.print(
-            "  • [yellow]Excluded from logging:[/yellow] Tests and other patterns"
+            "  • [yellow]Excluded from logging:[/yellow] Tests and other patterns",
         )
         console.print(
-            "  • [blue]Code coverage:[/blue] All Python files (including tests)"
+            "  • [blue]Code coverage:[/blue] All Python files (including tests)",
         )
 
         if verbose:
@@ -2508,15 +2593,14 @@ def _display_project_context(
                 console.print(f"  • {pattern}")
             if len(project_structure.exclude_patterns) > 5:
                 console.print(
-                    f"  • ... and {len(project_structure.exclude_patterns) - 5} more"
+                    f"  • ... and {len(project_structure.exclude_patterns) - 5} more",
                 )
 
 
 def _display_project_analysis(result):
     """Display human-readable project analysis results."""
-
     console.print(
-        f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]"
+        f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]",
     )
 
     # Project Overview
@@ -2529,7 +2613,8 @@ def _display_project_analysis(result):
     overview_table.add_row("Total Lines", str(result.complexity.total_lines))
     overview_table.add_row("Complexity", result.complexity.complexity_category.title())
     overview_table.add_row(
-        "Package Manager", result.dependencies.package_manager.title()
+        "Package Manager",
+        result.dependencies.package_manager.title(),
     )
 
     console.print(overview_table)
@@ -2569,12 +2654,14 @@ def _display_project_analysis(result):
         "✅ Present" if result.dependencies.has_logging else "❌ Missing",
     )
     deps_table.add_row(
-        "Structlog", "✅ Present" if result.dependencies.has_structlog else "❌ Missing"
+        "Structlog",
+        "✅ Present" if result.dependencies.has_structlog else "❌ Missing",
     )
 
     if result.dependencies.has_other_logging:
         deps_table.add_row(
-            "Other Logging", ", ".join(result.dependencies.has_other_logging)
+            "Other Logging",
+            ", ".join(result.dependencies.has_other_logging),
         )
 
     console.print(deps_table)
@@ -2607,7 +2694,8 @@ def _display_project_analysis(result):
 
 
 def _configure_logging_focused_patterns(
-    assistant: AdvancedAssistant, user_patterns: Optional[List[str]] = None
+    assistant: AdvancedAssistant,
+    user_patterns: list[str] | None = None,
 ):
     """Configure AST patterns to focus on logging-related issues only."""
     if user_patterns:
@@ -2637,10 +2725,10 @@ def _configure_logging_focused_patterns(
 def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
     """Serve HTML documentation using a simple HTTP server."""
     import http.server
+    from pathlib import Path
     import socketserver
     import threading
     import webbrowser
-    from pathlib import Path
 
     # Try to find HTML docs in different locations
     html_docs_path = None
@@ -2653,7 +2741,7 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
     else:
         # 2. Check packaged docs
         try:
-            import importlib.resources as resources
+            from importlib import resources
 
             # Try to find the packaged HTML docs
             html_package_path = resources.files("nicestlog").joinpath("_docs_html")
@@ -2667,7 +2755,7 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
                 shutil.copytree(html_package_path, temp_dir / "html")
                 html_docs_path = temp_dir / "html"
                 console.print(
-                    f"📦 [green]Using packaged HTML docs (extracted to {html_docs_path})[/green]"
+                    f"📦 [green]Using packaged HTML docs (extracted to {html_docs_path})[/green]",
                 )
         except (ImportError, FileNotFoundError, AttributeError):
             pass
@@ -2706,17 +2794,17 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
             raise typer.Exit(1)
         except FileNotFoundError:
             console.print(
-                "❌ [red]uv command not found. Please install uv or build docs manually.[/red]"
+                "❌ [red]uv command not found. Please install uv or build docs manually.[/red]",
             )
             raise typer.Exit(1)
 
     if not html_docs_path:
         console.print("❌ [red]No HTML documentation found.[/red]")
         console.print(
-            "💡 [blue]Try running with --build to build docs first, or run:[/blue]"
+            "💡 [blue]Try running with --build to build docs first, or run:[/blue]",
         )
         console.print(
-            "   [cyan]uv run --group docs sphinx-build -b html docs docs/_build/html[/cyan]"
+            "   [cyan]uv run --group docs sphinx-build -b html docs docs/_build/html[/cyan]",
         )
         raise typer.Exit(1)
 
@@ -2735,7 +2823,7 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
             with socketserver.TCPServer((host, port), handler) as httpd:
                 server_url = f"http://{host}:{port}"
                 console.print(
-                    f"🌐 [bold green]Serving documentation at {server_url}[/bold green]"
+                    f"🌐 [bold green]Serving documentation at {server_url}[/bold green]",
                 )
                 console.print(f"📁 [blue]Serving from: {html_docs_path}[/blue]")
                 console.print("Press Ctrl+C to stop the server")
@@ -2750,14 +2838,14 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
                         try:
                             webbrowser.open(server_url)
                             console.print(
-                                f"🌍 [green]Opened {server_url} in browser[/green]"
+                                f"🌍 [green]Opened {server_url} in browser[/green]",
                             )
                         except Exception as e:
                             console.print(
-                                f"⚠️ [yellow]Could not open browser: {e}[/yellow]"
+                                f"⚠️ [yellow]Could not open browser: {e}[/yellow]",
                             )
                             console.print(
-                                f"💡 [blue]Please open {server_url} manually[/blue]"
+                                f"💡 [blue]Please open {server_url} manually[/blue]",
                             )
 
                     browser_thread = threading.Thread(target=open_browser_delayed)

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""
-Demo: Beautiful systemd journal viewer
+"""Demo: Beautiful systemd journal viewer
 
 Shows how to read and beautifully format systemd journal logs.
 """
 
 import time
-import nicestlog
+
 import structlog
-from nicestlog.journal_viewer import JournalViewer, SYSTEMD_AVAILABLE
+
+import nicestlog
+from nicestlog.journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
 
 
 def generate_test_logs():
@@ -17,22 +18,32 @@ def generate_test_logs():
 
     # Setup nicestlog with systemd integration
     nicestlog.init_logging(
-        verbose=True, syslog_identifier="journal-viewer-demo", enable_systemd=True
+        verbose=True,
+        syslog_identifier="journal-viewer-demo",
+        enable_systemd=True,
     )
 
     log = structlog.get_logger("demo")
 
     # Generate various types of logs
     log.info(
-        "demo_started", demo_version="1.0", timestamp=time.time(), user="demo-user"
+        "demo_started",
+        demo_version="1.0",
+        timestamp=time.time(),
+        user="demo-user",
     )
 
     log.debug(
-        "configuration_loaded", config_file="/etc/demo/config.yaml", settings_count=42
+        "configuration_loaded",
+        config_file="/etc/demo/config.yaml",
+        settings_count=42,
     )
 
     log.warning(
-        "memory_usage_high", memory_percent=85.5, threshold=80, process="demo-app"
+        "memory_usage_high",
+        memory_percent=85.5,
+        threshold=80,
+        process="demo-app",
     )
 
     log.error(
@@ -81,7 +92,9 @@ def demo_journal_viewer():
     try:
         count = 0
         for entry in viewer.query_journal(
-            service="journal-viewer-demo", lines=10, since="5 minutes ago"
+            service="journal-viewer-demo",
+            lines=10,
+            since="5 minutes ago",
         ):
             print(viewer.format_entry(entry))
             count += 1
@@ -105,15 +118,15 @@ def show_mock_output():
 
     # Simulate beautiful journal output
     from nicestlog.core import (
-        RESET_ALL,
-        BRIGHT,
-        DIM,
-        RED,
         BLUE,
+        BRIGHT,
         CYAN,
-        MAGENTA,
-        YELLOW,
+        DIM,
         GREEN,
+        MAGENTA,
+        RED,
+        RESET_ALL,
+        YELLOW,
     )
 
     mock_entries = [
@@ -178,7 +191,7 @@ def show_mock_output():
             field_parts = []
             for key, value in fields.items():
                 field_parts.append(
-                    f"{CYAN}{key}{RESET_ALL}={MAGENTA}{value}{RESET_ALL}"
+                    f"{CYAN}{key}{RESET_ALL}={MAGENTA}{value}{RESET_ALL}",
                 )
             parts.append(" ".join(field_parts))
 
@@ -195,16 +208,16 @@ def show_comparison():
 
     print("🤮 Traditional journalctl output:")
     print(
-        "Dec 07 14:23:45 hostname myapp[1234]: {'level': 'info', 'event': 'user_login', 'user_id': 12345, 'timestamp': '2023-12-07T14:23:45.123456'}"
+        "Dec 07 14:23:45 hostname myapp[1234]: {'level': 'info', 'event': 'user_login', 'user_id': 12345, 'timestamp': '2023-12-07T14:23:45.123456'}",
     )
     print(
-        "Dec 07 14:23:46 hostname myapp[1234]: {'level': 'error', 'event': 'db_error', 'error': 'connection failed', 'host': 'db.example.com'}"
+        "Dec 07 14:23:46 hostname myapp[1234]: {'level': 'error', 'event': 'db_error', 'error': 'connection failed', 'host': 'db.example.com'}",
     )
 
     print("\n😍 Beautiful nicestlog journal output:")
     print("14:23:45.123 I [myapp] (1234) user_login user_id=12345")
     print(
-        "14:23:46.789 E [myapp] (1234) db_error error='connection failed' host=db.example.com"
+        "14:23:46.789 E [myapp] (1234) db_error error='connection failed' host=db.example.com",
     )
 
     print("\n🎯 Benefits:")

@@ -1,22 +1,21 @@
-"""
-Tests for the Interactive Transformer (amber-style functionality).
-"""
+"""Tests for the Interactive Transformer (amber-style functionality)."""
 
 import ast
-import tempfile
 from pathlib import Path
+import tempfile
 from unittest.mock import patch
+
 import pytest
 
+from nicestlog.advanced_assistant import AdvancedAssistant
 from nicestlog.interactive_transformer import (
+    InteractiveSession,
     InteractiveTransformer,
     TransformationProposal,
-    InteractiveSession,
     UserChoice,
-    transform_file_interactive,
     create_interactive_transformer,
+    transform_file_interactive,
 )
-from nicestlog.advanced_assistant import AdvancedAssistant
 
 
 class TestInteractiveSession:
@@ -96,7 +95,9 @@ def test_function():
             transformer = InteractiveTransformer(assistant)
 
             proposals = transformer._find_transformation_proposals(
-                temp_file, tree, code
+                temp_file,
+                tree,
+                code,
             )
 
             # Should find print statements

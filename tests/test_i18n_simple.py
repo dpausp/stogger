@@ -1,17 +1,16 @@
-"""
-Simplified tests for the i18n module functionality.
-"""
+"""Simplified tests for the i18n module functionality."""
+
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 
 from nicestlog.i18n import (
     NicestlogTranslator,
-    init_i18n,
-    get_translator,
-    t,
-    set_language,
     demo_translations,
+    get_translator,
+    init_i18n,
+    set_language,
+    t,
 )
 
 

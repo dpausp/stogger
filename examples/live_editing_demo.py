@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""
-🔥 Live Editing Demo - Interactive Code Transformation with Real-time Editing
+"""🔥 Live Editing Demo - Interactive Code Transformation with Real-time Editing
 
 This demo showcases the revolutionary live editing feature where users can
 edit AI transformation suggestions in real-time and have all edits recorded
 for machine learning improvements.
 """
 
-import tempfile
 from pathlib import Path
+import tempfile
 
 # Sample code with various transformation opportunities
 SAMPLE_CODE_WITH_PRINTS = """
@@ -135,7 +134,7 @@ def main():
     print("1. AI suggests transformation:")
     print('   ./demo.py:5                    print("Starting user data processing")')
     print(
-        '   ->                             log.info("print-message", _replace_msg="Starting user data processing")'
+        '   ->                             log.info("print-message", _replace_msg="Starting user data processing")',
     )
     print()
     print("2. You get enhanced options:")
@@ -153,7 +152,7 @@ def main():
     print()
     print("4. Edit the transformation to your liking:")
     print(
-        '   Code: log.info("user-data-processing-started", _replace_msg="🚀 Starting user data processing")'
+        '   Code: log.info("user-data-processing-started", _replace_msg="🚀 Starting user data processing")',
     )
     print()
     print("5. Accept or reject your edited version")

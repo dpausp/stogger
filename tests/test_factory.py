@@ -1,19 +1,18 @@
-"""
-Tests for the factory module functionality.
-"""
+"""Tests for the factory module functionality."""
+
+import logging
+from pathlib import Path
+import tempfile
+from unittest.mock import MagicMock, patch
 
 import pytest
-import logging
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 
+from nicestlog.config import NicestLogConfig
 from nicestlog.factory import (
+    build_renderer,
     build_shared_processors,
     configure_stdlib_logging,
-    build_renderer,
 )
-from nicestlog.config import NicestLogConfig
 
 
 class TestBuildSharedProcessors:

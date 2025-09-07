@@ -1,7 +1,8 @@
 import textwrap
+
 from typer.testing import CliRunner
 
-import nicestlog.cli as cli
+from nicestlog import cli
 
 runner = CliRunner()
 
@@ -19,7 +20,7 @@ def test_translator_uses_pyproject_translation_dir(tmp_path, monkeypatch):
             [tool.nicestlog]
             translation_dir = "{trans.as_posix()}"
             language = "en"
-            """
+            """,
         ),
         encoding="utf-8",
     )
@@ -30,7 +31,7 @@ def test_translator_uses_pyproject_translation_dir(tmp_path, monkeypatch):
             """
             [setup]
             welcome = "Hello from custom dir"
-            """
+            """,
         ),
         encoding="utf-8",
     )
@@ -57,7 +58,7 @@ def test_run_i18n_demo_passes_config_to_init(tmp_path, monkeypatch):
             [tool.nicestlog]
             translation_dir = "{trans.as_posix()}"
             language = "at"
-            """
+            """,
         ),
         encoding="utf-8",
     )
@@ -72,10 +73,11 @@ def test_run_i18n_demo_passes_config_to_init(tmp_path, monkeypatch):
     def fake_init_logging(**kwargs):
         called["kwargs"] = kwargs
         # no-op
-        return None
 
     monkeypatch.setattr(
-        cli, "time", type("T", (), {"sleep": staticmethod(lambda *_: None)})()
+        cli,
+        "time",
+        type("T", (), {"sleep": staticmethod(lambda *_: None)})(),
     )
     monkeypatch.setattr(cli.nicestlog, "init_logging", fake_init_logging)
 

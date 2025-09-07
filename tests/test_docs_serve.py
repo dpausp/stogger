@@ -1,9 +1,10 @@
 """Tests for the docs-serve command."""
 
-from unittest.mock import patch, MagicMock
 import tempfile
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
+
 from nicestlog.cli import app
 
 
@@ -60,7 +61,10 @@ def test_docs_serve_build_docs(mock_exists, mock_subprocess):
 @patch("pathlib.Path.exists", return_value=True)
 @patch("pathlib.Path.is_dir", return_value=True)
 def test_docs_serve_with_local_docs(
-    mock_is_dir, mock_exists, mock_server, mock_browser
+    mock_is_dir,
+    mock_exists,
+    mock_server,
+    mock_browser,
 ):
     """Test docs-serve with existing local docs."""
     runner = CliRunner()

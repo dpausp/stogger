@@ -1,15 +1,15 @@
-"""
-Advanced systemd integration for nicestlog.
+"""Advanced systemd integration for nicestlog.
 
 Makes systemd logging actually usable and powerful.
 """
 
-import os
-import sys
-import socket
-import json
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+import json
+import os
+import socket
+import sys
+from typing import Any
+
 import structlog
 
 try:
@@ -22,9 +22,7 @@ except ImportError:
 
 
 class SystemdJournalHandler:
-    """
-    Advanced systemd journal handler with proper field mapping and priorities.
-    """
+    """Advanced systemd journal handler with proper field mapping and priorities."""
 
     # Map Python log levels to systemd priorities
     PRIORITY_MAP = {
@@ -37,14 +35,16 @@ class SystemdJournalHandler:
     }
 
     def __init__(
-        self, identifier: Optional[str] = None, facility: Optional[str] = None
+        self,
+        identifier: str | None = None,
+        facility: str | None = None,
     ):
-        """
-        Initialize systemd journal handler.
+        """Initialize systemd journal handler.
 
         Args:
             identifier: SYSLOG_IDENTIFIER for journal entries
             facility: SYSLOG_FACILITY (e.g., 'daemon', 'user', 'local0')
+
         """
         self.identifier = identifier or "nicestlog"
         self.facility = facility
@@ -107,8 +107,7 @@ class SystemdJournalHandler:
         return event_dict
 
     def emit(self, record):
-        """
-        Emit a log record to systemd journal.
+        """Emit a log record to systemd journal.
 
         This method provides compatibility with standard Python logging handlers.
         """
@@ -154,11 +153,9 @@ class SystemdJournalHandler:
             print(f"Failed to send to systemd journal: {e}", file=sys.stderr)
 
 
-def detect_systemd_environment() -> Dict[str, Any]:
-    """
-    Detect if we're running under systemd and gather environment info.
-    """
-    info: Dict[str, Any] = {
+def detect_systemd_environment() -> dict[str, Any]:
+    """Detect if we're running under systemd and gather environment info."""
+    info: dict[str, Any] = {
         "running_under_systemd": False,
         "journal_available": SYSTEMD_AVAILABLE,
         "service_name": None,
@@ -185,6 +182,7 @@ def detect_systemd_environment() -> Dict[str, Any]:
         # Use systemd library to get unit information if available
         try:
             from systemd import daemon
+
             unit_name = daemon.booted()
             if unit_name:
                 info["unit_name"] = unit_name
@@ -197,11 +195,10 @@ def detect_systemd_environment() -> Dict[str, Any]:
 
 
 def setup_systemd_logging(
-    identifier: Optional[str] = None,
-    facility: Optional[str] = None,
+    identifier: str | None = None,
+    facility: str | None = None,
 ) -> bool:
-    """
-    Setup systemd journal logging integration.
+    """Setup systemd journal logging integration.
 
     This function prefers the detected runtime environment to decide whether to
     enable systemd logging. If a systemd environment is detected, it will attach
@@ -217,6 +214,7 @@ def setup_systemd_logging(
 
     Returns:
         True if systemd logging was successfully configured, otherwise False
+
     """
     env_info = detect_systemd_environment()
 
@@ -249,7 +247,8 @@ def setup_systemd_logging(
     structlog.configure(
         processors=processors,
         logger_factory=current_config.get(
-            "logger_factory", structlog.stdlib.LoggerFactory()
+            "logger_factory",
+            structlog.stdlib.LoggerFactory(),
         ),
         wrapper_class=current_config.get("wrapper_class", structlog.stdlib.BoundLogger),
         cache_logger_on_first_use=True,
@@ -261,13 +260,12 @@ def setup_systemd_logging(
 def create_systemd_service_file(
     service_name: str,
     exec_command: str,
-    user: Optional[str] = None,
-    working_directory: Optional[str] = None,
-    environment: Optional[Dict[str, str]] = None,
+    user: str | None = None,
+    working_directory: str | None = None,
+    environment: dict[str, str] | None = None,
     restart_policy: str = "always",
 ) -> str:
-    """
-    Generate a systemd service file with proper logging configuration.
+    """Generate a systemd service file with proper logging configuration.
 
     Args:
         service_name: Name of the service
@@ -279,6 +277,7 @@ def create_systemd_service_file(
 
     Returns:
         Service file content as string
+
     """
     user = user or os.getenv("USER", "nobody")
     working_directory = working_directory or os.getcwd()
@@ -324,13 +323,12 @@ WantedBy=multi-user.target
 
 
 def query_journal_logs(
-    service_name: Optional[str] = None,
+    service_name: str | None = None,
     since: str = "1 hour ago",
-    level: Optional[str] = None,
+    level: str | None = None,
     lines: int = 100,
-) -> List[Dict[str, Any]]:
-    """
-    Query systemd journal for logs.
+) -> list[dict[str, Any]]:
+    """Query systemd journal for logs.
 
     Args:
         service_name: Filter by service name
@@ -340,6 +338,7 @@ def query_journal_logs(
 
     Returns:
         List of log entries as dictionaries
+
     """
     if not SYSTEMD_AVAILABLE:
         print("systemd-python not available for journal queries", file=sys.stderr)
@@ -362,7 +361,7 @@ def query_journal_logs(
             j.seek_realtime(datetime.now().timestamp() - parse_time_delta(since))
 
         # Get entries
-        entries: List[Dict[str, Any]] = []
+        entries: list[dict[str, Any]] = []
         for entry in j:
             if len(entries) >= lines:
                 break
@@ -445,7 +444,9 @@ def demo_systemd_integration():
         log.warning("test_warning", message="This is a test warning for systemd")
 
         log.error(
-            "test_error", error_code=500, details="Test error for systemd journal"
+            "test_error",
+            error_code=500,
+            details="Test error for systemd journal",
         )
 
         print("✅ Logs sent to systemd journal!")

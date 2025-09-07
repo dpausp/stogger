@@ -1,5 +1,4 @@
-"""
-Utilities to check completeness of nicestlog i18n translation files.
+"""Utilities to check completeness of nicestlog i18n translation files.
 
 This scans Python source files for usages of `_replace_msg` and `_msg_key`
 within structlog logger calls and verifies that the translation file contains
@@ -8,8 +7,9 @@ entries for all detected message keys.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Set, Tuple, Dict, List, cast
+from typing import cast
 
 try:
     import toml
@@ -18,10 +18,16 @@ except Exception:  # pragma: no cover - handled by CLI messaging
 
 
 from ._regexes import (
-    EVENT_WITH_REPLACE as _EVENT_WITH_REPLACE,
-    MSG_KEY as _MSG_KEY,
-    INFO_EVENT as _INFO_EVENT,
     DEBUG_WITH_REPLACE as _DEBUG_WITH_REPLACE,
+)
+from ._regexes import (
+    EVENT_WITH_REPLACE as _EVENT_WITH_REPLACE,
+)
+from ._regexes import (
+    INFO_EVENT as _INFO_EVENT,
+)
+from ._regexes import (
+    MSG_KEY as _MSG_KEY,
 )
 
 # Excluded directories when scanning for Python files
@@ -43,17 +49,18 @@ EXCLUDE_DIRS = {
 }
 
 
-def find_required_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str]]:
+def find_required_translation_keys(paths: Iterable[Path]) -> tuple[set[str], set[str]]:
     """Scan Python files for keys required by the TranslationProcessor.
 
     Returns:
         tuple(set(event_keys), set(msg_keys))
+
     """
     event_keys, msg_keys, _ = scan_translation_keys(paths)
     return event_keys, msg_keys
 
 
-def scan_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str], Set[str]]:
+def scan_translation_keys(paths: Iterable[Path]) -> tuple[set[str], set[str], set[str]]:
     """Scan Python files for all translation-related keys in a single pass.
 
     This optimized function reduces IO by scanning files once and extracting
@@ -61,10 +68,11 @@ def scan_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str], Se
 
     Returns:
         tuple(set(event_keys), set(msg_keys), set(debug_events))
+
     """
-    event_keys: Set[str] = set()
-    msg_keys: Set[str] = set()
-    debug_events: Set[str] = set()
+    event_keys: set[str] = set()
+    msg_keys: set[str] = set()
+    debug_events: set[str] = set()
 
     for root in paths:
         if root.is_file() and root.suffix == ".py":
@@ -101,7 +109,7 @@ def scan_translation_keys(paths: Iterable[Path]) -> Tuple[Set[str], Set[str], Se
     return event_keys, msg_keys, debug_events
 
 
-def load_translation_keys(translation_file: Path) -> Set[str]:
+def load_translation_keys(translation_file: Path) -> set[str]:
     """Load top-level keys from a TOML translation file.
 
     TranslationProcessor expects a flat dict keyed by event/msg_key.
@@ -109,11 +117,11 @@ def load_translation_keys(translation_file: Path) -> Set[str]:
     """
     if toml is None:
         raise RuntimeError(
-            "toml package not available; install 'toml' to use i18n check"
+            "toml package not available; install 'toml' to use i18n check",
         )
 
     data = toml.load(translation_file)
-    keys: Set[str] = set()
+    keys: set[str] = set()
     if isinstance(data, dict):
         for k, v in data.items():
             # Section tables are dicts; those are NOT TranslationProcessor entries
@@ -126,7 +134,7 @@ def check_translations(
     source_paths: Iterable[Path],
     translation_dir: Path,
     language: str = "en",
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """Check translation coverage and return a report dict.
 
     Returns keys:
@@ -143,7 +151,7 @@ def check_translations(
     event_keys, msg_keys, debug_events = scan_translation_keys(source_paths)
 
     translation_file = translation_dir / f"{language}.toml"
-    translation_keys: Set[str] = set()
+    translation_keys: set[str] = set()
     if translation_file.is_file():
         try:
             translation_keys = load_translation_keys(translation_file)
@@ -184,7 +192,7 @@ def check_translations(
         # default info-ish
         return "INFO"
 
-    missing_by_level: Dict[str, List[str]] = {
+    missing_by_level: dict[str, list[str]] = {
         "INFO": [],
         "WARNING": [],
         "ERROR": [],
@@ -205,7 +213,7 @@ def check_translations(
     }
 
 
-def format_report(report: Dict[str, object], include_debug: bool = True) -> str:
+def format_report(report: dict[str, object], include_debug: bool = True) -> str:
     # If --list-missing is requested via env/flag, handled in CLI wrapper.
     # This function returns the pretty report.
 
@@ -213,11 +221,11 @@ def format_report(report: Dict[str, object], include_debug: bool = True) -> str:
         return (
             f"❌ i18n check failed: {report['error']}\n"
             f"   Translation file: {report.get('translation_file', '<unknown>')}\n"
-            f"   Required keys detected: {len(cast(List[str], report.get('required_keys', [])))}\n"
+            f"   Required keys detected: {len(cast('list[str]', report.get('required_keys', [])))}\n"
         )
 
-    missing: List[str] = report.get("missing_keys", [])  # type: ignore[assignment]
-    extra: List[str] = report.get("extra_keys", [])  # type: ignore[assignment]
+    missing: list[str] = report.get("missing_keys", [])  # type: ignore[assignment]
+    extra: list[str] = report.get("extra_keys", [])  # type: ignore[assignment]
     required_cnt = len(report.get("required_keys", []))  # type: ignore[arg-type]
     present_cnt = len(report.get("translation_keys", []))  # type: ignore[arg-type]
 
@@ -230,7 +238,7 @@ def format_report(report: Dict[str, object], include_debug: bool = True) -> str:
     if missing:
         lines.append("\n❗ Missing keys:")
         # Grouped by level for better insight
-        mbl: Dict[str, List[str]] = report.get("missing_by_level", {})  # type: ignore[assignment]
+        mbl: dict[str, list[str]] = report.get("missing_by_level", {})  # type: ignore[assignment]
         for level in ["INFO", "WARNING", "ERROR", "CRITICAL"]:
             keys = mbl.get(level, []) if isinstance(mbl, dict) else []
             if not keys:
@@ -247,7 +255,7 @@ def format_report(report: Dict[str, object], include_debug: bool = True) -> str:
             lines.append(f"  - {k}")
 
     if include_debug:
-        dbg = cast(List[str], report.get("debug_with_replace_events", []))
+        dbg = cast("list[str]", report.get("debug_with_replace_events", []))
         if dbg:
             lines.append("\n⚠️ Debug events using _replace_msg (ignored for coverage):")
             for k in dbg:

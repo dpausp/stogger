@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""
-Demo: Beautiful Eliot action tracing with nicestlog
+"""Demo: Beautiful Eliot action tracing with nicestlog
 
 This shows how to use Eliot for request tracing with human-readable output
 instead of ugly JSON logs.
 """
 
-import time
 import random
-from nicestlog import setup_eliot_logging, log_action, log_call
+import time
+
 from eliot import log_message
+
+from nicestlog import log_action, log_call, setup_eliot_logging
 
 
 def simulate_api_request():
     """Simulate a complete API request with nested actions."""
-
     # Setup beautiful Eliot logging
     setup_eliot_logging(human_readable=True, show_timestamps=True)
 
@@ -22,7 +22,10 @@ def simulate_api_request():
     print("=" * 70)
 
     with log_action(
-        "api_request", method="POST", endpoint="/api/users", user_agent="demo/1.0"
+        "api_request",
+        method="POST",
+        endpoint="/api/users",
+        user_agent="demo/1.0",
     ):
         log_message(message_type="request_started", request_id="req-12345")
 

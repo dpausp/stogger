@@ -1,22 +1,21 @@
-"""
-Comprehensive tests for the CLI module functionality.
-"""
+"""Comprehensive tests for the CLI module functionality."""
 
-import pytest
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import MagicMock, mock_open, patch
+
+import pytest
+from typer.testing import CliRunner
 
 from nicestlog.cli import (
-    main,
-    init_config,
-    run_dashboard_cmd,
-    generate_service_cmd,
-    run_journal_viewer,
     app,
+    generate_service_cmd,
+    init_config,
+    main,
+    run_dashboard_cmd,
+    run_journal_viewer,
 )
-from typer.testing import CliRunner
 
 # Check if Flask is available for dashboard tests
 try:
@@ -134,7 +133,9 @@ class TestDashboardCommand:
         """Test the run_dashboard_cmd function directly."""
         run_dashboard_cmd("localhost", 3000, True)
         mock_run_dashboard.assert_called_once_with(
-            host="localhost", port=3000, debug=True
+            host="localhost",
+            port=3000,
+            debug=True,
         )
 
     @patch("nicestlog.cli.FLASK_AVAILABLE_FOR_CLI", False)
@@ -197,11 +198,16 @@ class TestGenerateServiceCommand:
     def test_generate_service_required_args(self, mock_generate):
         """Test tools generate-service command with required arguments."""
         result = self.runner.invoke(
-            app, ["tools", "generate-service", "myapp", "/usr/bin/myapp"]
+            app,
+            ["tools", "generate-service", "myapp", "/usr/bin/myapp"],
         )
         assert result.exit_code == 0
         mock_generate.assert_called_once_with(
-            "myapp", "/usr/bin/myapp", None, None, None
+            "myapp",
+            "/usr/bin/myapp",
+            None,
+            None,
+            None,
         )
 
     @patch("nicestlog.cli.generate_service_cmd")
@@ -224,7 +230,11 @@ class TestGenerateServiceCommand:
         )
         assert result.exit_code == 0
         mock_generate.assert_called_once_with(
-            "myapp", "/usr/bin/myapp", "myuser", "/opt/myapp", "/tmp/myapp.service"
+            "myapp",
+            "/usr/bin/myapp",
+            "myuser",
+            "/opt/myapp",
+            "/tmp/myapp.service",
         )
 
     def test_generate_service_missing_args(self):
@@ -238,7 +248,9 @@ class TestGenerateServiceCommand:
     @patch("nicestlog.systemd_integration.create_systemd_service_file")
     @patch("builtins.print")
     def test_generate_service_cmd_function_stdout(
-        self, mock_print, mock_create_service
+        self,
+        mock_print,
+        mock_create_service,
     ):
         """Test generate_service_cmd function with stdout output."""
         mock_create_service.return_value = "[Unit]\nDescription=Test Service\n"
@@ -257,13 +269,20 @@ class TestGenerateServiceCommand:
     @patch("builtins.open", new_callable=mock_open)
     @patch("builtins.print")
     def test_generate_service_cmd_function_file_output(
-        self, mock_print, mock_file, mock_create_service
+        self,
+        mock_print,
+        mock_file,
+        mock_create_service,
     ):
         """Test generate_service_cmd function with file output."""
         mock_create_service.return_value = "[Unit]\nDescription=Test Service\n"
 
         generate_service_cmd(
-            "test-service", "/bin/test", "testuser", "/opt/test", "/tmp/test.service"
+            "test-service",
+            "/bin/test",
+            "testuser",
+            "/opt/test",
+            "/tmp/test.service",
         )
 
         mock_create_service.assert_called_once_with(
@@ -322,7 +341,11 @@ class TestJournalCommand:
         )
         assert result.exit_code == 0
         mock_journal.assert_called_once_with(
-            "nginx.service", 100, True, "1 hour ago", "error"
+            "nginx.service",
+            100,
+            True,
+            "1 hour ago",
+            "error",
         )
 
     def test_journal_invalid_level(self):
@@ -389,7 +412,8 @@ class TestReviewCommand:
     def test_review_invalid_format(self):
         """Test review command with invalid format."""
         result = self.runner.invoke(
-            app, ["tools", "review", "/path/to/logs", "--format", "invalid"]
+            app,
+            ["tools", "review", "/path/to/logs", "--format", "invalid"],
         )
         assert result.exit_code == 1
         # Use result.output when stderr is mixed with stdout
@@ -474,7 +498,9 @@ class TestCliErrorHandling:
             test_file.write_text("print('hello')")
 
             result = self.runner.invoke(
-                app, ["init", str(test_file)], input="\n\n\n\n\n\n\n\n\n\n\n"
+                app,
+                ["init", str(test_file)],
+                input="\n\n\n\n\n\n\n\n\n\n\n",
             )
             # Should work by using parent directory
             assert result.exit_code == 0
@@ -512,7 +538,8 @@ class TestCliErrorHandling:
     def test_tools_review_invalid_format(self):
         """Test tools review command with invalid format."""
         result = self.runner.invoke(
-            app, ["tools", "review", ".", "--format", "invalid-format"]
+            app,
+            ["tools", "review", ".", "--format", "invalid-format"],
         )
         assert result.exit_code == 1
         assert "Invalid format" in result.output
@@ -520,7 +547,8 @@ class TestCliErrorHandling:
     def test_tools_journal_invalid_level(self):
         """Test tools journal command with invalid log level."""
         result = self.runner.invoke(
-            app, ["tools", "journal", "--level", "invalid-level"]
+            app,
+            ["tools", "journal", "--level", "invalid-level"],
         )
         assert result.exit_code == 1
         assert "Invalid level" in result.output
@@ -528,7 +556,8 @@ class TestCliErrorHandling:
     def test_i18n_check_invalid_directory(self):
         """Test i18n check command with invalid source directory."""
         result = self.runner.invoke(
-            app, ["tools", "i18n", "check", "/nonexistent/directory"]
+            app,
+            ["tools", "i18n", "check", "/nonexistent/directory"],
         )
         # Debug: print actual output and exit code
         print(f"Exit code: {result.exit_code}")
@@ -551,7 +580,8 @@ class TestCliErrorHandling:
 
             try:
                 result = self.runner.invoke(
-                    app, ["tools", "i18n", "check", str(src_dir)]
+                    app,
+                    ["tools", "i18n", "check", str(src_dir)],
                 )
                 # The command handles permission errors gracefully, so check for reasonable behavior
                 assert result.exit_code in [0, 1, 2]  # Allow various exit codes
@@ -578,7 +608,8 @@ class TestCliErrorHandling:
             # Mock backup creation to fail
             with patch("src.nicestlog.cli.create_migration_backup", return_value=None):
                 result = self.runner.invoke(
-                    app, ["migrate", str(test_file), "--do-migrate", "--backup"]
+                    app,
+                    ["migrate", str(test_file), "--do-migrate", "--backup"],
                 )
                 # Should continue even if backup fails
                 assert result.exit_code in [
@@ -623,7 +654,9 @@ class TestCliConfigurationErrors:
             try:
                 os.chdir(temp_dir)
                 result = self.runner.invoke(
-                    app, ["init", "."], input="\n\n\n\n\n\n\n\n\n\n\n"
+                    app,
+                    ["init", "."],
+                    input="\n\n\n\n\n\n\n\n\n\n\n",
                 )
                 # Should handle TOML parse errors gracefully - but still succeeds with user input
                 assert (
@@ -644,7 +677,9 @@ class TestCliConfigurationErrors:
             try:
                 os.chdir(temp_dir)
                 result = self.runner.invoke(
-                    app, ["init", "."], input="\n\n\n\n\n\n\n\n\n\n\n"
+                    app,
+                    ["init", "."],
+                    input="\n\n\n\n\n\n\n\n\n\n\n",
                 )
                 # Should handle write permission errors
                 assert (
@@ -749,7 +784,9 @@ class TestCliInteractiveErrors:
 
             # Test interactive mode with file that has no issues
             result = self.runner.invoke(
-                app, ["check", str(test_file), "--interactive"], input="n\n"
+                app,
+                ["check", str(test_file), "--interactive"],
+                input="n\n",
             )  # Decline all transformations
 
             # Should handle interactive mode gracefully

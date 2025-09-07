@@ -1,11 +1,10 @@
-import textwrap
 from pathlib import Path
-
+import textwrap
 
 from nicestlog.i18n_check import (
+    check_translations,
     find_required_translation_keys,
     load_translation_keys,
-    check_translations,
 )
 
 

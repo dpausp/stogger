@@ -1,17 +1,15 @@
-"""
-Tests for log_statement_analyzer.py module.
+"""Tests for log_statement_analyzer.py module.
 
 This module tests AST-based log statement analysis functionality.
 """
 
 import ast
-import tempfile
 from pathlib import Path
-
+import tempfile
 
 from nicestlog.log_statement_analyzer import (
-    LogStatement,
     LogAnalysisResult,
+    LogStatement,
     LogStatementAnalyzer,
     analyze_file,
     print_analysis_summary,
@@ -63,7 +61,7 @@ class TestElementCounting:
         # Test the problematic case from the issue
         assert (
             analyzer._count_event_id_elements(
-                "debug-logging-is-enabled-check-logs-above-for-http-details"
+                "debug-logging-is-enabled-check-logs-above-for-http-details",
             )
             == 10
         )
@@ -874,7 +872,7 @@ class TestPrintAnalysisSummary:
                 magic_args=set(),
                 raw_call="log.info('test-event', data=123)",
                 issues=[],
-            )
+            ),
         ]
 
         result = LogAnalysisResult(
@@ -910,7 +908,7 @@ class TestPrintAnalysisSummary:
                 magic_args=set(),
                 raw_call="log.info()",
                 issues=["missing_event_id"],
-            )
+            ),
         ]
 
         result = LogAnalysisResult(
@@ -963,7 +961,7 @@ class TestPrintAnalysisSummary:
                 magic_args={"exc_info"},
                 raw_call="log.error('test-error', error_code=500, exc_info=True)",
                 issues=["some_issue"],
-            )
+            ),
         ]
 
         result = LogAnalysisResult(

@@ -1,5 +1,4 @@
-"""Factory functions for building nicestlog components.
-"""
+"""Factory functions for building nicestlog components."""
 
 import atexit
 import logging
@@ -25,8 +24,7 @@ log = structlog.get_logger(__name__)
 
 
 def build_shared_processors(config: NicestLogConfig) -> list[Any]:
-    """Builds processors that are shared between sync and async modes.
-    """
+    """Builds processors that are shared between sync and async modes."""
     if config.verbose:
         log.debug(
             "building-shared-processors",
@@ -50,7 +48,8 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
     if config.enable_pii_scrubbing:
         if config.verbose:
             log.debug(
-                "enabling-pii-scrubbing", redaction_text=config.pii_redaction_text,
+                "enabling-pii-scrubbing",
+                redaction_text=config.pii_redaction_text,
             )
         from .pii_scrubber import create_pii_processor
 
@@ -77,7 +76,9 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
             processors.append(TranslationProcessor(translations))
         except (OSError, toml.TomlDecodeError) as e:
             log.warning(
-                "translation-load-failed", file=str(translation_file), error=str(e),
+                "translation-load-failed",
+                file=str(translation_file),
+                error=str(e),
             )
             print(
                 f"Warning: failed to load translations from {translation_file}: {e}",
@@ -113,7 +114,8 @@ def build_renderer(config: NicestLogConfig) -> Any:
     if config.log_format == "json":
         renderer = JSONRenderer(min_level="debug" if config.verbose else "info")
         log.debug(
-            "json-renderer-created", min_level="debug" if config.verbose else "info",
+            "json-renderer-created",
+            min_level="debug" if config.verbose else "info",
         )
     else:
         # Use ConsoleFileRenderer with direct parameters
@@ -125,7 +127,8 @@ def build_renderer(config: NicestLogConfig) -> Any:
             timestamp_format="iso",
         )
         log.debug(
-            "console-renderer-created", min_level="debug" if config.verbose else "info",
+            "console-renderer-created",
+            min_level="debug" if config.verbose else "info",
         )
     return renderer
 
@@ -181,7 +184,8 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: list[Any]):
     all_handlers = console_handlers + file_handlers
     for handler in all_handlers:
         if isinstance(handler, logging.StreamHandler) and not isinstance(
-            handler, logging.FileHandler,
+            handler,
+            logging.FileHandler,
         ):
             handler.setFormatter(console_formatter)
         elif isinstance(handler, logging.FileHandler):

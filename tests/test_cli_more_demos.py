@@ -1,8 +1,9 @@
 import types
 from unittest.mock import Mock
+
 from typer.testing import CliRunner
 
-import nicestlog.cli as cli
+from nicestlog import cli
 
 runner = CliRunner()
 
@@ -39,7 +40,9 @@ def test_run_async_demo_behavior(monkeypatch, capsys):
     # speed up sleeps and control time progression
     times = iter([0.0, 0.1, 0.2, 0.25])
     monkeypatch.setattr(
-        cli, "time", types.SimpleNamespace(sleep=_nosleep, time=lambda: next(times))
+        cli,
+        "time",
+        types.SimpleNamespace(sleep=_nosleep, time=lambda: next(times)),
     )
 
     # mock nicestlog init

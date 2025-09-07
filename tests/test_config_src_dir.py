@@ -1,11 +1,10 @@
-"""
-Tests for the NicestLogConfig class, specifically for the src_dir configuration.
-"""
+"""Tests for the NicestLogConfig class, specifically for the src_dir configuration."""
 
-import pytest
 from pathlib import Path
 import tempfile
 from unittest.mock import patch
+
+import pytest
 
 from nicestlog.config import NicestLogConfig
 

@@ -1,11 +1,11 @@
-"""
-Internationalization support for nicestlog.
+"""Internationalization support for nicestlog.
 
 Supports Austrian, Swiss German, and other dialects because why not!
 """
 
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
 import structlog
 
 try:
@@ -18,8 +18,7 @@ log = structlog.get_logger(__name__)
 
 
 class NicestlogTranslator:
-    """
-    Translator for nicestlog with dialect support.
+    """Translator for nicestlog with dialect support.
 
     Supports proper Austrian, Swiss German, and other regional variants
     because logging should be in your native language!
@@ -27,8 +26,8 @@ class NicestlogTranslator:
 
     def __init__(self, language: str = "en"):
         self.language = language
-        self.translations: Dict[str, Any] = {}
-        self.fallback_translations: Dict[str, Any] = {}
+        self.translations: dict[str, Any] = {}
+        self.fallback_translations: dict[str, Any] = {}
 
         log.debug("initializing-translator", language=language)
         self._load_translations()
@@ -55,7 +54,9 @@ class NicestlogTranslator:
                 log.debug("loaded-fallback-translations", file=str(fallback_file))
             except Exception as e:
                 log.warning(
-                    "failed-to-load-fallback", file=str(fallback_file), error=str(e)
+                    "failed-to-load-fallback",
+                    file=str(fallback_file),
+                    error=str(e),
                 )
 
         # Load requested language
@@ -85,8 +86,7 @@ class NicestlogTranslator:
             )
 
     def get(self, key: str, section: str = "general", **kwargs) -> str:
-        """
-        Get translated string with Austrian flair.
+        """Get translated string with Austrian flair.
 
         Args:
             key: Translation key
@@ -95,9 +95,13 @@ class NicestlogTranslator:
 
         Returns:
             Translated string with variables substituted
+
         """
         log.debug(
-            "getting-translation", key=key, section=section, language=self.language
+            "getting-translation",
+            key=key,
+            section=section,
+            language=self.language,
         )
 
         # Try to get from current language
@@ -112,7 +116,10 @@ class NicestlogTranslator:
         if not translation:
             translation = f"{section}.{key}"
             log.warning(
-                "translation_missing", key=key, section=section, language=self.language
+                "translation_missing",
+                key=key,
+                section=section,
+                language=self.language,
             )
 
         # Format with variables
@@ -132,8 +139,11 @@ class NicestlogTranslator:
         return translation
 
     def _get_from_dict(
-        self, translations: Dict[str, Any], section: str, key: str
-    ) -> Optional[str]:
+        self,
+        translations: dict[str, Any],
+        section: str,
+        key: str,
+    ) -> str | None:
         """Get translation from nested dictionary."""
         if not translations:
             return None
@@ -150,14 +160,16 @@ class NicestlogTranslator:
     def set_language(self, language: str):
         """Change language and reload translations."""
         log.debug(
-            "changing_language", old_language=self.language, new_language=language
+            "changing_language",
+            old_language=self.language,
+            new_language=language,
         )
         self.language = language
         self._load_translations()
 
 
 # Global translator instance
-_translator: Optional[NicestlogTranslator] = None
+_translator: NicestlogTranslator | None = None
 
 
 def init_i18n(language: str = "en") -> NicestlogTranslator:
@@ -181,8 +193,7 @@ def get_translator() -> NicestlogTranslator:
 
 
 def t(key: str, section: str = "general", **kwargs) -> str:
-    """
-    Shorthand for translation.
+    """Shorthand for translation.
 
     Usage:
         t("success")  # -> "Success!"
@@ -228,7 +239,7 @@ def demo_translations():
         print(f"   Setup: {translator.get('welcome', 'setup')}")
         print(f"   Success: {translator.get('success', 'general')}")
         print(
-            f"   Error: {translator.get('file_not_found', 'errors', filename='test.log')}"
+            f"   Error: {translator.get('file_not_found', 'errors', filename='test.log')}",
         )
         print(f"   Quality: {translator.get('verdict_leiwand', 'quality')}")
         print(f"   Goodbye: {translator.get('goodbye', 'general')}")

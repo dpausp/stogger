@@ -1,11 +1,10 @@
-"""
-Tests for the NicestLogConfig class.
-"""
+"""Tests for the NicestLogConfig class."""
 
-import pytest
 from pathlib import Path
 import tempfile
 from unittest.mock import patch
+
+import pytest
 
 from nicestlog.config import NicestLogConfig
 
@@ -41,7 +40,9 @@ def test_config_loading_from_file(create_pyproject_toml):
 def test_config_kwargs_override_file(create_pyproject_toml):
     """Test that kwargs provided to the constructor override file settings."""
     config = NicestLogConfig(
-        verbose=False, syslog_identifier="override-app", log_to_console=False
+        verbose=False,
+        syslog_identifier="override-app",
+        log_to_console=False,
     )
     assert config.verbose is False
     assert config.syslog_identifier == "override-app"

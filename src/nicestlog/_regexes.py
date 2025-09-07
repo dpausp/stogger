@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import re
 
 # Shared regexes for scanning source code

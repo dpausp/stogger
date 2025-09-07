@@ -1,14 +1,12 @@
-"""
-AST-based log statement analyzer for nicestlog.
+"""AST-based log statement analyzer for nicestlog.
 
 Analyzes log statements to detect common issues and patterns.
 """
 
 import ast
-import re
 from dataclasses import dataclass
-from typing import List, Dict, Optional, Set
 from pathlib import Path
+import re
 
 
 @dataclass
@@ -17,14 +15,14 @@ class LogStatement:
 
     line_number: int
     method: str  # info, debug, warning, error, etc.
-    event_id: Optional[str]
+    event_id: str | None
     has_event_id: bool
     event_id_format: str  # "dash-case", "snake_case", "camelCase", "invalid"
-    arguments: List[str]
-    keyword_args: Dict[str, str]
-    magic_args: Set[str]  # _replace_msg, exc_info, etc.
+    arguments: list[str]
+    keyword_args: dict[str, str]
+    magic_args: set[str]  # _replace_msg, exc_info, etc.
     raw_call: str
-    issues: List[str]
+    issues: list[str]
 
 
 @dataclass
@@ -32,20 +30,20 @@ class LogAnalysisResult:
     """Results of analyzing log statements in a file."""
 
     file_path: Path
-    statements: List[LogStatement]
+    statements: list[LogStatement]
     total_statements: int
     statements_with_event_id: int
     statements_without_event_id: int
     dash_case_violations: int
     single_string_args: int
-    magic_args_usage: Dict[str, int]
+    magic_args_usage: dict[str, int]
 
 
 class LogStatementAnalyzer(ast.NodeVisitor):
     """AST visitor that analyzes log statements."""
 
     def __init__(self, prefer_dash_case: bool = True):
-        self.statements: List[LogStatement] = []
+        self.statements: list[LogStatement] = []
         self.prefer_dash_case = prefer_dash_case
         self.log_methods = {
             "info",
@@ -60,10 +58,8 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         self.magic_args = {"_replace_msg", "exc_info", "_structured", "_level", "_name"}
 
         # Track logging imports and logger variables
-        self.logging_imports: Set[str] = (
-            set()
-        )  # e.g., {'logging', 'structlog'}
-        self.logger_variables: Set[str] = set()  # e.g., {'log', 'logger', 'my_logger'}
+        self.logging_imports: set[str] = set()  # e.g., {'logging', 'structlog'}
+        self.logger_variables: set[str] = set()  # e.g., {'log', 'logger', 'my_logger'}
         self.logging_modules = {"logging", "structlog", "logbook", "eliot"}
         self.logger_factory_patterns = {
             "get_logger",
@@ -90,7 +86,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
     def visit_Assign(self, node: ast.Assign) -> None:
         """Track logger variable assignments."""
         if isinstance(node.value, ast.Call) and self._is_logger_factory_call(
-            node.value
+            node.value,
         ):
             for target in node.targets:
                 if isinstance(target, ast.Name):
@@ -166,7 +162,9 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             return False
 
     def _parse_log_statement(
-        self, node: ast.Call, prefer_dash_case: bool = True
+        self,
+        node: ast.Call,
+        prefer_dash_case: bool = True,
     ) -> LogStatement:
         """Parse a log statement node into a LogStatement object."""
         method = node.func.attr if isinstance(node.func, ast.Attribute) else "unknown"
@@ -254,13 +252,13 @@ class LogStatementAnalyzer(ast.NodeVisitor):
     def _detect_issues(
         self,
         method: str,
-        args: List[str],
-        kwargs: Dict[str, str],
-        magic_args: Set[str],
-        event_id: Optional[str],
+        args: list[str],
+        kwargs: dict[str, str],
+        magic_args: set[str],
+        event_id: str | None,
         event_id_format: str,
         prefer_dash_case: bool = True,
-    ) -> List[str]:
+    ) -> list[str]:
         """Detect common issues in log statements.
 
         This includes validation for overly long event IDs with too many elements.
@@ -278,7 +276,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             if not (event_id_format == "snake_case" and not prefer_dash_case):
                 suggested_event_id = self._convert_to_dash_case(event_id)
                 issues.append(
-                    f"event_id_not_dash_case (found: {event_id_format}, suggested: {suggested_event_id})"
+                    f"event_id_not_dash_case (found: {event_id_format}, suggested: {suggested_event_id})",
                 )
 
         # Check for too many elements in event ID (readability)
@@ -342,7 +340,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             "private_key",
             "session_key",
         }
-        for kwarg_key in kwargs.keys():
+        for kwarg_key in kwargs:
             if kwarg_key.lower() in sensitive_patterns:
                 issues.append(f"potential_secret_leak ({kwarg_key})")
 
@@ -356,11 +354,13 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         """Count the number of elements in an event ID.
 
         Elements are separated by dashes, underscores, or camelCase boundaries.
+
         Examples:
         - 'user-login' -> 2 elements
         - 'debug-logging-is-enabled-check-logs-above-for-http-details' -> 8 elements
         - 'userLoginSuccess' -> 3 elements
         - 'simple' -> 1 element
+
         """
         if not event_id:
             return 0
@@ -424,7 +424,7 @@ def analyze_file(file_path: Path, prefer_dash_case: bool = True) -> LogAnalysisR
         )
 
         # Count magic args usage
-        magic_usage: Dict[str, int] = {}
+        magic_usage: dict[str, int] = {}
         for statement in statements:
             for magic_arg in statement.magic_args:
                 magic_usage[magic_arg] = magic_usage.get(magic_arg, 0) + 1
@@ -483,7 +483,7 @@ def print_analysis_summary(result: LogAnalysisResult, verbose: bool = False) -> 
             event_str = f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
             magic_str = f" magic:{list(stmt.magic_args)}" if stmt.magic_args else ""
             print(
-                f"     L{stmt.line_number}: {stmt.method}({event_str}){magic_str}{issues_str}"
+                f"     L{stmt.line_number}: {stmt.method}({event_str}){magic_str}{issues_str}",
             )
 
     print()
@@ -494,11 +494,14 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Analyze log statements in Python files"
+        description="Analyze log statements in Python files",
     )
     parser.add_argument("path", help="File or directory to analyze")
     parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Show detailed statement breakdown"
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed statement breakdown",
     )
     parser.add_argument(
         "--allow-snake-case",
@@ -554,7 +557,7 @@ def main():
                 print_analysis_summary(result, args.verbose)
 
         print(
-            f"📊 Summary: {total_files} files, {total_statements} log statements, {total_issues} issues"
+            f"📊 Summary: {total_files} files, {total_statements} log statements, {total_issues} issues",
         )
 
 

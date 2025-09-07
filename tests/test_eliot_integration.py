@@ -1,12 +1,11 @@
-"""
-Tests for eliot_integration module.
-"""
+"""Tests for eliot_integration module."""
 
+from datetime import datetime
 import io
 import sys
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
 
 
 # Test both with and without eliot available
@@ -47,7 +46,10 @@ class TestHumanReadableEliotDestination:
 
         custom_file = io.StringIO()
         dest = HumanReadableEliotDestination(
-            file=custom_file, show_timestamps=False, show_task_ids=True, max_width=80
+            file=custom_file,
+            show_timestamps=False,
+            show_task_ids=True,
+            max_width=80,
         )
         assert dest.file == custom_file
         assert dest.show_timestamps is False
@@ -121,7 +123,9 @@ class TestHumanReadableEliotDestination:
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(
-            file=output, show_task_ids=True, show_timestamps=False
+            file=output,
+            show_task_ids=True,
+            show_timestamps=False,
         )
 
         message = {
@@ -524,7 +528,8 @@ class TestDemoFunction:
                 demo_eliot_integration()
 
                 mock_setup.assert_called_once_with(
-                    human_readable=True, show_timestamps=True
+                    human_readable=True,
+                    show_timestamps=True,
                 )
                 # Should print demo messages
                 assert mock_print.call_count > 0
@@ -536,15 +541,15 @@ class TestColorImports:
     def test_color_constants_available(self):
         """Test that color constants are available."""
         from src.nicestlog.eliot_integration import (
-            RESET_ALL,
-            BRIGHT,
-            DIM,
-            RED,
             BLUE,
+            BRIGHT,
             CYAN,
-            MAGENTA,
-            YELLOW,
+            DIM,
             GREEN,
+            MAGENTA,
+            RED,
+            RESET_ALL,
+            YELLOW,
         )
 
         # Should be strings (either ANSI codes or empty strings)

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""
-Basic usage examples for nicestlog.
+"""Basic usage examples for nicestlog.
 This script demonstrates various logging patterns and best practices
 using the new nicestlog API.
 """
 
 from pathlib import Path
-import structlog
 import tempfile
+
+import structlog
 
 # Import our logging library
 import nicestlog
@@ -82,19 +82,19 @@ language = "en"
         (config_dir / "translations").mkdir()
         with open(config_dir / "translations" / "en.toml", "w") as f:
             f.write(
-                'application-started = "🚀 Application {name} v{version} started successfully"\n'
+                'application-started = "🚀 Application {name} v{version} started successfully"\n',
             )
             f.write('user-login = "LOGIN: User {username} logged in from {ip}"\n')
             f.write('command-failed = "The command failed!"\n')
             f.write('user-authentication = "🔐 User authentication attempt"\n')
             f.write(
-                'rate-limit-approaching = "⚠  Rate limit at {percent}% for user {user_id}"\n'
+                'rate-limit-approaching = "⚠  Rate limit at {percent}% for user {user_id}"\n',
             )
             f.write(
-                'database-connection-failed = "💥 Database connection failed: {error}"\n'
+                'database-connection-failed = "💥 Database connection failed: {error}"\n',
             )
             f.write(
-                'api-request-completed = "✅ API request completed in {duration}ms"\n'
+                'api-request-completed = "✅ API request completed in {duration}ms"\n',
             )
 
         os.chdir(config_dir)

@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-"""
-Build script for nicestlog documentation.
-"""
+"""Build script for nicestlog documentation."""
 
 import os
-import sys
-import subprocess
-import shutil
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 
 
 def run_command(cmd, cwd=None):
     """Run a command and return success status."""
     try:
         subprocess.run(
-            cmd, shell=True, cwd=cwd, check=True, capture_output=True, text=True
+            cmd,
+            shell=True,
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+            text=True,
         )
         print(f"✅ {cmd}")
         return True

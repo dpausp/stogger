@@ -1,5 +1,4 @@
-"""
-🎯 Interactive Code Transformer - Amber-style Search & Replace for AST Transformations
+"""🎯 Interactive Code Transformer - Amber-style Search & Replace for AST Transformations
 
 Provides interactive, user-guided code transformations with preview and confirmation,
 inspired by the amber search & replace tool.
@@ -8,23 +7,24 @@ inspired by the amber search & replace tool.
 from __future__ import annotations
 
 import ast
-from pathlib import Path
-from typing import List, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
-import structlog
+from pathlib import Path
+from typing import Any
+
 from rich.console import Console
-from rich.syntax import Syntax
 from rich.panel import Panel
 from rich.prompt import Prompt
+from rich.syntax import Syntax
 from rich.table import Table
+import structlog
 
 from .advanced_assistant import (
     AdvancedAssistant,
-    TransformationResult,
     CodeAnalysisResult,
+    TransformationResult,
 )
-from .live_editor import LiveCodeEditor, EditSession
+from .live_editor import EditSession, LiveCodeEditor
 
 log = structlog.get_logger("nicestlog.interactive_transformer")
 console = Console()
@@ -52,11 +52,11 @@ class TransformationProposal:
     transformed_code: str
     pattern_name: str
     pattern_description: str
-    context_before: List[str]
-    context_after: List[str]
+    context_before: list[str]
+    context_after: list[str]
     node_type: str
     user_edited: bool = False
-    edit_history: Optional[List[str]] = None
+    edit_history: list[str] | None = None
 
     def __post_init__(self):
         if self.edit_history is None:
@@ -74,7 +74,7 @@ class InteractiveSession:
     auto_accept_all: bool = False
     quit_requested: bool = False
     edited: int = 0
-    edit_sessions: Optional[List[EditSession]] = None
+    edit_sessions: list[EditSession] | None = None
 
     def __post_init__(self):
         if self.edit_sessions is None:
@@ -82,8 +82,7 @@ class InteractiveSession:
 
 
 class InteractiveTransformer:
-    """
-    🎯 Interactive Code Transformer with Amber-style Interface
+    """🎯 Interactive Code Transformer with Amber-style Interface
 
     Provides user-guided code transformations with preview, confirmation,
     and comprehensive logging of all decisions.
@@ -91,7 +90,7 @@ class InteractiveTransformer:
 
     def __init__(
         self,
-        assistant: Optional[AdvancedAssistant] = None,
+        assistant: AdvancedAssistant | None = None,
         context_lines: int = 3,
         enable_live_editing: bool = True,
         use_external_editor: bool = False,
@@ -135,7 +134,9 @@ class InteractiveTransformer:
 
             # Find all potential transformations
             proposals = self._find_transformation_proposals(
-                file_path, tree, original_content
+                file_path,
+                tree,
+                original_content,
             )
 
             if not proposals:
@@ -201,7 +202,7 @@ class InteractiveTransformer:
                     proposal.user_edited = True
                     if proposal.edit_history is not None:
                         proposal.edit_history.append(
-                            f"Live edited: {edit_session.edit_steps}"
+                            f"Live edited: {edit_session.edit_steps}",
                         )
 
                     # Store edit session
@@ -258,7 +259,9 @@ class InteractiveTransformer:
             # Apply accepted transformations
             if accepted_proposals and not self.session.quit_requested:
                 return self._apply_transformations(
-                    file_path, accepted_proposals, original_content
+                    file_path,
+                    accepted_proposals,
+                    original_content,
                 )
             else:
                 return self._create_empty_result(file_path)
@@ -274,8 +277,10 @@ class InteractiveTransformer:
             return self._create_empty_result(file_path)
 
     def transform_directory_interactive(
-        self, directory: Path, pattern: str = "*.py"
-    ) -> List[TransformationResult]:
+        self,
+        directory: Path,
+        pattern: str = "*.py",
+    ) -> list[TransformationResult]:
         """Transform all files in a directory with interactive confirmation."""
         log.info(
             "interactive-directory-transformation-started",
@@ -287,14 +292,14 @@ class InteractiveTransformer:
         files = list(directory.glob(pattern))
         if not files:
             console.print(
-                f"❌ No files matching pattern '{pattern}' found in {directory}"
+                f"❌ No files matching pattern '{pattern}' found in {directory}",
             )
             return []
 
         # Show session header
         self._show_session_header(files)
 
-        results: List[Any] = []
+        results: list[Any] = []
         for file_path in files:
             if self.session.quit_requested:
                 log.info(
@@ -312,7 +317,10 @@ class InteractiveTransformer:
         return results
 
     def _present_proposal(
-        self, proposal: TransformationProposal, index: int, total: int
+        self,
+        proposal: TransformationProposal,
+        index: int,
+        total: int,
     ) -> UserChoice:
         """Present a transformation proposal to the user and get their choice."""
         # Display the proposal
@@ -336,8 +344,11 @@ class InteractiveTransformer:
         return UserChoice(choice)
 
     def _find_transformation_proposals(
-        self, file_path: Path, tree: ast.Module, content: str
-    ) -> List[TransformationProposal]:
+        self,
+        file_path: Path,
+        tree: ast.Module,
+        content: str,
+    ) -> list[TransformationProposal]:
         """Find all potential transformations in the file."""
         proposals = []
         lines = content.split("\n")
@@ -376,16 +387,21 @@ class InteractiveTransformer:
 
                                 # Create a minimal AST to get transformed code
                                 temp_module = ast.Module(
-                                    body=[transformed_node], type_ignores=[]
+                                    body=[transformed_node],
+                                    type_ignores=[],
                                 )
                                 transformed_code = ast.unparse(temp_module).strip()
 
                                 # Get context lines
                                 context_before = self._get_context_lines(
-                                    lines, line_num, before=True
+                                    lines,
+                                    line_num,
+                                    before=True,
                                 )
                                 context_after = self._get_context_lines(
-                                    lines, line_num, before=False
+                                    lines,
+                                    line_num,
+                                    before=False,
                                 )
 
                                 proposal = TransformationProposal(
@@ -413,8 +429,11 @@ class InteractiveTransformer:
                 self.generic_visit(node)
 
             def _get_context_lines(
-                self, lines: List[str], line_num: int, before: bool
-            ) -> List[str]:
+                self,
+                lines: list[str],
+                line_num: int,
+                before: bool,
+            ) -> list[str]:
                 """Get context lines before or after the target line."""
                 if before:
                     start = max(0, line_num - self.transformer.context_lines - 1)
@@ -441,7 +460,10 @@ class InteractiveTransformer:
         return proposals
 
     def _present_proposal(
-        self, proposal: TransformationProposal, current: int, total: int
+        self,
+        proposal: TransformationProposal,
+        current: int,
+        total: int,
     ) -> UserChoice:
         """Present a transformation proposal to the user and get their choice."""
         if self.session.auto_accept_all:
@@ -450,7 +472,7 @@ class InteractiveTransformer:
         # Show the proposal
         console.print()
         console.print(
-            f"[bold blue]Proposal {current}/{total}[/bold blue] - {proposal.pattern_description}"
+            f"[bold blue]Proposal {current}/{total}[/bold blue] - {proposal.pattern_description}",
         )
         console.print(f"[dim]{proposal.file_path}:{proposal.line_number}[/dim]")
 
@@ -512,7 +534,7 @@ class InteractiveTransformer:
                 Syntax(proposal.original_code, "python", theme="monokai"),
                 title="[red]Original[/red]",
                 border_style="red",
-            )
+            ),
         )
 
         # Transformed code
@@ -521,7 +543,7 @@ class InteractiveTransformer:
                 Syntax(proposal.transformed_code, "python", theme="monokai"),
                 title="[green]Transformed[/green]",
                 border_style="green",
-            )
+            ),
         )
 
         # Pattern info
@@ -533,8 +555,10 @@ class InteractiveTransformer:
 """
         console.print(
             Panel(
-                info_text, title="[blue]Transformation Info[/blue]", border_style="blue"
-            )
+                info_text,
+                title="[blue]Transformation Info[/blue]",
+                border_style="blue",
+            ),
         )
 
     def _show_file_header(self, file_path: Path, proposal_count: int):
@@ -542,7 +566,7 @@ class InteractiveTransformer:
         console.print(f"\n[bold cyan]📄 {file_path}[/bold cyan]")
         console.print(f"[dim]Found {proposal_count} potential transformation(s)[/dim]")
 
-    def _show_session_header(self, files: List[Path]):
+    def _show_session_header(self, files: list[Path]):
         """Show header for transformation session."""
         console.print(
             Panel.fit(
@@ -550,10 +574,10 @@ class InteractiveTransformer:
                 f"Files to process: {len(files)}\n"
                 f"Patterns enabled: {len([p for p in self.assistant.patterns if p.enabled])}",
                 border_style="blue",
-            )
+            ),
         )
 
-    def _show_session_summary(self, results: List[TransformationResult]):
+    def _show_session_summary(self, results: list[TransformationResult]):
         """Show summary of the transformation session."""
         successful = sum(1 for r in results if r.success)
         total_changes = sum(len(r.changes_made) for r in results)
@@ -580,7 +604,7 @@ class InteractiveTransformer:
                 summary_text,
                 title="[green]Transformation Summary[/green]",
                 border_style="green",
-            )
+            ),
         )
 
         log.debug(
@@ -613,10 +637,10 @@ class InteractiveTransformer:
                 console.print("\n🧠 [bold blue]Learning Insights:[/bold blue]")
                 console.print(f"• Acceptance rate: {insights['acceptance_rate']:.1%}")
                 console.print(
-                    f"• Avg edit duration: {insights['avg_edit_duration']:.1f}s"
+                    f"• Avg edit duration: {insights['avg_edit_duration']:.1f}s",
                 )
                 console.print(
-                    f"• Avg edits per session: {insights['avg_edits_per_session']:.1f}"
+                    f"• Avg edits per session: {insights['avg_edits_per_session']:.1f}",
                 )
 
                 if insights["common_edit_patterns"]:
@@ -629,7 +653,7 @@ class InteractiveTransformer:
     def _apply_transformations(
         self,
         file_path: Path,
-        proposals: List[TransformationProposal],
+        proposals: list[TransformationProposal],
         original_content: str,
     ) -> TransformationResult:
         """Apply the accepted transformations to the file."""
@@ -676,7 +700,8 @@ def create_interactive_transformer(context_lines: int = 3) -> InteractiveTransfo
 
 
 def transform_file_interactive(
-    file_path: Path, context_lines: int = 3
+    file_path: Path,
+    context_lines: int = 3,
 ) -> TransformationResult:
     """Quick interactive transformation of a Python file."""
     transformer = create_interactive_transformer(context_lines=context_lines)
@@ -684,8 +709,10 @@ def transform_file_interactive(
 
 
 def transform_directory_interactive(
-    directory: Path, pattern: str = "*.py", context_lines: int = 3
-) -> List[TransformationResult]:
+    directory: Path,
+    pattern: str = "*.py",
+    context_lines: int = 3,
+) -> list[TransformationResult]:
     """Quick interactive transformation of a directory."""
     transformer = create_interactive_transformer(context_lines=context_lines)
     return transformer.transform_directory_interactive(directory, pattern)

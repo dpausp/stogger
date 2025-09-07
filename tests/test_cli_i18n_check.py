@@ -6,7 +6,9 @@ import textwrap
 
 def run_cli(args, cwd=None):
     exe = [sys.executable, "-m", "nicestlog", "tools", "i18n", "check"]
-    return subprocess.run(exe + args, cwd=cwd, capture_output=True, text=True)
+    return subprocess.run(
+        exe + args, check=False, cwd=cwd, capture_output=True, text=True,
+    )
 
 
 def test_cli_i18n_list_missing_and_strict(tmp_path: Path):
@@ -23,7 +25,7 @@ def test_cli_i18n_list_missing_and_strict(tmp_path: Path):
         log.info("event-a")
         log.info("event-b", _replace_msg="B")
         log.debug("ignored-debug", _replace_msg="dbg")
-        """
+        """,
         ),
         encoding="utf-8",
     )

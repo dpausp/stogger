@@ -1,5 +1,4 @@
-"""
-🚀 Advanced AST Assistant - Revolutionary Code Transformation with Comprehensive Logging
+"""🚀 Advanced AST Assistant - Revolutionary Code Transformation with Comprehensive Logging
 
 This module provides sophisticated AST analysis and transformation capabilities with
 extensive logging of every step. Perfect for complex code migrations and refactoring.
@@ -16,12 +15,14 @@ Features:
 from __future__ import annotations
 
 import ast
-import time
-import hashlib
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Callable, Union
 from enum import Enum
+import hashlib
+from pathlib import Path
+import time
+from typing import Any
+
 import structlog
 
 # Initialize our logger for the assistant itself
@@ -48,7 +49,7 @@ class ASTPattern:
     description: str
     node_type: NodeType
     matcher: Callable[[ast.AST], bool]
-    transformer: Optional[Callable[[ast.AST], ast.AST]] = None
+    transformer: Callable[[ast.AST], ast.AST] | None = None
     priority: int = 0
     enabled: bool = True
 
@@ -58,12 +59,12 @@ class TransformationMetrics:
     """Metrics collected during transformation."""
 
     start_time: float = field(default_factory=time.time)
-    end_time: Optional[float] = None
+    end_time: float | None = None
     nodes_analyzed: int = 0
     nodes_transformed: int = 0
-    patterns_matched: Dict[str, int] = field(default_factory=dict)
-    errors_encountered: List[str] = field(default_factory=list)
-    warnings_generated: List[str] = field(default_factory=list)
+    patterns_matched: dict[str, int] = field(default_factory=dict)
+    errors_encountered: list[str] = field(default_factory=list)
+    warnings_generated: list[str] = field(default_factory=list)
 
     @property
     def duration(self) -> float:
@@ -79,11 +80,11 @@ class CodeAnalysisResult:
     file_path: Path
     original_hash: str
     ast_tree: ast.Module
-    node_counts: Dict[str, int] = field(default_factory=dict)
+    node_counts: dict[str, int] = field(default_factory=dict)
     complexity_score: int = 0
-    detected_patterns: List[str] = field(default_factory=list)
-    potential_issues: List[str] = field(default_factory=list)
-    transformation_suggestions: List[str] = field(default_factory=list)
+    detected_patterns: list[str] = field(default_factory=list)
+    potential_issues: list[str] = field(default_factory=list)
+    transformation_suggestions: list[str] = field(default_factory=list)
 
     @property
     def lines_of_code(self) -> int:
@@ -101,11 +102,11 @@ class CodeAnalysisResult:
         return self.node_counts.get("ClassDef", 0)
 
     @property
-    def issues(self) -> List[str]:
+    def issues(self) -> list[str]:
         """Alias for potential_issues for CLI compatibility."""
         return self.potential_issues
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "file_path": str(self.file_path),
@@ -130,7 +131,7 @@ class TransformationResult:
     analysis: CodeAnalysisResult
     metrics: TransformationMetrics
     success: bool
-    changes_made: List[str] = field(default_factory=list)
+    changes_made: list[str] = field(default_factory=list)
     # rollback_data removed as unused - can be restored if rollback feature is implemented
 
     @property
@@ -139,14 +140,13 @@ class TransformationResult:
         return self.analysis.file_path
 
     @property
-    def changes(self) -> List[str]:
+    def changes(self) -> list[str]:
         """Alias for changes_made for CLI compatibility."""
         return self.changes_made
 
 
 class AdvancedASTAnalyzer(ast.NodeVisitor):
-    """
-    🔍 Advanced AST Analyzer with comprehensive logging.
+    """🔍 Advanced AST Analyzer with comprehensive logging.
 
     Performs deep analysis of Python code structure, detecting patterns,
     complexity, and potential transformation opportunities.
@@ -155,11 +155,11 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
     def __init__(self, file_path: Path):
         self.file_path = file_path
         self.metrics = TransformationMetrics()
-        self.node_counts: Dict[str, int] = {}
+        self.node_counts: dict[str, int] = {}
         self.complexity_score = 0
-        self.detected_patterns: List[str] = []
-        self.potential_issues: List[str] = []
-        self.transformation_suggestions: List[str] = []
+        self.detected_patterns: list[str] = []
+        self.potential_issues: list[str] = []
+        self.transformation_suggestions: list[str] = []
         self.current_depth = 0
 
         log.debug(
@@ -320,10 +320,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
                             "exception",
                             "critical",
                         ]
-                    ):
-                        logging_call_count += 1
-                    # Check for logging.method() calls (standard logging)
-                    elif (
+                    ) or (
                         hasattr(child.func.value, "id")
                         and child.func.value.id == "logging"
                         and child.func.attr
@@ -370,7 +367,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             if func_name == "print":
                 self.detected_patterns.append("print_statement")
                 self.transformation_suggestions.append(
-                    f"Convert print() to structured logging at line {node.lineno}"
+                    f"Convert print() to structured logging at line {node.lineno}",
                 )
                 log.debug(
                     "print-detected",
@@ -395,7 +392,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
                     line=node.lineno,
                 )
 
-    def _analyze_import(self, node: Union[ast.Import, ast.ImportFrom]) -> None:
+    def _analyze_import(self, node: ast.Import | ast.ImportFrom) -> None:
         """Analyze import statements."""
         if isinstance(node, ast.Import):
             modules = [alias.name for alias in node.names]
@@ -411,19 +408,19 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
 
 class AdvancedTransformer(ast.NodeTransformer):
-    """
-    🔄 Advanced AST Transformer with pattern-based transformations.
+    """🔄 Advanced AST Transformer with pattern-based transformations.
 
     Applies sophisticated transformations based on detected patterns,
     with comprehensive logging and rollback capabilities.
     """
 
-    def __init__(self, patterns: List[ASTPattern]):
+    def __init__(self, patterns: list[ASTPattern]):
         self.patterns = {p.name: p for p in patterns if p.enabled}
         self.metrics = TransformationMetrics()
-        self.changes_made: List[str] = []
+        self.changes_made: list[str] = []
         self.transformation_id = hashlib.sha256(
-            str(time.time()).encode(), usedforsecurity=False
+            str(time.time()).encode(),
+            usedforsecurity=False,
         ).hexdigest()[:8]
 
         log.debug(
@@ -511,7 +508,7 @@ class AdvancedTransformer(ast.NodeTransformer):
 
                             node = new_node
                     except Exception as e:
-                        error_msg = f"Error applying {pattern_name}: {str(e)}"
+                        error_msg = f"Error applying {pattern_name}: {e!s}"
                         self.metrics.errors_encountered.append(error_msg)
                         log.exception(
                             "transformation-error",
@@ -525,8 +522,7 @@ class AdvancedTransformer(ast.NodeTransformer):
 
 
 class AdvancedAssistant:
-    """
-    🎯 Advanced Code Assistant - The Ultimate AST Transformation Engine
+    """🎯 Advanced Code Assistant - The Ultimate AST Transformation Engine
 
     Combines deep analysis, pattern detection, and sophisticated transformations
     with comprehensive logging of every operation.
@@ -534,9 +530,10 @@ class AdvancedAssistant:
 
     def __init__(self, verbose: bool = True):
         self.verbose = verbose
-        self.patterns: List[ASTPattern] = []
+        self.patterns: list[ASTPattern] = []
         self.session_id = hashlib.sha256(
-            str(time.time()).encode(), usedforsecurity=False
+            str(time.time()).encode(),
+            usedforsecurity=False,
         ).hexdigest()[:12]
 
         # Initialize default patterns
@@ -564,7 +561,9 @@ class AdvancedAssistant:
         def transform_print_to_log(node: ast.Call) -> ast.Call:
             """Transform print() to log.info()"""
             new_func = ast.Attribute(
-                value=ast.Name(id="log", ctx=ast.Load()), attr="info", ctx=ast.Load()
+                value=ast.Name(id="log", ctx=ast.Load()),
+                attr="info",
+                ctx=ast.Load(),
             )
 
             # Create event name from first argument if it's a string
@@ -587,7 +586,9 @@ class AdvancedAssistant:
                     keywords.append(ast.keyword(arg=f"arg{i}", value=arg))
 
             new_call = ast.Call(
-                func=new_func, args=[ast.Constant(value=event)], keywords=keywords
+                func=new_func,
+                args=[ast.Constant(value=event)],
+                keywords=keywords,
             )
 
             return ast.copy_location(new_call, node)
@@ -600,7 +601,7 @@ class AdvancedAssistant:
                 matcher=is_print_call,
                 transformer=transform_print_to_log,  # type: ignore[arg-type]
                 priority=10,
-            )
+            ),
         )
 
         # Pattern 2: Add missing docstrings
@@ -618,7 +619,7 @@ class AdvancedAssistant:
         def add_docstring(node: ast.FunctionDef) -> ast.FunctionDef:
             """Add a basic docstring to functions that don't have one."""
             docstring = ast.Expr(
-                value=ast.Constant(value=f"Add docstring for {node.name}")
+                value=ast.Constant(value=f"Add docstring for {node.name}"),
             )
             node.body.insert(0, docstring)
             return node
@@ -632,7 +633,7 @@ class AdvancedAssistant:
                 transformer=add_docstring,  # type: ignore[arg-type]
                 priority=5,
                 enabled=False,  # Disabled by default
-            )
+            ),
         )
 
         log.debug(
@@ -691,7 +692,9 @@ class AdvancedAssistant:
             raise
 
     def transform_file(
-        self, file_path: Path, dry_run: bool = False
+        self,
+        file_path: Path,
+        dry_run: bool = False,
     ) -> TransformationResult:
         """Transform a Python file using all enabled patterns."""
         log.debug(
@@ -803,8 +806,11 @@ class AdvancedAssistant:
             )
 
     def transform_directory(
-        self, directory: Path, pattern: str = "*.py", dry_run: bool = False
-    ) -> List[TransformationResult]:
+        self,
+        directory: Path,
+        pattern: str = "*.py",
+        dry_run: bool = False,
+    ) -> list[TransformationResult]:
         """Transform all Python files in a directory."""
         log.debug(
             "directory-transformation-started",
@@ -816,8 +822,8 @@ class AdvancedAssistant:
         )
 
         # Use gitignore-aware file filtering and respect project structure
-        from .gitignore_utils import filter_python_files
         from .config import detect_project_structure
+        from .gitignore_utils import filter_python_files
 
         # Detect project structure to get source directories
         try:
@@ -833,7 +839,7 @@ class AdvancedAssistant:
                     # Additional filtering to exclude test files
                     for py_file in src_files:
                         if not project_structure.should_exclude_from_logging_analysis(
-                            py_file
+                            py_file,
                         ):
                             files.append(py_file)
         except Exception:
@@ -888,7 +894,8 @@ def analyze_python_file(file_path: Path) -> CodeAnalysisResult:
 
 
 def transform_python_file(
-    file_path: Path, dry_run: bool = True
+    file_path: Path,
+    dry_run: bool = True,
 ) -> TransformationResult:
     """Quick transformation of a Python file."""
     assistant = create_advanced_assistant()

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""
-Demo: Advanced systemd integration with nicestlog
+"""Demo: Advanced systemd integration with nicestlog
 
 Shows how to properly integrate with systemd for production deployments.
 """
 
 import os
 import time
-import nicestlog
+
 import structlog
+
+import nicestlog
 from nicestlog import detect_systemd_environment
 
 
@@ -59,7 +60,10 @@ def demo_systemd_features():
 
         if i == 1:
             log.warning(
-                "rate_limit_warning", user_id=42, requests_per_minute=95, limit=100
+                "rate_limit_warning",
+                user_id=42,
+                requests_per_minute=95,
+                limit=100,
             )
 
         time.sleep(0.5)

@@ -1,5 +1,4 @@
-"""
-CLI Output to Structlog Transformer
+"""CLI Output to Structlog Transformer
 
 This module provides AST transformation capabilities to convert CLI framework
 output functions (typer.echo, click.echo, rich.print, etc.) to structured
@@ -9,9 +8,9 @@ logging with nicestlog, while preserving styling and formatting information.
 from __future__ import annotations
 
 import ast
-import re
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any, Tuple
+import re
+from typing import Any
 import unicodedata
 
 
@@ -23,8 +22,8 @@ class CLIOutputCall:
     function: str  # 'echo', 'print', 'error', 'write'
     line_number: int
     original_call: ast.Call
-    message_arg: Optional[ast.AST] = None
-    style_info: Optional[Dict[str, Any]] = None
+    message_arg: ast.AST | None = None
+    style_info: dict[str, Any] | None = None
     output_stream: str = "stdout"  # 'stdout', 'stderr'
 
 
@@ -38,7 +37,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         self.import_structlog_present = False
         self.logger_assignment_present = False
         self.changed = False
-        self.detected_calls: List[CLIOutputCall] = []
+        self.detected_calls: list[CLIOutputCall] = []
 
         # Track imports to understand available functions
         self.imports = {
@@ -78,7 +77,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         return slug
 
     @staticmethod
-    def derive_event_from_literal(arg: ast.AST) -> Optional[str]:
+    def derive_event_from_literal(arg: ast.AST) -> str | None:
         """Extract event name from string literal."""
         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
             candidate = CLIOutputToStructlogTransformer.slugify(arg.value)
@@ -101,10 +100,11 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST:
         """Track from imports of CLI frameworks."""
-        if node.module == "rich" and any(alias.name == "print" for alias in node.names):
-            self.imports["rich"] = True
-        elif node.module == "rich.console" and any(
-            alias.name == "Console" for alias in node.names
+        if (
+            node.module == "rich" and any(alias.name == "print" for alias in node.names)
+        ) or (
+            node.module == "rich.console"
+            and any(alias.name == "Console" for alias in node.names)
         ):
             self.imports["rich"] = True
         return node
@@ -142,9 +142,8 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
         return node
 
-    def detect_cli_output_call(self, node: ast.Call) -> Optional[CLIOutputCall]:
+    def detect_cli_output_call(self, node: ast.Call) -> CLIOutputCall | None:
         """Detect and classify CLI output function calls."""
-
         # typer.echo()
         if (
             isinstance(node.func, ast.Attribute)
@@ -357,7 +356,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
         return call_info
 
-    def _extract_color_value(self, node: ast.AST) -> Optional[str]:
+    def _extract_color_value(self, node: ast.AST) -> str | None:
         """Extract color value from AST node."""
         if isinstance(node, ast.Constant):
             return str(node.value)
@@ -372,7 +371,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
                 return node.attr.lower()
         return None
 
-    def _extract_string_value(self, node: ast.AST) -> Optional[str]:
+    def _extract_string_value(self, node: ast.AST) -> str | None:
         """Extract string value from AST node."""
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             return node.value
@@ -410,42 +409,47 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
             else f"cli-{cli_call.framework}-{cli_call.function}"
         )
 
-        keywords: List[ast.keyword] = []
+        keywords: list[ast.keyword] = []
 
         # Build _replace_msg and remaining args mapping
         if cli_call.message_arg:
             if isinstance(cli_call.message_arg, ast.Constant) and isinstance(
-                cli_call.message_arg.value, str
+                cli_call.message_arg.value,
+                str,
             ):
                 # Simple string message
                 original = cli_call.message_arg.value
                 keywords.append(
-                    ast.keyword(arg="_replace_msg", value=ast.Constant(value=original))
+                    ast.keyword(arg="_replace_msg", value=ast.Constant(value=original)),
                 )
             else:
                 # Complex expression - preserve as a0
                 keywords.append(
-                    ast.keyword(arg="_replace_msg", value=ast.Constant(value="{a0}"))
+                    ast.keyword(arg="_replace_msg", value=ast.Constant(value="{a0}")),
                 )
                 if cli_call.message_arg is not None and isinstance(
-                    cli_call.message_arg, ast.expr
+                    cli_call.message_arg,
+                    ast.expr,
                 ):
                     keywords.append(ast.keyword(arg="a0", value=cli_call.message_arg))
 
         # Add CLI-specific metadata
         keywords.append(
             ast.keyword(
-                arg="cli_framework", value=ast.Constant(value=cli_call.framework)
-            )
+                arg="cli_framework",
+                value=ast.Constant(value=cli_call.framework),
+            ),
         )
         keywords.append(
-            ast.keyword(arg="cli_function", value=ast.Constant(value=cli_call.function))
+            ast.keyword(
+                arg="cli_function", value=ast.Constant(value=cli_call.function),
+            ),
         )
         keywords.append(
             ast.keyword(
                 arg="cli_output_stream",
                 value=ast.Constant(value=cli_call.output_stream),
-            )
+            ),
         )
 
         # Add styling information
@@ -453,8 +457,9 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
             for style_key, style_value in cli_call.style_info.items():
                 keywords.append(
                     ast.keyword(
-                        arg=f"cli_{style_key}", value=ast.Constant(value=style_value)
-                    )
+                        arg=f"cli_{style_key}",
+                        value=ast.Constant(value=style_value),
+                    ),
                 )
 
         # Preserve original call arguments as metadata (for complex cases)
@@ -509,8 +514,9 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
             )
             prelude.append(
                 ast.Assign(
-                    targets=[ast.Name(id="log", ctx=ast.Store())], value=get_logger_call
-                )
+                    targets=[ast.Name(id="log", ctx=ast.Store())],
+                    value=get_logger_call,
+                ),
             )
 
         if prelude:
@@ -530,7 +536,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         return tree
 
 
-def migrate_cli_outputs_file(content: str) -> Tuple[str, bool]:
+def migrate_cli_outputs_file(content: str) -> tuple[str, bool]:
     """Migrate CLI output calls in a single file."""
     tree = ast.parse(content)
     transformer = CLIOutputToStructlogTransformer()
@@ -548,7 +554,7 @@ def migrate_cli_outputs_file(content: str) -> Tuple[str, bool]:
     return new_code, transformer.changed
 
 
-def analyze_cli_outputs_in_file(content: str) -> List[CLIOutputCall]:
+def analyze_cli_outputs_in_file(content: str) -> list[CLIOutputCall]:
     """Analyze CLI output calls in a file without transforming."""
     tree = ast.parse(content)
     transformer = CLIOutputToStructlogTransformer()

@@ -1,14 +1,13 @@
-"""
-Simple Flask + HTMX web dashboard for live log viewing.
+"""Simple Flask + HTMX web dashboard for live log viewing.
 
 No async bullshit, just good old Flask with HTMX for live updates.
 """
 
+from datetime import datetime
 import queue
 import threading
 import time
-from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any
 
 try:
     from flask import Flask, render_template_string, request
@@ -24,8 +23,8 @@ except ImportError:
 import structlog
 
 # Simple in-memory log storage
-log_buffer: queue.Queue[Dict[str, Any]] = queue.Queue(maxsize=1000)
-recent_logs: List[Dict[str, Any]] = []
+log_buffer: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1000)
+recent_logs: list[dict[str, Any]] = []
 log_lock = threading.Lock()
 
 
@@ -306,7 +305,7 @@ def create_dashboard_app():
     """Create the Flask dashboard app."""
     if not FLASK_AVAILABLE:
         raise ImportError(
-            "Flask is not installed. Install it with: pip install 'nicestlog[web]' or pip install flask>=3.0.3"
+            "Flask is not installed. Install it with: pip install 'nicestlog[web]' or pip install flask>=3.0.3",
         )
     app = Flask(__name__)
 
@@ -378,10 +377,14 @@ def get_log_stats():
 
     total_logs = len(logs)
     error_count = len(
-        [log_entry for log_entry in logs if log_entry["level"] in ["error", "critical"]]
+        [
+            log_entry
+            for log_entry in logs
+            if log_entry["level"] in ["error", "critical"]
+        ],
     )
     warning_count = len(
-        [log_entry for log_entry in logs if log_entry["level"] == "warning"]
+        [log_entry for log_entry in logs if log_entry["level"] == "warning"],
     )
 
     # Calculate logs per minute (rough estimate)
@@ -430,7 +433,7 @@ def run_dashboard(host="127.0.0.1", port=8080, debug=False):
             "Flask is not installed. To use the web dashboard, install it with:\n"
             "  pip install 'nicestlog[web]'\n"
             "or\n"
-            "  pip install flask>=3.0.3"
+            "  pip install flask>=3.0.3",
         )
 
     print(f"🚀 Starting Nicestlog Dashboard on http://{host}:{port}")
@@ -442,9 +445,9 @@ def run_dashboard(host="127.0.0.1", port=8080, debug=False):
 
 if __name__ == "__main__":
     # Demo mode
-    import time
     import random
     import threading
+    import time
 
     def generate_demo_logs():
         """Generate demo logs for testing."""
@@ -464,7 +467,8 @@ if __name__ == "__main__":
         while True:
             action = random.choice(actions)
             level = random.choices(
-                ["debug", "info", "warning", "error"], weights=[20, 60, 15, 5]
+                ["debug", "info", "warning", "error"],
+                weights=[20, 60, 15, 5],
             )[0]
 
             getattr(log, level)(

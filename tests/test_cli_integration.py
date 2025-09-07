@@ -1,16 +1,16 @@
-"""
-End-to-end integration tests for the CLI commands.
+"""End-to-end integration tests for the CLI commands.
 These tests actually run the commands with real functionality.
 """
 
-import pytest
-import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 import subprocess
 import sys
+import tempfile
+from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
+
 from nicestlog.cli import app
 
 # Check if Flask is available for dashboard tests
@@ -286,7 +286,8 @@ class TestGenerateServiceIntegration:
     def test_generate_service_to_stdout(self):
         """Test generating a systemd service file to stdout."""
         result = self.runner.invoke(
-            app, ["tools", "generate-service", "test-app", "/usr/bin/test-app"]
+            app,
+            ["tools", "generate-service", "test-app", "/usr/bin/test-app"],
         )
 
         assert result.exit_code == 0
@@ -370,12 +371,17 @@ class TestJournalIntegration:
         )
 
         result = self.runner.invoke(
-            app, ["tools", "journal", "--unit", "test.service", "--lines", "10"]
+            app,
+            ["tools", "journal", "--unit", "test.service", "--lines", "10"],
         )
 
         assert result.exit_code == 0
         mock_viewer.query_journal.assert_called_once_with(
-            service="test.service", since=None, level=None, lines=10, follow=False
+            service="test.service",
+            since=None,
+            level=None,
+            lines=10,
+            follow=False,
         )
 
 
@@ -502,7 +508,9 @@ class TestDashboardIntegration:
 
         assert result.exit_code == 0
         mock_run_dashboard.assert_called_once_with(
-            host="127.0.0.1", port=8080, debug=False
+            host="127.0.0.1",
+            port=8080,
+            debug=False,
         )
 
     @patch("nicestlog.web_dashboard.run_dashboard")
@@ -517,7 +525,9 @@ class TestDashboardIntegration:
 
         assert result.exit_code == 0
         mock_run_dashboard.assert_called_once_with(
-            host="0.0.0.0", port=9000, debug=True
+            host="0.0.0.0",
+            port=9000,
+            debug=True,
         )
 
 
@@ -528,6 +538,7 @@ class TestRealExecutionIntegration:
         """Test running the help command as a real subprocess."""
         result = subprocess.run(
             [sys.executable, "-m", "nicestlog", "--help"],
+            check=False,
             capture_output=True,
             text=True,
             cwd=Path(__file__).parent.parent,
@@ -542,6 +553,7 @@ class TestRealExecutionIntegration:
         """Test running lint help as a real subprocess."""
         result = subprocess.run(
             [sys.executable, "-m", "nicestlog", "check", "--help"],
+            check=False,
             capture_output=True,
             text=True,
             cwd=Path(__file__).parent.parent,

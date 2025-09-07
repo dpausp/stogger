@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""
-🚀 Advanced Assistant Demo - Showcase of AST Analysis and Transformation
+"""🚀 Advanced Assistant Demo - Showcase of AST Analysis and Transformation
 
 This demo shows the powerful capabilities of the Advanced AST Assistant
 with comprehensive logging of every operation.
 """
 
-import tempfile
 from pathlib import Path
+import tempfile
+
 import structlog
 
 # Initialize nicestlog for beautiful output
@@ -294,7 +294,7 @@ class Class_{i}:
         return 0
 '''
             for i in range(20)
-        ]
+        ],
     )  # Create 20 functions and classes
 
     # Create temporary file

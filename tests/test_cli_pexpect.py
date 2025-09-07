@@ -1,16 +1,16 @@
-"""
-Pexpect-based tests for CLI interactive features.
+"""Pexpect-based tests for CLI interactive features.
 
 These tests use real terminal interaction without mocking to test
 the actual user experience of interactive commands.
 """
 
 import os
+from pathlib import Path
 import sys
 import tempfile
-from pathlib import Path
-import pytest
+
 import pexpect
+import pytest
 
 
 class PexpectTestHelper:
@@ -82,7 +82,8 @@ class TestCliPexpectInteractive:
             # Either re-prompt or exit with error
             try:
                 child.expect(
-                    [r".*[Ii]nvalid.*", r".*[Ee]rror.*", pexpect.EOF], timeout=5
+                    [r".*[Ii]nvalid.*", r".*[Ee]rror.*", pexpect.EOF],
+                    timeout=5,
                 )
             except pexpect.TIMEOUT:
                 pass  # Command might just exit
@@ -114,7 +115,7 @@ def test_function():
 
         try:
             child = PexpectTestHelper.spawn_nicestlog_command(
-                ["check", str(test_file), "--interactive"]
+                ["check", str(test_file), "--interactive"],
             )
 
             try:
@@ -162,7 +163,7 @@ def test_function():
 
         try:
             child = PexpectTestHelper.spawn_nicestlog_command(
-                ["migrate", str(test_file), "--interactive"]
+                ["migrate", str(test_file), "--interactive"],
             )
 
             try:
@@ -205,7 +206,7 @@ logging.info("test")
 
         try:
             child = PexpectTestHelper.spawn_nicestlog_command(
-                ["check", str(test_file), "--interactive"]
+                ["check", str(test_file), "--interactive"],
             )
 
             try:

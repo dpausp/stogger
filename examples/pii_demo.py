@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""
-Demo: PII Scrubbing in action with nicestlog
+"""Demo: PII Scrubbing in action with nicestlog
 
 Shows how sensitive data gets automatically redacted from logs.
 """
 
-import nicestlog
 import structlog
+
+import nicestlog
 
 
 def demo_pii_protection():
     """Demonstrate automatic PII protection."""
-
     # Initialize nicestlog with PII scrubbing enabled (default)
     nicestlog.init_logging(verbose=True, syslog_identifier="pii-demo")
 
@@ -64,7 +63,7 @@ def demo_pii_protection():
 
     print("\n🎉 Demo complete!")
     print(
-        "💡 Notice how emails, passwords, phone numbers, etc. are automatically [REDACTED]"
+        "💡 Notice how emails, passwords, phone numbers, etc. are automatically [REDACTED]",
     )
     print("🔐 Your logs are now safe for sharing and compliance!")
 

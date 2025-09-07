@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""
-Demo showing the clean, short logging syntax with log.info() / log.debug()
+"""Demo showing the clean, short logging syntax with log.info() / log.debug()
 instead of the longer logger.info() / logger.debug()
 """
 
-import nicestlog
 import structlog
+
+import nicestlog
 
 
 def main():

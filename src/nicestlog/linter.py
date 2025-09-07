@@ -1,20 +1,21 @@
-"""
-Logging Linter - Ensures proper logging coverage in your codebase.
+"""Logging Linter - Ensures proper logging coverage in your codebase.
 
 Like a politeness compiler, but for log statements!
 """
 
-import ast
 import argparse
-import sys
-import os
-import json
-import toml
-import fnmatch
-from pathlib import Path
-from typing import List, Optional, Dict, Any
+import ast
 from dataclasses import dataclass
-from colorama import init as colorama_init, Fore, Style
+import fnmatch
+import json
+import os
+from pathlib import Path
+import sys
+from typing import Any
+
+from colorama import Fore, Style
+from colorama import init as colorama_init
+import toml
 
 from .log_statement_analyzer import (
     analyze_file as analyze_log_statements,
@@ -50,13 +51,13 @@ class LoggingLevelIssue:
 class LoggingVisitor(ast.NodeVisitor):
     """AST visitor to analyze logging patterns."""
 
-    def __init__(self, source_lines: Optional[List[str]] = None):
+    def __init__(self, source_lines: list[str] | None = None):
         self.log_statements = 0
         self.functions = 0
         self.functions_with_logging = 0
         self.current_function_has_logs = False
         self.source_lines = source_lines or []
-        self.level_issues: List[LoggingLevelIssue] = []
+        self.level_issues: list[LoggingLevelIssue] = []
 
         # Detect calls to common logging methods (suffix-based)
         self.log_patterns = {
@@ -71,11 +72,11 @@ class LoggingVisitor(ast.NodeVisitor):
         }
 
         # Track whether we're currently inside an except block and if that except has a name
-        self._except_stack: List[Optional[str]] = []
+        self._except_stack: list[str | None] = []
 
         # Track function definitions to detect log wrappers
-        self._function_definitions: Dict[str, ast.FunctionDef] = {}
-        self._current_function: Optional[str] = None
+        self._function_definitions: dict[str, ast.FunctionDef] = {}
+        self._current_function: str | None = None
 
     def visit_FunctionDef(self, node):
         """Visit function definitions."""
@@ -181,7 +182,7 @@ class LoggingVisitor(ast.NodeVisitor):
                 )
                 self.level_issues.append(issue)
 
-    def _extract_event_name(self, node: ast.Call) -> Optional[str]:
+    def _extract_event_name(self, node: ast.Call) -> str | None:
         try:
             if (
                 node.args
@@ -391,7 +392,9 @@ class LoggingVisitor(ast.NodeVisitor):
         return any(pattern in call_str for pattern in trivial_patterns)
 
     def _is_likely_wrapper(
-        self, func_node: ast.FunctionDef, logging_calls: List[ast.Call]
+        self,
+        func_node: ast.FunctionDef,
+        logging_calls: list[ast.Call],
     ) -> bool:
         """Determine if function is likely an unnecessary log wrapper."""
         # First check: Don't flag very simple functions with no parameters (like log_startup())
@@ -444,7 +447,9 @@ class LoggingVisitor(ast.NodeVisitor):
         return False
 
     def _report_wrapper_issue(
-        self, func_node: ast.FunctionDef, logging_calls: List[ast.Call]
+        self,
+        func_node: ast.FunctionDef,
+        logging_calls: list[ast.Call],
     ) -> None:
         """Report a log wrapper anti-pattern issue."""
         # Determine the specific wrapper pattern
@@ -469,7 +474,7 @@ class LoggingVisitor(ast.NodeVisitor):
         self.level_issues.append(issue)
 
 
-def analyze_file(file_path: Path) -> tuple[LoggingStats, List[LoggingLevelIssue]]:
+def analyze_file(file_path: Path) -> tuple[LoggingStats, list[LoggingLevelIssue]]:
     """Analyze a Python file for logging coverage."""
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -519,10 +524,12 @@ def analyze_file(file_path: Path) -> tuple[LoggingStats, List[LoggingLevelIssue]
 
 
 def check_logging_quality(
-    stats: LoggingStats, min_coverage: float = 5.0, max_coverage: float = 15.0
-) -> List[str]:
+    stats: LoggingStats,
+    min_coverage: float = 5.0,
+    max_coverage: float = 15.0,
+) -> list[str]:
     """Check if logging coverage is appropriate."""
-    issues: List[str] = []
+    issues: list[str] = []
 
     if stats.code_lines == 0:
         return issues
@@ -530,12 +537,12 @@ def check_logging_quality(
     # Check overall logging coverage
     if stats.log_coverage_percent < min_coverage:
         issues.append(
-            f"❌ Too little logging! {stats.log_coverage_percent:.1f}% coverage (minimum: {min_coverage}%)"
+            f"❌ Too little logging! {stats.log_coverage_percent:.1f}% coverage (minimum: {min_coverage}%)",
         )
         issues.append("   Add more log.info(), log.debug(), or log.error() statements")
     elif stats.log_coverage_percent > max_coverage:
         issues.append(
-            f"⚠️  Possibly too much logging! {stats.log_coverage_percent:.1f}% coverage (maximum: {max_coverage}%)"
+            f"⚠️  Possibly too much logging! {stats.log_coverage_percent:.1f}% coverage (maximum: {max_coverage}%)",
         )
         issues.append("   Consider reducing log verbosity or using higher log levels")
     else:
@@ -545,18 +552,18 @@ def check_logging_quality(
     if stats.functions > 0:
         if stats.function_coverage_percent < 30:
             issues.append(
-                f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%"
+                f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%",
             )
             issues.append(
-                "   Consider adding logging to more functions (aim for 30-70%)"
+                "   Consider adding logging to more functions (aim for 30-70%)",
             )
         elif stats.function_coverage_percent > 90:
             issues.append(
-                f"⚠️  Almost every function logs - might be excessive: {stats.function_coverage_percent:.1f}%"
+                f"⚠️  Almost every function logs - might be excessive: {stats.function_coverage_percent:.1f}%",
             )
         else:
             issues.append(
-                f"✅ Good function logging coverage: {stats.function_coverage_percent:.1f}%"
+                f"✅ Good function logging coverage: {stats.function_coverage_percent:.1f}%",
             )
 
     return issues
@@ -584,7 +591,7 @@ def lint_directory(
             if source_path.exists():
                 for py_file in source_path.rglob("*.py"):
                     if not project_structure.should_exclude_from_logging_analysis(
-                        py_file
+                        py_file,
                     ):
                         python_files.append(py_file)
 
@@ -595,7 +602,7 @@ def lint_directory(
                     excluded_files.append(py_file)
             print(f"📁 Analyzing {len(python_files)} source files for logging coverage")
             print(
-                f"🚫 Excluded {len(excluded_files)} files (tests, docs, etc.) from logging analysis"
+                f"🚫 Excluded {len(excluded_files)} files (tests, docs, etc.) from logging analysis",
             )
     else:
         # Legacy filtering method
@@ -677,11 +684,11 @@ def lint_directory(
 
     if output_format not in {"json", "toml"}:
         print(
-            f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n"
+            f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n",
         )
 
     # Collect per-file data first so we can render a clean table
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     all_level_issues = []  # Store all level issues for detailed display
 
     for file_path in python_files:
@@ -703,7 +710,8 @@ def lint_directory(
         log_analysis = None
         if analyze_statements:
             log_analysis = analyze_log_statements(
-                file_path, prefer_dash_case=not allow_snake_case
+                file_path,
+                prefer_dash_case=not allow_snake_case,
             )
 
         # Determine primary issue label (text only, no emojis)
@@ -754,7 +762,7 @@ def lint_directory(
                 "primary": primary_issue_text,
                 "statements": total_statements,
                 "statement_issues": statement_issues,
-            }
+            },
         )
 
     # Overall summary (compute percentages)
@@ -781,7 +789,8 @@ def lint_directory(
                 "functions": total_stats.functions,
                 "functions_with_logging": total_stats.functions_with_logging,
                 "function_logging_coverage": round(
-                    total_stats.function_coverage_percent, 1
+                    total_stats.function_coverage_percent,
+                    1,
                 ),
             },
         }
@@ -799,7 +808,8 @@ def lint_directory(
                 "functions": total_stats.functions,
                 "functions_with_logging": total_stats.functions_with_logging,
                 "function_logging_coverage": round(
-                    total_stats.function_coverage_percent, 1
+                    total_stats.function_coverage_percent,
+                    1,
                 ),
             },
         }
@@ -830,10 +840,12 @@ def lint_directory(
         module_width = max([len("MODULE")] + [len(r["module"]) for r in rows])
         lines_width = max(len("LINES"), *(len(str(r["lines"])) for r in rows))
         funcs_width = max(
-            len("FUNCS"), *(len(str(r.get("functions", 0))) for r in rows)
+            len("FUNCS"),
+            *(len(str(r.get("functions", 0))) for r in rows),
         )
         classes_width = max(
-            len("CLASSES"), *(len(str(r.get("classes", 0))) for r in rows)
+            len("CLASSES"),
+            *(len(str(r.get("classes", 0))) for r in rows),
         )
         logs_width = max(len("LOGS"), *(len(str(r["logs"])) for r in rows))
         cov_width = max(len("COVERAGE"), *(len(f"{r['coverage']:.1f}%") for r in rows))
@@ -947,7 +959,7 @@ def lint_directory(
                     f"{str(r['logs']).rjust(logs_width)}  "
                     f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
                     f"{issues_padded}  "
-                    f"{r['primary'].ljust(primary_width)}"
+                    f"{r['primary'].ljust(primary_width)}",
                 )
             else:
                 print(
@@ -956,7 +968,7 @@ def lint_directory(
                     f"{str(r['logs']).rjust(logs_width)}  "
                     f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
                     f"{issues_padded}  "
-                    f"{r['primary'].ljust(primary_width)}"
+                    f"{r['primary'].ljust(primary_width)}",
                 )
 
         # Global issue legend: what E#/W# counts refer to and categories
@@ -968,7 +980,7 @@ def lint_directory(
             + Fore.RED
             + "E#"
             + Style.RESET_ALL
-            + " = number of error-level findings; categories:"
+            + " = number of error-level findings; categories:",
         )
         print("    " + Fore.RED + "E1" + Style.RESET_ALL + ": Too little logging")
         print(
@@ -976,7 +988,7 @@ def lint_directory(
             + Fore.RED
             + "E2"
             + Style.RESET_ALL
-            + ": Too few functions have logging"
+            + ": Too few functions have logging",
         )
         print("    " + Fore.RED + "E3" + Style.RESET_ALL + ": Log statement issues")
         print(
@@ -984,35 +996,35 @@ def lint_directory(
             + Fore.YELLOW
             + "W#"
             + Style.RESET_ALL
-            + " = number of warning-level findings; categories:"
+            + " = number of warning-level findings; categories:",
         )
         print(
             "    "
             + Fore.YELLOW
             + "W1"
             + Style.RESET_ALL
-            + ": Possibly too much logging"
+            + ": Possibly too much logging",
         )
         print(
             "    "
             + Fore.YELLOW
             + "W2"
             + Style.RESET_ALL
-            + ": Almost every function logs"
+            + ": Almost every function logs",
         )
         print(
             "    "
             + Fore.YELLOW
             + "W3"
             + Style.RESET_ALL
-            + ": Inappropriate logging levels (library internal operations using INFO)"
+            + ": Inappropriate logging levels (library internal operations using INFO)",
         )
         print(
             "    "
             + Fore.YELLOW
             + "W4"
             + Style.RESET_ALL
-            + ": Log wrapper anti-patterns (unnecessary functions wrapping logging calls)"
+            + ": Log wrapper anti-patterns (unnecessary functions wrapping logging calls)",
         )
 
         # Display detailed level issues if any found
@@ -1037,7 +1049,7 @@ def lint_directory(
             )
             print(level_issues_title)
             print(
-                "The following log.info() calls should be log.debug() for library internal operations:"
+                "The following log.info() calls should be log.debug() for library internal operations:",
             )
             print()
 
@@ -1045,10 +1057,10 @@ def lint_directory(
                 if issue.category != "wrapper":
                     print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
                     print(
-                        f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({repr(issue.event_name)}){Style.RESET_ALL}"
+                        f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({issue.event_name!r}){Style.RESET_ALL}",
                     )
                     print(
-                        f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({repr(issue.event_name)}){Style.RESET_ALL}"
+                        f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({issue.event_name!r}){Style.RESET_ALL}",
                     )
                     print(f"   Reason: {issue.reason}")
                     print()
@@ -1064,7 +1076,7 @@ def lint_directory(
             )
             print(wrapper_issues_title)
             print(
-                "The following functions appear to be unnecessary wrappers around logging calls:"
+                "The following functions appear to be unnecessary wrappers around logging calls:",
             )
             print()
 
@@ -1072,10 +1084,10 @@ def lint_directory(
                 if issue.category == "wrapper":
                     print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
                     print(
-                        f"   Line {issue.line_no}: {Fore.YELLOW}def {issue.event_name}(...){Style.RESET_ALL}"
+                        f"   Line {issue.line_no}: {Fore.YELLOW}def {issue.event_name}(...){Style.RESET_ALL}",
                     )
                     print(
-                        f"   Suggestion: {Fore.GREEN}Use log.* calls directly instead of wrapper functions{Style.RESET_ALL}"
+                        f"   Suggestion: {Fore.GREEN}Use log.* calls directly instead of wrapper functions{Style.RESET_ALL}",
                     )
                     print(f"   Reason: {issue.reason}")
                     print()
@@ -1089,7 +1101,7 @@ def lint_directory(
         print(f"Total log statements: {total_stats.log_statements}")
         print(f"Overall logging coverage: {total_stats.log_coverage_percent:.1f}%")
         print(
-            f"Functions with logging: {total_stats.functions_with_logging}/{total_stats.functions} ({total_stats.function_coverage_percent:.1f}%)"
+            f"Functions with logging: {total_stats.functions_with_logging}/{total_stats.functions} ({total_stats.function_coverage_percent:.1f}%)",
         )
 
     if total_issues == 0:
@@ -1169,12 +1181,13 @@ def main():
         # Analyze statements for single file if requested
         if args.analyze_statements:
             log_analysis = analyze_log_statements(
-                path, prefer_dash_case=not args.allow_snake_case
+                path,
+                prefer_dash_case=not args.allow_snake_case,
             )
             if log_analysis.total_statements > 0:
                 statement_issues = sum(len(s.issues) for s in log_analysis.statements)
                 print(
-                    f"   Log statements: {log_analysis.total_statements} ({statement_issues} issues)"
+                    f"   Log statements: {log_analysis.total_statements} ({statement_issues} issues)",
                 )
                 if args.verbose:
                     for stmt in log_analysis.statements:
@@ -1184,7 +1197,7 @@ def main():
                                 f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
                             )
                             print(
-                                f"     L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}"
+                                f"     L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}",
                             )
 
         success = not any("❌" in issue for issue in issues)

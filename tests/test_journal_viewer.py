@@ -1,10 +1,8 @@
-"""
-Tests for journal_viewer module.
-"""
+"""Tests for journal_viewer module."""
 
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
 from io import StringIO
+from unittest.mock import Mock, patch
 
 from src.nicestlog.journal_viewer import JournalEntry, JournalViewer
 
@@ -56,7 +54,10 @@ class TestJournalViewer:
         """Test initialization with custom parameters."""
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer(
-                show_hostname=True, show_pid=False, show_service=False, max_width=80
+                show_hostname=True,
+                show_pid=False,
+                show_service=False,
+                max_width=80,
             )
 
             assert viewer.show_hostname is True
@@ -85,7 +86,7 @@ class TestJournalViewer:
             7: "debug",  # LOG_DEBUG
         }
 
-        assert JournalViewer.PRIORITY_TO_LEVEL == expected_mapping
+        assert expected_mapping == JournalViewer.PRIORITY_TO_LEVEL
 
     def test_level_colors_defined(self):
         """Test that level colors are defined."""
@@ -589,7 +590,7 @@ class TestMainFunction:
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer", "-u", "myservice", "-n", "10"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer"
+                    "src.nicestlog.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
@@ -614,7 +615,7 @@ class TestMainFunction:
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer", "--json"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer"
+                    "src.nicestlog.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
@@ -639,7 +640,7 @@ class TestMainFunction:
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer"
+                    "src.nicestlog.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
@@ -662,7 +663,7 @@ class TestMainFunction:
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer"
+                    "src.nicestlog.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
@@ -682,7 +683,7 @@ class TestMainFunction:
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer"
+                    "src.nicestlog.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer_class.side_effect = Exception("Test error")
 
@@ -702,15 +703,15 @@ class TestColorImports:
     def test_color_constants_available(self):
         """Test that color constants are available."""
         from src.nicestlog.journal_viewer import (
-            RESET_ALL,
-            BRIGHT,
-            DIM,
-            RED,
             BLUE,
+            BRIGHT,
             CYAN,
-            MAGENTA,
-            YELLOW,
+            DIM,
             GREEN,
+            MAGENTA,
+            RED,
+            RESET_ALL,
+            YELLOW,
         )
 
         # Should be strings (either ANSI codes or empty strings)

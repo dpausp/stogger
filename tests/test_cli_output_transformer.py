@@ -1,18 +1,18 @@
-"""
-Tests for CLI Output to Structlog Transformer
+"""Tests for CLI Output to Structlog Transformer
 
 This module tests the AST transformation capabilities that convert CLI framework
 output functions to structured logging with nicestlog.
 """
 
 import ast
+
 import pytest
 
 from nicestlog.cli_output_transformer import (
     CLIOutputCall,
     CLIOutputToStructlogTransformer,
-    migrate_cli_outputs_file,
     analyze_cli_outputs_in_file,
+    migrate_cli_outputs_file,
 )
 
 
@@ -26,7 +26,9 @@ class TestCLIOutputCall:
             function="echo",
             line_number=10,
             original_call=ast.Call(
-                func=ast.Name(id="test", ctx=ast.Load()), args=[], keywords=[]
+                func=ast.Name(id="test", ctx=ast.Load()),
+                args=[],
+                keywords=[],
             ),
             message_arg=ast.Constant(value="test message"),
             style_info={"color": "red"},
@@ -46,7 +48,9 @@ class TestCLIOutputCall:
             function="echo",
             line_number=5,
             original_call=ast.Call(
-                func=ast.Name(id="test", ctx=ast.Load()), args=[], keywords=[]
+                func=ast.Name(id="test", ctx=ast.Load()),
+                args=[],
+                keywords=[],
             ),
         )
 
@@ -123,11 +127,11 @@ class TestCLIOutputToStructlogTransformer:
         assert CLIOutputToStructlogTransformer.is_simple_event("multi-word-event")
 
         assert not CLIOutputToStructlogTransformer.is_simple_event(
-            "User-Login"
+            "User-Login",
         )  # uppercase
         assert not CLIOutputToStructlogTransformer.is_simple_event("test.event")  # dot
         assert not CLIOutputToStructlogTransformer.is_simple_event(
-            "test event"
+            "test event",
         )  # space
         assert not CLIOutputToStructlogTransformer.is_simple_event("")  # empty
 
@@ -159,7 +163,9 @@ class TestCLIOutputToStructlogTransformer:
 
         # Test from rich import print
         node = ast.ImportFrom(
-            module="rich", names=[ast.alias(name="print", asname=None)], level=0
+            module="rich",
+            names=[ast.alias(name="print", asname=None)],
+            level=0,
         )
         transformer.visit_ImportFrom(node)
         assert transformer.imports["rich"]
@@ -202,7 +208,9 @@ class TestCLIOutputToStructlogTransformer:
         node = ast.Assign(
             targets=[ast.Name(id="console", ctx=ast.Store())],
             value=ast.Call(
-                func=ast.Name(id="Console", ctx=ast.Load()), args=[], keywords=[]
+                func=ast.Name(id="Console", ctx=ast.Load()),
+                args=[],
+                keywords=[],
             ),
         )
 
@@ -659,7 +667,9 @@ class TestLogLevelDetermination:
             function="echo",
             line_number=1,
             original_call=ast.Call(
-                func=ast.Name(id="test", ctx=ast.Load()), args=[], keywords=[]
+                func=ast.Name(id="test", ctx=ast.Load()),
+                args=[],
+                keywords=[],
             ),
             output_stream="stdout",
         )
@@ -676,7 +686,9 @@ class TestLogLevelDetermination:
             function="echo",
             line_number=1,
             original_call=ast.Call(
-                func=ast.Name(id="test", ctx=ast.Load()), args=[], keywords=[]
+                func=ast.Name(id="test", ctx=ast.Load()),
+                args=[],
+                keywords=[],
             ),
             output_stream="stderr",
         )
@@ -693,7 +705,9 @@ class TestLogLevelDetermination:
             function="error",
             line_number=1,
             original_call=ast.Call(
-                func=ast.Name(id="test", ctx=ast.Load()), args=[], keywords=[]
+                func=ast.Name(id="test", ctx=ast.Load()),
+                args=[],
+                keywords=[],
             ),
             output_stream="stderr",
         )

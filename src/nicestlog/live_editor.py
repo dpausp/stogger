@@ -1,5 +1,4 @@
-"""
-🔥 Live Code Editor - Interactive editing of transformation proposals
+"""🔥 Live Code Editor - Interactive editing of transformation proposals
 
 Provides in-terminal code editing with syntax highlighting and validation.
 Records all user edits for machine learning and pattern improvement.
@@ -8,17 +7,17 @@ Records all user edits for machine learning and pattern improvement.
 from __future__ import annotations
 
 import ast
-import tempfile
-import subprocess
+from dataclasses import dataclass
 import os
 from pathlib import Path
-from typing import List, Tuple
-from dataclasses import dataclass
-import structlog
+import subprocess
+import tempfile
+
 from rich.console import Console
-from rich.syntax import Syntax
 from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
+from rich.prompt import Confirm, Prompt
+from rich.syntax import Syntax
+import structlog
 
 log = structlog.get_logger("nicestlog.live_editor")
 console = Console()
@@ -31,7 +30,7 @@ class EditSession:
     original_code: str
     ai_suggestion: str
     user_final_code: str
-    edit_steps: List[str]
+    edit_steps: list[str]
     pattern_name: str
     file_path: str
     line_number: int
@@ -41,8 +40,7 @@ class EditSession:
 
 
 class LiveCodeEditor:
-    """
-    🔥 Live Code Editor for Interactive Transformations
+    """🔥 Live Code Editor for Interactive Transformations
 
     Allows users to edit AI transformation suggestions in real-time
     with syntax highlighting, validation, and comprehensive logging.
@@ -50,7 +48,7 @@ class LiveCodeEditor:
 
     def __init__(self, use_external_editor: bool = False):
         self.use_external_editor = use_external_editor
-        self.edit_sessions: List[EditSession] = []
+        self.edit_sessions: list[EditSession] = []
 
         log.debug(
             "live-editor-initialized",
@@ -65,14 +63,14 @@ class LiveCodeEditor:
         pattern_name: str,
         file_path: str,
         line_number: int,
-    ) -> Tuple[str, bool, EditSession]:
-        """
-        Edit a transformation suggestion interactively.
+    ) -> tuple[str, bool, EditSession]:
+        """Edit a transformation suggestion interactively.
 
         Returns:
             - Final code (user-edited or original suggestion)
             - Whether user accepted the result
             - Edit session data for ML
+
         """
         import time
 
@@ -182,12 +180,15 @@ class LiveCodeEditor:
                 self._show_edit_interface(original_code, current_code, pattern_name)
 
     def _show_edit_interface(
-        self, original_code: str, current_code: str, pattern_name: str
+        self,
+        original_code: str,
+        current_code: str,
+        pattern_name: str,
     ):
         """Show the editing interface with before/after comparison."""
         console.print("\n" + "=" * 80)
         console.print(
-            f"🔥 [bold blue]Live Code Editor[/bold blue] - Pattern: [cyan]{pattern_name}[/cyan]"
+            f"🔥 [bold blue]Live Code Editor[/bold blue] - Pattern: [cyan]{pattern_name}[/cyan]",
         )
 
         # Original code
@@ -196,7 +197,7 @@ class LiveCodeEditor:
                 Syntax(original_code, "python", theme="monokai", line_numbers=False),
                 title="[red]Original Code[/red]",
                 border_style="red",
-            )
+            ),
         )
 
         # Current suggestion/edit
@@ -205,7 +206,7 @@ class LiveCodeEditor:
                 Syntax(current_code, "python", theme="monokai", line_numbers=False),
                 title="[green]Current Transformation[/green]",
                 border_style="green",
-            )
+            ),
         )
 
     def _get_edit_choice(self) -> str:
@@ -228,17 +229,17 @@ class LiveCodeEditor:
             else:
                 console.print("[red]Invalid choice. Use e/a/r/reset[/red]")
 
-    def _edit_code_interactive(self, current_code: str) -> Tuple[str, bool]:
+    def _edit_code_interactive(self, current_code: str) -> tuple[str, bool]:
         """Edit code interactively in the terminal."""
         if self.use_external_editor:
             return self._edit_with_external_editor(current_code)
         else:
             return self._edit_with_inline_editor(current_code)
 
-    def _edit_with_inline_editor(self, current_code: str) -> Tuple[str, bool]:
+    def _edit_with_inline_editor(self, current_code: str) -> tuple[str, bool]:
         """Simple inline editor for quick edits."""
         console.print(
-            "\n🔥 [bold]Inline Editor[/bold] - Enter your code (empty line to finish):"
+            "\n🔥 [bold]Inline Editor[/bold] - Enter your code (empty line to finish):",
         )
         console.print("[dim]Current code:[/dim]")
         console.print(f"[cyan]{current_code}[/cyan]")
@@ -259,7 +260,7 @@ class LiveCodeEditor:
 
         return new_code, had_errors
 
-    def _edit_with_external_editor(self, current_code: str) -> Tuple[str, bool]:
+    def _edit_with_external_editor(self, current_code: str) -> tuple[str, bool]:
         """Edit code with external editor (vim, nano, etc.)."""
         editor = os.environ.get("EDITOR", "nano")
 
@@ -275,12 +276,12 @@ class LiveCodeEditor:
 
             if result.returncode != 0:
                 console.print(
-                    f"❌ [red]Editor exited with error code {result.returncode}[/red]"
+                    f"❌ [red]Editor exited with error code {result.returncode}[/red]",
                 )
                 return current_code, True
 
             # Read edited content
-            with open(temp_path, "r") as f:
+            with open(temp_path) as f:
                 new_code = f.read().strip()
 
             # Validate syntax
@@ -318,7 +319,7 @@ class LiveCodeEditor:
                     "accepted": session.accepted,
                     "edit_duration_seconds": session.edit_duration_seconds,
                     "syntax_errors_encountered": session.syntax_errors_encountered,
-                }
+                },
             )
 
         output_path.write_text(json.dumps(sessions_data, indent=2))
@@ -361,10 +362,10 @@ class LiveCodeEditor:
             if stats["total"] > 0:
                 stats["avg_edits"] = float(stats["avg_edits"]) / float(stats["total"])
                 stats["avg_duration"] = float(stats["avg_duration"]) / float(
-                    stats["total"]
+                    stats["total"],
                 )
                 stats["acceptance_rate"] = float(stats["accepted"]) / float(
-                    stats["total"]
+                    stats["total"],
                 )
 
         insights = {
@@ -390,7 +391,7 @@ class LiveCodeEditor:
 
         return insights
 
-    def _extract_common_edit_patterns(self) -> List[str]:
+    def _extract_common_edit_patterns(self) -> list[str]:
         """Extract common patterns from user edits."""
         all_edits = []
         for session in self.edit_sessions:
@@ -424,9 +425,13 @@ def edit_code_live(
     pattern_name: str,
     file_path: str,
     line_number: int,
-) -> Tuple[str, bool, EditSession]:
+) -> tuple[str, bool, EditSession]:
     """Quick live editing of a code transformation."""
     editor = create_live_editor()
     return editor.edit_transformation(
-        original_code, suggested_code, pattern_name, file_path, line_number
+        original_code,
+        suggested_code,
+        pattern_name,
+        file_path,
+        line_number,
     )

@@ -1,13 +1,12 @@
-"""
-Tests for the asynchronous logging functionality.
-"""
+"""Tests for the asynchronous logging functionality."""
+
+import logging
+from unittest.mock import MagicMock, patch
 
 import pytest
-import logging
-from unittest.mock import patch, MagicMock
 
 from nicestlog.config import NicestLogConfig
-from nicestlog.factory import configure_stdlib_logging, build_shared_processors
+from nicestlog.factory import build_shared_processors, configure_stdlib_logging
 
 
 @patch("logging.basicConfig")
@@ -40,7 +39,8 @@ def test_async_logging_setup(mock_get_logger, mock_listener):
     mock_listener.return_value.start.assert_called_once()
     mock_root_logger.addHandler.assert_called_once()
     assert isinstance(
-        mock_root_logger.addHandler.call_args[0][0], logging.handlers.QueueHandler
+        mock_root_logger.addHandler.call_args[0][0],
+        logging.handlers.QueueHandler,
     )
 
 

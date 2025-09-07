@@ -11,16 +11,17 @@ repos:
         pass_filenames: false
 
       # Formatting
-      - id: ruff-format
-        name: ruff format
-        entry: uv run ruff format
+      - id: # ruff-format
+        name: # ruff format
+        entry: uv run # ruff format
         language: system
         types: [python]
         require_serial: false
 
-      - id: ruff-check-fix
-        name: ruff check --fix
-        entry: uv run ruff check --fix
+      - id: # ruff-check-fix
+        name: # ruff check --fix
+        entry: uv run # ruff check --fix
         language: system
         types: [python]
         require_serial: false
+

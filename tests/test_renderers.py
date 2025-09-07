@@ -1,9 +1,9 @@
-"""
-Tests for the renderers.
-"""
+"""Tests for the renderers."""
+
+import json
 
 import pytest
-import json
+
 from nicestlog.core import ConsoleFileRenderer, JSONRenderer
 
 

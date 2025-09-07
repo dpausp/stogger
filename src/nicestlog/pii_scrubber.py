@@ -1,31 +1,28 @@
-"""
-PII (Personally Identifiable Information) Scrubber for nicestlog.
+"""PII (Personally Identifiable Information) Scrubber for nicestlog.
 
 Automatically detects and redacts sensitive information from log messages.
 """
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class PIIScrubber:
-    """
-    Scrubs PII from log messages using regex patterns and field name detection.
-    """
+    """Scrubs PII from log messages using regex patterns and field name detection."""
 
     def __init__(
         self,
-        custom_patterns: Optional[Dict[str, str]] = None,
-        sensitive_fields: Optional[List[str]] = None,
+        custom_patterns: dict[str, str] | None = None,
+        sensitive_fields: list[str] | None = None,
         redaction_text: str = "[REDACTED]",
     ):
-        """
-        Initialize PII scrubber.
+        """Initialize PII scrubber.
 
         Args:
             custom_patterns: Additional regex patterns {name: pattern}
             sensitive_fields: Field names that should always be redacted
             redaction_text: Text to replace sensitive data with
+
         """
         self.redaction_text = redaction_text
 
@@ -96,19 +93,20 @@ class PIIScrubber:
             if pattern_name == "password":
                 # Special handling for password patterns to keep the field name
                 result = pattern.sub(
-                    lambda m: f"{m.group(1)}={self.redaction_text}", result
+                    lambda m: f"{m.group(1)}={self.redaction_text}",
+                    result,
                 )
             else:
                 result = pattern.sub(self.redaction_text, result)
 
         return result
 
-    def scrub_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def scrub_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Scrub PII from dictionary values and sensitive field names."""
         if not isinstance(data, dict):
             return data
 
-        scrubbed: Dict[str, Any] = {}
+        scrubbed: dict[str, Any] = {}
         for key, value in data.items():
             # Check if field name is sensitive
             if key.lower() in self.sensitive_fields:
@@ -124,12 +122,12 @@ class PIIScrubber:
 
         return scrubbed
 
-    def scrub_list(self, data: List[Any]) -> List[Any]:
+    def scrub_list(self, data: list[Any]) -> list[Any]:
         """Scrub PII from list items."""
         if not isinstance(data, list):
             return data
 
-        scrubbed: List[Any] = []
+        scrubbed: list[Any] = []
         for item in data:
             if isinstance(item, str):
                 scrubbed.append(self.scrub_string(item))
@@ -142,9 +140,8 @@ class PIIScrubber:
 
         return scrubbed
 
-    def scrub_event_dict(self, event_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Scrub PII from a structlog event dictionary.
+    def scrub_event_dict(self, event_dict: dict[str, Any]) -> dict[str, Any]:
+        """Scrub PII from a structlog event dictionary.
 
         This is the main method used as a structlog processor.
         """
@@ -175,8 +172,8 @@ class PIIScrubber:
 
 # Convenience function for easy integration
 def create_pii_processor(
-    custom_patterns: Optional[Dict[str, str]] = None,
-    sensitive_fields: Optional[List[str]] = None,
+    custom_patterns: dict[str, str] | None = None,
+    sensitive_fields: list[str] | None = None,
     redaction_text: str = "[REDACTED]",
 ) -> PIIScrubber:
     """Create a PII scrubber processor for structlog."""

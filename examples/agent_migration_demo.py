@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-"""
-🤖 Agent Migration Demo
+"""🤖 Agent Migration Demo
 
 This script demonstrates how AI agents can use nicestlog's project analysis
 and migration tools to automatically retrofit existing Python projects.
 """
 
 import json
-import tempfile
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 
 def create_sample_project():
     """Create a sample Python project with various logging patterns."""
-
     # Create temporary project directory
     project_dir = Path(tempfile.mkdtemp(prefix="agent_demo_"))
 
@@ -191,7 +189,8 @@ def simulate_agent_migration(project_dir, analysis):
 
     if "dependencies = []" in content:
         new_content = content.replace(
-            "dependencies = []", 'dependencies = [\n    "nicestlog>=1.0.0",\n]'
+            "dependencies = []",
+            'dependencies = [\n    "nicestlog>=1.0.0",\n]',
         )
         pyproject_path.write_text(new_content)
         print("     ✅ Added nicestlog to dependencies")
@@ -224,6 +223,7 @@ language = "en"
                 strategy,
                 "--dry-run",
             ],
+            check=False,
             capture_output=True,
             text=True,
         )
@@ -263,7 +263,7 @@ def main():
             print("\nTo see the full migration in action:")
             print(f"  cd {project_dir}")
             print(
-                f"  uv run nicestlog migrate . --type {analysis['recommendation']['strategy']} --backup"
+                f"  uv run nicestlog migrate . --type {analysis['recommendation']['strategy']} --backup",
             )
         else:
             print("\n❌ Agent migration simulation failed")

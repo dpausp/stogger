@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""
-Demo showing the enhanced ConsoleFileRenderer with SimpleFormatSettings.
-"""
+"""Demo showing the enhanced ConsoleFileRenderer with SimpleFormatSettings."""
+
+import structlog
 
 import nicestlog
-import structlog
 
 
 def main():
@@ -14,7 +13,7 @@ def main():
     print("1. Default console format (clean):")
     print("   nicestlog.init_logging()")
     print(
-        "   Output: 2025-08-16T00:18:57.672408 I lock-try Looks like another management command is running"
+        "   Output: 2025-08-16T00:18:57.672408 I lock-try Looks like another management command is running",
     )
     print()
 
@@ -28,7 +27,9 @@ def main():
     )
 
     nicestlog.init_logging(
-        verbose=False, syslog_identifier="demo", simple_format_settings=settings
+        verbose=False,
+        syslog_identifier="demo",
+        simple_format_settings=settings,
     )
 
     log = structlog.get_logger("demo")
@@ -42,7 +43,8 @@ def main():
     print("   Output:")
 
     log.info(
-        "lock-try", _replace_msg="Looks like another management command is running"
+        "lock-try",
+        _replace_msg="Looks like another management command is running",
     )
     log.info("register-system-profile-command", cmd="nix-env")
     log.info("app-starting", version="1.0.0", component="main")

@@ -1,5 +1,4 @@
-"""
-Assistant tools to migrate print/logging statements to structlog.
+"""Assistant tools to migrate print/logging statements to structlog.
 
 This is a minimal, safe transformer that:
 - ensures each module imports structlog and has a top-level `log = structlog.get_logger()`
@@ -10,11 +9,10 @@ It intentionally avoids complex logging-module rewrites for safety.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional, Tuple, Dict, List
 import ast
+from dataclasses import dataclass, field
 import difflib
+from pathlib import Path
 import re
 import unicodedata
 
@@ -23,8 +21,8 @@ import unicodedata
 class MigrationResult:
     files_processed: int = 0
     files_transformed: int = 0
-    diffs: Dict[str, List[str]] = field(
-        default_factory=dict
+    diffs: dict[str, list[str]] = field(
+        default_factory=dict,
     )  # path -> unified diff lines
 
 
@@ -58,7 +56,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         return slug
 
     @staticmethod
-    def derive_event_from_literal(arg: ast.AST) -> Optional[str]:
+    def derive_event_from_literal(arg: ast.AST) -> str | None:
         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
             candidate = PrintToStructlogTransformer.slugify(arg.value)
             return candidate
@@ -112,7 +110,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         )
 
         # Determine event id
-        event_arg: Optional[str] = None
+        event_arg: str | None = None
         if node.args:
             event_arg = self.derive_event_from_literal(node.args[0])
         event = (
@@ -121,7 +119,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             else "print-output"
         )
 
-        keywords: List[ast.keyword] = []
+        keywords: list[ast.keyword] = []
 
         # Build _replace_msg and remaining args mapping
         lit_first = (
@@ -135,7 +133,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
             msg = original + ((" " + " ".join(placeholders)) if placeholders else "")
             keywords.append(
-                ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg))
+                ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg)),
             )
         else:
             remaining_args = node.args
@@ -143,7 +141,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
                 placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
                 msg = " ".join(placeholders)
                 keywords.append(
-                    ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg))
+                    ast.keyword(arg="_replace_msg", value=ast.Constant(value=msg)),
                 )
 
         # Map positional args a0, a1, ...
@@ -186,8 +184,9 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
             )
             prelude.append(
                 ast.Assign(
-                    targets=[ast.Name(id="log", ctx=ast.Store())], value=get_logger_call
-                )
+                    targets=[ast.Name(id="log", ctx=ast.Store())],
+                    value=get_logger_call,
+                ),
             )
         if prelude:
             tree.body = prelude + tree.body
@@ -195,7 +194,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         return tree
 
 
-def migrate_file(content: str) -> Tuple[str, bool]:
+def migrate_file(content: str) -> tuple[str, bool]:
     tree = ast.parse(content)
     transformer = PrintToStructlogTransformer()
     tree = transformer.visit(tree)
@@ -212,11 +211,10 @@ def migrate_file(content: str) -> Tuple[str, bool]:
 
 def migrate_directory(
     input_dir: Path,
-    output_dir: Optional[Path],
+    output_dir: Path | None,
     dry_run: bool = True,
 ) -> MigrationResult:
-    """Migrate Python files under input_dir. Writes to output_dir if provided, else in-place.
-    """
+    """Migrate Python files under input_dir. Writes to output_dir if provided, else in-place."""
     result = MigrationResult()
     input_dir = Path(input_dir)
     if output_dir:
@@ -251,7 +249,7 @@ def migrate_directory(
                     new_code.splitlines(keepends=True),
                     fromfile=str(py),
                     tofile=str(py),
-                )
+                ),
             )
             result.diffs[str(py)] = diff_lines
 

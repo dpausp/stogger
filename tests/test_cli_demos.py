@@ -1,8 +1,9 @@
 import types
-import pytest
 from unittest.mock import Mock, patch
 
-import nicestlog.cli as cli
+import pytest
+
+from nicestlog import cli
 
 
 def _nosleep(*args, **kwargs):
@@ -29,7 +30,9 @@ def test_run_demos_unknown_feature_exits(capsys, monkeypatch):
 @patch("nicestlog.cli.structlog.get_logger")
 @patch("nicestlog.cli.nicestlog.init_logging")
 def test_run_demos_basic_invokes_logging(
-    mock_init_logging, mock_get_logger, monkeypatch
+    mock_init_logging,
+    mock_get_logger,
+    monkeypatch,
 ):
     # Speed up header/separator sleeps
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep))
@@ -48,9 +51,8 @@ def test_run_demos_basic_invokes_logging(
 
 def test_run_demos_all_features_dispatch(monkeypatch):
     # Patch all demo functions to simple call counters
-    calls = {
-        name: 0
-        for name in [
+    calls = dict.fromkeys(
+        [
             "run_basic_demo",
             "run_i18n_demo",
             "run_pii_demo",
@@ -58,8 +60,9 @@ def test_run_demos_all_features_dispatch(monkeypatch):
             "run_systemd_demo",
             "run_async_demo",
             "run_complete_demo",
-        ]
-    }
+        ],
+        0,
+    )
 
     def _mk_stub(name):
         def _stub():
@@ -68,7 +71,7 @@ def test_run_demos_all_features_dispatch(monkeypatch):
         return _stub
 
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep))
-    for name in calls.keys():
+    for name in calls:
         monkeypatch.setattr(cli, name, _mk_stub(name))
 
     cli.run_demos(feature=None, all_features=True)

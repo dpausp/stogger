@@ -1,5 +1,4 @@
-"""Tests for the core module functionality.
-"""
+"""Tests for the core module functionality."""
 
 import sys
 from unittest.mock import MagicMock, patch
@@ -42,7 +41,9 @@ class TestPartialFormatter:
         """Test that normal formatting works correctly."""
         formatter = PartialFormatter()
         result = formatter.format(
-            "Hello {name}! You are {age} years old.", name="Alice", age=30,
+            "Hello {name}! You are {age} years old.",
+            name="Alice",
+            age=30,
         )
         assert result == "Hello Alice! You are 30 years old."
 
@@ -359,7 +360,10 @@ class TestInitLogging:
     @patch("nicestlog.factory.build_shared_processors")
     @patch("nicestlog.core.structlog.configure")
     def test_init_logging_calls(
-        self, mock_structlog_configure, mock_build_processors, mock_configure_stdlib,
+        self,
+        mock_structlog_configure,
+        mock_build_processors,
+        mock_configure_stdlib,
     ):
         """Test that init_logging makes the correct calls."""
         mock_build_processors.return_value = []

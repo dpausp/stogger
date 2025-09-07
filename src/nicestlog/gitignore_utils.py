@@ -1,16 +1,14 @@
-"""
-Utilities for respecting .gitignore patterns in file analysis.
-"""
+"""Utilities for respecting .gitignore patterns in file analysis."""
 
 import fnmatch
 from pathlib import Path
-from typing import List
+
 import structlog
 
 log = structlog.get_logger(__name__)
 
 
-def load_gitignore_patterns(directory: Path) -> List[str]:
+def load_gitignore_patterns(directory: Path) -> list[str]:
     """Load patterns from .gitignore file."""
     gitignore_path = directory / ".gitignore"
     patterns = []
@@ -60,7 +58,7 @@ def load_gitignore_patterns(directory: Path) -> List[str]:
     return patterns
 
 
-def should_ignore_path(file_path: Path, base_dir: Path, patterns: List[str]) -> bool:
+def should_ignore_path(file_path: Path, base_dir: Path, patterns: list[str]) -> bool:
     """Check if a file path should be ignored based on gitignore patterns."""
     try:
         # Get relative path from base directory
@@ -109,7 +107,7 @@ def should_ignore_path(file_path: Path, base_dir: Path, patterns: List[str]) -> 
         return True
 
 
-def filter_python_files(directory: Path, respect_gitignore: bool = True) -> List[Path]:
+def filter_python_files(directory: Path, respect_gitignore: bool = True) -> list[Path]:
     """Get Python files in directory, respecting .gitignore if requested."""
     log.debug(
         "filter-files-started",

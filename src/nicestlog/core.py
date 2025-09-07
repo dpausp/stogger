@@ -1,5 +1,4 @@
-"""Core logging functionality for nicestlog.
-"""
+"""Core logging functionality for nicestlog."""
 
 from datetime import datetime
 import io
@@ -9,7 +8,6 @@ import string
 import subprocess
 import sys
 import syslog
-from typing import Any
 
 import structlog
 
@@ -18,7 +16,6 @@ try:
 except ImportError:
     journal = None
 
-from .config import NicestLogConfig
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -76,7 +73,8 @@ class PartialFormatter(string.Formatter):
 class TranslationProcessor:
     def __init__(self, translations):
         log.debug(
-            "initializing-translation-processor", translation_count=len(translations),
+            "initializing-translation-processor",
+            translation_count=len(translations),
         )
         self.translations = translations
         self.formatter = PartialFormatter()
@@ -518,9 +516,6 @@ def init_logging(*args, **kwargs):
         init_command_logging(log, logdir)
 
 
-
-
-
 def init_early_logging():
     """Initialize minimal logging format early to reduce uninitialized structlog messages.
 
@@ -666,7 +661,8 @@ class SystemdJournalRenderer:
         }
 
         event_dict["PRIORITY"] = JOURNAL_LEVELS.get(
-            event_dict.get("LEVEL"), syslog.LOG_INFO,
+            event_dict.get("LEVEL"),
+            syslog.LOG_INFO,
         )
         event_dict["SYSLOG_FACILITY"] = self.syslog_facility
         event_dict["SYSLOG_IDENTIFIER"] = self.syslog_identifier

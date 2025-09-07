@@ -1,16 +1,15 @@
-"""
-Tests for systemd integration functionality.
-"""
+"""Tests for systemd integration functionality."""
+
+import os
+from unittest.mock import MagicMock, patch
 
 import pytest
-import os
-from unittest.mock import patch, MagicMock
 
 from nicestlog.systemd_integration import (
+    SystemdJournalHandler,
+    create_systemd_service_file,
     detect_systemd_environment,
     setup_systemd_logging,
-    create_systemd_service_file,
-    SystemdJournalHandler,
 )
 
 
@@ -89,7 +88,8 @@ class TestCreateSystemdServiceFile:
     def test_service_file_creation_basic(self):
         """Test basic service file creation."""
         result = create_systemd_service_file(
-            service_name="test", exec_command="/usr/bin/python /app/main.py"
+            service_name="test",
+            exec_command="/usr/bin/python /app/main.py",
         )
 
         assert isinstance(result, str)

@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-"""
-Integration test for the enhanced ConsoleFileRenderer with SimpleFormatSettings.
-"""
+"""Integration test for the enhanced ConsoleFileRenderer with SimpleFormatSettings."""
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from nicestlog.core import ConsoleFileRenderer
 from nicestlog.config import SimpleFormatSettings
+from nicestlog.core import ConsoleFileRenderer
 
 
 def test_console_file_renderer_with_simple_settings():
@@ -28,8 +26,8 @@ def test_console_file_renderer_with_simple_settings():
             "level": "info",
         },
     )
-    print(f"   Console output: {repr(result['console'])}")
-    print(f"   File output: {repr(result['file'])}")
+    print(f"   Console output: {result['console']!r}")
+    print(f"   File output: {result['file']!r}")
 
     # Test 2: With show_pid=True
     print("\n2. Testing with show_pid=True:")
@@ -45,7 +43,7 @@ def test_console_file_renderer_with_simple_settings():
             "pid": 12345,
         },
     )
-    print(f"   Console output: {repr(result['console'])}")
+    print(f"   Console output: {result['console']!r}")
     assert "[12345]" in result["console"]
 
     # Test 3: With show_logger_brackets=True
@@ -62,7 +60,7 @@ def test_console_file_renderer_with_simple_settings():
             "logger": "test_logger",
         },
     )
-    print(f"   Console output: {repr(result['console'])}")
+    print(f"   Console output: {result['console']!r}")
     assert "[test_logger]" in result["console"]
 
     # Test 4: With timestamp_format="iso_no_z"
@@ -78,7 +76,7 @@ def test_console_file_renderer_with_simple_settings():
             "level": "info",
         },
     )
-    print(f"   Console output: {repr(result['console'])}")
+    print(f"   Console output: {result['console']!r}")
     assert "2023-01-01T00:00:00 " in result["console"]
     assert "2023-01-01T00:00:00Z" not in result["console"]
 
@@ -95,7 +93,7 @@ def test_console_file_renderer_with_simple_settings():
             "level": "info",
         },
     )
-    print(f"   Console output: {repr(result['console'])}")
+    print(f"   Console output: {result['console']!r}")
 
     print("\nAll tests passed!")
 

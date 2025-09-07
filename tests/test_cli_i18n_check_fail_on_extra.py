@@ -6,7 +6,9 @@ import textwrap
 
 def run_cli(args, cwd=None):
     exe = [sys.executable, "-m", "nicestlog", "tools", "i18n", "check"]
-    return subprocess.run(exe + args, cwd=cwd, capture_output=True, text=True)
+    return subprocess.run(
+        exe + args, check=False, cwd=cwd, capture_output=True, text=True,
+    )
 
 
 def test_cli_fail_on_extra_in_list_and_full(tmp_path: Path):
@@ -21,14 +23,15 @@ def test_cli_fail_on_extra_in_list_and_full(tmp_path: Path):
         import structlog
         log = structlog.get_logger()
         log.info("event-a")
-        """
+        """,
         ),
         encoding="utf-8",
     )
 
     # event-a present, but extra key exists
     (trans / "en.toml").write_text(
-        'event-a = "A"\nextra-unused = "Z"\n', encoding="utf-8"
+        'event-a = "A"\nextra-unused = "Z"\n',
+        encoding="utf-8",
     )
 
     # list-missing mode: prints nothing, but with --fail-on-extra should return 1
