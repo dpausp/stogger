@@ -492,6 +492,6 @@ nicestlog tools demo
 5. **Validate Results**: Use `nicestlog check` and `nicestlog demo`
 
 For more examples and advanced patterns, see:
-- [CLI Migration Guide](cli_migration_guide.md)
 - [Best Practices](best_practices.md)
 - [Advanced Features](advanced_features.md)
+- [CLI Reference](cli_reference.md)

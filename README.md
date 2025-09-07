@@ -29,8 +29,8 @@ Already have a project with print statements or standard logging? Nicestlog can 
 # Analyze your legacy project (safe, no changes)
 nicestlog migrate /path/to/your/project
 
-# Apply migration with backup
-nicestlog migrate /path/to/your/project --do-migrate --backup
+# Apply migration (dry-run preview by default)
+nicestlog migrate /path/to/your/project --no-dry-run
 
 # Validate results in structlog-based projects
 nicestlog check /path/to/your/project
@@ -92,6 +92,8 @@ log.info(
 
 For more examples and best practices, see the [documentation](docs/user_guide/best_practices.md).
 
+For detailed CLI reference and command documentation, see [CLI Reference](docs/user_guide/cli_reference.md).
+
 For detailed logging conventions and coding standards, see [Logging Conventions](docs/user_guide/logging_conventions.md).
 
 For internationalization and translation coverage checking, see [i18n documentation](docs/features/i18n.md).
@@ -102,7 +104,7 @@ For internationalization and translation coverage checking, see [i18n documentat
 # Project analysis and migration (for legacy projects without structlog)
 nicestlog migrate .                    # Analyze project (safe, default)
 nicestlog migrate . --json            # JSON output for agents
-nicestlog migrate . --do-migrate      # Apply migration changes
+nicestlog migrate . --no-dry-run      # Apply migration changes
 
 # Code quality and fixes (for structlog-based projects)
 nicestlog check .                      # Check logging best practices
@@ -157,14 +159,14 @@ nicestlog migrate .
 # Get JSON output for automated processing
 nicestlog migrate . --json
 
-# Actually apply migration changes
-nicestlog migrate . --do-migrate
+# Actually apply migration changes (dry-run by default, so --no-dry-run is needed to apply)
+nicestlog migrate . --no-dry-run
 
 # Interactive migration with user confirmation
-nicestlog migrate . --do-migrate --interactive
+nicestlog migrate . --no-dry-run --interactive
 
 # Specific migration type
-nicestlog migrate . --do-migrate --type logging-to-structlog
+nicestlog migrate . --no-dry-run --type logging-to-structlog
 ```
 
 For ongoing code quality in structlog-based projects, use `nicestlog check` to identify logging anti-patterns and best practice violations.
@@ -180,7 +182,7 @@ For ongoing code quality in structlog-based projects, use `nicestlog check` to i
 **Migration Workflow:**
 1. `nicestlog migrate .` - Analyze project (shows recommendations)
 2. Review suggestions and warnings
-3. `nicestlog migrate . --do-migrate` - Apply changes with backups
+3. `nicestlog migrate . --no-dry-run` - Apply changes
 
 **For AI Agents:**
 ```bash

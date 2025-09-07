@@ -20,6 +20,7 @@ Welcome to the comprehensive documentation for nicestlog - your go-to solution f
    user_guide/advanced_features
    user_guide/quick_practices
    user_guide/nix_integration
+   user_guide/cli_reference
 
 .. toctree::
    :maxdepth: 2
