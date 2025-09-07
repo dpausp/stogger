@@ -1,92 +1,70 @@
-# Remove loguru references from codebase
+# Fix Test Failures - Core Logging and CLI Issues
 
 Task goal
-- Remove all loguru references from the codebase since it's not needed
-- Clean up test files, documentation, and migration examples that mention loguru
-- Ensure no functionality is broken after removal
+- Fix 50 failing tests in the nicestlog test suite
+- Focus on core logging DropEvent issues and missing CLI functions
+- Don't build new features, only fix clear test issues
 
 Out-of-scope for this task
-- Changing core logging functionality (nicestlog uses structlog, not loguru)
-- Breaking existing migration capabilities for other logging libraries
+- Building new features to satisfy tests
+- Major architectural changes
+- Fixing unrelated test failures
 
 General approach (guardrails)
 - English artifacts (Rule 7)
 - No dependency YOLOing (Rule 3). Use `uv run` for Python commands
 - Lint before committing (Rule 5). Respect pre-commit if present (Rule 6)
-- Only add tests when we change code (Rule 4)
+- Test-driven fixes (Rule 4)
 
 Prioritized work items (with checkboxes)
 
-1) Analyze current loguru references
-   - Context: Found loguru references in tests, docs, and examples but not as dependency
-   - Files with loguru references:
-     - tests/test_log_statement_analyzer.py (import loguru, test assertions)
-     - tests/test_cli_ast_integration.py (mock_deps.has_loguru = False)
-     - docs/agents/migration_guide.md (mentions loguru migration)
-     - docs/user_guide/migration_examples.md (loguru migration example)
-     - docs/user_guide/cli_migration_guide.md (loguru migration table)
-     - examples/migration_examples.py (loguru migration example)
-     - src/nicestlog/log_statement_analyzer.py (comment mentioning loguru)
-     - README.md (mentions loguru support)
-   - Steps:
-     - [x] Identify all loguru references
-     - [x] Categorize by type (tests, docs, examples, code comments)
-     - [x] Plan removal strategy for each category
-
-2) Remove loguru from test files
-   - Context: Tests reference loguru but it's not actually used
+1) Fix ConsoleFileRenderer DropEvent issues
+   - Context: Many tests fail because ConsoleFileRenderer raises DropEvent by default when filtering log levels
+   - Root cause: safe_drop=False by default causes DropEvent exceptions in logging pipeline
    - Files to modify:
-     - tests/test_log_statement_analyzer.py
-     - tests/test_cli_ast_integration.py
+     - src/nicestlog/core.py (change default safe_drop value)
+     - tests/test_core.py (update test that expects DropEvent)
    - Steps:
-     - [x] Remove loguru import and related test assertions
-     - [x] Remove has_loguru mock references
-     - [x] Run tests to ensure nothing breaks
-     - [x] Update test coverage if needed
+     - [ ] Change safe_drop default from False to True in ConsoleFileRenderer.__init__
+     - [ ] Update test_level_filtering to explicitly set safe_drop=False
+     - [ ] Run tests to verify DropEvent issues are resolved
 
-3) Clean up documentation references
-   - Context: Documentation mentions loguru migration but user doesn't want it
+2) Add missing create_migration_backup function
+   - Context: CLI tests expect create_migration_backup function that doesn't exist
+   - Error: AttributeError: module 'src.nicestlog.cli' does not have attribute 'create_migration_backup'
    - Files to modify:
-     - docs/agents/migration_guide.md
-     - docs/user_guide/migration_examples.md
-     - docs/user_guide/cli_migration_guide.md
-     - README.md
+     - src/nicestlog/cli.py (add missing function)
    - Steps:
-     - [x] Remove loguru migration examples
-     - [x] Update migration guides to remove loguru references
-     - [x] Update README.md to remove loguru mention
-     - [x] Ensure documentation still makes sense
+     - [ ] Add create_migration_backup function to CLI module
+     - [ ] Implement basic functionality or stub as needed
+     - [ ] Run CLI tests to verify fix
 
-4) Remove loguru from examples
-   - Context: Migration examples include loguru but it's not needed
-   - Files to modify:
-     - examples/migration_examples.py
+3) Fix CLI exit code mismatches
+   - Context: Tests expect exit code 1 but getting 2 in several CLI scenarios
+   - Affected tests: test_migrate_command_invalid_type, test_migrate_interactive_mode_error
+   - Files to check:
+     - src/nicestlog/cli.py (check exit code logic)
+     - tests/test_cli.py (verify expected behavior)
    - Steps:
-     - [x] Remove loguru migration example
-     - [x] Ensure examples still demonstrate migration capabilities
-     - [x] Test examples still work
+     - [ ] Analyze failing tests to understand expected vs actual exit codes
+     - [ ] Fix CLI exit code logic where appropriate
+     - [ ] Run tests to verify fixes
 
-5) Clean up code comments
-   - Context: Source code has comments mentioning loguru
-   - Files to modify:
-     - src/nicestlog/log_statement_analyzer.py
+4) Fix journal viewer output format issues
+   - Context: Journal viewer tests expect specific output format but getting different format
+   - Affected tests: test_main_json_output, test_main_formatted_output
+   - Files to check:
+     - src/nicestlog/journal_viewer.py
+     - tests/test_journal_viewer.py
    - Steps:
-     - [x] Remove loguru from comment examples
-     - [x] Update comment to reflect actual supported libraries
-     - [x] Ensure code functionality unchanged
+     - [ ] Analyze expected vs actual output format
+     - [ ] Fix output formatting in journal viewer
+     - [ ] Run tests to verify fixes
 
-6) Run comprehensive tests
-   - Context: Ensure removal doesn't break anything
+5) Run comprehensive test validation
+   - Context: Ensure fixes don't break other functionality
    - Steps:
-     - [x] Run full test suite with `uv run pytest`
-     - [x] Check that migration functionality still works for other libraries
-     - [x] Verify documentation builds correctly
-     - [x] Test CLI commands still work
-
-7) Final cleanup and validation
-   - Context: Ensure complete removal and no broken references
-   - Steps:
-     - [x] Search for any remaining loguru references
-     - [x] Run linting and type checking
-     - [x] Update version if needed
-     - [x] Commit changes with proper message
+     - [ ] Run full test suite with `uv run pytest`
+     - [ ] Verify significant reduction in test failures
+     - [ ] Check that core functionality still works
+     - [ ] Document any remaining test failures with reasons
