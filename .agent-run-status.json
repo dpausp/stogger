@@ -1,0 +1,5 @@
+{
+  "agent-post-commit": true,
+  "fallback_created": true,
+  "session_started": false
+}
