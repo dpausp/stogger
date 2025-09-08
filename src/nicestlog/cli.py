@@ -282,7 +282,8 @@ def i18n_check(
 
             # Show debug events if present
             debug_events = cast(
-                "list[str]", result.get("debug_with_replace_events", []),
+                "list[str]",
+                result.get("debug_with_replace_events", []),
             )
             if debug_events and verbose:
                 print("Debug events using _replace_msg (ignored for coverage):")

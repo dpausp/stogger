@@ -442,7 +442,8 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         )
         keywords.append(
             ast.keyword(
-                arg="cli_function", value=ast.Constant(value=cli_call.function),
+                arg="cli_function",
+                value=ast.Constant(value=cli_call.function),
             ),
         )
         keywords.append(
