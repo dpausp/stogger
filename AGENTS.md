@@ -4,7 +4,7 @@ These rules for AI agents are set by the human maintainer. AI agents must abide 
 
 ## 🎯 Core Principles (The Big 7)
 
-1. **Respect defined Agent workflow** (Rule 1) - Agents have to trigger mandatory Agent workflow events, see below.
+1. **Respect all the rules** (Rule 1), especially Rule 1 :)
 1. **Analyze and Plan in \_TODO-AGENT.md** (Rule 2) - NO code changes in TODO phase. Only changes to \_TODO-AGENT.md allowed. This is the reference for implementing coding tasks later. When in TODO phase, stay in TODO phase.
 1. **TODO-First, user is responsible for switch to IMPL** (Rule 3) - Never implement anything when in TODO phase, just continue working on TODO only. User switches to IMPL phase explicitly, don't assume that you can just start coding on your own!
 1. **Always use Git** (Rule 4) - Always commit workdir changes, manage gitignore and remember to show the commit ID to the user directly after commit.
