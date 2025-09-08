@@ -82,26 +82,27 @@ ______________________________________________________________________
 
    - **Commit message hint**: "Analyze legacy code patterns"
 
-1. [ ] **Plan the cleanup** – Create a plan to remove the anti-patterns
+1. [x] **Plan the cleanup** – Create a plan to remove the anti-patterns
 
    - **Context**: Based on the analysis, concrete steps for cleanup need to be planned.
 
    - **Success criteria**
 
-     - [ ] Detailed cleanup plan created
-     - [ ] Prioritization of tasks
-     - [ ] Risk assessment performed
+     - [x] Detailed cleanup plan created
+     - [x] Prioritization of tasks
+     - [x] Risk assessment performed
 
    - **Files to check/modify**
 
-     - [ ] \_TODO-AGENT.md (this file)
+     - [x] \_TODO-AGENT.md (this file)
+     - [x] docs/development/cleanup_plan.md
 
    - **Steps**
 
-     - [ ] Create a detailed cleanup plan
-     - [ ] Prioritize the identified issues
-     - [ ] Perform risk assessment for each change
-     - [ ] Document the plan
+     - [x] Create a detailed cleanup plan
+     - [x] Prioritize the identified issues
+     - [x] Perform risk assessment for each change
+     - [x] Document the plan
 
    - **Commit message hint**: "Plan cleanup of try-except suppression and legacy patterns"
 
