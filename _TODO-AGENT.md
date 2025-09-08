@@ -1,20 +1,20 @@
-# Legacy Code Cleanup - Remove Technical Debt
+# Implement New Rules in Project - Focus on Legacy Code and Try-Except Avoidance
 
-Clean up legacy workarounds and compatibility issues that create technical debt.
+Implement the new rules for AI agents defined in AGENTS.md. Focus on avoiding legacy code and try-except blocks that suppress exceptions.
 
 ## Description
 
 *(Scope, Motivation, Research, Related work – no checkboxes here!)*
 
-- Problem statement: Legacy code in core.py, systemd_integration.py, assistant.py etc. creates maintenance burden and technical debt.
-- Why we want to solve it: Cleaner codebase, easier maintenance, fewer bugs.
-- Research / references: Found through code search for legacy|workaround|compatibility|hack.
+- Problem statement: The project contains try-except blocks that suppress exceptions, as well as legacy code patterns that create technical debt.
+- Why we want to solve it: Cleaner codebase, easier maintenance, fewer bugs, and better visibility of errors.
+- Research / references: Analysis of the codebase for try-except blocks and legacy patterns.
 - Constraints: Don't break existing functionality, update tests, document breaking changes.
 
 ### Task Goal
 
-- **Outcome we want**: All legacy workarounds removed, codebase cleaned.
-- **Success criteria**: No legacy code left, all tests pass, no regressions.
+- **Outcome we want**: Remove all try-except blocks that suppress exceptions and clean up all identified legacy patterns.
+- **Success criteria**: No more suppressed exceptions, all tests pass, no regressions.
 
 ______________________________________________________________________
 
@@ -22,149 +22,125 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Analyze legacy dependencies** – Identify dependencies on legacy features
+1. [ ] **Analyze try-except blocks** – Identify blocks that suppress exceptions
 
-   - **Context**: Before removing, need to know what's affected.
+   - **Context**: Try-except blocks that ignore or suppress exceptions prevent early detection of errors.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] Tests found that use legacy features
-     - [ ] Breaking changes documented
-
-   - **Files to check/modify**
-
-     - [ ] tests/test_core.py (Legacy init_logging tests)
-     - [ ] tests/test_systemd_integration.py (cgroup hack tests)
-     - [ ] tests/test_assistant.py (translations_file tests)
-
-   - **Steps** (always action verbs, explicit order)
-
-     - [ ] Search for tests that call init_logging_legacy
-     - [ ] Search for tests that use cgroup hack
-     - [ ] Search for tests that use translations_file parameter
-     - [ ] Document all found dependencies
-
-   - **Commit message hint**: "Analyze legacy code dependencies"
-
-2. [ ] **Remove init_logging_legacy** – Clean up legacy compatibility in core.py
-
-   - **Context**: init_logging has legacy support for old signatures, creating technical debt.
-
-   - **Success criteria**
-
-     - [ ] init_logging_legacy function removed
-     - [ ] Legacy kwargs detection removed
-     - [ ] New signature as default
+     - [ ] All try-except blocks in the codebase identified
+     - [ ] Blocks classified (suppressing vs. correctly handled)
+     - [ ] Documentation of found patterns
 
    - **Files to check/modify**
 
      - [ ] src/nicestlog/core.py
-     - [ ] src/nicestlog/__init__.py (remove export)
-     - [ ] tests/test_core.py (remove or update legacy tests)
-
-   - **Steps**
-
-     - [ ] Remove init_logging_legacy function
-     - [ ] Remove legacy kwargs logic from init_logging
-     - [ ] Remove export from __init__.py
-     - [ ] Update affected tests
-
-   - **Commit message hint**: "Remove init_logging_legacy compatibility"
-
-3. [ ] **Remove hacky cgroup code** – Clean up systemd integration
-
-   - **Context**: Hacky /proc/self/cgroup reading is ugly and error-prone.
-
-   - **Success criteria**
-
-     - [ ] Hacky cgroup code removed
-     - [ ] Alternative implementation or fallback
-
-   - **Files to check/modify**
-
      - [ ] src/nicestlog/systemd_integration.py
-     - [ ] tests/test_systemd_integration.py
-
-   - **Steps**
-
-     - [ ] Replace hacky cgroup code with clean alternative
-     - [ ] Update tests
-
-   - **Commit message hint**: "Remove hacky cgroup reading in systemd integration"
-
-4. [ ] **Remove unused parameters** – translations_file and others
-
-   - **Context**: translations_file in assistant.py is unused but kept for compatibility.
-
-   - **Success criteria**
-
-     - [ ] Unused parameters removed
-     - [ ] CLI compatibility broken (documented)
-
-   - **Files to check/modify**
-
      - [ ] src/nicestlog/assistant.py
-     - [ ] src/nicestlog/cli.py (migration command)
-     - [ ] tests/test_assistant.py
-
-   - **Steps**
-
-     - [ ] Remove translations_file parameter
-     - [ ] Update CLI interface
-     - [ ] Update tests
-
-   - **Commit message hint**: "Remove unused translations_file parameter"
-
-5. [ ] **Clean up TODO/FIXME patterns** – Clean up log reviewer
-
-   - **Context**: Patterns for TODO/FIXME/XXX might be unnecessary.
-
-   - **Success criteria**
-
-     - [ ] Unnecessary patterns removed
-     - [ ] Useful ones kept
-
-   - **Files to check/modify**
-
+     - [ ] src/nicestlog/cli.py
+     - [ ] src/nicestlog/web_dashboard.py
+     - [ ] src/nicestlog/project_analyzer.py
+     - [ ] src/nicestlog/log_statement_analyzer.py
      - [ ] src/nicestlog/log_reviewer.py
-     - [ ] tests/test_log_reviewer.py
+     - [ ] src/nicestlog/live_editor.py
+     - [ ] src/nicestlog/advanced_assistant.py
+     - [ ] src/nicestlog/linter.py
 
-   - **Steps**
+   - **Steps** (always action verbs, explicit order)
 
-     - [ ] Evaluate patterns
-     - [ ] Remove unnecessary ones
-     - [ ] Update tests
+     - [ ] Search for all try-except blocks in the codebase
+     - [ ] Analyze if exceptions are correctly handled or suppressed
+     - [ ] Classify the found blocks
+     - [ ] Document the findings
 
-   - **Commit message hint**: "Clean up TODO/FIXME patterns in log reviewer"
+   - **Commit message hint**: "Analyze try-except blocks that suppress exceptions"
 
-6. [ ] **Clean up generated code** – Remove TODO from advanced_assistant.py
+2. [ ] **Analyze legacy code patterns** – Identify legacy patterns in the code
 
-   - **Context**: TODO in generated code is ugly.
+   - **Context**: Legacy patterns in the code create technical debt and hinder further development.
 
    - **Success criteria**
 
-     - [ ] TODO removed from generated code
+     - [ ] All legacy patterns identified
+     - [ ] Impact documented
+     - [ ] Breaking changes documented
 
    - **Files to check/modify**
 
+     - [ ] src/nicestlog/core.py
+     - [ ] src/nicestlog/systemd_integration.py
+     - [ ] src/nicestlog/assistant.py
+     - [ ] src/nicestlog/cli.py
      - [ ] src/nicestlog/advanced_assistant.py
-     - [ ] tests/test_advanced_assistant.py
+     - [ ] src/nicestlog/linter.py
 
    - **Steps**
 
-     - [ ] Remove TODO from generated code
+     - [ ] Search for legacy, workaround, compatibility, and hack patterns
+     - [ ] Analyze the found patterns
+     - [ ] Document the findings
+
+   - **Commit message hint**: "Analyze legacy code patterns"
+
+3. [ ] **Plan the cleanup** – Create a plan to remove the anti-patterns
+
+   - **Context**: Based on the analysis, concrete steps for cleanup need to be planned.
+
+   - **Success criteria**
+
+     - [ ] Detailed cleanup plan created
+     - [ ] Prioritization of tasks
+     - [ ] Risk assessment performed
+
+   - **Files to check/modify**
+
+     - [ ] _TODO-AGENT.md (this file)
+
+   - **Steps**
+
+     - [ ] Create a detailed cleanup plan
+     - [ ] Prioritize the identified issues
+     - [ ] Perform risk assessment for each change
+     - [ ] Document the plan
+
+   - **Commit message hint**: "Plan cleanup of try-except suppression and legacy patterns"
+
+4. [ ] **Implement the cleanup** – Remove the identified anti-patterns
+
+   - **Context**: After planning, the identified anti-patterns are removed step by step.
+
+   - **Success criteria**
+
+     - [ ] All identified try-except suppressions removed
+     - [ ] All identified legacy patterns cleaned up
+     - [ ] Tests updated
+     - [ ] Documentation updated
+
+   - **Files to check/modify**
+
+     - [ ] All files with identified anti-patterns
+     - [ ] Tests for the affected modules
+     - [ ] Documentation
+
+   - **Steps**
+
+     - [ ] Remove try-except blocks that suppress exceptions
+     - [ ] Replace with correct error handling or re-raising of exceptions
+     - [ ] Remove legacy patterns
      - [ ] Update tests
+     - [ ] Update documentation
 
-   - **Commit message hint**: "Remove TODO from generated code"
+   - **Commit message hint**: "Remove try-except suppression and legacy patterns"
 
-7. [ ] **Update tests and validate** – Run full test suite
+5. [ ] **Test and validate** – Run the full test suite
 
-   - **Context**: Ensure nothing is broken.
+   - **Context**: Ensure that no functionality has been compromised.
 
    - **Success criteria**
 
      - [ ] All tests pass
      - [ ] No regressions
+     - [ ] Sufficient test coverage
 
    - **Files to check/modify**
 
@@ -172,8 +148,8 @@ ______________________________________________________________________
 
    - **Steps**
 
-     - [ ] Run uv run pytest
+     - [ ] Run `uv run pytest`
      - [ ] Analyze failures and fix
-     - [ ] Check coverage
+     - [ ] Check test coverage
 
-   - **Commit message hint**: "Update tests for legacy cleanup"
+   - **Commit message hint**: "Test and validate after cleaning up anti-patterns"
