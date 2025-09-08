@@ -749,15 +749,6 @@ class AdvancedAssistant:
 
             # Write file if not dry run
             if not dry_run and transformed_content != original_content:
-                log.debug(
-                    "write-backup",
-                    _replace_msg="🗂️ Creating backup file for {file_path}",
-                    file_path=str(file_path),
-                )
-                # Create backup
-                backup_path = file_path.with_suffix(f"{file_path.suffix}.backup")
-                backup_path.write_text(original_content)
-
                 # Write transformed content
                 log.debug(
                     "write-transformed",
@@ -768,9 +759,8 @@ class AdvancedAssistant:
 
                 log.debug(
                     "file-transformed",
-                    _replace_msg="💾 File {file_path} transformed and saved (backup: {backup_path})",
+                    _replace_msg="💾 File {file_path} transformed and saved",
                     file_path=str(file_path),
-                    backup_path=str(backup_path),
                     changes_count=len(transformer.changes_made),
                 )
 
