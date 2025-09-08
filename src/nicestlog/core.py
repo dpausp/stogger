@@ -16,6 +16,9 @@ try:
 except ImportError:
     journal = None
 
+# Import the default settings object
+from .config import SimpleFormatSettings, _default_simple_format_settings
+
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -135,21 +138,23 @@ class ConsoleFileRenderer:
         "trace",
     ]
 
-    def __init__(
-        self,
-        min_level="info",
-        show_caller_info=False,
-        pad_event=_EVENT_WIDTH,
-        show_logger_brackets=False,
-        show_pid=False,
-        timestamp_format="iso",
-    ):
-        self.min_level = self.LEVELS.index(min_level.lower())
-        self.show_caller_info = show_caller_info
-        self.pad_event = pad_event
-        self.show_logger_brackets = show_logger_brackets
-        self.show_pid = show_pid
-        self.timestamp_format = timestamp_format
+    def __init__(self, settings=_default_simple_format_settings):
+        """Initialize the ConsoleFileRenderer with settings.
+
+        Args:
+            settings: SimpleFormatSettings object with configuration options.
+                     Uses default settings if None is provided.
+        """
+        # Store settings object
+        self.settings = settings
+        
+        # Initialize instance variables from settings
+        self.min_level = self.LEVELS.index(settings.min_level.lower())
+        self.show_caller_info = settings.show_code_info
+        self.pad_event = settings.pad_event_width
+        self.show_logger_brackets = settings.show_logger_brackets
+        self.show_pid = settings.show_pid
+        self.timestamp_format = settings.timestamp_format
 
         if colorama is None:
             print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
@@ -179,7 +184,7 @@ class ConsoleFileRenderer:
         if log_settings.get("console_ignore", False):
             return
 
-        # Determine level name for filtering; fall back to event_dict['level'] when method_name is not provided
+        # Determine level name for filtering; fall back to event_dict['level'] when method_name is provided
         level_name = None
         if isinstance(method_name, str):
             level_name = method_name.lower()
