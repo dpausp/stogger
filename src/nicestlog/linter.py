@@ -292,10 +292,7 @@ class LoggingVisitor(ast.NodeVisitor):
                 return True
 
         # Check specific events
-        if event_name in internal_events:
-            return True
-
-        return False
+        return event_name in internal_events
 
     def _get_level_change_reason(self, event_name: str) -> str:
         """Get human-readable reason for level change suggestion."""
@@ -360,7 +357,7 @@ class LoggingVisitor(ast.NodeVisitor):
                             logging_calls.append(child_stmt)
                         elif not self._is_trivial_call(child_stmt):
                             has_other_logic = True
-            elif not isinstance(stmt, (ast.Pass, ast.Return)):
+            elif not isinstance(stmt, ast.Pass | ast.Return):
                 # Any other significant statement indicates business logic
                 has_other_logic = True
 

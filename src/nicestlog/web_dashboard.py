@@ -123,7 +123,7 @@ DASHBOARD_HTML = """
         .log-entry.warning { border-left-color: #FF9800; }
         .log-entry.error { border-left-color: #f44336; }
         .log-entry.critical { border-left-color: #9C27B0; }
-        
+
         .log-timestamp {
             color: #888;
             font-size: 12px;
@@ -141,7 +141,7 @@ DASHBOARD_HTML = """
         .log-level.warning { background: #FF9800; color: white; }
         .log-level.error { background: #f44336; color: white; }
         .log-level.critical { background: #9C27B0; color: white; }
-        
+
         .log-event {
             color: #e0e0e0;
             font-weight: bold;
@@ -217,7 +217,7 @@ DASHBOARD_HTML = """
         <h1>🚽 Nicestlog Dashboard</h1>
         <p>Live log monitoring with style!</p>
     </div>
-    
+
     <div class="stats" id="stats" hx-get="/api/stats" hx-trigger="every 2s">
         <div class="stat-card">
             <div class="stat-number">{{ stats.total_logs }}</div>
@@ -236,7 +236,7 @@ DASHBOARD_HTML = """
             <div class="stat-label">Logs/min</div>
         </div>
     </div>
-    
+
     <div class="controls">
         <button class="btn" hx-post="/api/clear" hx-target="#logs">Clear Logs</button>
         <select id="level-filter" hx-get="/api/logs" hx-target="#logs" hx-trigger="change">
@@ -254,7 +254,7 @@ DASHBOARD_HTML = """
             Live updates every 1s
         </span>
     </div>
-    
+
     <div class="log-container">
         <div id="logs" hx-get="/api/logs" hx-trigger="every 1s">
             <!-- Logs will be loaded here -->
@@ -269,14 +269,14 @@ DASHBOARD_HTML = """
             const container = document.querySelector('.log-container');
             container.scrollTop = container.scrollHeight;
         }
-        
+
         // Auto-scroll when new logs arrive
         document.body.addEventListener('htmx:afterSwap', function(evt) {
             if (evt.detail.target.id === 'logs' && document.getElementById('auto-scroll').checked) {
                 setTimeout(scrollToBottom, 100);
             }
         });
-        
+
         // Initial scroll to bottom
         setTimeout(scrollToBottom, 500);
     </script>
@@ -304,8 +304,9 @@ LOG_ENTRY_TEMPLATE = """
 def create_dashboard_app():
     """Create the Flask dashboard app."""
     if not FLASK_AVAILABLE:
+        msg = "Flask is not installed. Install it with: pip install 'nicestlog[web]' or pip install flask>=3.0.3"
         raise ImportError(
-            "Flask is not installed. Install it with: pip install 'nicestlog[web]' or pip install flask>=3.0.3",
+            msg,
         )
     app = Flask(__name__)
 
@@ -429,11 +430,14 @@ def setup_web_logging():
 def run_dashboard(host="127.0.0.1", port=8080, debug=False):
     """Run the web dashboard."""
     if not FLASK_AVAILABLE:
-        raise ImportError(
+        msg = (
             "Flask is not installed. To use the web dashboard, install it with:\n"
             "  pip install 'nicestlog[web]'\n"
             "or\n"
-            "  pip install flask>=3.0.3",
+            "  pip install flask>=3.0.3"
+        )
+        raise ImportError(
+            msg,
         )
 
     print(f"🚀 Starting Nicestlog Dashboard on http://{host}:{port}")

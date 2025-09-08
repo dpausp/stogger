@@ -165,10 +165,13 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         log.info("project-structure-detected-from-heuristics")
         return structure
     except Exception as e:
-        log.error(f"heuristic-detection-failed: {e}")
-        raise ValueError(
+        log.exception(f"heuristic-detection-failed: {e}")
+        msg = (
             f"Could not determine project structure for {project_root}. "
-            "Please configure [tool.nicestlog] section in pyproject.toml with 'src_dir' and 'exclude' settings.",
+            "Please configure [tool.nicestlog] section in pyproject.toml with 'src_dir' and 'exclude' settings."
+        )
+        raise ValueError(
+            msg,
         )
 
 
@@ -325,7 +328,8 @@ def _detect_from_heuristics(project_root: Path) -> ProjectStructure:
         exclude_patterns.append(f"{test_dir}/**")
 
     if not source_dirs:
-        raise ValueError("No source directories detected")
+        msg = "No source directories detected"
+        raise ValueError(msg)
 
     return ProjectStructure(
         source_dirs=source_dirs,

@@ -93,7 +93,7 @@ class SystemdJournalHandler:
             field_name = f"NICESTLOG_{key.upper()}"
 
             # Systemd fields must be strings
-            if isinstance(value, (dict, list)):
+            if isinstance(value, dict | list):
                 journal_fields[field_name] = json.dumps(value, default=str)
             else:
                 journal_fields[field_name] = str(value)
@@ -180,16 +180,13 @@ def detect_systemd_environment() -> dict[str, Any]:
     # Try to get unit name from systemd environment
     if SYSTEMD_AVAILABLE:
         # Use systemd library to get unit information if available
-        try:
-            from systemd import daemon
+        from systemd import daemon
 
-            unit_name = daemon.booted()
-            if unit_name:
-                info["unit_name"] = unit_name
-                if unit_name.endswith(".service"):
-                    info["service_name"] = unit_name[:-8]  # Remove .service suffix
-        except Exception:
-            pass
+        unit_name = daemon.booted()
+        if unit_name:
+            info["unit_name"] = unit_name
+            if unit_name.endswith(".service"):
+                info["service_name"] = unit_name[:-8]  # Remove .service suffix
 
     return info
 

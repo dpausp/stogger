@@ -7,9 +7,8 @@ entries for all detected message keys.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 try:
     import toml
@@ -29,6 +28,9 @@ from ._regexes import (
 from ._regexes import (
     MSG_KEY as _MSG_KEY,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 # Excluded directories when scanning for Python files
 EXCLUDE_DIRS = {
@@ -116,8 +118,9 @@ def load_translation_keys(translation_file: Path) -> set[str]:
     Any top-level keys that map to non-dict values are considered message entries.
     """
     if toml is None:
+        msg = "toml package not available; install 'toml' to use i18n check"
         raise RuntimeError(
-            "toml package not available; install 'toml' to use i18n check",
+            msg,
         )
 
     data = toml.load(translation_file)

@@ -1,4 +1,4 @@
-"""🔍 Project Analyzer for AI Agents
+"""🔍 Project Analyzer for AI Agents.
 
 This module provides automated analysis of existing Python projects to determine
 the best nicestlog migration strategy and identify potential issues.
@@ -179,7 +179,8 @@ class ProjectAnalyzer:
         )
 
         if not project_path.exists():
-            raise ValueError(f"Project path does not exist: {project_path}")
+            msg = f"Project path does not exist: {project_path}"
+            raise ValueError(msg)
 
         # Gather all analysis data
         logging_patterns = self._analyze_logging_patterns(project_path)
@@ -473,7 +474,7 @@ class ProjectAnalyzer:
         complexity = 0.0
 
         for node in ast.walk(tree):
-            if isinstance(node, (ast.If, ast.While, ast.For)):
+            if isinstance(node, ast.If | ast.While | ast.For):
                 complexity += 1
             elif isinstance(node, ast.FunctionDef):
                 complexity += 0.5

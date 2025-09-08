@@ -1,4 +1,4 @@
-"""🎯 Interactive Code Transformer - Amber-style Search & Replace for AST Transformations
+"""🎯 Interactive Code Transformer - Amber-style Search & Replace for AST Transformations.
 
 Provides interactive, user-guided code transformations with preview and confirmation,
 inspired by the amber search & replace tool.
@@ -9,8 +9,7 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -25,6 +24,9 @@ from .advanced_assistant import (
     TransformationResult,
 )
 from .live_editor import EditSession, LiveCodeEditor
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 log = structlog.get_logger("nicestlog.interactive_transformer")
 console = Console()
@@ -82,7 +84,7 @@ class InteractiveSession:
 
 
 class InteractiveTransformer:
-    """🎯 Interactive Code Transformer with Amber-style Interface
+    """🎯 Interactive Code Transformer with Amber-style Interface.
 
     Provides user-guided code transformations with preview, confirmation,
     and comprehensive logging of all decisions.

@@ -86,7 +86,7 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
             )
     # Add the final renderer
     if config.log_format == "json":
-        processors.append(JSONRenderer(min_level="debug" if config.verbose else "info"))
+        processors.append(JSONRenderer())
     else:
         processors.append(
             ConsoleFileRenderer(
@@ -112,20 +112,14 @@ def build_renderer(config: NicestLogConfig) -> Any:
     )
 
     if config.log_format == "json":
-        renderer = JSONRenderer(min_level="debug" if config.verbose else "info")
+        renderer = JSONRenderer()
         log.debug(
             "json-renderer-created",
             min_level="debug" if config.verbose else "info",
         )
     else:
         # Use ConsoleFileRenderer with direct parameters
-        renderer = ConsoleFileRenderer(
-            min_level="debug" if config.verbose else "info",
-            show_caller_info=config.show_caller_info,
-            show_logger_brackets=False,
-            show_pid=False,
-            timestamp_format="iso",
-        )
+        renderer = ConsoleFileRenderer()
         log.debug(
             "console-renderer-created",
             min_level="debug" if config.verbose else "info",

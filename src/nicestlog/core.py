@@ -17,8 +17,7 @@ except ImportError:
     journal = None
 
 # Import the default settings object
-from .config import SimpleFormatSettings, _default_simple_format_settings
-
+from .config import _default_simple_format_settings
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -114,10 +113,7 @@ def prefix(name, s):
     if not s:
         return ""
     lines = s.split("\n")
-    if name:
-        prefix_str = f"{name}: "
-    else:
-        prefix_str = ""
+    prefix_str = f"{name}: " if name else ""
     return "\n".join(prefix_str + line for line in lines)
 
 
@@ -144,10 +140,11 @@ class ConsoleFileRenderer:
         Args:
             settings: SimpleFormatSettings object with configuration options.
                      Uses default settings if None is provided.
+
         """
         # Store settings object
         self.settings = settings
-        
+
         # Initialize instance variables from settings
         self.min_level = self.LEVELS.index(settings.min_level.lower())
         self.show_caller_info = settings.show_code_info
@@ -173,7 +170,7 @@ class ConsoleFileRenderer:
             "trace": GREEN,
             "notset": BACKRED,
         }
-        for key in self._level_to_color.keys():
+        for key in self._level_to_color:
             self._level_to_color[key] += BRIGHT
         self._longest_level = len(
             max(self._level_to_color.keys(), key=lambda e: len(e)),
@@ -456,10 +453,7 @@ def init_logging(*args, **kwargs):
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(syslog_identifier, syslog.LOG_LOCAL1),
         cmd_output_file=CmdOutputFileRenderer(),
-        text=ConsoleFileRenderer(
-            min_level="trace" if verbose else "info",
-            show_caller_info=show_caller_info,
-        ),
+        text=ConsoleFileRenderer(),
     )
 
     processors = [
@@ -516,7 +510,8 @@ def init_logging(*args, **kwargs):
 
     if log_cmd_output:
         if not logdir:
-            raise ValueError("A logdir is required for command logging.")
+            msg = "A logdir is required for command logging."
+            raise ValueError(msg)
 
         init_command_logging(log, logdir)
 
@@ -536,7 +531,7 @@ def init_early_logging():
         processors = [
             structlog.stdlib.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
-            ConsoleFileRenderer(min_level="info"),
+            ConsoleFileRenderer(),
             SelectRenderedString(
                 key="console",
             ),  # Convert dict to string for PrintLogger

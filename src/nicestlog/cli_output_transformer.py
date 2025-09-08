@@ -1,4 +1,4 @@
-"""CLI Output to Structlog Transformer
+"""CLI Output to Structlog Transformer.
 
 This module provides AST transformation capabilities to convert CLI framework
 output functions (typer.echo, click.echo, rich.print, etc.) to structured

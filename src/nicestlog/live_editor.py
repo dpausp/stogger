@@ -1,4 +1,4 @@
-"""🔥 Live Code Editor - Interactive editing of transformation proposals
+"""🔥 Live Code Editor - Interactive editing of transformation proposals.
 
 Provides in-terminal code editing with syntax highlighting and validation.
 Records all user edits for machine learning and pattern improvement.
@@ -9,15 +9,18 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 import os
-from pathlib import Path
 import subprocess
 import tempfile
+from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.syntax import Syntax
 import structlog
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 log = structlog.get_logger("nicestlog.live_editor")
 console = Console()
@@ -40,7 +43,7 @@ class EditSession:
 
 
 class LiveCodeEditor:
-    """🔥 Live Code Editor for Interactive Transformations
+    """🔥 Live Code Editor for Interactive Transformations.
 
     Allows users to edit AI transformation suggestions in real-time
     with syntax highlighting, validation, and comprehensive logging.

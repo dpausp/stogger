@@ -178,7 +178,7 @@ class JournalViewer:
                 # Try to parse JSON values
                 try:
                     if isinstance(value, str) and (
-                        value.startswith("{") or value.startswith("[")
+                        value.startswith(("{", "["))
                     ):
                         fields[field_name] = json.loads(value)
                     else:
@@ -234,7 +234,7 @@ class JournalViewer:
         if entry.fields:
             field_parts = []
             for key, value in entry.fields.items():
-                if isinstance(value, (dict, list)):
+                if isinstance(value, dict | list):
                     value_str = json.dumps(value, separators=(",", ":"))
                 else:
                     value_str = str(value)
@@ -376,7 +376,7 @@ class JournalViewer:
             )
 
         except Exception as e:
-            log.error(
+            log.exception(
                 "journal-query-error",
                 _replace_msg="❌ Error reading journal",
                 error=str(e),
@@ -548,7 +548,7 @@ def main():
             _replace_msg="✅ Journal viewer instance created",
         )
     except Exception as e:
-        log.error(
+        log.exception(
             "viewer-creation-failed",
             _replace_msg="❌ Failed to create journal viewer",
             error=str(e),
@@ -595,7 +595,7 @@ def main():
         print("\n👋 Goodbye!", file=sys.stderr)
         sys.exit(0)
     except Exception as e:
-        log.error(
+        log.exception(
             "main-execution-error",
             _replace_msg="❌ Error during journal viewing",
             error=str(e),

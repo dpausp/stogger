@@ -725,7 +725,7 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
             logging_table.add_column("Priority", style="yellow")
             logging_table.add_column("Suggestion", style="cyan")
 
-            for i, issue in enumerate(logging_issues, 1):
+            for _i, issue in enumerate(logging_issues, 1):
                 priority = "High" if "print" in issue.lower() else "Medium"
                 logging_table.add_row(priority, issue)
 
@@ -2362,7 +2362,8 @@ def migrate_directory_with_handler(
         output_dir = Path(output_dir)
 
     if not input_dir.exists() or not input_dir.is_dir():
-        raise FileNotFoundError(f"Input directory not found: {input_dir}")
+        msg = f"Input directory not found: {input_dir}"
+        raise FileNotFoundError(msg)
 
     for py in input_dir.rglob("*.py"):
         # Skip generated or virtual env paths

@@ -90,7 +90,7 @@ class LogQualityReviewer:
         }
 
         # Analyze each line
-        for line_num, line in enumerate(lines, 1):
+        for _line_num, line in enumerate(lines, 1):
             line = line.strip()
 
             if not line:

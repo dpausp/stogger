@@ -1,4 +1,4 @@
-"""🚀 Advanced AST Assistant - Revolutionary Code Transformation with Comprehensive Logging
+"""🚀 Advanced AST Assistant - Revolutionary Code Transformation with Comprehensive Logging.
 
 This module provides sophisticated AST analysis and transformation capabilities with
 extensive logging of every step. Perfect for complex code migrations and refactoring.
@@ -15,15 +15,17 @@ Features:
 from __future__ import annotations
 
 import ast
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import hashlib
-from pathlib import Path
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 # Initialize our logger for the assistant itself
 log = structlog.get_logger("nicestlog.advanced_assistant")
@@ -255,9 +257,9 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
             self._analyze_class(node)
         elif isinstance(node, ast.Call):
             self._analyze_call(node)
-        elif isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom):
+        elif isinstance(node, ast.Import | ast.ImportFrom):
             self._analyze_import(node)
-        elif isinstance(node, (ast.If, ast.For, ast.While)):
+        elif isinstance(node, ast.If | ast.For | ast.While):
             self.complexity_score += 1
             log.debug(
                 "complexity-increase",
@@ -522,7 +524,7 @@ class AdvancedTransformer(ast.NodeTransformer):
 
 
 class AdvancedAssistant:
-    """🎯 Advanced Code Assistant - The Ultimate AST Transformation Engine
+    """🎯 Advanced Code Assistant - The Ultimate AST Transformation Engine.
 
     Combines deep analysis, pattern detection, and sophisticated transformations
     with comprehensive logging of every operation.
@@ -559,7 +561,7 @@ class AdvancedAssistant:
             )
 
         def transform_print_to_log(node: ast.Call) -> ast.Call:
-            """Transform print() to log.info()"""
+            """Transform print() to log.info()."""
             new_func = ast.Attribute(
                 value=ast.Name(id="log", ctx=ast.Load()),
                 attr="info",
@@ -749,6 +751,10 @@ class AdvancedAssistant:
 
             # Write file if not dry run
             if not dry_run and transformed_content != original_content:
+                # Create a simple backup alongside the original file
+                backup_path = file_path.with_suffix(f"{file_path.suffix}.backup")
+                backup_path.write_text(original_content, encoding="utf-8")
+
                 # Write transformed content
                 log.debug(
                     "write-transformed",

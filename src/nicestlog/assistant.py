@@ -85,20 +85,17 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
 
     def visit_Assign(self, node: ast.Assign) -> ast.AST:
         # Detect pattern: log = structlog.get_logger(...)
-        try:
-            if (
-                len(node.targets) == 1
-                and isinstance(node.targets[0], ast.Name)
-                and node.targets[0].id == "log"
-                and isinstance(node.value, ast.Call)
-                and isinstance(node.value.func, ast.Attribute)
-                and isinstance(node.value.func.value, ast.Name)
-                and node.value.func.value.id == "structlog"
-                and node.value.func.attr == "get_logger"
-            ):
-                self.logger_assignment_present = True
-        except Exception:
-            pass
+        if (
+            len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == "log"
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and isinstance(node.value.func.value, ast.Name)
+            and node.value.func.value.id == "structlog"
+            and node.value.func.attr == "get_logger"
+        ):
+            self.logger_assignment_present = True
         return node
 
     def visit_call_build_print(self, node: ast.Call) -> ast.AST:
@@ -201,11 +198,7 @@ def migrate_file(content: str) -> tuple[str, bool]:
     ast.fix_missing_locations(tree)
     tree = transformer.ensure_imports_and_logger(tree)
     ast.fix_missing_locations(tree)
-    try:
-        new_code = ast.unparse(tree)
-    except Exception:
-        # Fallback to original content if unparse fails
-        return content, False
+    new_code = ast.unparse(tree)
     return new_code, transformer.changed
 
 
@@ -221,16 +214,14 @@ def migrate_directory(
         output_dir = Path(output_dir)
 
     if not input_dir.exists() or not input_dir.is_dir():
-        raise FileNotFoundError(f"Input directory not found: {input_dir}")
+        msg = f"Input directory not found: {input_dir}"
+        raise FileNotFoundError(msg)
 
     for py in input_dir.rglob("*.py"):
         # Skip generated or virtual env paths
         if any(part in {".venv", "venv", "__pycache__", ".git"} for part in py.parts):
             continue
-        try:
-            original = py.read_text(encoding="utf-8")
-        except Exception:
-            continue
+        original = py.read_text(encoding="utf-8")
         new_code, changed = migrate_file(original)
         result.files_processed += 1
         if not changed:
