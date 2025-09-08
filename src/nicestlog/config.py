@@ -411,3 +411,22 @@ def _create_default_structure_with_tests(
         detection_source=source,
         project_root=project_root,
     )
+
+
+@dataclass
+class SimpleFormatSettings:
+    """Settings for simple console formatting.
+
+    This class provides a way to configure the ConsoleFileRenderer with common formatting options.
+    """
+
+    min_level: str = "info"
+    show_logger_brackets: bool = False
+    show_pid: bool = False
+    show_code_info: bool = False
+    timestamp_format: str = "iso"
+    pad_event_width: int = 30
+
+
+# Standard settings object
+_default_simple_format_settings = SimpleFormatSettings()
