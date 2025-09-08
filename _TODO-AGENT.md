@@ -8,7 +8,10 @@ Implement the new rules for AI agents defined in AGENTS.md. Focus on avoiding le
 
 - Problem statement: The project contains try-except blocks that suppress exceptions, as well as legacy code patterns that create technical debt.
 - Why we want to solve it: Cleaner codebase, easier maintenance, fewer bugs, and better visibility of errors.
-- Research / references: Analysis of the codebase for try-except blocks and legacy patterns.
+- Research / references: Analysis of the codebase for try-except blocks and legacy patterns has been completed and documented in:
+  - docs/development/try_except_analysis.md
+  - docs/development/cleanup_plan.md
+  - docs/development/analysis_summary.md
 - Constraints: Don't break existing functionality, update tests, document breaking changes.
 
 ### Task Goal
@@ -22,87 +25,87 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [x] **Analyze try-except blocks** – Identify blocks that suppress exceptions
+1. [ ] **Analyze try-except blocks** – Identify blocks that suppress exceptions
 
    - **Context**: Try-except blocks that ignore or suppress exceptions prevent early detection of errors.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] All try-except blocks in the codebase identified
-     - [x] Blocks classified (suppressing vs. correctly handled)
-     - [x] Documentation of found patterns
+     - [ ] All try-except blocks in the codebase identified
+     - [ ] Blocks classified (suppressing vs. correctly handled)
+     - [ ] Documentation of found patterns
 
    - **Files to check/modify**
 
-     - [x] src/nicestlog/core.py
-     - [x] src/nicestlog/systemd_integration.py
-     - [x] src/nicestlog/assistant.py
-     - [x] src/nicestlog/cli.py
-     - [x] src/nicestlog/web_dashboard.py
-     - [x] src/nicestlog/project_analyzer.py
-     - [x] src/nicestlog/log_statement_analyzer.py
-     - [x] src/nicestlog/log_reviewer.py
-     - [x] src/nicestlog/live_editor.py
-     - [x] src/nicestlog/advanced_assistant.py
-     - [x] src/nicestlog/linter.py
+     - [ ] src/nicestlog/core.py
+     - [ ] src/nicestlog/systemd_integration.py
+     - [ ] src/nicestlog/assistant.py
+     - [ ] src/nicestlog/cli.py
+     - [ ] src/nicestlog/web_dashboard.py
+     - [ ] src/nicestlog/project_analyzer.py
+     - [ ] src/nicestlog/log_statement_analyzer.py
+     - [ ] src/nicestlog/log_reviewer.py
+     - [ ] src/nicestlog/live_editor.py
+     - [ ] src/nicestlog/advanced_assistant.py
+     - [ ] src/nicestlog/linter.py
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Search for all try-except blocks in the codebase
-     - [x] Analyze if exceptions are correctly handled or suppressed
-     - [x] Classify the found blocks
-     - [x] Document the findings
+     - [ ] Search for all try-except blocks in the codebase
+     - [ ] Analyze if exceptions are correctly handled or suppressed
+     - [ ] Classify the found blocks
+     - [ ] Document the findings
 
    - **Commit message hint**: "Analyze try-except blocks that suppress exceptions"
 
-1. [x] **Analyze legacy code patterns** – Identify legacy patterns in the code
+1. [ ] **Analyze legacy code patterns** – Identify legacy patterns in the code
 
    - **Context**: Legacy patterns in the code create technical debt and hinder further development.
 
    - **Success criteria**
 
-     - [x] All legacy patterns identified
-     - [x] Impact documented
-     - [x] Breaking changes documented
+     - [ ] All legacy patterns identified
+     - [ ] Impact documented
+     - [ ] Breaking changes documented
 
    - **Files to check/modify**
 
-     - [x] src/nicestlog/core.py
-     - [x] src/nicestlog/systemd_integration.py
-     - [x] src/nicestlog/assistant.py
-     - [x] src/nicestlog/cli.py
-     - [x] src/nicestlog/advanced_assistant.py
-     - [x] src/nicestlog/linter.py
+     - [ ] src/nicestlog/core.py
+     - [ ] src/nicestlog/systemd_integration.py
+     - [ ] src/nicestlog/assistant.py
+     - [ ] src/nicestlog/cli.py
+     - [ ] src/nicestlog/advanced_assistant.py
+     - [ ] src/nicestlog/linter.py
 
    - **Steps**
 
-     - [x] Search for legacy, workaround, compatibility, and hack patterns
-     - [x] Analyze the found patterns
-     - [x] Document the findings
+     - [ ] Search for legacy, workaround, compatibility, and hack patterns
+     - [ ] Analyze the found patterns
+     - [ ] Document the findings
 
    - **Commit message hint**: "Analyze legacy code patterns"
 
-1. [x] **Plan the cleanup** – Create a plan to remove the anti-patterns
+1. [ ] **Plan the cleanup** – Create a plan to remove the anti-patterns
 
    - **Context**: Based on the analysis, concrete steps for cleanup need to be planned.
 
    - **Success criteria**
 
-     - [x] Detailed cleanup plan created
-     - [x] Prioritization of tasks
-     - [x] Risk assessment performed
+     - [ ] Detailed cleanup plan created
+     - [ ] Prioritization of tasks
+     - [ ] Risk assessment performed
 
    - **Files to check/modify**
 
-     - [x] \_TODO-AGENT.md (this file)
-     - [x] docs/development/cleanup_plan.md
+     - [ ] \_TODO-AGENT.md (this file)
+     - [ ] docs/development/cleanup_plan.md
 
    - **Steps**
 
-     - [x] Create a detailed cleanup plan
-     - [x] Prioritize the identified issues
-     - [x] Perform risk assessment for each change
-     - [x] Document the plan
+     - [ ] Create a detailed cleanup plan
+     - [ ] Prioritize the identified issues
+     - [ ] Perform risk assessment for each change
+     - [ ] Document the plan
 
    - **Commit message hint**: "Plan cleanup of try-except suppression and legacy patterns"
 
