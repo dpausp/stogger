@@ -22,63 +22,63 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Analyze try-except blocks** – Identify blocks that suppress exceptions
+1. [x] **Analyze try-except blocks** – Identify blocks that suppress exceptions
 
    - **Context**: Try-except blocks that ignore or suppress exceptions prevent early detection of errors.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All try-except blocks in the codebase identified
-     - [ ] Blocks classified (suppressing vs. correctly handled)
-     - [ ] Documentation of found patterns
+     - [x] All try-except blocks in the codebase identified
+     - [x] Blocks classified (suppressing vs. correctly handled)
+     - [x] Documentation of found patterns
 
    - **Files to check/modify**
 
-     - [ ] src/nicestlog/core.py
-     - [ ] src/nicestlog/systemd_integration.py
-     - [ ] src/nicestlog/assistant.py
-     - [ ] src/nicestlog/cli.py
-     - [ ] src/nicestlog/web_dashboard.py
-     - [ ] src/nicestlog/project_analyzer.py
-     - [ ] src/nicestlog/log_statement_analyzer.py
-     - [ ] src/nicestlog/log_reviewer.py
-     - [ ] src/nicestlog/live_editor.py
-     - [ ] src/nicestlog/advanced_assistant.py
-     - [ ] src/nicestlog/linter.py
+     - [x] src/nicestlog/core.py
+     - [x] src/nicestlog/systemd_integration.py
+     - [x] src/nicestlog/assistant.py
+     - [x] src/nicestlog/cli.py
+     - [x] src/nicestlog/web_dashboard.py
+     - [x] src/nicestlog/project_analyzer.py
+     - [x] src/nicestlog/log_statement_analyzer.py
+     - [x] src/nicestlog/log_reviewer.py
+     - [x] src/nicestlog/live_editor.py
+     - [x] src/nicestlog/advanced_assistant.py
+     - [x] src/nicestlog/linter.py
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Search for all try-except blocks in the codebase
-     - [ ] Analyze if exceptions are correctly handled or suppressed
-     - [ ] Classify the found blocks
-     - [ ] Document the findings
+     - [x] Search for all try-except blocks in the codebase
+     - [x] Analyze if exceptions are correctly handled or suppressed
+     - [x] Classify the found blocks
+     - [x] Document the findings
 
    - **Commit message hint**: "Analyze try-except blocks that suppress exceptions"
 
-1. [ ] **Analyze legacy code patterns** – Identify legacy patterns in the code
+1. [x] **Analyze legacy code patterns** – Identify legacy patterns in the code
 
    - **Context**: Legacy patterns in the code create technical debt and hinder further development.
 
    - **Success criteria**
 
-     - [ ] All legacy patterns identified
-     - [ ] Impact documented
-     - [ ] Breaking changes documented
+     - [x] All legacy patterns identified
+     - [x] Impact documented
+     - [x] Breaking changes documented
 
    - **Files to check/modify**
 
-     - [ ] src/nicestlog/core.py
-     - [ ] src/nicestlog/systemd_integration.py
-     - [ ] src/nicestlog/assistant.py
-     - [ ] src/nicestlog/cli.py
-     - [ ] src/nicestlog/advanced_assistant.py
-     - [ ] src/nicestlog/linter.py
+     - [x] src/nicestlog/core.py
+     - [x] src/nicestlog/systemd_integration.py
+     - [x] src/nicestlog/assistant.py
+     - [x] src/nicestlog/cli.py
+     - [x] src/nicestlog/advanced_assistant.py
+     - [x] src/nicestlog/linter.py
 
    - **Steps**
 
-     - [ ] Search for legacy, workaround, compatibility, and hack patterns
-     - [ ] Analyze the found patterns
-     - [ ] Document the findings
+     - [x] Search for legacy, workaround, compatibility, and hack patterns
+     - [x] Analyze the found patterns
+     - [x] Document the findings
 
    - **Commit message hint**: "Analyze legacy code patterns"
 
