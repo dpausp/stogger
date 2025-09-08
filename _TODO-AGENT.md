@@ -55,7 +55,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "Analyze try-except blocks that suppress exceptions"
 
-2. [ ] **Analyze legacy code patterns** – Identify legacy patterns in the code
+1. [ ] **Analyze legacy code patterns** – Identify legacy patterns in the code
 
    - **Context**: Legacy patterns in the code create technical debt and hinder further development.
 
@@ -82,7 +82,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "Analyze legacy code patterns"
 
-3. [ ] **Plan the cleanup** – Create a plan to remove the anti-patterns
+1. [ ] **Plan the cleanup** – Create a plan to remove the anti-patterns
 
    - **Context**: Based on the analysis, concrete steps for cleanup need to be planned.
 
@@ -94,7 +94,7 @@ ______________________________________________________________________
 
    - **Files to check/modify**
 
-     - [ ] _TODO-AGENT.md (this file)
+     - [ ] \_TODO-AGENT.md (this file)
 
    - **Steps**
 
@@ -105,7 +105,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "Plan cleanup of try-except suppression and legacy patterns"
 
-4. [ ] **Implement the cleanup** – Remove the identified anti-patterns
+1. [ ] **Implement the cleanup** – Remove the identified anti-patterns
 
    - **Context**: After planning, the identified anti-patterns are removed step by step.
 
@@ -132,7 +132,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "Remove try-except suppression and legacy patterns"
 
-5. [ ] **Test and validate** – Run the full test suite
+1. [ ] **Test and validate** – Run the full test suite
 
    - **Context**: Ensure that no functionality has been compromised.
 
