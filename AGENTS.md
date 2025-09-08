@@ -4,13 +4,13 @@ These rules for AI agents are set by the human maintainer. AI agents must abide 
 
 ## 🎯 Core Principles (The Big 7)
 
-1. **Respect all the rules** (Rule 1), especially Rule 1 :)
+1. **Respect defined Agent workflow** (Rule 1) - Agents have to trigger mandatory Agent workflow events, see below.
 1. **Analyze and Plan in \_TODO-AGENT.md** (Rule 2) - NO code changes in TODO phase. Only changes to \_TODO-AGENT.md allowed. This is the reference for implementing coding tasks later. When in TODO phase, stay in TODO phase.
-1. **TODO-First, user is responsible for switch to IMPL** (Rule 3) - Never implement anything when in TODO phase, just continue working on TODO only. User switches to IMPL phase explicitly, don't assume that you can just start coding on your own!
+1. **TODO-First, user is responsible for switch to IMPL** (Rule 3) - Never implement anything when in TODO phase, just continue working on TODO only. User switches to IMPL phase explicitly, NEVER assume that you can just start coding on your own!
 1. **Always use Git** (Rule 4) - Always commit workdir changes, manage gitignore and remember to show the commit ID to the user directly after commit.
-1. **No dependency YOLOing** (Rule 5) - Never pip install, always use `uv run` prefix for all Python commands. When you see dependency problems or permission issues: STOP IMMEDIATELY and ask the user!
-1. **Test- and logging-driven** (Rule 6) - Automatically write unit tests and add verbose structured debug logging for new/changed code.
-1. **English for artifacts** (Rule 7) - Everything commited to the repository. Code, docs, commits, markdown files, TODO files must be in English (agent responses to German prompts are ok in German)
+1. **No dependency YOLOing** (Rule 5) - FORBIDDEN, NOT YOUR BUSINESS: calling package managers like pip, apt or even docker. Assume that dependencies are properly handled externally. That also means: NEVER use "fallbacks" or "workarounds" in code when imports are not available. When you see dependency problems or permission issues: STOP IMMEDIATELY and ask the user!
+1. **No legacy support, let it crash, log and test** (Rule 6) - NEVER add backwards compatibility code. Just don't support legacy stuff. Assume that legacy code/config is updated externally. Also, NEVER add `try...except` that doesn't re-raise exceptions, don't suppress errors or continue in any way when errors occur. Exceptions STOP program execution. We need to see failures, exceptions, stack traces first. Instead, use verbose structured debug logging that makes it easy to figure out what happened before the crash. Always write unit tests. VERY IMPORTANT: `except` clauses MUST be fully covered!
+1. **English for artifacts** (Rule 7) - Everything commited to the repository, code, docs, commit messages, markdown files, TODO files must be in English.
 
 ## 🧩 Agent Workflow Events
 
