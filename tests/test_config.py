@@ -2,11 +2,13 @@
 
 from pathlib import Path
 import tempfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+import logging
 
 import pytest
 
 from nicestlog.config import NicestLogConfig
+from nicestlog.factory import build_shared_processors, configure_stdlib_logging
 
 
 @pytest.fixture
@@ -59,6 +61,79 @@ def test_config_defaults_when_no_file():
             assert config.logdir is None
             assert config.syslog_identifier == "nicestlog"
             assert config.language == "en"
+
+
+@patch("logging.basicConfig")
+def test_sync_logging_setup(mock_basic_config):
+    """Test that synchronous logging sets up basicConfig directly."""
+    config = NicestLogConfig(async_logging=False, log_to_console=True)
+    processors = build_shared_processors(config)
+    configure_stdlib_logging(config, processors)
+
+    mock_basic_config.assert_called_once()
+    assert "handlers" in mock_basic_config.call_args.kwargs
+    assert any(
+        isinstance(h, logging.StreamHandler)
+        for h in mock_basic_config.call_args.kwargs["handlers"]
+    )
+
+
+@patch("logging.handlers.QueueListener")
+@patch("logging.getLogger")
+def test_async_logging_setup(mock_get_logger, mock_listener):
+    """Test that asynchronous logging sets up a QueueListener."""
+    mock_root_logger = MagicMock()
+    mock_get_logger.return_value = mock_root_logger
+
+    config = NicestLogConfig(async_logging=True, log_to_console=True)
+    processors = build_shared_processors(config)
+    configure_stdlib_logging(config, processors)
+
+    mock_listener.assert_called_once()
+    mock_listener.return_value.start.assert_called_once()
+    mock_root_logger.addHandler.assert_called_once()
+    assert isinstance(
+        mock_root_logger.addHandler.call_args[0][0],
+        logging.handlers.QueueHandler,
+    )
+
+
+def test_config_src_dir_defaults_when_no_file():
+    """Test that the config falls back to defaults when no file exists."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with patch("pathlib.Path.cwd", return_value=Path(tmpdir)):
+            config = NicestLogConfig()
+            assert config.src_dir == "src"  # Default source directory
+
+
+def test_config_src_dir_from_file():
+    """Test that the source directory is correctly loaded from pyproject.toml."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        pyproject_path = config_dir / "pyproject.toml"
+        with open(pyproject_path, "w") as f:
+            f.write("""
+[tool.nicestlog]
+src_dir = "custom_src"
+""")
+        with patch("pathlib.Path.cwd", return_value=config_dir):
+            config = NicestLogConfig()
+            assert config.src_dir == "custom_src"
+
+
+def test_config_src_dir_kwargs_override():
+    """Test that src_dir in kwargs overrides the file setting."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        pyproject_path = config_dir / "pyproject.toml"
+        with open(pyproject_path, "w") as f:
+            f.write("""
+[tool.nicestlog]
+src_dir = "custom_src"
+""")
+        with patch("pathlib.Path.cwd", return_value=config_dir):
+            config = NicestLogConfig(src_dir="override_src")
+            assert config.src_dir == "override_src"
 
 
 if __name__ == "__main__":
