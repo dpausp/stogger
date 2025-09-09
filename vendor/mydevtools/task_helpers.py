@@ -119,6 +119,7 @@ All functions are designed to work standalone without dodo context.
 import contextlib
 import functools
 import json
+from logging import WARNING
 import os
 from pathlib import Path
 import re
@@ -133,7 +134,9 @@ from rich.panel import Panel
 from rich.table import Table
 import structlog
 
+
 logger = structlog.get_logger(__name__)
+structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(WARNING))
 
 console = Console()
 
