@@ -14,6 +14,31 @@ Implement the new rules for AI agents defined in AGENTS.md. Focus on avoiding le
   - docs/development/analysis_summary.md
 - Constraints: Don't break existing functionality, update tests, document breaking changes.
 
+### Analysis Results
+
+#### Try-Except Blocks That Suppress Exceptions
+1. **Bare except clauses with pass** in `src/nicestlog/assistant.py` - Silently ignores all exceptions during AST node processing in PrintToStructlogTransformer.visit_Assign method.
+2. **Exception handling with continue** in `src/nicestlog/assistant.py` - Silently skips files that cannot be read during migration in migrate_directory function.
+3. **Exception handling with pass** in `src/nicestlog/systemd_integration.py` - Silently ignores systemd detection failures in detect_systemd_environment function.
+
+#### Legacy Code Patterns
+1. **Compatibility methods** in `src/nicestlog/advanced_assistant.py` - Duplicate properties (`issues` and `changes`) for API compatibility.
+2. **Legacy filtering method** in `src/nicestlog/linter.py` - Outdated approach to file filtering with hardcoded exclude directories.
+3. **Compatibility fields** in `src/nicestlog/core.py` - Duplicate data fields for backward compatibility (event field duplication).
+4. **Compatibility method** in `src/nicestlog/systemd_integration.py` - Method for standard logging handler compatibility.
+
+#### Cleanup Plan Overview
+The cleanup is divided into three phases:
+1. **Phase 1**: Fix try-except suppression issues (1-2 days) - Replace suppressed exceptions with proper error handling and logging.
+2. **Phase 2**: Remove legacy patterns with low/medium risk (2-3 days) - Remove legacy filtering, improve systemd integration.
+3. **Phase 3**: Remove legacy patterns with high risk (3-5 days) - Remove compatibility methods and fields, document breaking changes.
+
+#### Breaking Changes
+- Removal of `issues` and `changes` properties in `advanced_assistant.py` (use `potential_issues` and `changes_made` instead)
+- Removal of the "event" field duplication in `core.py` (use "_translated_msg" field instead)
+- Removal of legacy filtering method in `linter.py`
+- Removal of compatibility `emit` method in `systemd_integration.py`
+
 ### Task Goal
 
 - **Outcome we want**: Remove all try-except blocks that suppress exceptions and clean up all identified legacy patterns.
@@ -25,95 +50,11 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Analyze try-except blocks** – Identify blocks that suppress exceptions
-
-   - **Context**: Try-except blocks that ignore or suppress exceptions prevent early detection of errors.
-
-   - **Success criteria** (must be checked to finish task)
-
-     - [ ] All try-except blocks in the codebase identified
-     - [ ] Blocks classified (suppressing vs. correctly handled)
-     - [ ] Documentation of found patterns
-
-   - **Files to check/modify**
-
-     - [ ] src/nicestlog/core.py
-     - [ ] src/nicestlog/systemd_integration.py
-     - [ ] src/nicestlog/assistant.py
-     - [ ] src/nicestlog/cli.py
-     - [ ] src/nicestlog/web_dashboard.py
-     - [ ] src/nicestlog/project_analyzer.py
-     - [ ] src/nicestlog/log_statement_analyzer.py
-     - [ ] src/nicestlog/log_reviewer.py
-     - [ ] src/nicestlog/live_editor.py
-     - [ ] src/nicestlog/advanced_assistant.py
-     - [ ] src/nicestlog/linter.py
-
-   - **Steps** (always action verbs, explicit order)
-
-     - [ ] Search for all try-except blocks in the codebase
-     - [ ] Analyze if exceptions are correctly handled or suppressed
-     - [ ] Classify the found blocks
-     - [ ] Document the findings
-
-   - **Commit message hint**: "Analyze try-except blocks that suppress exceptions"
-
-1. [ ] **Analyze legacy code patterns** – Identify legacy patterns in the code
-
-   - **Context**: Legacy patterns in the code create technical debt and hinder further development.
-
-   - **Success criteria**
-
-     - [ ] All legacy patterns identified
-     - [ ] Impact documented
-     - [ ] Breaking changes documented
-
-   - **Files to check/modify**
-
-     - [ ] src/nicestlog/core.py
-     - [ ] src/nicestlog/systemd_integration.py
-     - [ ] src/nicestlog/assistant.py
-     - [ ] src/nicestlog/cli.py
-     - [ ] src/nicestlog/advanced_assistant.py
-     - [ ] src/nicestlog/linter.py
-
-   - **Steps**
-
-     - [ ] Search for legacy, workaround, compatibility, and hack patterns
-     - [ ] Analyze the found patterns
-     - [ ] Document the findings
-
-   - **Commit message hint**: "Analyze legacy code patterns"
-
-1. [ ] **Plan the cleanup** – Create a plan to remove the anti-patterns
-
-   - **Context**: Based on the analysis, concrete steps for cleanup need to be planned.
-
-   - **Success criteria**
-
-     - [ ] Detailed cleanup plan created
-     - [ ] Prioritization of tasks
-     - [ ] Risk assessment performed
-
-   - **Files to check/modify**
-
-     - [ ] \_TODO-AGENT.md (this file)
-     - [ ] docs/development/cleanup_plan.md
-
-   - **Steps**
-
-     - [ ] Create a detailed cleanup plan
-     - [ ] Prioritize the identified issues
-     - [ ] Perform risk assessment for each change
-     - [ ] Document the plan
-
-   - **Commit message hint**: "Plan cleanup of try-except suppression and legacy patterns"
-
 1. [ ] **Implement the cleanup** – Remove the identified anti-patterns
 
-   - **Context**: After planning, the identified anti-patterns are removed step by step.
+   - **Context**: Based on the completed analysis, the identified anti-patterns are removed step by step following the cleanup plan.
 
-   - **Success criteria**
+   - **Success criteria** (must be checked to finish task)
 
      - [ ] All identified try-except suppressions removed
      - [ ] All identified legacy patterns cleaned up
@@ -122,23 +63,27 @@ ______________________________________________________________________
 
    - **Files to check/modify**
 
-     - [ ] All files with identified anti-patterns
+     - [ ] src/nicestlog/assistant.py
+     - [ ] src/nicestlog/systemd_integration.py
+     - [ ] src/nicestlog/advanced_assistant.py
+     - [ ] src/nicestlog/linter.py
+     - [ ] src/nicestlog/core.py
      - [ ] Tests for the affected modules
      - [ ] Documentation
 
-   - **Steps**
+   - **Steps** (always action verbs, explicit order)
 
-     - [ ] Remove try-except blocks that suppress exceptions
-     - [ ] Replace with correct error handling or re-raising of exceptions
-     - [ ] Remove legacy patterns
-     - [ ] Update tests
-     - [ ] Update documentation
+     - [ ] Phase 1: Fix try-except suppression issues - Replace suppressed exceptions with proper error handling and logging
+     - [ ] Phase 2: Remove legacy patterns with low/medium risk - Remove legacy filtering, improve systemd integration
+     - [ ] Phase 3: Remove legacy patterns with high risk - Remove compatibility methods and fields
+     - [ ] Update tests for all modified code
+     - [ ] Update documentation for breaking changes
 
    - **Commit message hint**: "Remove try-except suppression and legacy patterns"
 
 1. [ ] **Test and validate** – Run the full test suite
 
-   - **Context**: Ensure that no functionality has been compromised.
+   - **Context**: Ensure that no functionality has been compromised after the cleanup.
 
    - **Success criteria**
 
