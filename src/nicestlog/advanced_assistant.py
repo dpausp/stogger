@@ -141,11 +141,6 @@ class TransformationResult:
         """Get the file path from the analysis."""
         return self.analysis.file_path
 
-    @property
-    def changes(self) -> list[str]:
-        """Alias for changes_made for CLI compatibility."""
-        return self.changes_made
-
 
 class AdvancedASTAnalyzer(ast.NodeVisitor):
     """🔍 Advanced AST Analyzer with comprehensive logging.

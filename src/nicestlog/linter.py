@@ -602,23 +602,6 @@ def lint_directory(
                 f"🚫 Excluded {len(excluded_files)} files (tests, docs, etc.) from logging analysis",
             )
     else:
-        # Legacy filtering method
-        EXCLUDE_DIRS = {
-            ".venv",
-            "venv",
-            "__pycache__",
-            ".git",
-            ".tox",
-            ".nox",
-            ".mypy_cache",
-            ".pytest_cache",
-            ".ruff_cache",
-            ".direnv",
-            "node_modules",
-            "build",
-            "dist",
-            ".eggs",
-        }
         # Load exclusion globs from pyproject.toml [tool.nicestlog]
         exclude_globs: list[str] = []
         pyproject = directory / "pyproject.toml"
@@ -642,11 +625,7 @@ def lint_directory(
                     return True
             return False
 
-        python_files = [
-            p
-            for p in directory.rglob("*.py")
-            if not any(part in EXCLUDE_DIRS for part in p.parts) and not is_excluded(p)
-        ]
+        python_files = [p for p in directory.rglob("*.py") if not is_excluded(p)]
 
     if not python_files:
         if os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower() in {"json", "toml"}:

@@ -106,52 +106,6 @@ class SystemdJournalHandler:
 
         return event_dict
 
-    def emit(self, record):
-        """Emit a log record to systemd journal.
-
-        This method provides compatibility with standard Python logging handlers.
-        """
-        if not SYSTEMD_AVAILABLE and journal is None:
-            return
-
-        # Extract information from log record
-        message = record.getMessage()
-        level = record.levelname.lower()
-        logger_name = record.name
-
-        # Build journal fields
-        priority = self.PRIORITY_MAP.get(level, 6)  # Default to LOG_INFO equivalent
-        journal_fields = {
-            "MESSAGE": str(message),
-            "PRIORITY": str(priority),
-            "SYSLOG_IDENTIFIER": self.identifier,
-            "LOGGER_NAME": logger_name,
-            "PYTHON_MODULE": logger_name,
-            "SYSLOG_PID": str(self.pid),
-            "_HOSTNAME": self.hostname,
-            "_PID": str(self.pid),
-            "CODE_FILE": getattr(record, "pathname", ""),
-            "CODE_LINE": str(getattr(record, "lineno", "")),
-            "CODE_FUNC": getattr(record, "funcName", ""),
-        }
-
-        # Add facility if specified
-        if self.facility:
-            journal_fields["SYSLOG_FACILITY"] = self.facility
-
-        # Add exception info if present
-        if hasattr(record, "exc_info") and record.exc_info:
-            journal_fields["EXCEPTION_INFO"] = str(record.exc_info)
-
-        if hasattr(record, "exc_text") and record.exc_text:
-            journal_fields["EXCEPTION_TEXT"] = record.exc_text
-
-        # Send to journal
-        try:
-            journal.send(**journal_fields)
-        except Exception as e:
-            print(f"Failed to send to systemd journal: {e}", file=sys.stderr)
-
 
 def detect_systemd_environment() -> dict[str, Any]:
     """Detect if we're running under systemd and gather environment info."""

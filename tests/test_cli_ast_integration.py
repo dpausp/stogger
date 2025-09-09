@@ -60,7 +60,7 @@ def test_function():
             mock_result.function_count = 1
             mock_result.class_count = 0
             mock_result.complexity_score = 2.5
-            mock_result.issues = [
+            mock_result.potential_issues = [
                 "Found print statement that could be structured logging",
             ]
             mock_assistant.analyze_file.return_value = mock_result
@@ -93,7 +93,7 @@ def complex_function(x):
             mock_result = MagicMock()
             mock_result.file_path = test_file
             mock_result.complexity_score = 8.5
-            mock_result.issues = []
+            mock_result.potential_issues = []
             mock_result.lines_of_code = 8
             mock_result.function_count = 1
             mock_result.class_count = 0
@@ -127,7 +127,7 @@ def test():
             mock_assistant.patterns = [mock_pattern]
 
             mock_result = MagicMock()
-            mock_result.issues = []
+            mock_result.potential_issues = []
             mock_result.file_path = test_file
             mock_result.lines_of_code = 5
             mock_result.function_count = 1
@@ -206,7 +206,7 @@ def test():
             mock_result = MagicMock()
             mock_result.file_path = test_file
             mock_result.changes_made = True
-            mock_result.changes = ["Converted print to log.info"]
+            mock_result.changes_made = ["Converted print to log.info"]
             mock_result.transformed_code = 'import structlog\nlog = structlog.get_logger()\n\ndef test():\n    log.info("debug-message", message="Debug message")\n    return True'
             mock_assistant.transform_file.return_value = mock_result
 
@@ -233,7 +233,7 @@ print("This should be fixed")
             mock_result = MagicMock()
             mock_result.file_path = test_file
             mock_result.changes_made = True
-            mock_result.changes = ["Convert print to structured log"]
+            mock_result.changes_made = ["Convert print to structured log"]
             mock_result.transformed_code = 'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="This should be fixed")'
             mock_assistant.transform_file.return_value = mock_result
 
@@ -281,7 +281,7 @@ logging.info("test")
 
             mock_result = MagicMock()
             mock_result.changes_made = False
-            mock_result.changes = []
+            mock_result.changes_made = []
             mock_assistant.transform_file.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_file)])

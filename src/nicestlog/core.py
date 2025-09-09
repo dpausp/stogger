@@ -93,12 +93,10 @@ class TranslationProcessor:
             # Don't log during translation to avoid recursion
             translated_msg = self.formatter.format(template, **event_dict)
             event_dict["_translated_msg"] = translated_msg
-            event_dict["event"] = translated_msg  # Keep for compatibility
         elif replace_msg := event_dict.pop("_replace_msg", None):
             # Don't log during translation to avoid recursion
             translated_msg = self.formatter.format(replace_msg, **event_dict)
             event_dict["_translated_msg"] = translated_msg
-            event_dict["event"] = translated_msg  # Keep for compatibility
         # No logging for "no translation found" to avoid recursion
         return event_dict
 
@@ -134,16 +132,29 @@ class ConsoleFileRenderer:
         "trace",
     ]
 
-    def __init__(self, settings=_default_simple_format_settings):
+    def __init__(
+        self,
+        settings=_default_simple_format_settings,
+        min_level=None,
+        show_caller_info=None,
+    ):
         """Initialize the ConsoleFileRenderer with settings.
 
         Args:
             settings: SimpleFormatSettings object with configuration options.
-                     Uses default settings if None is provided.
+                      Uses default settings if None is provided.
+            min_level: Override min_level from settings
+            show_caller_info: Override show_code_info from settings
 
         """
         # Store settings object
         self.settings = settings
+
+        # Override settings with provided parameters
+        if min_level is not None:
+            self.settings.min_level = min_level
+        if show_caller_info is not None:
+            self.settings.show_code_info = show_caller_info
 
         # Initialize instance variables from settings
         self.min_level = self.LEVELS.index(settings.min_level.lower())
