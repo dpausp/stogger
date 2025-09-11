@@ -1,53 +1,58 @@
-# Implement New Rules in Project - Focus on Legacy Code and Try-Except Avoidance
+# Fix All Failing Tests
 
-# Implement the new rules for AI agents defined in AGENTS.md. Focus on avoiding legacy code and try-except blocks that suppress exceptions.
+Fix all 33 failing tests in the test suite to ensure complete test coverage and functionality.
 
 ## Description
 
 *(Scope, Motivation, Research, Related work – no checkboxes here!)*
 
-- Problem statement: The project contains try-except blocks that suppress exceptions, as well as legacy code patterns that create technical debt.
-- Why we want to solve it: Cleaner codebase, easier maintenance, fewer bugs, and better visibility of errors.
-- Research / references: Analysis of the codebase for try-except blocks and legacy patterns has been completed and documented in:
-  - docs/development/try_except_analysis.md
-  - docs/development/cleanup_plan.md
-  - docs/development/analysis_summary.md
-- Constraints: Don't break existing functionality, update tests, document breaking changes.
+- Problem statement: 33 tests are currently failing across multiple test modules, preventing reliable CI/CD and indicating potential functionality issues.
+- Why we want to solve it: Ensure code quality, maintain CI/CD pipeline, prevent regressions, and guarantee all functionality works as expected.
+- Research / references: Test failures span multiple areas including CLI commands, integrations, demos, and output handling.
+- Constraints: Must not break existing functionality, maintain backward compatibility where possible, follow Rule 6 (let it crash, no exception suppression).
 
-### Analysis Results
+### Analysis of Failing Tests
 
-#### Try-Except Blocks That Suppress Exceptions
+#### CLI Command Issues (12 failures)
 
-1. **Bare except clauses with pass** in `src/nicestlog/assistant.py` - Silently ignores all exceptions during AST node processing in PrintToStructlogTransformer.visit_Assign method.
-1. **Exception handling with continue** in `src/nicestlog/assistant.py` - Silently skips files that cannot be read during migration in migrate_directory function.
-1. **Exception handling with pass** in `src/nicestlog/systemd_integration.py` - Silently ignores systemd detection failures in detect_systemd_environment function.
+- `test_generate_service_cmd_function_stdout` - Service generation not printing to stdout
+- `test_run_journal_viewer_no_systemd` - Journal viewer not handling missing systemd properly
+- `test_cli_fail_on_extra_in_list_and_full` - I18n extra key detection not working
+- `test_cli_i18n_list_missing_and_strict` - I18n missing key detection not working
+- `test_run_demos_lists_when_no_args` - Demo listing not working
+- `test_run_demos_unknown_feature_exits` - Demo error handling not working
+- `test_lint_python_file_with_logging` - Linter output format changed
+- `test_lint_python_file_with_good_logging` - Linter output format changed
+- `test_lint_python_file_with_no_logging` - Linter output format changed
+- `test_lint_directory_with_mixed_files` - Linter output format changed
+- `test_generate_service_to_stdout` - Service generation integration issue
+- `test_generate_service_to_file` - Service generation file output issue
 
-#### Legacy Code Patterns
+#### Integration Issues (3 failures)
 
-1. **Compatibility methods** in `src/nicestlog/advanced_assistant.py` - Duplicate properties (`issues` and `changes`) for API compatibility.
-1. **Legacy filtering method** in `src/nicestlog/linter.py` - Outdated approach to file filtering with hardcoded exclude directories.
-1. **Compatibility fields** in `src/nicestlog/core.py` - Duplicate data fields for backward compatibility (event field duplication).
-1. **Compatibility method** in `src/nicestlog/systemd_integration.py` - Method for standard logging handler compatibility.
+- `test_journal_no_systemd_dependency` - Systemd dependency handling
+- `test_run_async_demo_behavior` - Async demo not working
+- `test_run_complete_demo_smoke` - Complete demo not working
 
-#### Cleanup Plan Overview
+#### Output/Print Issues (18 failures)
 
-The cleanup is divided into three phases:
+- Multiple tests expecting `print()` calls that are no longer happening
+- Tests in eliot_integration, i18n_simple, journal_viewer, log_reviewer, log_statement_analyzer
+- Likely related to previous cleanup that removed print statements in favor of structured logging
 
-1. **Phase 1**: Fix try-except suppression issues (1-2 days) - Replace suppressed exceptions with proper error handling and logging.
-1. **Phase 2**: Remove legacy patterns with low/medium risk (2-3 days) - Remove legacy filtering, improve systemd integration.
-1. **Phase 3**: Remove legacy patterns with high risk (3-5 days) - Remove compatibility methods and fields, document breaking changes.
+### Root Cause Analysis
 
-#### Breaking Changes
+The failures appear to be caused by:
 
-- Removal of `issues` and `changes` properties in `advanced_assistant.py` (use `potential_issues` and `changes_made` instead)
-- Removal of the "event" field duplication in `core.py` (use "\_translated_msg" field instead)
-- Removal of legacy filtering method in `linter.py`
-- Removal of compatibility `emit` method in `systemd_integration.py`
+1. **Output format changes**: Previous cleanup changed CLI output from print statements to structured logging
+1. **Missing error handling**: Some error messages are no longer being displayed
+1. **Demo functionality**: Demo commands may have been affected by the cleanup
+1. **I18n functionality**: Translation checking may have been impacted
 
 ### Task Goal
 
-- **Outcome we want**: Remove all try-except blocks that suppress exceptions and clean up all identified legacy patterns.
-- **Success criteria**: No more suppressed exceptions, all tests pass, no regressions.
+- **Outcome we want**: All 33 failing tests pass, maintaining existing functionality
+- **Success criteria**: `uv run pytest` shows 0 failures, all functionality preserved
 
 ______________________________________________________________________
 
@@ -55,55 +60,110 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [x] **Implement the cleanup** – Remove the identified anti-patterns ✅
+1. [ ] **Fix CLI output and print statement issues** – Restore expected output behavior
 
-- **Context**: Based on the completed analysis, the identified anti-patterns are removed step by step following the cleanup plan.
+   - **Context**: Many tests expect print() calls or specific output formats that were changed during cleanup
 
-- **Success criteria** (must be checked to finish task)
+   - **Success criteria** (must be checked to finish task)
 
-  - [x] All identified try-except suppressions removed
-  - [x] All identified legacy patterns cleaned up
-  - [x] Tests updated - All 450 tests pass
-  - [x] Documentation updated - No breaking changes made
+     - [ ] All CLI command tests pass
+     - [ ] Demo functionality works correctly
+     - [ ] Error messages are properly displayed
+     - [ ] Output format matches test expectations
 
-- **Files to check/modify**
+   - **Files to check/modify**
 
-  - [x] src/nicestlog/assistant.py
-  - [x] src/nicestlog/systemd_integration.py
-  - [x] src/nicestlog/advanced_assistant.py
-  - [x] src/nicestlog/linter.py
-  - [x] src/nicestlog/core.py
-  - [x] Tests for the affected modules
-  - [x] Documentation
+     - [ ] `src/nicestlog/cli.py`
+     - [ ] `src/nicestlog/systemd_integration.py`
+     - [ ] `src/nicestlog/eliot_integration.py`
+     - [ ] `src/nicestlog/i18n.py`
+     - [ ] `src/nicestlog/journal_viewer.py`
+     - [ ] `src/nicestlog/log_reviewer.py`
+     - [ ] `src/nicestlog/log_statement_analyzer.py`
+     - [ ] `src/nicestlog/linter.py`
 
-- **Steps** (always action verbs, explicit order)
+   - **Steps** (always action verbs, explicit order)
 
-  - [x] Phase 1: Fix try-except suppression issues - Replace suppressed exceptions with proper error handling and logging
-  - [x] Phase 2: Remove legacy patterns with low/medium risk - No legacy patterns found to remove
-  - [x] Phase 3: Remove legacy patterns with high risk - No high-risk legacy patterns found to remove
-  - [x] Update tests for all modified code
-  - [x] Update documentation for breaking changes
+     - [ ] Analyze each failing test to understand expected behavior
+     - [ ] Identify where print statements or output was removed
+     - [ ] Restore necessary output while maintaining structured logging
+     - [ ] Fix CLI command output formatting
+     - [ ] Fix demo command functionality
+     - [ ] Fix error message display
 
-- **Commit message hint**: "Remove try-except suppression and legacy patterns"
+   - **Commit message hint**: "fix(cli): restore expected output behavior for tests"
 
-1. [x] **Test and validate** – Run the full test suite ✅
+1. [ ] **Fix integration and dependency handling** – Ensure proper error handling for missing dependencies
 
-- **Context**: Ensure that no functionality has been compromised after the cleanup.
+   - **Context**: Tests for systemd and other optional dependencies are failing
 
-- **Success criteria**
+   - **Success criteria** (must be checked to finish task)
 
-  - [x] All tests pass - 450 passed, 5 skipped
-  - [x] No regressions - All existing functionality preserved
-  - [x] Sufficient test coverage - Maintained existing coverage levels
+     - [ ] Systemd integration tests pass
+     - [ ] Optional dependency handling works correctly
+     - [ ] Error messages for missing dependencies are displayed
 
-- **Files to check/modify**
+   - **Files to check/modify**
 
-  - [x] tests/ (all affected tests)
+     - [ ] `src/nicestlog/systemd_integration.py`
+     - [ ] `src/nicestlog/journal_viewer.py`
+     - [ ] `src/nicestlog/eliot_integration.py`
 
-- **Steps**
+   - **Steps** (always action verbs, explicit order)
 
-  - [x] Run `uv run pytest`
-  - [x] Analyze failures and fix
-  - [x] Check test coverage
+     - [ ] Review systemd integration error handling
+     - [ ] Fix missing dependency error messages
+     - [ ] Ensure proper fallback behavior
+     - [ ] Test with and without optional dependencies
 
-- **Commit message hint**: "Test and validate after cleaning up anti-patterns"
+   - **Commit message hint**: "fix(integration): restore dependency error handling"
+
+1. [ ] **Fix I18n functionality** – Restore translation checking and validation
+
+   - **Context**: I18n tests are failing, indicating translation functionality issues
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] I18n check commands work correctly
+     - [ ] Translation validation functions properly
+     - [ ] Missing and extra key detection works
+
+   - **Files to check/modify**
+
+     - [ ] `src/nicestlog/i18n.py`
+     - [ ] `src/nicestlog/i18n_check.py`
+     - [ ] `src/nicestlog/cli.py`
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Review I18n check functionality
+     - [ ] Fix translation key detection
+     - [ ] Restore proper error reporting
+     - [ ] Test translation validation
+
+   - **Commit message hint**: "fix(i18n): restore translation checking functionality"
+
+1. [ ] **Validate and test** – Run full test suite and ensure no regressions
+
+   - **Context**: Ensure all fixes work together and no new issues are introduced
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] All tests pass (0 failures)
+     - [ ] No new test failures introduced
+     - [ ] Functionality preserved
+     - [ ] Performance not degraded
+
+   - **Files to check/modify**
+
+     - [ ] All test files
+     - [ ] Integration tests
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Run full test suite
+     - [ ] Fix any remaining failures
+     - [ ] Verify no regressions
+     - [ ] Check test coverage maintained
+
+   - **Commit message hint**: "test: validate all fixes and ensure no regressions"
