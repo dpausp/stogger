@@ -3,18 +3,18 @@ name = "nicestlog"
 version = "0.3.3"
 description = "A sophisticated multi-target structured logging system built on structlog"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "structlog>=23.0.0",
     "eliot>=1.0.0",
     "requests>=2.32.4",
-    "typer>=0.9.0",
+    "typer>=0.16.1",
     "rich>=13.0",
     "toml>=0.10.2",
     "click<8.2",
     "colorama>=0.4.6",
     "pexpect>=4.9.0",
-    "pytest>=8.4.1",
+    "pytest>=8.3.0",
 ]
 
 [project.optional-dependencies]
@@ -140,22 +140,20 @@ test = [
 ]
 
 [tool.ruff]
-line-length = 88
-target-version = "py311"
+line-length = 120
+target-version = "py313"
 extend-exclude = ["tests"]
 
 [tool.ruff.lint]
 select = [
     "E", "W", "F", "I", "N", "D", "UP", "YTT", "S", "BLE", "FBT", "B", 
-    "A", "COM", "C4", "DTZ", "T10", "EM", "EXE", "FA", "ISC", "ICN", 
+    "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", 
     "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RUF", "SLF", "SLOT", "SIM", 
-    "TID", "TCH", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PGH", 
-    "PL", "TRY", "NPY", "PERF", "FURB", "LOG"
+    "TID", "TCH", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PD", "PGH", 
+    "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG"
 ]
 ignore = [
-    "D100", "D104", "D203", "D213",  # Docstring style preferences
-    "S101",  # Use of assert (acceptable in tests)
-    "T20",   # Print statements (we have structured logging)
+    "D100", "D104", "D203", "D213", "COM812"
 ]
 
 [tool.ruff.lint.isort]
@@ -172,7 +170,7 @@ line-ending = "auto"
 
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 files = [
     "src",
 ]
@@ -201,7 +199,7 @@ exclude = [
 ]
 
 [tool.pylint.main]
-py-version = "3.11"
+py-version = "3.13"
 ignore-patterns = [".venv"]
 fail-under = 9.8
 
