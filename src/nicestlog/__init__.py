@@ -33,27 +33,27 @@ Functions:
 __version__ = "2.1.0"
 
 from .advanced_assistant import (
-    analyze_python_file,
-    create_advanced_assistant,
-    transform_python_file,
+    analyze_python_file as analyze_python_file,
+    create_advanced_assistant as create_advanced_assistant,
+    transform_python_file as transform_python_file,
 )
-from .assistant import migrate_directory
-from .cli import main
-from .config import NicestLogConfig
+from .assistant import migrate_directory as migrate_directory
+from .cli import main as main
+from .config import NicestLogConfig as NicestLogConfig
 from .core import (
-    JournalLogger,
-    JournalLoggerFactory,
-    MultiOptimisticLogger,
-    MultiOptimisticLoggerFactory,
-    SystemdJournalRenderer,
-    drop_cmd_output_logfile,
-    init_command_logging,
-    init_early_logging,
-    init_logging,
-    logging_initialized,
+    JournalLogger as JournalLogger,
+    JournalLoggerFactory as JournalLoggerFactory,
+    MultiOptimisticLogger as MultiOptimisticLogger,
+    MultiOptimisticLoggerFactory as MultiOptimisticLoggerFactory,
+    SystemdJournalRenderer as SystemdJournalRenderer,
+    drop_cmd_output_logfile as drop_cmd_output_logfile,
+    init_command_logging as init_command_logging,
+    init_early_logging as init_early_logging,
+    init_logging as init_logging,
+    logging_initialized as logging_initialized,
 )
-from .eliot_integration import setup_eliot_logging
-from .i18n import arsch, get_translator, init_i18n, leiwand, oida, t
+from .eliot_integration import setup_eliot_logging as setup_eliot_logging
+from .i18n import arsch as arsch, get_translator as get_translator, init_i18n as init_i18n, leiwand as leiwand, oida as oida, t as t
 from .interactive_transformer import (
     create_interactive_transformer,
     transform_directory_interactive,
