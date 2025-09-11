@@ -20,7 +20,7 @@ In this section, events are referred to without the `agent-` prefix sometimes.
 
 **TODO phase Flow:** start → coding-start → coding-checkpoint(s) → pre-commit → post-commit
 **IMPL phase Flow:** start → todo-start → pre-commit → post-commit
-**DISCUSS phase Flow:** none, just answer
+**DISCUSS phase Flow:** start → discuss-start
 
 Calling workflow events will give further instructions aligned with the current state and agent rules in this document.
 
@@ -53,9 +53,11 @@ MUST be called when in IMPL phase.
 - Discussion-only phase with no changes allowed.
 - Agents must not modify any files or run commands that change the workspace.
 - No commit, no commit checklist in this phase.
-- Use for discussing ideas without implementation.
-- No file modifications or system changes are permitted.
+- Use for planning or discussing without implementation.
+- Agents should use this phase for analysis, research, or architectural discussions.
+- No file modifications, command executions, or system changes are permitted.
 - This phase is for pure discussion and planning activities only.
+- Ideal for complex problem analysis, design discussions, or when you need to think through approaches without making changes.
 - Agents should provide detailed explanations and reasoning in this phase.
 ```
 
@@ -80,11 +82,11 @@ These are user prompts in German - agent also responds in German.
 - **"weiter gehts"** → Continue implementing current \_TODO-agent.md
 - **"implementier"** → start implementing \_TODO-AGENT.md (TODO must not have checked checkboxes, yet)
 - **"mach"** → Choose first available option and do it now
-- **"frage:"** → Switch to DISCUSS phase for discussion without changes
+- **"switch_to_discuss_phase"** → Switch to DISCUSS phase for discussion without changes
 
-## 📝 Pre-commit checklist (MANDATORY)
+## 📝 Commit checklist (MANDATORY)
 
-End your turn with filling out the following checklist. No need to show it to the user, just put it in the commit message when you changed something in the repository.
+The following checklists must be included in every Git commit message.
 
 Rules:
 
@@ -93,7 +95,7 @@ Rules:
 - don't show placeholders in your output
 - Mark content in the template that is clearly not applicable and state the reason, 
 - [evidence?] placeholder means: how did you check that your answer is correct?
-- [YES: text] | NO:
+- [YES: text | NO: text]: | means OR, fill out one of the options YES NO, delete the other
 
 In you final message to the user, include The commit ID at the Very end, clearly visible.
 
