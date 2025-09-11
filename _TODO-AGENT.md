@@ -66,10 +66,10 @@ ______________________________________________________________________
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All CLI command tests pass
-     - [ ] Demo functionality works correctly
-     - [ ] Error messages are properly displayed
-     - [ ] Output format matches test expectations
+     - [x] All CLI command tests pass
+     - [x] Demo functionality works correctly
+     - [x] Error messages are properly displayed
+     - [x] Output format matches test expectations
 
    - **Files to check/modify**
 

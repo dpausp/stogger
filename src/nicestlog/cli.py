@@ -1465,6 +1465,7 @@ def run_journal_viewer(
 
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
+        console.print("❌ [red]systemd-python not available[/red]")
         sys.exit(1)
 
     viewer = JournalViewer()
@@ -1595,8 +1596,12 @@ def run_demos(feature: str | None = None, all_features: bool = False):
         time.sleep(0.5)
 
     if not feature and not all_features:
-        for demo_name in available_demos:
-            pass
+        console.print("🎬 [bold blue]Available nicestlog demos:[/bold blue]")
+        for demo_name, description in available_demos.items():
+            console.print(f"  • [cyan]{demo_name}[/cyan] - {description}")
+        console.print("\n💡 [blue]Usage:[/blue]")
+        console.print("  [cyan]nicestlog tools demo <feature>[/cyan] - Run specific demo")
+        console.print("  [cyan]nicestlog tools demo --all[/cyan] - Run all demos")
         return
 
     demos_to_run = []
