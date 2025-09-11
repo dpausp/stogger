@@ -9,7 +9,7 @@ Fix all 33 failing tests in the test suite to ensure complete test coverage and 
 - Problem statement: 33 tests are currently failing across multiple test modules, preventing reliable CI/CD and indicating potential functionality issues.
 - Why we want to solve it: Ensure code quality, maintain CI/CD pipeline, prevent regressions, and guarantee all functionality works as expected.
 - Research / references: Test failures span multiple areas including CLI commands, integrations, demos, and output handling.
-- Constraints: Must not break existing functionality, maintain backward compatibility where possible, follow Rule 6 (let it crash, no exception suppression).
+- Constraints: Must not break existing functionality, maintain backward compatibility where possible, follow Rule 6 (let it crash, no exception suppression). **ABSOLUTELY NO PRINT STATEMENTS** - Never add print() calls anywhere in the code, use structured logging only.
 
 ### Analysis of Failing Tests
 
@@ -36,7 +36,7 @@ Fix all 33 failing tests in the test suite to ensure complete test coverage and 
 
 #### Output/Print Issues (18 failures)
 
-- Multiple tests expecting `print()` calls that are no longer happening
+- Multiple tests expecting `print()` calls that are no longer happening => change tests to expect something else, NEVER use print
 - Tests in eliot_integration, i18n_simple, journal_viewer, log_reviewer, log_statement_analyzer
 - Likely related to previous cleanup that removed print statements in favor of structured logging
 
@@ -86,10 +86,10 @@ ______________________________________________________________________
 
      - [ ] Analyze each failing test to understand expected behavior
      - [ ] Identify where print statements or output was removed
-     - [ ] Restore necessary output while maintaining structured logging
-     - [ ] Fix CLI command output formatting
-     - [ ] Fix demo command functionality
-     - [ ] Fix error message display
+     - [ ] **NEVER ADD PRINT STATEMENTS** - Fix tests to expect structured logging output instead
+     - [ ] Fix CLI command output formatting using structured logging only
+     - [ ] Fix demo command functionality without print statements
+     - [ ] Fix error message display using structured logging
 
    - **Commit message hint**: "fix(cli): restore expected output behavior for tests"
 
