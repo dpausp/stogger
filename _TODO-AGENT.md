@@ -60,7 +60,7 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Fix CLI output and print statement issues** – Restore expected output behavior
+1. [x] **Fix CLI output and print statement issues** – Restore expected output behavior
 
    - **Context**: Many tests expect print() calls or specific output formats that were changed during cleanup
 

@@ -245,8 +245,8 @@ def i18n_check(
         extra_keys = cast("list[str]", result.get("extra_keys", []))
 
         if list_missing:
-            for _key in missing_keys:
-                pass
+            for key in missing_keys:
+                console.print(key)
             # In list_missing mode with strict, fail if there are missing keys
             if strict and missing_keys:
                 sys.exit(1)
@@ -258,27 +258,10 @@ def i18n_check(
 
         # Normal mode: print report if verbose or if there are issues
         if verbose or missing_keys or extra_keys:
+            from .i18n_check import format_report
 
-            if missing_keys:
-                for _key in missing_keys:
-                    pass
-            else:
-                pass
-
-            if extra_keys:
-                for _key in extra_keys:
-                    pass
-            elif verbose:
-                pass
-
-            # Show debug events if present
-            debug_events = cast(
-                "list[str]",
-                result.get("debug_with_replace_events", []),
-            )
-            if debug_events and verbose:
-                for _key in debug_events:
-                    pass
+            report_text = format_report(result, include_debug=verbose)
+            console.print(report_text)
 
         # Normal mode: fail if there are missing keys or extra keys (when fail_on_extra is set)
         has_errors = bool(missing_keys) or (fail_on_extra and bool(extra_keys))
@@ -1590,7 +1573,7 @@ def generate_service_cmd(
             f.write(service_content)
         # Provide helpful follow-up instructions
     else:
-        pass
+        console.print(service_content)
 
 
 def run_demos(feature: str | None = None, all_features: bool = False):
@@ -1623,6 +1606,7 @@ def run_demos(feature: str | None = None, all_features: bool = False):
     elif feature in available_demos:
         demos_to_run = [feature]
     else:
+        console.print(f"Unknown demo: {feature}")
         sys.exit(1)
 
 
