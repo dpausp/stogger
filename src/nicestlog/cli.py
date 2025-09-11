@@ -1465,7 +1465,7 @@ def run_journal_viewer(
 
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
-        console.print("❌ [red]systemd-python not available[/red]")
+        print("❌ systemd-python not available")
         sys.exit(1)
 
     viewer = JournalViewer()
@@ -1574,7 +1574,7 @@ def generate_service_cmd(
             f.write(service_content)
         # Provide helpful follow-up instructions
     else:
-        console.print(service_content)
+        print(service_content)
 
 
 def run_demos(feature: str | None = None, all_features: bool = False):
