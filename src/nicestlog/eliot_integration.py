@@ -239,10 +239,6 @@ def setup_eliot_logging(
 
     """
     if not ELIOT_AVAILABLE:
-        print(
-            "Warning: Eliot is not available. Install with: pip install eliot",
-            file=sys.stderr,
-        )
         return False
 
     from eliot import add_destinations, to_file
@@ -328,13 +324,10 @@ else:
 def demo_eliot_integration():
     """Demonstrate Eliot integration with beautiful output."""
     if not ELIOT_AVAILABLE:
-        print("Eliot not available for demo")
         return
 
     setup_eliot_logging(human_readable=True, show_timestamps=True)
 
-    print("🎭 Eliot Integration Demo - Beautiful Action Tracing!")
-    print("=" * 60)
 
     with log_action("user_request", user_id=123, endpoint="/api/data"):
         log_message(message_type="request_received", method="GET")
@@ -347,7 +340,6 @@ def demo_eliot_integration():
 
         log_message(message_type="response_sent", status_code=200, size_bytes=1024)
 
-    print("\n🎉 Demo complete! Much better than ugly JSON, right?")
 
 
 if __name__ == "__main__":

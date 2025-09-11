@@ -2,7 +2,6 @@
 
 import atexit
 import logging
-import sys
 from typing import Any
 
 import structlog
@@ -79,10 +78,6 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
                 "translation-load-failed",
                 file=str(translation_file),
                 error=str(e),
-            )
-            print(
-                f"Warning: failed to load translations from {translation_file}: {e}",
-                file=sys.stderr,
             )
     # Add the final renderer
     if config.log_format == "json":
@@ -161,9 +156,8 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: list[Any]):
             file_handler = logging.FileHandler(log_file)
             file_handlers.append(file_handler)
             log.debug("file-logging-enabled", log_file=str(log_file))
-        except (OSError, PermissionError) as e:
+        except (OSError, PermissionError):
             log.exception("file-logging-setup-failed", logdir=str(config.logdir))
-            print(f"Warning: failed to set up file logging: {e}", file=sys.stderr)
 
     if config.log_to_console:
         log.debug("creating-console-handler")

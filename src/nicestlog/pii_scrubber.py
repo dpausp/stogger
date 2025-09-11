@@ -189,8 +189,6 @@ def demo_pii_scrubbing():
     """Demonstrate PII scrubbing capabilities."""
     scrubber = PIIScrubber()
 
-    print("🔒 PII Scrubbing Demo")
-    print("=" * 50)
 
     # Test data with various PII
     test_cases = [
@@ -232,14 +230,9 @@ def demo_pii_scrubbing():
     ]
 
     for test in test_cases:
-        print(f"\n📝 {test['description']}:")
-        print(f"   Input:  {test['input']}")
-        scrubbed = scrubber.scrub_string(test["input"])
-        print(f"   Output: {scrubbed}")
-        print(f"   Note:   {test['expected']}")
+        scrubber.scrub_string(test["input"])
 
     # Test dictionary scrubbing
-    print("\n📋 Dictionary scrubbing:")
     test_dict = {
         "user_id": 12345,
         "email": "user@example.com",
@@ -249,12 +242,8 @@ def demo_pii_scrubbing():
         "metadata": {"api_key": "sk_test_abc123", "session_id": "sess_xyz789"},
     }
 
-    print(f"   Input:  {test_dict}")
-    scrubbed_dict = scrubber.scrub_dict(test_dict)
-    print(f"   Output: {scrubbed_dict}")
+    scrubber.scrub_dict(test_dict)
 
-    print("\n🎉 PII scrubbing demo complete!")
-    print("💡 Use: processors=[create_pii_processor(), ...] in structlog.configure()")
 
 
 if __name__ == "__main__":

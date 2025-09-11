@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-import sys
 import tomllib
 from typing import Any
 
@@ -39,11 +38,7 @@ class ProjectStructure:
             # Check exclude patterns
             import fnmatch
 
-            for pattern in self.exclude_patterns:
-                if fnmatch.fnmatch(rel_path_str, pattern):
-                    return True
-
-            return False
+            return any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in self.exclude_patterns)
         except ValueError:
             # File is outside project root
             return True
@@ -124,7 +119,6 @@ class NicestLogConfig:
             return nicest_config
         except (tomllib.TOMLDecodeError, Exception) as e:
             log.exception(f"config-loading-failed: {pyproject_path} - {e}")
-            print(f"Error decoding pyproject.toml: {e}", file=sys.stderr)
             return {}
 
 

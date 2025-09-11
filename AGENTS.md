@@ -20,6 +20,7 @@ In this section, events are referred to without the `agent-` prefix sometimes.
 
 **TODO phase Flow:** start → coding-start → coding-checkpoint(s) → pre-commit → post-commit
 **IMPL phase Flow:** start → todo-start → pre-commit → post-commit
+**DISCUSS phase Flow:** none, just answer
 
 Calling workflow events will give further instructions aligned with the current state and agent rules in this document.
 
@@ -46,6 +47,18 @@ MUST be called when in IMPL phase.
 - `uv run doit agent-coding-start` - Begin coding session, must be called before making any workspace changes (validates phase, git status, show TODO)
 - `uv run doit agent-coding-checkpoint` - Quick validation during coding (format, syntax)
 
+## DISCUSS Phase
+
+```
+- Discussion-only phase with no changes allowed.
+- Agents must not modify any files or run commands that change the workspace.
+- No commit, no commit checklist in this phase.
+- Use for discussing ideas without implementation.
+- No file modifications or system changes are permitted.
+- This phase is for pure discussion and planning activities only.
+- Agents should provide detailed explanations and reasoning in this phase.
+```
+
 ## TODO Phase
 
 ```
@@ -67,29 +80,35 @@ These are user prompts in German - agent also responds in German.
 - **"weiter gehts"** → Continue implementing current \_TODO-agent.md
 - **"implementier"** → start implementing \_TODO-AGENT.md (TODO must not have checked checkboxes, yet)
 - **"mach"** → Choose first available option and do it now
+- **"frage:"** → Switch to DISCUSS phase for discussion without changes
 
-## 📝 Message Footer Format (MANDATORY)
+## 📝 Pre-commit checklist (MANDATORY)
 
-Always end your turn with filling out the quick checklist template.
+End your turn with filling out the following checklist. No need to show it to the user, just put it in the commit message when you changed something in the repository.
 
 Rules:
 
 - Mark all completed checkbox items `[x]` and write down why you have marked it (evidence? stats?).
-- Replace ALL placeholders [...] with actual information
-- This checklist must be the final section of your message
-- NEVER display additional text after the checklist, print user interaction before printing the checklist.
+- Replace ALL placeholders [...] with meaningful information, can be just an empty string for YES:choices
+- don't show placeholders in your output
+- Mark content in the template that is clearly not applicable and state the reason, 
+- [evidence?] placeholder means: how did you check that your answer is correct?
+- [YES: text] | NO:
+
+In you final message to the user, include The commit ID at the Very end, clearly visible.
 
 **TODO Mode Checklist:**
 
 ```
-- [ ] I know that we are in TODO phase (evidence?)
-    - [ ] I've only changed _TODO-AGENT.md, nothing else (evidence?)
-    - [ ] I have tracked progress in _TODO-AGENT.md? ([X completed] / [Y total] items | Finished: [yes/no])
-    - [ ] Can I continue right away? (YES: [what's the next TODO task?] | NO: ask user for direction!)
-    - [ ] I understand that I MUST commit immediately after filling this checklist - NO DELAY! (YES: I will run 'git add _TODO-AGENT.md && git commit' right now | NO: I need help)
+- [ ] We are in TODO phase [evidence?]
+    - [ ] Only _TODO-AGENT.md has changes, nothing else ([evidence?])
+    - [ ] Progress tracked in _TODO-AGENT.md: [X completed items] / [Y total items]
+    - [ ] All tasks done: [yes/no]
+    - [ ] Can I continue right away? [YES: what's the next TODO task? | NO: what do you want to ask the user]
+    - [ ] I understand that I MUST commit immediately after filling this checklist - NO DELAY! [YES: I will run 'git add _TODO-AGENT.md && git commit' right now | NO: I need help]
 
-- [ ] I called all relevant workflow events for phase [PHASE] ([N events called] evidence?)
-- [ ] Everything ready for commit? Will I show the resulting commit ID to the user? (YES: [commit details] | NO: [reason])
+- [ ] All mandatory workflow events for [PHASE] called? [N events called] ([evidence?])
+- [ ] Everything ready for commit? Will I show the resulting commit ID to the user? [YES: short commit ID plus headline here | NO: reason for not making a commit?]
 ```
 
 **IMPL Mode Checklist:**

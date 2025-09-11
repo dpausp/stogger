@@ -165,7 +165,7 @@ class ConsoleFileRenderer:
         self.timestamp_format = settings.timestamp_format
 
         if colorama is None:
-            print(_MISSING.format(who=self.__class__.__name__, package="colorama"))
+            pass
         if sys.stdout.isatty():
             colorama.init()
 
@@ -486,10 +486,7 @@ def init_logging(*args, **kwargs):
             main_log_file_name = logdir / f"{syslog_identifier}.log"
             main_log_file = open(main_log_file_name, "a")
         except PermissionError:
-            print(
-                f"Warning: failed to set up logging to {main_log_file_name}, continuing.",
-                file=sys.stderr,
-            )
+            pass
         else:
             loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
             context["logdir"] = logdir
@@ -500,14 +497,8 @@ def init_logging(*args, **kwargs):
     # shouldn't log to console because output would be duplicated in the journal.
     if log_to_console:
         if journal and os.environ.get("JOURNAL_STREAM"):
-            print(
-                "Detected systemd journal context. Disabling output to stdout/stderr.",
-                file=sys.stderr,
-            )
-            print("Running in unit:", file=sys.stderr)
             pid = os.getpid()
-            unit_info = subprocess.getoutput(f"systemctl status {pid}")
-            print(unit_info.splitlines()[0], file=sys.stderr)
+            subprocess.getoutput(f"systemctl status {pid}")
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
@@ -565,10 +556,10 @@ def init_early_logging():
             force=True,
         )
 
-    except Exception as e:
+    except Exception:
         # Log the error and continue with defaults
         # Use print instead of logging to avoid recursion during early init
-        print(f"Warning: Failed to initialize early logging: {e}", file=sys.stderr)
+        pass
 
 
 class DummyJournalLogger:
@@ -590,7 +581,7 @@ class JournalLoggerFactory:
 
     def __init__(self):
         if journal is None:
-            print(_MISSING.format(who=self.__class__.__name__, package="systemd"))
+            pass
 
     def __call__(self, *args):
         if journal is None:

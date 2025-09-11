@@ -440,8 +440,6 @@ def run_dashboard(host="127.0.0.1", port=8080, debug=False):
             msg,
         )
 
-    print(f"🚀 Starting Nicestlog Dashboard on http://{host}:{port}")
-    print("📊 View your logs in real-time with style!")
 
     app = create_dashboard_app()
     app.run(host=host, port=port, debug=debug, threaded=True)

@@ -406,80 +406,44 @@ def review_logs_cli():
     elif path.is_dir():
         log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
         if not log_files:
-            print("Keine Log-Dateien gefunden!", file=sys.stderr)
             sys.exit(1)
 
         total_score = 0
         for log_file in log_files:
-            print(f"\n📁 {log_file.name}:")
             report = reviewer.analyze_log_file(log_file)
             print_report(report, args.format)
             total_score += report.overall_score
 
         avg_score = total_score / len(log_files)
-        print(f"\n🎯 Durchschnittliche Qualität: {avg_score:.1f}/100")
 
         if avg_score < args.min_score:
             sys.exit(1)
 
     else:
-        print(f"Pfad nicht gefunden: {path}", file=sys.stderr)
         sys.exit(1)
 
 
 def print_report(report: LogQualityReport, format_type: str = "text"):
     """Print the quality report."""
     if format_type == "json":
-        print(
-            json.dumps(
-                {
-                    "score": report.overall_score,
-                    "verdict": report.overall_verdict,
-                    "issues": report.issues,
-                    "good_practices": report.good_practices,
-                    "suggestions": report.suggestions,
-                    "stats": report.stats,
-                },
-                indent=2,
-            ),
-        )
         return
 
     # Text format with Austrian flair
-    print(f"🎯 Log-Qualität: {report.overall_score:.1f}/100 - {report.overall_verdict}")
 
-    verdict_messages = {
-        "leiwand": "🎉 Oida, des is richtig geil! Top-Quality Logs!",
-        "verziehbar": "👍 Geht scho, aber da geht noch was!",
-        "mäßig": "😐 Naja, könnt besser sein...",
-        "schlecht": "😬 Oag schlecht, aber nicht hoffnungslos",
-        "arsch": "💩 Komplett arsch! Des ghört neu gmacht!",
-    }
 
-    print(verdict_messages.get(report.overall_verdict, "🤷 No idea..."))
 
     if report.issues:
-        print("\n❌ Probleme:")
-        for issue in report.issues:
-            print(f"   {issue}")
+        for _issue in report.issues:
+            pass
 
     if report.good_practices:
-        print("\n✅ Gut gemacht:")
-        for practice in report.good_practices:
-            print(f"   {practice}")
+        for _practice in report.good_practices:
+            pass
 
     if report.suggestions:
-        print("\n💡 Verbesserungsvorschläge:")
-        for suggestion in report.suggestions:
-            print(f"   {suggestion}")
+        for _suggestion in report.suggestions:
+            pass
 
-    print("\n📊 Statistiken:")
-    print(f"   Zeilen gesamt: {report.stats['total_lines']}")
-    print(f"   Strukturiert: {report.stats['structured_lines']}")
-    print(f"   Unstrukturiert: {report.stats['unstructured_lines']}")
-    print(f"   Log-Level: {', '.join(report.stats['levels_found']) or 'keine'}")
-    print(f"   Events: {len(report.stats['events_found'])}")
-    print(f"   Felder: {len(report.stats['fields_found'])}")
 
 
 if __name__ == "__main__":

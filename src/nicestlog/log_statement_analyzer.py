@@ -459,34 +459,23 @@ def print_analysis_summary(result: LogAnalysisResult, verbose: bool = False) -> 
     if result.total_statements == 0:
         return
 
-    print(f"📁 {result.file_path.name}")
-    print(f"   Total log statements: {result.total_statements}")
-    print(f"   With event ID: {result.statements_with_event_id}")
-    print(f"   Without event ID: {result.statements_without_event_id}")
 
     if result.dash_case_violations > 0:
-        print(f"   ❌ Dash-case violations: {result.dash_case_violations}")
+        pass
 
     if result.single_string_args > 0:
-        print(f"   ❌ Single string arguments: {result.single_string_args}")
+        pass
 
     if result.magic_args_usage:
-        magic_summary = ", ".join(
+        ", ".join(
             f"{k}:{v}" for k, v in result.magic_args_usage.items()
         )
-        print(f"   🪄 Magic args: {magic_summary}")
 
     if verbose:
-        print("   Detailed statements:")
         for stmt in result.statements:
-            issues_str = f" ❌ {', '.join(stmt.issues)}" if stmt.issues else " ✅"
-            event_str = f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
-            magic_str = f" magic:{list(stmt.magic_args)}" if stmt.magic_args else ""
-            print(
-                f"     L{stmt.line_number}: {stmt.method}({event_str}){magic_str}{issues_str}",
-            )
+            f" ❌ {', '.join(stmt.issues)}" if stmt.issues else " ✅"
+            f" magic:{list(stmt.magic_args)}" if stmt.magic_args else ""
 
-    print()
 
 
 def main():
@@ -556,9 +545,6 @@ def main():
 
                 print_analysis_summary(result, args.verbose)
 
-        print(
-            f"📊 Summary: {total_files} files, {total_statements} log statements, {total_issues} issues",
-        )
 
 
 if __name__ == "__main__":

@@ -3,11 +3,11 @@
 Makes systemd logging actually usable and powerful.
 """
 
+import contextlib
 from datetime import datetime
 import json
 import os
 import socket
-import sys
 from typing import Any
 
 import structlog
@@ -52,10 +52,7 @@ class SystemdJournalHandler:
         self.pid = os.getpid()
 
         if not SYSTEMD_AVAILABLE:
-            print(
-                "Warning: systemd-python not available. Install with: pip install systemd-python",
-                file=sys.stderr,
-            )
+            pass
 
     def __call__(self, _, __, event_dict):
         """Process log event and send to systemd journal."""
@@ -99,10 +96,8 @@ class SystemdJournalHandler:
                 journal_fields[field_name] = str(value)
 
         # Send to journal
-        try:
+        with contextlib.suppress(Exception):
             journal.send(**journal_fields)
-        except Exception as e:
-            print(f"Failed to send to systemd journal: {e}", file=sys.stderr)
 
         return event_dict
 
@@ -177,10 +172,7 @@ def setup_systemd_logging(
     # If systemd-python isn't available, warn but still install a no-op handler so
     # tests and processor wiring continue to work.
     if not SYSTEMD_AVAILABLE:
-        print(
-            "systemd-python not available. Install with: pip install systemd-python",
-            file=sys.stderr,
-        )
+        pass
 
     # Use detected service name if no identifier provided
     if not identifier and env_info.get("service_name"):
@@ -292,7 +284,6 @@ def query_journal_logs(
 
     """
     if not SYSTEMD_AVAILABLE:
-        print("systemd-python not available for journal queries", file=sys.stderr)
         return []
 
     try:
@@ -337,8 +328,7 @@ def query_journal_logs(
 
         return list(reversed(entries))  # Most recent first
 
-    except Exception as e:
-        print(f"Error querying journal: {e}", file=sys.stderr)
+    except Exception:
         return []
 
 
@@ -366,16 +356,8 @@ def parse_time_delta(time_str: str) -> float:
 
 def demo_systemd_integration():
     """Demonstrate systemd integration features."""
-    print("🔧 Systemd Integration Demo")
-    print("=" * 50)
-
     # Check environment
-    env_info = detect_systemd_environment()
-    print(f"Running under systemd: {env_info['running_under_systemd']}")
-    print(f"Journal available: {env_info['journal_available']}")
-    print(f"Service name: {env_info['service_name']}")
-    print(f"Unit name: {env_info['unit_name']}")
-    print(f"Invocation ID: {env_info['invocation_id']}")
+    detect_systemd_environment()
 
     if SYSTEMD_AVAILABLE:
         # Setup systemd logging
@@ -384,7 +366,6 @@ def demo_systemd_integration():
         # Create logger and test
         log = structlog.get_logger("systemd_demo")
 
-        print("\n📝 Sending test logs to systemd journal...")
         log.info(
             "systemd_integration_test",
             component="demo",
@@ -400,23 +381,17 @@ def demo_systemd_integration():
             details="Test error for systemd journal",
         )
 
-        print("✅ Logs sent to systemd journal!")
-        print("💡 View with: journalctl -f SYSLOG_IDENTIFIER=nicestlog-demo")
 
         # Query recent logs
-        print("\n📖 Recent logs from journal:")
         recent_logs = query_journal_logs(service_name="nicestlog-demo", lines=5)
         for entry in recent_logs:
-            timestamp = datetime.fromtimestamp(entry["timestamp"]).strftime("%H:%M:%S")
-            print(f"  {timestamp} [{entry['identifier']}] {entry['message']}")
+            datetime.fromtimestamp(entry["timestamp"]).strftime("%H:%M:%S")
 
     else:
-        print("\n⚠️  systemd-python not available")
-        print("💡 Install with: pip install systemd-python")
+        pass
 
     # Generate service file example
-    print("\n📄 Example systemd service file:")
-    service_file = create_systemd_service_file(
+    create_systemd_service_file(
         service_name="my-python-app",
         exec_command="/usr/bin/python3 /opt/myapp/main.py",
         user="myapp",
@@ -424,8 +399,6 @@ def demo_systemd_integration():
         environment={"PYTHONPATH": "/opt/myapp", "LOG_LEVEL": "info"},
     )
 
-    print(service_file)
-    print("💡 Save as /etc/systemd/system/my-python-app.service")
 
 
 if __name__ == "__main__":

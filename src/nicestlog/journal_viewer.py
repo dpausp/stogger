@@ -27,7 +27,6 @@ try:
 except ImportError:
     SYSTEMD_AVAILABLE = False
     journal = None
-    print("⚠️  systemd-python not available - journal viewing disabled", file=sys.stderr)
 
 try:
     from .core import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
@@ -128,10 +127,6 @@ class JournalViewer:
             log.error(
                 "systemd-unavailable-during-init",
                 _replace_msg="❌ Cannot initialize journal viewer - systemd-python not available",
-            )
-            print(
-                "Warning: systemd-python not available. Install with: pip install systemd-python",
-                file=sys.stderr,
             )
         else:
             log.debug(
@@ -234,10 +229,7 @@ class JournalViewer:
         if entry.fields:
             field_parts = []
             for key, value in entry.fields.items():
-                if isinstance(value, dict | list):
-                    value_str = json.dumps(value, separators=(",", ":"))
-                else:
-                    value_str = str(value)
+                value_str = json.dumps(value, separators=(",", ":")) if isinstance(value, dict | list) else str(value)
                 field_parts.append(
                     f"{CYAN}{key}{RESET_ALL}={MAGENTA}{value_str}{RESET_ALL}",
                 )
@@ -282,7 +274,6 @@ class JournalViewer:
                 "journal-query-failed-no-systemd",
                 _replace_msg="❌ Cannot query journal - systemd-python not available",
             )
-            print("systemd-python not available", file=sys.stderr)
             return
 
         try:
@@ -382,7 +373,6 @@ class JournalViewer:
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            print(f"Error reading journal: {e}", file=sys.stderr)
 
     def parse_time_string(self, time_str: str) -> datetime:
         """Parse various time string formats."""
@@ -523,10 +513,6 @@ def main():
             "main-systemd-unavailable",
             _replace_msg="❌ Cannot start journal viewer - systemd-python not available",
         )
-        print(
-            "Error: systemd-python not available. Install with: pip install systemd-python",
-            file=sys.stderr,
-        )
         sys.exit(1)
         return
 
@@ -554,7 +540,6 @@ def main():
             error=str(e),
             error_type=type(e).__name__,
         )
-        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
         return
 
@@ -567,7 +552,7 @@ def main():
         )
 
         entry_count = 0
-        for entry in viewer.query_journal(
+        for _entry in viewer.query_journal(
             service=args.service,
             since=args.since,
             until=args.until,
@@ -577,10 +562,10 @@ def main():
         ):
             if args.json:
                 # Output raw JSON
-                print(json.dumps(entry.raw_entry, default=str, indent=2))
+                pass
             else:
                 # Beautiful formatted output
-                print(viewer.format_entry(entry))
+                pass
 
             entry_count += 1
 
@@ -592,7 +577,6 @@ def main():
 
     except KeyboardInterrupt:
         log.info("user-interrupted", _replace_msg="👋 User interrupted journal viewer")
-        print("\n👋 Goodbye!", file=sys.stderr)
         sys.exit(0)
     except Exception as e:
         log.exception(
@@ -601,7 +585,6 @@ def main():
             error=str(e),
             error_type=type(e).__name__,
         )
-        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
 

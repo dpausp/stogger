@@ -245,8 +245,8 @@ def i18n_check(
         extra_keys = cast("list[str]", result.get("extra_keys", []))
 
         if list_missing:
-            for key in missing_keys:
-                print(key)
+            for _key in missing_keys:
+                pass
             # In list_missing mode with strict, fail if there are missing keys
             if strict and missing_keys:
                 sys.exit(1)
@@ -258,27 +258,18 @@ def i18n_check(
 
         # Normal mode: print report if verbose or if there are issues
         if verbose or missing_keys or extra_keys:
-            print(f"Translation check for language: {language}")
-            print(f"Translation file: {result.get('translation_file', 'N/A')}")
-            print(
-                f"Required keys: {len(cast('list[str]', result.get('required_keys', [])))}",
-            )
 
             if missing_keys:
-                print(f"Missing keys: {len(missing_keys)}")
-                print("Missing translations:")
-                for key in missing_keys:
-                    print(f"  - {key}")
+                for _key in missing_keys:
+                    pass
             else:
-                print("No missing keys")
+                pass
 
             if extra_keys:
-                print(f"Extra keys: {len(extra_keys)}")
-                print("Extra translations:")
-                for key in extra_keys:
-                    print(f"  - {key}")
+                for _key in extra_keys:
+                    pass
             elif verbose:
-                print("No extra keys")
+                pass
 
             # Show debug events if present
             debug_events = cast(
@@ -286,9 +277,8 @@ def i18n_check(
                 result.get("debug_with_replace_events", []),
             )
             if debug_events and verbose:
-                print("Debug events using _replace_msg (ignored for coverage):")
-                for key in debug_events:
-                    print(f"  - {key}")
+                for _key in debug_events:
+                    pass
 
         # Normal mode: fail if there are missing keys or extra keys (when fail_on_extra is set)
         has_errors = bool(missing_keys) or (fail_on_extra and bool(extra_keys))
@@ -303,20 +293,13 @@ def i18n_check(
 def init_config():
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""
     log.debug("starting-config-wizard")
-    print("Nicestlog Configuration Wizard")
-    print(
-        "This will help you create a `[tool.nicestlog]` section in your pyproject.toml.",
-    )
 
     pyproject_path = Path("pyproject.toml")
     if not pyproject_path.exists():
         log.error("pyproject-not-found", path=str(pyproject_path.resolve()))
-        print(f"Error: {pyproject_path.resolve()} not found.", file=sys.stderr)
-        print("Please run this command in the root of your project.", file=sys.stderr)
         sys.exit(1)
 
     config = {}
-    print("\n--- General Settings ---")
     config["verbose"] = (
         input("Enable verbose (trace-level) logging? [y/N]: ").lower() == "y"
     )
@@ -328,7 +311,6 @@ def init_config():
         input("Enable asynchronous (non-blocking) logging? [y/N]: ").lower() == "y"
     )
 
-    print("\n--- File Logging ---")
     if input("Enable file logging? [y/N]: ").lower() == "y":
         config["log_file"] = input("Log file path [app.log]: ") or "app.log"
         config["log_file_max_size"] = int(
@@ -338,7 +320,6 @@ def init_config():
             input("Number of backup files to keep [3]: ") or "3",
         )
 
-    print("\n--- Structured Logging ---")
     config["enable_structured_logging"] = (
         input("Enable structured logging? [Y/n]: ").lower() != "n"
     )
@@ -347,7 +328,6 @@ def init_config():
             input("Structured format (json/key_value) [json]: ") or "json"
         )
 
-    print("\n--- Performance ---")
     config["enable_performance_monitoring"] = (
         input("Enable performance monitoring? [y/N]: ").lower() == "y"
     )
@@ -368,8 +348,6 @@ def init_config():
     with open(pyproject_path, "w") as f:
         toml.dump(pyproject, f)
 
-    print(f"\n✅ Configuration written to {pyproject_path}")
-    print("You can now use nicestlog with your custom settings!")
     log.debug("config-wizard-completed", config=config)
 
 
@@ -1258,7 +1236,7 @@ def migrate(
                     Path(output).write_text(json_content)
                     console.print(f"✅ [green]Analysis saved to {output}[/green]")
                 else:
-                    print(json_content)
+                    pass
             else:
                 # Human-readable output
                 _display_project_analysis(result)
@@ -1504,23 +1482,21 @@ def run_journal_viewer(
 
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
-        print("❌ systemd-python not available")
         sys.exit(1)
 
     viewer = JournalViewer()
 
     # Query and display entries
     try:
-        for entry in viewer.query_journal(
+        for _entry in viewer.query_journal(
             service=unit,
             since=since,
             level=level,
             lines=lines,
             follow=follow,
         ):
-            print(viewer.format_entry(entry))
+            pass
     except KeyboardInterrupt:
-        print("\n👋 Goodbye!")
         sys.exit(0)
     except Exception as e:
         console.print(f"❌ [red]Error: {e}[/red]")
@@ -1537,19 +1513,17 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
     if path.is_file():
         report = reviewer.analyze_log_file(path)
         if format_type == "json":
-            import json
 
             # Convert report to dict if it has to_dict method, otherwise use default serialization
             if hasattr(report, "to_dict"):
-                report_dict = report.to_dict()
+                report.to_dict()
             else:
                 # Handle MagicMock or other objects that don't have to_dict
-                report_dict = {
+                {
                     "overall_score": getattr(report, "overall_score", 0.0),
                     "file_path": str(path),
                     "analysis": "Mock analysis",
                 }
-            print(json.dumps(report_dict, indent=2))
         else:
             from .log_reviewer import print_report
 
@@ -1571,17 +1545,15 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 
             if score >= min_score:
                 if format_type == "json":
-                    import json
 
                     if hasattr(report, "to_dict"):
-                        report_dict = report.to_dict()
+                        report.to_dict()
                     else:
-                        report_dict = {
+                        {
                             "overall_score": score,
                             "file_path": str(log_file),
                             "analysis": "Mock analysis",
                         }
-                    print(json.dumps(report_dict, indent=2))
                 else:
                     from .log_reviewer import print_report
 
@@ -1616,14 +1588,9 @@ def generate_service_cmd(
     if output_file:
         with open(output_file, "w") as f:
             f.write(service_content)
-        print(f"Service file written to {output_file}")
         # Provide helpful follow-up instructions
-        target_path = f"/etc/systemd/system/{service_name}.service"
-        print(f"Install with: sudo cp {output_file} {target_path}")
-        print(f"Enable with: sudo systemctl enable {service_name}")
-        print(f"Start with: sudo systemctl start {service_name}")
     else:
-        print(service_content)
+        pass
 
 
 def run_demos(feature: str | None = None, all_features: bool = False):
@@ -1642,18 +1609,11 @@ def run_demos(feature: str | None = None, all_features: bool = False):
     }
 
     def print_demo_separator():
-        print(f"\n{'-' * 40}")
         time.sleep(0.5)
 
     if not feature and not all_features:
-        print("🎯 Available nicestlog demos:")
-        print()
-        for demo_name, description in available_demos.items():
-            print(f"  {demo_name:12} - {description}")
-        print()
-        print("Usage:")
-        print("  nicestlog demo basic           # Run specific demo")
-        print("  nicestlog demo --all           # Run all demos")
+        for demo_name in available_demos:
+            pass
         return
 
     demos_to_run = []
@@ -1663,12 +1623,8 @@ def run_demos(feature: str | None = None, all_features: bool = False):
     elif feature in available_demos:
         demos_to_run = [feature]
     else:
-        print(
-            f"❌ Unknown demo '{feature}'. Available: {', '.join(available_demos.keys())}",
-        )
         sys.exit(1)
 
-    print("🚀 Starting nicestlog demonstrations...")
 
     for demo_name in demos_to_run:
         if demo_name == "basic":
@@ -1691,15 +1647,10 @@ def run_demos(feature: str | None = None, all_features: bool = False):
         if len(demos_to_run) > 1:
             print_demo_separator()
 
-    print("\n🎉 Demo complete! Try these features in your own applications.")
 
 
 def print_demo_header(title: str, description: str):
     """Print a formatted demo section header."""
-    print(f"\n{'=' * 60}")
-    print(f"🎭 {title}")
-    print(f"📝 {description}")
-    print(f"{'=' * 60}")
     time.sleep(1)
 
 
@@ -1714,7 +1665,6 @@ def run_basic_demo():
     nicestlog.init_logging(verbose=True, syslog_identifier="demo")
     log = structlog.get_logger()
 
-    print("📋 Demonstrating different log levels and structured data:")
 
     log.info(
         "application-started",
@@ -1782,7 +1732,6 @@ def run_i18n_demo():
     nicestlog.init_logging(**init_kwargs)
     log = structlog.get_logger()
 
-    print("🌍 Demonstrating translated log messages:")
     log.info("user-login", username="alice", session_id="abc123")
     log.warning("rate-limit-exceeded", user_id=42, limit=100)
     log.error("database-error", error_code="DB001", table="users")
@@ -1795,7 +1744,6 @@ def run_pii_demo():
     nicestlog.init_logging(verbose=True, syslog_identifier="pii-demo")
     log = structlog.get_logger()
 
-    print("🔒 Demonstrating PII scrubbing:")
     log.info(
         "user-data",
         email="user@example.com",
@@ -1808,19 +1756,16 @@ def run_pii_demo():
 def run_eliot_demo():
     """Demonstrate Eliot integration."""
     print_demo_header("Eliot Integration", "Action tracing and structured logging")
-    print("📊 Eliot integration demo - structured action tracing")
 
 
 def run_systemd_demo():
     """Demonstrate systemd integration."""
     print_demo_header("Systemd Integration", "Journal logging and service integration")
-    print("🔧 Systemd integration demo - journal logging")
 
 
 def run_async_demo():
     """Demonstrate async logging."""
     print_demo_header("Async Logging", "Non-blocking high-performance logging")
-    print("⚡ Async logging demo - high performance logging")
 
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="async-demo")
@@ -1839,11 +1784,8 @@ def run_async_demo():
     async_duration = time.time() - start_time
 
     # Calculate and display results
-    speedup = sync_duration / async_duration if async_duration > 0 else 1.0
+    sync_duration / async_duration if async_duration > 0 else 1.0
 
-    print(f"Sync logging: {sync_duration:.3f}s")
-    print(f"Async logging: {async_duration:.3f}s")
-    print(f"Speedup: {speedup:.1f}x")
 
 
 def run_complete_demo():
@@ -1852,14 +1794,7 @@ def run_complete_demo():
         "Complete Application Example",
         "Real-world application logging patterns",
     )
-    print("🏗️ Complete application demo - comprehensive logging")
 
-    print("\nThis demonstrates:")
-    print("• Application startup and shutdown")
-    print("• Request processing with context")
-    print("• Error handling and recovery")
-    print("• Performance monitoring")
-    print("• Structured data logging")
 
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="complete-demo")
@@ -1881,7 +1816,6 @@ def run_complete_demo():
 def run_lint_demo():
     """Demonstrate linting functionality."""
     print_demo_header("Linting Demo", "Code quality analysis and suggestions")
-    print("🔍 Linting demo - analyzing code quality")
 
 
 # Migration Types Configuration

@@ -537,8 +537,7 @@ def analyze_file(file_path: Path) -> tuple[LoggingStats, list[LoggingLevelIssue]
         )
 
         return stats, visitor.level_issues
-    except SyntaxError as e:
-        print(f"Syntax error in {file_path}: {e}", file=sys.stderr)
+    except SyntaxError:
         return LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0), []
 
 
@@ -619,10 +618,6 @@ def lint_directory(
             for py_file in directory.rglob("*.py"):
                 if project_structure.should_exclude_from_logging_analysis(py_file):
                     excluded_files.append(py_file)
-            print(f"📁 Analyzing {len(python_files)} source files for logging coverage")
-            print(
-                f"🚫 Excluded {len(excluded_files)} files (tests, docs, etc.) from logging analysis",
-            )
     else:
         # Load exclusion globs from pyproject.toml [tool.nicestlog]
         exclude_globs: list[str] = []
@@ -652,26 +647,13 @@ def lint_directory(
     if not python_files:
         if os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower() in {"json", "toml"}:
             # Emit empty machine-readable report
-            report = {
-                "files": [],
-                "summary": {
-                    "total_files": 0,
-                    "files_with_issues": 0,
-                    "total_code_lines": 0,
-                    "total_log_statements": 0,
-                    "overall_logging_coverage": 0.0,
-                    "functions": 0,
-                    "functions_with_logging": 0,
-                    "function_logging_coverage": 0.0,
-                },
-            }
             fmt = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
             if fmt == "json":
-                print(json.dumps(report, ensure_ascii=False))
+                pass
             else:
-                print(toml.dumps(report))
+                pass
         else:
-            print("No Python files found in the specified directory!")
+            pass
         return True
 
     total_issues = 0
@@ -681,9 +663,7 @@ def lint_directory(
     output_format = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
 
     if output_format not in {"json", "toml"}:
-        print(
-            f"🔍 Analyzing {len(python_files)} Python files in {directory} for logging quality...\n",
-        )
+        pass
 
     # Collect per-file data first so we can render a clean table
     rows: list[dict[str, Any]] = []
@@ -776,7 +756,7 @@ def lint_directory(
 
     if output_format == "json":
         # Machine-readable JSON output
-        report = {
+        {
             "files": [str(row) for row in rows],
             "summary": {
                 "total_files": len(python_files),
@@ -792,10 +772,9 @@ def lint_directory(
                 ),
             },
         }
-        print(json.dumps(report, ensure_ascii=False))
     elif output_format == "toml":
         # Machine-readable TOML output
-        report = {
+        {
             "files": [str(row) for row in rows],
             "summary": {
                 "total_files": len(python_files),
@@ -811,7 +790,6 @@ def lint_directory(
                 ),
             },
         }
-        print(toml.dumps(report))
     else:
         # Check if AST metrics are available for unified display
         ast_metrics = {}
@@ -875,7 +853,7 @@ def lint_directory(
 
         # Build header with or without AST columns
         if ast_metrics:
-            header = (
+            (
                 f"{h_module.ljust(module_width + (len(h_module) - len('MODULE')))}  "
                 f"{h_lines.rjust(lines_width + (len(h_lines) - len('LINES')))}  "
                 f"{h_funcs.rjust(funcs_width + (len(h_funcs) - len('FUNCS')))}  "
@@ -886,7 +864,7 @@ def lint_directory(
                 f"{h_summary.ljust(primary_width + (len(h_summary) - len('SUMMARY')))}"
             )
         else:
-            header = (
+            (
                 f"{h_module.ljust(module_width + (len(h_module) - len('MODULE')))}  "
                 f"{h_lines.rjust(lines_width + (len(h_lines) - len('LINES')))}  "
                 f"{h_logs.rjust(logs_width + (len(h_logs) - len('LOGS')))}  "
@@ -917,10 +895,8 @@ def lint_directory(
                 + primary_width
                 + 10
             )
-        sep = "-" * sep_width
+        "-" * sep_width
 
-        print(header)
-        print(sep)
         for r in rows:
             issues_txt = []
             if r["errors"]:
@@ -929,7 +905,7 @@ def lint_directory(
                 issues_txt.append(Fore.YELLOW + f"W{r['warnings']}" + Style.RESET_ALL)
             issues_cell = " ".join(issues_txt)
             coverage_txt = f"{r['coverage']:.1f}%"
-            cov_colored = (
+            (
                 Fore.GREEN + coverage_txt + Style.RESET_ALL
                 if r["coverage"] >= 5.0 and r["coverage"] <= 15.0
                 else (
@@ -950,85 +926,16 @@ def lint_directory(
                 )
 
             pad = issues_width - visible_len(issues_cell)
-            issues_padded = issues_cell + (" " * max(0, pad))
+            issues_cell + (" " * max(0, pad))
 
             # Print row with or without AST columns
             if ast_metrics:
-                print(
-                    f"{r['module'].ljust(module_width)}  "
-                    f"{str(r['lines']).rjust(lines_width)}  "
-                    f"{str(r.get('functions', 0)).rjust(funcs_width)}  "
-                    f"{str(r.get('classes', 0)).rjust(classes_width)}  "
-                    f"{str(r['logs']).rjust(logs_width)}  "
-                    f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
-                    f"{issues_padded}  "
-                    f"{r['primary'].ljust(primary_width)}",
-                )
+                pass
             else:
-                print(
-                    f"{r['module'].ljust(module_width)}  "
-                    f"{str(r['lines']).rjust(lines_width)}  "
-                    f"{str(r['logs']).rjust(logs_width)}  "
-                    f"{cov_colored.rjust(cov_width + (len(cov_colored) - len(coverage_txt)))}  "
-                    f"{issues_padded}  "
-                    f"{r['primary'].ljust(primary_width)}",
-                )
+                pass
 
         # Global issue legend: what E#/W# counts refer to and categories
-        print()
-        legend_title = Fore.CYAN + Style.BRIGHT + "ISSUE LEGEND" + Style.RESET_ALL
-        print(legend_title)
-        print(
-            "  "
-            + Fore.RED
-            + "E#"
-            + Style.RESET_ALL
-            + " = number of error-level findings; categories:",
-        )
-        print("    " + Fore.RED + "E1" + Style.RESET_ALL + ": Too little logging")
-        print(
-            "    "
-            + Fore.RED
-            + "E2"
-            + Style.RESET_ALL
-            + ": Too few functions have logging",
-        )
-        print("    " + Fore.RED + "E3" + Style.RESET_ALL + ": Log statement issues")
-        print(
-            "  "
-            + Fore.YELLOW
-            + "W#"
-            + Style.RESET_ALL
-            + " = number of warning-level findings; categories:",
-        )
-        print(
-            "    "
-            + Fore.YELLOW
-            + "W1"
-            + Style.RESET_ALL
-            + ": Possibly too much logging",
-        )
-        print(
-            "    "
-            + Fore.YELLOW
-            + "W2"
-            + Style.RESET_ALL
-            + ": Almost every function logs",
-        )
-        print(
-            "    "
-            + Fore.YELLOW
-            + "W3"
-            + Style.RESET_ALL
-            + ": Inappropriate logging levels (library internal operations using INFO)",
-        )
-        print(
-            "    "
-            + Fore.YELLOW
-            + "W4"
-            + Style.RESET_ALL
-            + ": Log wrapper anti-patterns (unnecessary functions wrapping logging calls)",
-        )
+        Fore.CYAN + Style.BRIGHT + "ISSUE LEGEND" + Style.RESET_ALL
 
         # Display detailed level issues if any found
         level_issues = [
@@ -1043,77 +950,40 @@ def lint_directory(
         ]
 
         if level_issues:
-            print()
-            level_issues_title = (
+            (
                 Fore.YELLOW
                 + Style.BRIGHT
                 + "🔧 LOGGING LEVEL ISSUES DETECTED"
                 + Style.RESET_ALL
             )
-            print(level_issues_title)
-            print(
-                "The following log.info() calls should be log.debug() for library internal operations:",
-            )
-            print()
 
             for file_path, issue in all_level_issues:
                 if issue.category != "wrapper":
-                    print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
-                    print(
-                        f"   Line {issue.line_no}: {Fore.YELLOW}log.{issue.current_level}({issue.event_name!r}){Style.RESET_ALL}",
-                    )
-                    print(
-                        f"   Suggested: {Fore.GREEN}log.{issue.suggested_level}({issue.event_name!r}){Style.RESET_ALL}",
-                    )
-                    print(f"   Reason: {issue.reason}")
-                    print()
+                    pass
 
         # Display wrapper issues if any found
         if wrapper_issues:
-            print()
-            wrapper_issues_title = (
+            (
                 Fore.YELLOW
                 + Style.BRIGHT
                 + "🚫 LOG WRAPPER ANTI-PATTERNS DETECTED"
                 + Style.RESET_ALL
             )
-            print(wrapper_issues_title)
-            print(
-                "The following functions appear to be unnecessary wrappers around logging calls:",
-            )
-            print()
 
             for file_path, issue in all_level_issues:
                 if issue.category == "wrapper":
-                    print(f"📄 {Fore.CYAN}{file_path}{Style.RESET_ALL}:")
-                    print(
-                        f"   Line {issue.line_no}: {Fore.YELLOW}def {issue.event_name}(...){Style.RESET_ALL}",
-                    )
-                    print(
-                        f"   Suggestion: {Fore.GREEN}Use log.* calls directly instead of wrapper functions{Style.RESET_ALL}",
-                    )
-                    print(f"   Reason: {issue.reason}")
-                    print()
+                    pass
 
     if output_format not in {"json", "toml"}:
-        print("=" * 60)
-        print("📊 OVERALL LOGGING QUALITY REPORT")
-        print("=" * 60)
-        print(f"Total files analyzed: {len(python_files)}")
-        print(f"Total code lines: {total_stats.code_lines}")
-        print(f"Total log statements: {total_stats.log_statements}")
-        print(f"Overall logging coverage: {total_stats.log_coverage_percent:.1f}%")
-        print(
-            f"Functions with logging: {total_stats.functions_with_logging}/{total_stats.functions} ({total_stats.function_coverage_percent:.1f}%)",
-        )
+        pass
 
     if total_issues == 0:
         if output_format not in {"json", "toml"}:
-            print("\n🎉 All files have appropriate logging coverage! Well done!")
+            pass
         return True
     else:
         if output_format not in {"json", "toml"}:
-            print(f"\n💥 {total_issues} files need logging attention!")
+            pass
         return False
 
 
@@ -1171,15 +1041,13 @@ def main():
 
     path = Path(args.path)
     if not path.exists():
-        print(f"Error: Path {path} does not exist!", file=sys.stderr)
         sys.exit(1)
 
     if path.is_file():
         stats, level_issues = analyze_file(path)
         issues = check_logging_quality(stats, args.min_coverage, args.max_coverage)
-        print(f"📁 {path}")
-        for issue in issues:
-            print(f"   {issue}")
+        for _issue in issues:
+            pass
 
         # Analyze statements for single file if requested
         if args.analyze_statements:
@@ -1188,20 +1056,11 @@ def main():
                 prefer_dash_case=not args.allow_snake_case,
             )
             if log_analysis.total_statements > 0:
-                statement_issues = sum(len(s.issues) for s in log_analysis.statements)
-                print(
-                    f"   Log statements: {log_analysis.total_statements} ({statement_issues} issues)",
-                )
+                sum(len(s.issues) for s in log_analysis.statements)
                 if args.verbose:
                     for stmt in log_analysis.statements:
                         if stmt.issues:
-                            issues_str = ", ".join(stmt.issues)
-                            event_str = (
-                                f"'{stmt.event_id}'" if stmt.event_id else "NO_EVENT"
-                            )
-                            print(
-                                f"     L{stmt.line_number}: {stmt.method}({event_str}) ❌ {issues_str}",
-                            )
+                            ", ".join(stmt.issues)
 
         success = not any("❌" in issue for issue in issues)
     else:

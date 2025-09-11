@@ -227,27 +227,12 @@ def arsch(message: str) -> str:
 # Demo function
 def demo_translations():
     """Demonstrate translation capabilities."""
-    print("🌍 Nicestlog Translation Demo")
-    print("=" * 50)
-
     languages = ["en", "at", "ch", "wollgesisch"]
 
     for lang in languages:
-        print(f"\n🗣️  {lang.upper()}:")
-        translator = NicestlogTranslator(lang)
+        NicestlogTranslator(lang)
 
-        print(f"   Setup: {translator.get('welcome', 'setup')}")
-        print(f"   Success: {translator.get('success', 'general')}")
-        print(
-            f"   Error: {translator.get('file_not_found', 'errors', filename='test.log')}",
-        )
-        print(f"   Quality: {translator.get('verdict_leiwand', 'quality')}")
-        print(f"   Goodbye: {translator.get('goodbye', 'general')}")
 
-    print("\n🎉 Austrian Shortcuts:")
-    print(f"   {oida('das funktioniert')}")
-    print(f"   {leiwand('Translation system')}")
-    print(f"   {arsch('Broken code')}")
 
 
 if __name__ == "__main__":

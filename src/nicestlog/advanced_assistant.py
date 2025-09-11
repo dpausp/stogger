@@ -332,9 +332,8 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
                     ):
                         logging_call_count += 1
                 # Check for print statements (also considered logging-related)
-                elif isinstance(child.func, ast.Name):
-                    if child.func.id == "print":
-                        logging_call_count += 1
+                elif isinstance(child.func, ast.Name) and child.func.id == "print":
+                    logging_call_count += 1
 
         # Only consider it a "logging function" if it has multiple logging calls
         # or if it's primarily focused on logging (more than just incidental logging)

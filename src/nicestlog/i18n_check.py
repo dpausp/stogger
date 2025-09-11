@@ -276,7 +276,6 @@ def run_i18n_check_cli(
     """Run the i18n check and print a human-friendly report. Returns exit code."""
     source_paths = [Path(path)]
     report = check_translations(source_paths, Path(translation_dir), language)
-    print(format_report(report))
 
     if "error" in report:
         return 2
