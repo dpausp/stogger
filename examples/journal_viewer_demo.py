@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Demo: Beautiful systemd journal viewer
+"""Demo: Beautiful systemd journal viewer.
 
 Shows how to read and beautifully format systemd journal logs.
 """

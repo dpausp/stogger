@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""🚀 Advanced Assistant Demo - Showcase of AST Analysis and Transformation
+"""🚀 Advanced Assistant Demo - Showcase of AST Analysis and Transformation.
 
 This demo shows the powerful capabilities of the Advanced AST Assistant
 with comprehensive logging of every operation.
@@ -42,17 +42,17 @@ class DataProcessor:
         if data is None:
             print("No data to process")
             return None
-        
+
         processed = []
         for item in data:
             if item > 0:
                 processed.append(item * 2)
             else:
                 print("Skipping negative item:", item)
-        
+
         print("Processed", len(processed), "items")
         return processed
-    
+
     def save_results(self, results, filename):
         print("Saving results to", filename)
         try:
@@ -65,20 +65,20 @@ class DataProcessor:
 
 def main():
     print("Starting data processing application")
-    
+
     processor = DataProcessor()
     data = [1, -2, 3, -4, 5, 6, 7, 8, 9, 10]
-    
+
     print("Input data:", data)
-    
+
     results = processor.process_data(data)
     if results:
         processor.save_results(results, "output.txt")
-    
+
     # Calculate sum with too many parameters
     total = calculate_sum(1, 2, 3, 4, 5, 6)
     print("Total sum:", total)
-    
+
     print("Application finished")
 
 if __name__ == "__main__":
@@ -286,7 +286,7 @@ class Class_{i}:
     def __init__(self):
         print(f"Initializing Class_{i}")
         self.value = {i}
-    
+
     def method_{i}(self, data):
         print(f"Method {i} processing data")
         if data:
@@ -362,7 +362,7 @@ def main():
         )
 
     except Exception as e:
-        log.error(
+        log.exception(
             "demo-failed",
             _replace_msg="❌ Demo failed with error: {error}",
             error=str(e),

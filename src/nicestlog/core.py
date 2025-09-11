@@ -438,7 +438,7 @@ def init_logging(*args, **kwargs):
     """
     # Handle positional and keyword args
     if len(args) >= 1:
-        verbose = args[0]
+        args[0]
         logdir = args[1] if len(args) > 1 else kwargs.get("logdir")
         log_cmd_output = (
             args[2] if len(args) > 2 else kwargs.get("log_cmd_output", False)
@@ -449,17 +449,17 @@ def init_logging(*args, **kwargs):
         syslog_identifier = (
             args[4] if len(args) > 4 else kwargs.get("syslog_identifier", "nicestlog")
         )
-        show_caller_info = (
+        (
             args[5] if len(args) > 5 else kwargs.get("show_caller_info", False)
         )
     else:
         # All keyword arguments for new style
-        verbose = kwargs.get("verbose", False)
+        kwargs.get("verbose", False)
         logdir = kwargs.get("logdir")
         log_cmd_output = kwargs.get("log_cmd_output", False)
         log_to_console = kwargs.get("log_to_console", True)
         syslog_identifier = kwargs.get("syslog_identifier", "nicestlog")
-        show_caller_info = kwargs.get("show_caller_info", False)
+        kwargs.get("show_caller_info", False)
 
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(syslog_identifier, syslog.LOG_LOCAL1),
@@ -565,10 +565,10 @@ def init_early_logging():
             force=True,
         )
 
-    except Exception:
-        # Graceful fallback - let structlog use its defaults
-        # Don't log the error to avoid recursion
-        pass
+    except Exception as e:
+        # Log the error and continue with defaults
+        # Use print instead of logging to avoid recursion during early init
+        print(f"Warning: Failed to initialize early logging: {e}", file=sys.stderr)
 
 
 class DummyJournalLogger:
@@ -735,10 +735,14 @@ class MultiRenderer:
             try:
                 messages = renderer(logger, method_name, event_dict.copy())
                 merged_messages.update(messages)
-            except Exception:
-                # We're being really optimistic: we want the calling program
-                # to continue even if we face huge troubles logging stuff.
-                pass
+            except Exception as e:
+                # Log the error but continue with other renderers
+                log.exception(
+                    "renderer-error",
+                    renderer=renderer.__class__.__name__,
+                    error=str(e),
+                    _replace_msg="Renderer {renderer} failed: {error}, continuing with other renderers",
+                )
 
         return merged_messages
 
@@ -777,10 +781,15 @@ class MultiOptimisticLogger:
                 line = messages.get(name)
                 if line:
                     logger.msg(line)
-            except Exception:
-                # We're being really optimistic: we want the calling program
-                # to continue even if we face huge troubles logging stuff.
-                pass
+            except Exception as e:
+                # Log the error but continue with other loggers
+                log.exception(
+                    "logger-error",
+                    logger_name=name,
+                    logger_class=logger.__class__.__name__,
+                    error=str(e),
+                    _replace_msg="Logger {logger_name} ({logger_class}) failed: {error}, continuing with other loggers",
+                )
 
     def __getattr__(self, name):
         return self.msg

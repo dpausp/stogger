@@ -46,7 +46,8 @@ def demonstrate_logging(log):
 
     # Error handling
     try:
-        raise ValueError("Something went wrong!")
+        msg = "Something went wrong!"
+        raise ValueError(msg)
     except ValueError as e:
         log.error(
             "operation-failed",

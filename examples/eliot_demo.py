@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Demo: Beautiful Eliot action tracing with nicestlog
+"""Demo: Beautiful Eliot action tracing with nicestlog.
 
 This shows how to use Eliot for request tracing with human-readable output
 instead of ugly JSON logs.

@@ -134,7 +134,6 @@ from rich.panel import Panel
 from rich.table import Table
 import structlog
 
-
 logger = structlog.get_logger(__name__)
 structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(WARNING))
 
@@ -225,7 +224,8 @@ def subprocess_output_control(quiet: bool = True):  # noqa: FBT001,FBT002
     """
 
     def show_output(
-        result: subprocess.CompletedProcess[str], show_on_error: bool = True,
+        result: subprocess.CompletedProcess[str],
+        show_on_error: bool = True,
     ) -> None:
         """Display subprocess output based on context settings."""
         env_verbose = os.environ.get("MYDEVTOOLS_VERBOSE", "").lower()
@@ -425,9 +425,9 @@ def run_subprocess(
         # Show output based on mode and result
         if show_output or result.returncode != 0:
             if result.stdout:
-                console.print(result.stdout, end="")
+                console.print(result.stdout, markup=False, end="")
             if result.stderr:
-                console.print(f"[red]{result.stderr}[/red]", end="")
+                console.print(f"[red]{result.stderr}[/red]", markup=False, end="")
 
         # Handle check parameter
         if check and result.returncode != 0:
@@ -833,7 +833,10 @@ def count_todo_checkboxes(todo_file_path: str = "_TODO-AGENT.md") -> dict[str, A
 
     except Exception as e:
         logger.error(
-            "error-reading-todo-file", file=str(todo_file), error=str(e), exc_info=True,
+            "error-reading-todo-file",
+            file=str(todo_file),
+            error=str(e),
+            exc_info=True,
         )
         return {
             "total": 0,
@@ -1972,7 +1975,8 @@ def display_checklist_status(checklist_info) -> None:
         console.print("-  [yellow]No checklist found in recent commit[/yellow]")
         console.print("i  Consider adding agent checklist to commit messages")
         logger.info(
-            "checklist-not-found", _replace_msg="No checklist found in recent commit",
+            "checklist-not-found",
+            _replace_msg="No checklist found in recent commit",
         )
         return
 
@@ -2293,7 +2297,9 @@ def detect_todo_checkbox_changes():  # noqa: PLR0911, PLR0915
     except Exception as e:
         error_message = f"Error checking TODO progress: {e}"
         logger.error(
-            "todo-checkbox-change-detection-failed", error=str(e), exc_info=True,
+            "todo-checkbox-change-detection-failed",
+            error=str(e),
+            exc_info=True,
         )
         return False, error_message
 
@@ -2346,7 +2352,8 @@ def validate_no_code_in_todo() -> bool:  # noqa: D103
     if files_check["is_valid"]:
         console.print("OK  [green]TODO files validation passed[/green]")
         logger.info(
-            "todo-files-validation-passed", _replace_msg="TODO files validation passed",
+            "todo-files-validation-passed",
+            _replace_msg="TODO files validation passed",
         )
 
         if files_check["phase"] == PHASE_TODO:
@@ -2451,7 +2458,9 @@ def format_todo_markdown() -> bool | None:  # noqa: D103
             console.print("X  [red]mdformat failed:[/red]")
             console.print(result.stderr)
             logger.error(
-                "mdformat failed", returncode=result.returncode, stderr=result.stderr,
+                "mdformat failed",
+                returncode=result.returncode,
+                stderr=result.stderr,
             )
             return False
 
@@ -4235,7 +4244,9 @@ def validate_todo() -> bool:  # noqa: PLR0912
 
 
 def display_status_summary(
-    current_phase: str, todo_progress: dict, checklist_info: dict,
+    current_phase: str,
+    todo_progress: dict,
+    checklist_info: dict,
 ) -> None:
     """Display a consolidated status summary to reduce duplication."""
     console.print(f"Phase: {current_phase}")

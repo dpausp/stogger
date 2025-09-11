@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""🤖 Agent Migration Demo
+"""🤖 Agent Migration Demo.
 
 This script demonstrates how AI agents can use nicestlog's project analysis
 and migration tools to automatically retrofit existing Python projects.
@@ -25,7 +25,7 @@ def create_sample_project():
 def process_data(items):
     print("Starting data processing...")
     print(f"Processing {len(items)} items")
-    
+
     results = []
     for i, item in enumerate(items):
         if item > 0:
@@ -33,19 +33,19 @@ def process_data(items):
             print(f"Processed item {i}: {item} -> {item * 2}")
         else:
             print(f"Skipping negative item: {item}")
-    
+
     print(f"Processing complete. {len(results)} items processed.")
     return results
 
 def main():
     print("Application starting...")
-    
+
     data = [1, -2, 3, 4, -5, 6]
     print("Input data:", data)
-    
+
     results = process_data(data)
     print("Results:", results)
-    
+
     print("Application finished.")
 
 if __name__ == "__main__":
@@ -61,21 +61,21 @@ logger = logging.getLogger(__name__)
 
 def validate_input(data):
     logger.info(f"Validating input data: {data}")
-    
+
     if not data:
         logger.error("No data provided")
         return False
-    
+
     if not isinstance(data, list):
         logger.error(f"Expected list, got {type(data)}")
         return False
-    
+
     logger.info("Input validation passed")
     return True
 
 def save_results(results, filename):
     logger.info(f"Saving {len(results)} results to {filename}")
-    
+
     try:
         with open(filename, 'w') as f:
             for result in results:

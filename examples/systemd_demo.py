@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Demo: Advanced systemd integration with nicestlog
+"""Demo: Advanced systemd integration with nicestlog.
 
 Shows how to properly integrate with systemd for production deployments.
 """

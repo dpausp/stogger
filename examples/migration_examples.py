@@ -19,33 +19,33 @@ def create_example_files():
 def process_user_data(user_id, name, email):
     print(f"Processing user {user_id}")
     print("Starting validation...")
-    
+
     if not email or "@" not in email:
         print(f"Error: Invalid email {email}")
         return False
-    
+
     if len(name) < 2:
         print(f"Error: Name too short: {name}")
         return False
-    
+
     print(f"User {name} ({email}) validated successfully")
     print("Processing complete")
     return True
 
 def main():
     print("=== User Processing Demo ===")
-    
+
     users = [
         (1, "Alice", "alice@example.com"),
         (2, "Bob", "invalid-email"),
         (3, "X", "x@test.com"),
     ]
-    
+
     for user_id, name, email in users:
         print(f"\\n--- Processing User {user_id} ---")
         result = process_user_data(user_id, name, email)
         print(f"Result: {'SUCCESS' if result else 'FAILED'}")
-    
+
     print("\\n=== Demo Complete ===")
 
 if __name__ == "__main__":
@@ -70,41 +70,41 @@ class OrderProcessor:
     def __init__(self):
         logger.info("OrderProcessor initialized")
         self.processed_count = 0
-    
+
     def process_order(self, order_id, items, customer_id):
         logger.info(f"Processing order {order_id} for customer {customer_id}")
-        
+
         if not items:
             logger.error(f"Order {order_id} has no items")
             return False
-        
+
         total_price = 0
         for item in items:
             logger.debug(f"Processing item: {item['name']} - ${item['price']}")
-            
+
             if item['price'] <= 0:
                 logger.warning(f"Invalid price for {item['name']}: ${item['price']}")
                 continue
-            
+
             total_price += item['price']
-        
+
         if total_price == 0:
             logger.error(f"Order {order_id} has zero total")
             return False
-        
+
         logger.info(f"Order {order_id} processed successfully. Total: ${total_price}")
         self.processed_count += 1
         return True
-    
+
     def get_stats(self):
         logger.info(f"Total orders processed: {self.processed_count}")
         return {"processed": self.processed_count}
 
 def main():
     logger.info("Starting order processing demo")
-    
+
     processor = OrderProcessor()
-    
+
     orders = [
         {
             "id": "ORD-001",
@@ -115,29 +115,29 @@ def main():
             ]
         },
         {
-            "id": "ORD-002", 
+            "id": "ORD-002",
             "customer_id": "CUST-456",
             "items": []  # Empty order
         },
         {
             "id": "ORD-003",
-            "customer_id": "CUST-789", 
+            "customer_id": "CUST-789",
             "items": [
                 {"name": "Widget C", "price": -5.00},  # Invalid price
                 {"name": "Widget D", "price": 20.00}
             ]
         }
     ]
-    
+
     for order in orders:
         logger.info(f"--- Processing Order {order['id']} ---")
         result = processor.process_order(
-            order['id'], 
-            order['items'], 
+            order['id'],
+            order['items'],
             order['customer_id']
         )
         logger.info(f"Order {order['id']} result: {'SUCCESS' if result else 'FAILED'}")
-    
+
     stats = processor.get_stats()
     logger.info(f"Final stats: {stats}")
     logger.info("Demo complete")
@@ -165,79 +165,79 @@ class DataSyncService:
         print(f"DataSyncService initialized")
         print(f"Source: {source_url}")
         print(f"Target: {target_url}")
-    
+
     def sync_data(self):
         print("=== Starting Data Sync ===")
         start_time = datetime.now()
-        
+
         try:
             # Fetch data
             print("Fetching data from source...")
             data = self._fetch_data()
             logger.info(f"Fetched {len(data)} records")
-            
+
             # Validate data
             print("Validating data...")
             valid_data = self._validate_data(data)
             logger.warning(f"Filtered out {len(data) - len(valid_data)} invalid records")
-            
+
             # Transform data
             print("Transforming data...")
             transformed_data = self._transform_data(valid_data)
-            
+
             # Save data
             print("Saving data to target...")
             self._save_data(transformed_data)
-            
+
             duration = (datetime.now() - start_time).total_seconds()
             print(f"Sync completed in {duration:.2f} seconds")
             logger.info(f"Successfully synced {len(transformed_data)} records")
-            
+
             return True
-            
+
         except Exception as e:
             print(f"Sync failed: {e}", file=sys.stderr)
             logger.error(f"Sync operation failed: {str(e)}")
             return False
-    
+
     def _fetch_data(self):
         # Simulate fetching data
         print(f"Connecting to {self.source_url}")
-        
+
         # Simulate some issues
         if "unreliable" in self.source_url:
             logger.warning("Source marked as unreliable")
-        
+
         data = [
             {"id": 1, "name": "Record 1", "value": 100},
             {"id": 2, "name": "Record 2", "value": None},  # Invalid
             {"id": 3, "name": "", "value": 300},  # Invalid
             {"id": 4, "name": "Record 4", "value": 400},
         ]
-        
+
         print(f"Retrieved {len(data)} raw records")
         return data
-    
+
     def _validate_data(self, data):
         valid_records = []
-        
+
         for record in data:
             if not record.get("name"):
                 print(f"Skipping record {record['id']}: missing name")
                 continue
-            
+
             if record.get("value") is None:
                 print(f"Skipping record {record['id']}: missing value")
                 continue
-            
+
             valid_records.append(record)
-        
+
         logger.debug(f"Validation complete: {len(valid_records)} valid records")
         return valid_records
-    
+
     def _transform_data(self, data):
         transformed = []
-        
+
         for record in data:
             # Simple transformation
             transformed_record = {
@@ -247,30 +247,30 @@ class DataSyncService:
                 "processed_at": datetime.now().isoformat()
             }
             transformed.append(transformed_record)
-        
+
         print(f"Transformed {len(transformed)} records")
         return transformed
-    
+
     def _save_data(self, data):
         print(f"Saving {len(data)} records to {self.target_url}")
-        
+
         # Simulate saving
         for i, record in enumerate(data):
             if i % 10 == 0:  # Progress indicator
                 print(f"Saved {i}/{len(data)} records...")
-        
+
         logger.info(f"All {len(data)} records saved successfully")
 
 def main():
     print("=== Data Sync Demo ===")
-    
+
     service = DataSyncService(
         source_url="https://api.source.com/data",
         target_url="https://api.target.com/import"
     )
-    
+
     success = service.sync_data()
-    
+
     if success:
         print("✅ Sync completed successfully")
     else:
@@ -311,7 +311,7 @@ def demonstrate_migration():
 
         # Show what files we have
         print("Example files created:")
-        for filename in examples.keys():
+        for filename in examples:
             file_path = temp_path / filename
             lines = len(file_path.read_text().split("\n"))
             print(f"  • {filename} ({lines} lines)")
@@ -326,7 +326,7 @@ def demonstrate_migration():
 
         print("\n🎬 To see the actual migration in action:")
         print("  # Run the original examples")
-        for filename in examples.keys():
+        for filename in examples:
             print(f"  python {temp_path / filename}")
 
         print("\n  # Then migrate and run again to see the difference")

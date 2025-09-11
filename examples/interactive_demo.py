@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""🎯 Interactive Transformation Demo - Amber-style Code Transformation
+"""🎯 Interactive Transformation Demo - Amber-style Code Transformation.
 
 This demo shows the interactive transformation capabilities,
 similar to the amber search & replace tool.
@@ -16,7 +16,7 @@ import sys
 def process_data(data):
     print("Starting data processing")
     print(f"Processing {len(data)} items")
-    
+
     results = []
     for i, item in enumerate(data):
         print(f"Processing item {i}: {item}")
@@ -24,7 +24,7 @@ def process_data(data):
             results.append(item * 2)
         else:
             print(f"Skipping negative item: {item}")
-    
+
     print(f"Processed {len(results)} items successfully")
     return results
 
@@ -40,13 +40,13 @@ def save_results(results, filename):
 
 def main():
     print("Demo application starting")
-    
+
     data = [1, -2, 3, 4, -5, 6, 7, 8]
     print(f"Input data: {data}")
-    
+
     results = process_data(data)
     save_results(results, "output.txt")
-    
+
     print("Demo completed")
 
 if __name__ == "__main__":

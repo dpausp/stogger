@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Demo: PII Scrubbing in action with nicestlog
+"""Demo: PII Scrubbing in action with nicestlog.
 
 Shows how sensitive data gets automatically redacted from logs.
 """

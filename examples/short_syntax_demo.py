@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Demo showing the clean, short logging syntax with log.info() / log.debug()
-instead of the longer logger.info() / logger.debug()
+instead of the longer logger.info() / logger.debug().
 """
 
 import structlog

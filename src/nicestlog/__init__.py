@@ -34,7 +34,11 @@ __version__ = "2.1.0"
 
 from .advanced_assistant import (
     analyze_python_file as analyze_python_file,
+)
+from .advanced_assistant import (
     create_advanced_assistant as create_advanced_assistant,
+)
+from .advanced_assistant import (
     transform_python_file as transform_python_file,
 )
 from .assistant import migrate_directory as migrate_directory
@@ -42,18 +46,41 @@ from .cli import main as main
 from .config import NicestLogConfig as NicestLogConfig
 from .core import (
     JournalLogger as JournalLogger,
+)
+from .core import (
     JournalLoggerFactory as JournalLoggerFactory,
+)
+from .core import (
     MultiOptimisticLogger as MultiOptimisticLogger,
+)
+from .core import (
     MultiOptimisticLoggerFactory as MultiOptimisticLoggerFactory,
+)
+from .core import (
     SystemdJournalRenderer as SystemdJournalRenderer,
+)
+from .core import (
     drop_cmd_output_logfile as drop_cmd_output_logfile,
+)
+from .core import (
     init_command_logging as init_command_logging,
+)
+from .core import (
     init_early_logging as init_early_logging,
+)
+from .core import (
     init_logging as init_logging,
+)
+from .core import (
     logging_initialized as logging_initialized,
 )
 from .eliot_integration import setup_eliot_logging as setup_eliot_logging
-from .i18n import arsch as arsch, get_translator as get_translator, init_i18n as init_i18n, leiwand as leiwand, oida as oida, t as t
+from .i18n import arsch as arsch
+from .i18n import get_translator as get_translator
+from .i18n import init_i18n as init_i18n
+from .i18n import leiwand as leiwand
+from .i18n import oida as oida
+from .i18n import t as t
 from .interactive_transformer import (
     create_interactive_transformer,
     transform_directory_interactive,

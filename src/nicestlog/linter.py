@@ -15,11 +15,15 @@ from typing import Any
 
 from colorama import Fore, Style
 from colorama import init as colorama_init
+import structlog
 import toml
 
 from .log_statement_analyzer import (
     analyze_file as analyze_log_statements,
 )
+
+# Initialize logger
+log = structlog.get_logger(__name__)
 
 
 @dataclass
@@ -190,8 +194,14 @@ class LoggingVisitor(ast.NodeVisitor):
                 and isinstance(node.args[0].value, str)
             ):
                 return str(node.args[0].value)
-        except Exception:
-            return None
+        except Exception as e:
+            # Log the error and re-raise to avoid silent failures
+            log.exception(
+                "event-name-extraction-error",
+                error=str(e),
+                _replace_msg="Failed to extract event name: {error}",
+            )
+            raise
         return None
 
     def _analyze_logging_level(self, node: ast.Call):
@@ -232,8 +242,14 @@ class LoggingVisitor(ast.NodeVisitor):
                     event_name = str(node.args[0].value)
                     return level, event_name
 
-        except Exception:
-            pass
+        except Exception as e:
+            # Log the error and re-raise to avoid silent failures
+            log.exception(
+                "logging-info-extraction-error",
+                error=str(e),
+                _replace_msg="Failed to extract logging info: {error}",
+            )
+            raise
         return None
 
     def _is_internal_operation(self, event_name: str) -> bool:
@@ -476,8 +492,14 @@ def analyze_file(file_path: Path) -> tuple[LoggingStats, list[LoggingLevelIssue]
     try:
         content = file_path.read_text(encoding="utf-8")
     except Exception as e:
-        print(f"Error reading {file_path}: {e}", file=sys.stderr)
-        return LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0), []
+        # Log the error and re-raise to avoid silent failures
+        log.exception(
+            "file-read-error",
+            file_path=str(file_path),
+            error=str(e),
+            _replace_msg="Failed to read file {file_path}: {error}",
+        )
+        raise
 
     lines = content.splitlines()
     total_lines = len(lines)
@@ -797,8 +819,13 @@ def lint_directory(
             ast_data = os.getenv("NICESTLOG_AST_METRICS")
             if ast_data:
                 ast_metrics = json.loads(ast_data)
-        except Exception:
-            pass
+        except Exception as e:
+            # Log the error and continue with empty metrics
+            log.warning(
+                "ast-metrics-parse-error",
+                error=str(e),
+                _replace_msg="Failed to parse AST metrics: {error}, continuing without AST metrics",
+            )
 
         # Human-friendly table output with subtle colors
         colorama_init(autoreset=True)
