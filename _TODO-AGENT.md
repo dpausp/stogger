@@ -70,25 +70,25 @@ ______________________________________________________________________
 
    - **Commit message hint**: "refactor: replace rudimentary filtering with proper gitignore handling"
 
-1. [ ] **Migrate-Performance testen** – Vorher/Nachher Vergleich
+1. [x] **Migrate-Performance testen** – Vorher/Nachher Vergleich
 
    - **Context**: Nach den Optimierungen sollte migrate deutlich schneller laufen.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] Migrate läuft schneller als vorher
-     - [ ] Alle Migration-Typen funktionieren korrekt
-     - [ ] Keine Regression in der Funktionalität
+     - [x] Migrate läuft schneller als vorher
+     - [x] Alle Migration-Typen funktionieren korrekt
+     - [x] Keine Regression in der Funktionalität
 
    - **Files to check/modify**
 
-     - [ ] Test-Scripts für Performance-Messung
+     - [x] Test-Scripts für Performance-Messung
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Erstelle Test-Szenario mit großem .venv
-     - [ ] Messe Performance vor und nach den Änderungen
-     - [ ] Teste alle Migration-Typen (print-to-structlog, cli-outputs, etc.)
-     - [ ] Dokumentiere Performance-Verbesserungen
+     - [x] Erstelle Test-Szenario mit großem .venv
+     - [x] Messe Performance vor und nach den Änderungen
+     - [x] Teste alle Migration-Typen (print-to-structlog, cli-outputs, etc.)
+     - [x] Dokumentiere Performance-Verbesserungen
 
    - **Commit message hint**: "test: verify migrate performance improvements"
