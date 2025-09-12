@@ -71,25 +71,25 @@ ______________________________________________________________________
      - [x] Error messages are properly displayed
      - [x] Output format matches test expectations
 
-    - **Files to check/modify**
+   - **Files to check/modify**
 
       - [x] `src/nicestlog/cli.py`
-      - [ ] `src/nicestlog/systemd_integration.py`
-      - [ ] `src/nicestlog/eliot_integration.py`
-      - [ ] `src/nicestlog/i18n.py`
-      - [ ] `src/nicestlog/journal_viewer.py`
-      - [ ] `src/nicestlog/log_reviewer.py`
-      - [ ] `src/nicestlog/log_statement_analyzer.py`
-      - [ ] `src/nicestlog/linter.py`
+      - [x] `src/nicestlog/systemd_integration.py`
+      - [x] `src/nicestlog/eliot_integration.py`
+      - [x] `src/nicestlog/i18n.py`
+      - [x] `src/nicestlog/journal_viewer.py`
+      - [x] `src/nicestlog/log_reviewer.py`
+      - [x] `src/nicestlog/log_statement_analyzer.py`
+      - [x] `src/nicestlog/linter.py`
 
-    - **Steps** (always action verbs, explicit order)
+   - **Steps** (always action verbs, explicit order)
 
-      - [x] Analyze each failing test to understand expected behavior
-      - [x] Identify where print statements or output was removed
-      - [x] **NEVER ADD PRINT STATEMENTS** - Fix tests to expect structured logging output instead
-      - [x] Fix CLI command output formatting using structured logging only
-      - [x] Fix demo command functionality without print statements
-      - [x] Fix error message display using structured logging
+     - [x] Analyze each failing test to understand expected behavior
+     - [x] Identify where print statements or output was removed
+     - [x] **NEVER ADD PRINT STATEMENTS** - Fix tests to expect structured logging output instead
+     - [x] Fix CLI command output formatting using structured logging only
+     - [x] Fix demo command functionality without print statements
+     - [x] Fix error message display using structured logging
 
    - **Commit message hint**: "fix(cli): restore expected output behavior for tests"
 
@@ -103,11 +103,11 @@ ______________________________________________________________________
      - [x] Optional dependency handling works correctly
      - [x] Error messages for missing dependencies are displayed
 
-    - **Files to check/modify**
+   - **Files to check/modify**
 
-      - [x] `src/nicestlog/systemd_integration.py`
-      - [x] `src/nicestlog/journal_viewer.py`
-      - [ ] `src/nicestlog/eliot_integration.py`
+     - [x] `src/nicestlog/systemd_integration.py`
+     - [x] `src/nicestlog/journal_viewer.py`
+     - [ ] `src/nicestlog/eliot_integration.py`
 
    - **Steps** (always action verbs, explicit order)
 
@@ -128,10 +128,10 @@ ______________________________________________________________________
      - [x] Translation validation functions properly
      - [x] Missing and extra key detection works
 
-    - **Files to check/modify**
+   - **Files to check/modify**
 
-      - [ ] `src/nicestlog/i18n.py`
-      - [ ] `src/nicestlog/i18n_check.py`
+      - [x] `src/nicestlog/i18n.py`
+      - [x] `src/nicestlog/i18n_check.py`
       - [x] `src/nicestlog/cli.py`
 
    - **Steps** (always action verbs, explicit order)
@@ -143,27 +143,27 @@ ______________________________________________________________________
 
    - **Commit message hint**: "fix(i18n): restore translation checking functionality"
 
- 1. [x] **Validate and test** – Run full test suite and ensure no regressions
+1. [x] **Validate and test** – Run full test suite and ensure no regressions
 
-    - **Context**: Ensure all fixes work together and no new issues are introduced
+   - **Context**: Ensure all fixes work together and no new issues are introduced
 
-    - **Success criteria** (must be checked to finish task)
+   - **Success criteria** (must be checked to finish task)
 
-      - [x] All tests pass (0 failures)
-      - [x] No new test failures introduced
-      - [x] Functionality preserved
-      - [x] Performance not degraded
+     - [x] All tests pass (0 failures)
+     - [x] No new test failures introduced
+     - [x] Functionality preserved
+     - [x] Performance not degraded
 
-    - **Files to check/modify**
+   - **Files to check/modify**
 
-      - [x] All test files
-      - [x] Integration tests
+     - [x] All test files
+     - [x] Integration tests
 
-    - **Steps** (always action verbs, explicit order)
+   - **Steps** (always action verbs, explicit order)
 
-      - [x] Run full test suite
-      - [x] Fix any remaining failures
-      - [x] Verify no regressions
-      - [x] Check test coverage maintained
+     - [x] Run full test suite
+     - [x] Fix any remaining failures
+     - [x] Verify no regressions
+     - [x] Check test coverage maintained
 
-    - **Commit message hint**: "test: validate all fixes and ensure no regressions"
+   - **Commit message hint**: "test: validate all fixes and ensure no regressions"
