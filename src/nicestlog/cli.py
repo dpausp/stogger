@@ -2131,7 +2131,9 @@ def migrate_directory_recursive(
         )
 
     # For other migrations: Process files individually
-    python_files = list(source.rglob("*.py"))
+    from .gitignore_utils import filter_python_files
+
+    python_files = filter_python_files(source, respect_gitignore=True)
     if not python_files:
         console.print(f"[yellow]⚠️ No Python files found in {source}[/yellow]")
 
@@ -2198,7 +2200,9 @@ def run_interactive_migration(
             transformer.transform_file_interactive(source)
         else:
             # For directories, process files one by one interactively
-            python_files = list(source.rglob("*.py"))
+            from .gitignore_utils import filter_python_files
+
+            python_files = filter_python_files(source, respect_gitignore=True)
             for py_file in python_files:
                 console.print(f"\n📁 Processing: {py_file}")
                 transformer.transform_file_interactive(py_file)
@@ -2252,10 +2256,9 @@ def migrate_directory_with_handler(
         msg = f"Input directory not found: {input_dir}"
         raise FileNotFoundError(msg)
 
-    for py in input_dir.rglob("*.py"):
-        # Skip generated or virtual env paths
-        if any(part in {".venv", "venv", "__pycache__", ".git"} for part in py.parts):
-            continue
+    from .gitignore_utils import filter_python_files
+
+    for py in filter_python_files(input_dir, respect_gitignore=True):
         try:
             original = py.read_text(encoding="utf-8")
         except Exception:

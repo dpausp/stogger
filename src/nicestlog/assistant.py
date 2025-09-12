@@ -32,11 +32,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
     @staticmethod
     def slugify(text: str) -> str:
         # Normalize unicode, lower-case, keep alnum, convert spaces and punctuation to '-'
-        text = (
-            unicodedata.normalize("NFKD", text)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
         text = text.lower()
         out = []
         prev_sep = False
@@ -110,20 +106,12 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         event_arg: str | None = None
         if node.args:
             event_arg = self.derive_event_from_literal(node.args[0])
-        event = (
-            event_arg
-            if (event_arg and self.is_simple_event(event_arg))
-            else "print-output"
-        )
+        event = event_arg if (event_arg and self.is_simple_event(event_arg)) else "print-output"
 
         keywords: list[ast.keyword] = []
 
         # Build _replace_msg and remaining args mapping
-        lit_first = (
-            bool(node.args)
-            and isinstance(node.args[0], ast.Constant)
-            and isinstance(node.args[0].value, str)
-        )
+        lit_first = bool(node.args) and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
         if lit_first:
             original = node.args[0].value  # type: ignore[attr-defined]
             remaining_args = node.args[1:]
@@ -217,10 +205,10 @@ def migrate_directory(
         msg = f"Input directory not found: {input_dir}"
         raise FileNotFoundError(msg)
 
-    for py in input_dir.rglob("*.py"):
-        # Skip generated or virtual env paths
-        if any(part in {".venv", "venv", "__pycache__", ".git"} for part in py.parts):
-            continue
+    # Use shared file filtering with gitignore support
+    from .gitignore_utils import filter_python_files
+
+    for py in filter_python_files(input_dir, respect_gitignore=True):
         original = py.read_text(encoding="utf-8")
         new_code, changed = migrate_file(original)
         result.files_processed += 1
@@ -246,9 +234,7 @@ def migrate_directory(
 
         # Write transformed code only if not dry-run
         if not dry_run:
-            target_path = (
-                py if output_dir is None else (output_dir / py.relative_to(input_dir))
-            )
+            target_path = py if output_dir is None else (output_dir / py.relative_to(input_dir))
             target_path.parent.mkdir(parents=True, exist_ok=True)
             target_path.write_text(new_code, encoding="utf-8")
             result.files_transformed += 1
