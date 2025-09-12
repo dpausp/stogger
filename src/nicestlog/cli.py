@@ -444,7 +444,7 @@ def check(
     # Initialize proper logging format
     import nicestlog
 
-    nicestlog.init_logging()
+    nicestlog.init_logging(verbose=verbose)
 
     from .config import detect_project_structure
     from .linter import lint_directory

@@ -292,9 +292,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
         # Only suggest docstrings for logging-related functions
         if has_logging_calls and not has_docstring:
-            suggestion = (
-                f"Add docstring to logging function '{node.name}' (line {node.lineno})"
-            )
+            suggestion = f"Add docstring to logging function '{node.name}' (line {node.lineno})"
             self.transformation_suggestions.append(suggestion)
 
     def _function_has_logging_calls(self, node: ast.FunctionDef) -> bool:
@@ -464,9 +462,7 @@ class AdvancedTransformer(ast.NodeTransformer):
         # Check all patterns against this node
         for pattern_name, pattern in self.patterns.items():
             if pattern.matcher(node):
-                self.metrics.patterns_matched[pattern_name] = (
-                    self.metrics.patterns_matched.get(pattern_name, 0) + 1
-                )
+                self.metrics.patterns_matched[pattern_name] = self.metrics.patterns_matched.get(pattern_name, 0) + 1
 
                 log.debug(
                     "pattern-matched",
@@ -548,11 +544,7 @@ class AdvancedAssistant:
 
         # Pattern 1: Convert print statements to structured logging
         def is_print_call(node: ast.AST) -> bool:
-            return (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id == "print"
-            )
+            return isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print"
 
         def transform_print_to_log(node: ast.Call) -> ast.Call:
             """Transform print() to log.info()."""
@@ -566,11 +558,7 @@ class AdvancedAssistant:
             event = "print-output"
             keywords = []
 
-            if (
-                node.args
-                and isinstance(node.args[0], ast.Constant)
-                and isinstance(node.args[0].value, str)
-            ):
+            if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
                 event = "print-message"
                 keywords.append(ast.keyword(arg="_replace_msg", value=node.args[0]))
                 # Add remaining args as parameters
@@ -630,13 +618,6 @@ class AdvancedAssistant:
                 priority=5,
                 enabled=False,  # Disabled by default
             ),
-        )
-
-        log.debug(
-            "default-patterns-initialized",
-            _replace_msg="📋 Initialized {count} default transformation patterns",
-            count=len(self.patterns),
-            pattern_names=[p.name for p in self.patterns],
         )
 
     def add_pattern(self, pattern: ASTPattern) -> None:
