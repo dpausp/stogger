@@ -22,16 +22,14 @@ def load_gitignore_patterns(directory: Path) -> list[str]:
                 if line and not line.startswith("#"):
                     patterns.append(line)
 
-            log.debug(
+            log.info(
                 "gitignore-loaded",
-                _replace_msg="📋 Loaded {count} patterns from .gitignore",
                 count=len(patterns),
                 gitignore_path=str(gitignore_path),
             )
         except Exception as e:
             log.warning(
                 "gitignore-load-failed",
-                _replace_msg="⚠️ Failed to load .gitignore: {error}",
                 error=str(e),
                 gitignore_path=str(gitignore_path),
             )
@@ -73,48 +71,24 @@ def should_ignore_path(file_path: Path, base_dir: Path, patterns: list[str]) -> 
 
             # Check if pattern matches
             if fnmatch.fnmatch(rel_path_str, pattern):
-                log.debug(
-                    "file-ignored",
-                    _replace_msg="🚫 Ignoring {file} (matches pattern: {pattern})",
-                    file=rel_path_str,
-                    pattern=pattern,
-                )
                 return True
 
             # Also check if any parent directory matches
             for parent in rel_path.parents:
                 parent_str = str(parent)
                 if fnmatch.fnmatch(parent_str, pattern.rstrip("/*")):
-                    log.debug(
-                        "file-ignored-parent",
-                        _replace_msg="🚫 Ignoring {file} (parent {parent} matches pattern: {pattern})",
-                        file=rel_path_str,
-                        parent=parent_str,
-                        pattern=pattern,
-                    )
                     return True
 
         return False
 
     except ValueError:
         # File is not relative to base_dir, ignore it
-        log.debug(
-            "file-ignored-outside",
-            _replace_msg="🚫 Ignoring {file} (outside base directory)",
-            file=str(file_path),
-            base_dir=str(base_dir),
-        )
         return True
 
 
 def filter_python_files(directory: Path, respect_gitignore: bool = True) -> list[Path]:
     """Get Python files in directory, respecting .gitignore if requested."""
-    log.debug(
-        "filter-files-started",
-        _replace_msg="🔍 Filtering Python files in {directory} (respect_gitignore: {respect_gitignore})",
-        directory=str(directory),
-        respect_gitignore=respect_gitignore,
-    )
+    # Filtering Python files
 
     # Load gitignore patterns if requested
     patterns = []
@@ -131,12 +105,6 @@ def filter_python_files(directory: Path, respect_gitignore: bool = True) -> list
 
             python_files.append(py_file)
 
-    log.debug(
-        "filter-files-completed",
-        _replace_msg="✅ Found {count} Python files to analyze",
-        count=len(python_files),
-        directory=str(directory),
-        total_patterns=len(patterns) if respect_gitignore else 0,
-    )
+    # Found Python files
 
     return python_files
