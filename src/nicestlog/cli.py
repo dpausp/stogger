@@ -441,6 +441,11 @@ def check(
       nicestlog check file.py --complexity       # Complexity analysis
 
     """
+    # Initialize proper logging format
+    import nicestlog
+
+    nicestlog.init_logging()
+
     from .config import detect_project_structure
     from .linter import lint_directory
 
