@@ -71,25 +71,25 @@ ______________________________________________________________________
      - [x] Error messages are properly displayed
      - [x] Output format matches test expectations
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/cli.py`
-     - [ ] `src/nicestlog/systemd_integration.py`
-     - [ ] `src/nicestlog/eliot_integration.py`
-     - [ ] `src/nicestlog/i18n.py`
-     - [ ] `src/nicestlog/journal_viewer.py`
-     - [ ] `src/nicestlog/log_reviewer.py`
-     - [ ] `src/nicestlog/log_statement_analyzer.py`
-     - [ ] `src/nicestlog/linter.py`
+      - [x] `src/nicestlog/cli.py`
+      - [ ] `src/nicestlog/systemd_integration.py`
+      - [ ] `src/nicestlog/eliot_integration.py`
+      - [ ] `src/nicestlog/i18n.py`
+      - [ ] `src/nicestlog/journal_viewer.py`
+      - [ ] `src/nicestlog/log_reviewer.py`
+      - [ ] `src/nicestlog/log_statement_analyzer.py`
+      - [ ] `src/nicestlog/linter.py`
 
-   - **Steps** (always action verbs, explicit order)
+    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Analyze each failing test to understand expected behavior
-     - [ ] Identify where print statements or output was removed
-     - [ ] **NEVER ADD PRINT STATEMENTS** - Fix tests to expect structured logging output instead
-     - [ ] Fix CLI command output formatting using structured logging only
-     - [ ] Fix demo command functionality without print statements
-     - [ ] Fix error message display using structured logging
+      - [x] Analyze each failing test to understand expected behavior
+      - [x] Identify where print statements or output was removed
+      - [x] **NEVER ADD PRINT STATEMENTS** - Fix tests to expect structured logging output instead
+      - [x] Fix CLI command output formatting using structured logging only
+      - [x] Fix demo command functionality without print statements
+      - [x] Fix error message display using structured logging
 
    - **Commit message hint**: "fix(cli): restore expected output behavior for tests"
 
@@ -103,11 +103,11 @@ ______________________________________________________________________
      - [x] Optional dependency handling works correctly
      - [x] Error messages for missing dependencies are displayed
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [x] `src/nicestlog/systemd_integration.py`
-     - [x] `src/nicestlog/journal_viewer.py`
-     - [x] `src/nicestlog/eliot_integration.py`
+      - [x] `src/nicestlog/systemd_integration.py`
+      - [x] `src/nicestlog/journal_viewer.py`
+      - [ ] `src/nicestlog/eliot_integration.py`
 
    - **Steps** (always action verbs, explicit order)
 
@@ -128,11 +128,11 @@ ______________________________________________________________________
      - [x] Translation validation functions properly
      - [x] Missing and extra key detection works
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [x] `src/nicestlog/i18n.py`
-     - [x] `src/nicestlog/i18n_check.py`
-     - [x] `src/nicestlog/cli.py`
+      - [ ] `src/nicestlog/i18n.py`
+      - [ ] `src/nicestlog/i18n_check.py`
+      - [x] `src/nicestlog/cli.py`
 
    - **Steps** (always action verbs, explicit order)
 
