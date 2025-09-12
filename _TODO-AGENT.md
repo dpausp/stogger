@@ -105,9 +105,9 @@ ______________________________________________________________________
 
    - **Files to check/modify**
 
-     - [x] `src/nicestlog/systemd_integration.py`
-     - [x] `src/nicestlog/journal_viewer.py`
-     - [ ] `src/nicestlog/eliot_integration.py`
+      - [x] `src/nicestlog/systemd_integration.py`
+      - [x] `src/nicestlog/journal_viewer.py`
+      - [x] `src/nicestlog/eliot_integration.py`
 
    - **Steps** (always action verbs, explicit order)
 
