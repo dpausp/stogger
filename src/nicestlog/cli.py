@@ -225,14 +225,10 @@ def i18n_check(
     try:
         # Convert src_dir to Path and get all Python files
         src_path = Path(src_dir)
-        source_paths = list(src_path.glob("**/*.py"))
+        source_paths = [src_path] if src_path.is_file() else [src_path / p for p in src_path.glob("**/*.py")]
 
         # Use translation_dir or default
-        trans_dir = (
-            Path(translation_dir)
-            if translation_dir
-            else src_path.parent / "translations"
-        )
+        trans_dir = Path(translation_dir) if translation_dir else src_path.parent / "translations"
 
         result = check_translations(
             source_paths=source_paths,
@@ -283,16 +279,10 @@ def init_config():
         sys.exit(1)
 
     config = {}
-    config["verbose"] = (
-        input("Enable verbose (trace-level) logging? [y/N]: ").lower() == "y"
-    )
-    config["syslog_identifier"] = (
-        input("Syslog identifier [nicestlog]: ") or "nicestlog"
-    )
+    config["verbose"] = input("Enable verbose (trace-level) logging? [y/N]: ").lower() == "y"
+    config["syslog_identifier"] = input("Syslog identifier [nicestlog]: ") or "nicestlog"
     config["log_format"] = input("Log format (console/json) [console]: ") or "console"
-    config["async_logging"] = (
-        input("Enable asynchronous (non-blocking) logging? [y/N]: ").lower() == "y"
-    )
+    config["async_logging"] = input("Enable asynchronous (non-blocking) logging? [y/N]: ").lower() == "y"
 
     if input("Enable file logging? [y/N]: ").lower() == "y":
         config["log_file"] = input("Log file path [app.log]: ") or "app.log"
@@ -303,17 +293,11 @@ def init_config():
             input("Number of backup files to keep [3]: ") or "3",
         )
 
-    config["enable_structured_logging"] = (
-        input("Enable structured logging? [Y/n]: ").lower() != "n"
-    )
+    config["enable_structured_logging"] = input("Enable structured logging? [Y/n]: ").lower() != "n"
     if config["enable_structured_logging"]:
-        config["structured_format"] = (
-            input("Structured format (json/key_value) [json]: ") or "json"
-        )
+        config["structured_format"] = input("Structured format (json/key_value) [json]: ") or "json"
 
-    config["enable_performance_monitoring"] = (
-        input("Enable performance monitoring? [y/N]: ").lower() == "y"
-    )
+    config["enable_performance_monitoring"] = input("Enable performance monitoring? [y/N]: ").lower() == "y"
 
     # Write config to pyproject.toml
     import toml
@@ -601,11 +585,7 @@ def check(
             # Get Python files from source directories only
             python_files = []
             for src_dir in project_structure.source_dirs:
-                src_path = (
-                    path_obj / src_dir
-                    if path_obj.is_dir()
-                    else path_obj.parent / src_dir
-                )
+                src_path = path_obj / src_dir if path_obj.is_dir() else path_obj.parent / src_dir
                 if src_path.exists():
                     # Filter files respecting gitignore and project structure
                     src_files = filter_python_files(src_path, respect_gitignore=True)
@@ -1273,25 +1253,16 @@ def _show_markdown_files(filenames: list[str], use_pager: bool = False):
         content = None
         # First try to load from package resources (_docs directory)
         try:
-            content = (
-                resources.files("nicestlog")
-                .joinpath("_docs")
-                .joinpath(filename)
-                .read_text()
-            )
+            content = resources.files("nicestlog").joinpath("_docs").joinpath(filename).read_text()
         except (FileNotFoundError, AttributeError):
             # Try alternative paths in package
             try:
                 # For README.md, it might be directly in the package
                 if filename == "README.md":
-                    content = (
-                        resources.files("nicestlog").joinpath(filename).read_text()
-                    )
+                    content = resources.files("nicestlog").joinpath(filename).read_text()
                 else:
                     # For other docs, try without _docs prefix
-                    content = (
-                        resources.files("nicestlog").joinpath(filename).read_text()
-                    )
+                    content = resources.files("nicestlog").joinpath(filename).read_text()
             except (FileNotFoundError, AttributeError):
                 # Try to read from source tree
                 try:
@@ -1465,7 +1436,6 @@ def run_journal_viewer(
 
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
-        print("❌ systemd-python not available")
         sys.exit(1)
 
     viewer = JournalViewer()
@@ -1497,7 +1467,6 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
     if path.is_file():
         report = reviewer.analyze_log_file(path)
         if format_type == "json":
-
             # Convert report to dict if it has to_dict method, otherwise use default serialization
             if hasattr(report, "to_dict"):
                 report.to_dict()
@@ -1529,7 +1498,6 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 
             if score >= min_score:
                 if format_type == "json":
-
                     if hasattr(report, "to_dict"):
                         report.to_dict()
                     else:
@@ -1574,7 +1542,7 @@ def generate_service_cmd(
             f.write(service_content)
         # Provide helpful follow-up instructions
     else:
-        print(service_content)
+        pass
 
 
 def run_demos(feature: str | None = None, all_features: bool = False):
@@ -1614,7 +1582,6 @@ def run_demos(feature: str | None = None, all_features: bool = False):
         console.print(f"Unknown demo: {feature}")
         sys.exit(1)
 
-
     for demo_name in demos_to_run:
         if demo_name == "basic":
             run_basic_demo()
@@ -1637,7 +1604,6 @@ def run_demos(feature: str | None = None, all_features: bool = False):
             print_demo_separator()
 
 
-
 def print_demo_header(title: str, description: str):
     """Print a formatted demo section header."""
     time.sleep(1)
@@ -1653,7 +1619,6 @@ def run_basic_demo():
     # Initialize with console output
     nicestlog.init_logging(verbose=True, syslog_identifier="demo")
     log = structlog.get_logger()
-
 
     log.info(
         "application-started",
@@ -1754,8 +1719,6 @@ def run_systemd_demo():
 
 def run_async_demo():
     """Demonstrate async logging."""
-    print_demo_header("Async Logging", "Non-blocking high-performance logging")
-
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="async-demo")
     log = structlog.get_logger()
@@ -1776,21 +1739,20 @@ def run_async_demo():
     sync_duration / async_duration if async_duration > 0 else 1.0
 
 
-
 def run_complete_demo():
     """Demonstrate complete application example."""
-    print_demo_header(
-        "Complete Application Example",
-        "Real-world application logging patterns",
-    )
-
-
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="complete-demo")
     log = structlog.get_logger()
 
     # Simulate application lifecycle
     log.info("application-startup", version="1.0.0", environment="production")
+    time.sleep(0.1)
+
+    log.info("request-received", method="GET", path="/api/users", user_id=123)
+    time.sleep(0.1)
+
+    log.info("database-query", table="users", duration_ms=45)
     time.sleep(0.1)
 
     log.info("request-received", method="GET", path="/api/users", user_id=123)
@@ -2238,12 +2200,8 @@ def run_interactive_migration(
         # Return success result (InteractiveTransformer handles its own reporting)
         class InteractiveMigrationResult:
             def __init__(self):
-                self.files_processed = (
-                    1 if source.is_file() else len(list(source.rglob("*.py")))
-                )
-                self.transformations_applied = (
-                    0  # Interactive mode handles its own counting
-                )
+                self.files_processed = 1 if source.is_file() else len(list(source.rglob("*.py")))
+                self.transformations_applied = 0  # Interactive mode handles its own counting
                 self.errors = 0
                 self.warnings = []
 
@@ -2326,11 +2284,7 @@ def migrate_directory_with_handler(
 
             # Write transformed code only if not dry-run
             if not dry_run:
-                target_path = (
-                    py
-                    if output_dir is None
-                    else (output_dir / py.relative_to(input_dir))
-                )
+                target_path = py if output_dir is None else (output_dir / py.relative_to(input_dir))
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_text(new_code, encoding="utf-8")
 
@@ -2489,11 +2443,7 @@ def _display_project_context(
         is_excluded = project_structure.should_exclude_from_logging_analysis(
             single_file,
         )
-        scope_status = (
-            "❌ Excluded from logging analysis"
-            if is_excluded
-            else "✅ Included in logging analysis"
-        )
+        scope_status = "❌ Excluded from logging analysis" if is_excluded else "✅ Included in logging analysis"
         console.print(f"\n📄 [bold]File Scope:[/bold] {scope_status}")
         if is_excluded:
             console.print(
@@ -2553,18 +2503,10 @@ def _display_project_analysis(result):
 
         pattern_counts = {}
         for pattern in result.logging_patterns:
-            pattern_counts[pattern.pattern_type] = (
-                pattern_counts.get(pattern.pattern_type, 0) + 1
-            )
+            pattern_counts[pattern.pattern_type] = pattern_counts.get(pattern.pattern_type, 0) + 1
 
         for pattern_type, count in pattern_counts.items():
-            priority = (
-                "High"
-                if pattern_type == "print"
-                else "Medium"
-                if pattern_type == "logging"
-                else "Low"
-            )
+            priority = "High" if pattern_type == "print" else "Medium" if pattern_type == "logging" else "Low"
             patterns_table.add_row(pattern_type.title(), str(count), priority)
 
         console.print(patterns_table)

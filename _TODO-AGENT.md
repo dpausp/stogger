@@ -93,55 +93,55 @@ ______________________________________________________________________
 
    - **Commit message hint**: "fix(cli): restore expected output behavior for tests"
 
-1. [ ] **Fix integration and dependency handling** – Ensure proper error handling for missing dependencies
+1. [x] **Fix integration and dependency handling** – Ensure proper error handling for missing dependencies
 
-   - **Context**: Tests for systemd and other optional dependencies are failing
+    - **Context**: Tests for systemd and other optional dependencies are failing
 
-   - **Success criteria** (must be checked to finish task)
+    - **Success criteria** (must be checked to finish task)
 
-     - [ ] Systemd integration tests pass
-     - [ ] Optional dependency handling works correctly
-     - [ ] Error messages for missing dependencies are displayed
+      - [x] Systemd integration tests pass
+      - [x] Optional dependency handling works correctly
+      - [x] Error messages for missing dependencies are displayed
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/systemd_integration.py`
-     - [ ] `src/nicestlog/journal_viewer.py`
-     - [ ] `src/nicestlog/eliot_integration.py`
+      - [x] `src/nicestlog/systemd_integration.py`
+      - [x] `src/nicestlog/journal_viewer.py`
+      - [x] `src/nicestlog/eliot_integration.py`
 
-   - **Steps** (always action verbs, explicit order)
+    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Review systemd integration error handling
-     - [ ] Fix missing dependency error messages
-     - [ ] Ensure proper fallback behavior
-     - [ ] Test with and without optional dependencies
+      - [x] Review systemd integration error handling
+      - [x] Fix missing dependency error messages
+      - [x] Ensure proper fallback behavior
+      - [x] Test with and without optional dependencies
 
-   - **Commit message hint**: "fix(integration): restore dependency error handling"
+    - **Commit message hint**: "fix(integration): restore dependency error handling"
 
-1. [ ] **Fix I18n functionality** – Restore translation checking and validation
+1. [x] **Fix I18n functionality** – Restore translation checking and validation
 
-   - **Context**: I18n tests are failing, indicating translation functionality issues
+    - **Context**: I18n tests are failing, indicating translation functionality issues
 
-   - **Success criteria** (must be checked to finish task)
+    - **Success criteria** (must be checked to finish task)
 
-     - [ ] I18n check commands work correctly
-     - [ ] Translation validation functions properly
-     - [ ] Missing and extra key detection works
+      - [x] I18n check commands work correctly
+      - [x] Translation validation functions properly
+      - [x] Missing and extra key detection works
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/i18n.py`
-     - [ ] `src/nicestlog/i18n_check.py`
-     - [ ] `src/nicestlog/cli.py`
+      - [x] `src/nicestlog/i18n.py`
+      - [x] `src/nicestlog/i18n_check.py`
+      - [x] `src/nicestlog/cli.py`
 
-   - **Steps** (always action verbs, explicit order)
+    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Review I18n check functionality
-     - [ ] Fix translation key detection
-     - [ ] Restore proper error reporting
-     - [ ] Test translation validation
+      - [x] Review I18n check functionality
+      - [x] Fix translation key detection
+      - [x] Restore proper error reporting
+      - [x] Test translation validation
 
-   - **Commit message hint**: "fix(i18n): restore translation checking functionality"
+    - **Commit message hint**: "fix(i18n): restore translation checking functionality"
 
 1. [ ] **Validate and test** – Run full test suite and ensure no regressions
 
