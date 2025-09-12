@@ -251,10 +251,10 @@ class TestGenerateServiceCommand:
         assert "Missing argument" in error_output or "required" in error_output.lower()
 
     @patch("nicestlog.systemd_integration.create_systemd_service_file")
-    @patch("builtins.print")
+    @patch("nicestlog.cli.console.print")
     def test_generate_service_cmd_function_stdout(
         self,
-        mock_print,
+        mock_console_print,
         mock_create_service,
     ):
         """Test generate_service_cmd function with stdout output."""
@@ -268,14 +268,14 @@ class TestGenerateServiceCommand:
             user=None,
             working_directory=None,
         )
-        mock_print.assert_called_with("[Unit]\nDescription=Test Service\n")
+        mock_console_print.assert_called_with("[Unit]\nDescription=Test Service\n")
 
     @patch("nicestlog.systemd_integration.create_systemd_service_file")
     @patch("builtins.open", new_callable=mock_open)
-    @patch("builtins.print")
+    @patch("nicestlog.cli.log.info")
     def test_generate_service_cmd_function_file_output(
         self,
-        mock_print,
+        mock_log_info,
         mock_file,
         mock_create_service,
     ):
@@ -298,6 +298,9 @@ class TestGenerateServiceCommand:
         )
         mock_file.assert_called_once_with("/tmp/test.service", "w")
         mock_file().write.assert_called_once_with("[Unit]\nDescription=Test Service\n")
+        mock_log_info.assert_called_once_with(
+            "service-file-generated", service_name="test-service", output_file="/tmp/test.service"
+        )
 
 
 class TestJournalCommand:
@@ -362,15 +365,15 @@ class TestJournalCommand:
         assert "Invalid level 'invalid'" in error_output
 
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False)
-    @patch("builtins.print")
-    def test_run_journal_viewer_no_systemd(self, mock_print):
+    @patch("nicestlog.cli.console.print")
+    def test_run_journal_viewer_no_systemd(self, mock_console_print):
         """Test run_journal_viewer when systemd is not available."""
         with pytest.raises(SystemExit):
             run_journal_viewer()
 
         # Check that error message was printed
-        mock_print.assert_called()
-        call_args = mock_print.call_args[0][0]
+        mock_console_print.assert_called()
+        call_args = mock_console_print.call_args[0][0]
         assert "systemd-python not available" in call_args
 
 
@@ -745,9 +748,7 @@ class TestCliI18nCheck:
         assert r2.returncode == 1
 
         # Complete translations
-        (trans / "en.toml").write_text(
-            'event-a = "A"\nevent-b = "B"\n', encoding="utf-8"
-        )
+        (trans / "en.toml").write_text('event-a = "A"\nevent-b = "B"\n', encoding="utf-8")
 
         # list-missing now prints nothing and returns 0
         r3 = self.run_cli(

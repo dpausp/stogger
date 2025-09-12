@@ -95,75 +95,75 @@ ______________________________________________________________________
 
 1. [x] **Fix integration and dependency handling** – Ensure proper error handling for missing dependencies
 
-    - **Context**: Tests for systemd and other optional dependencies are failing
-
-    - **Success criteria** (must be checked to finish task)
-
-      - [x] Systemd integration tests pass
-      - [x] Optional dependency handling works correctly
-      - [x] Error messages for missing dependencies are displayed
-
-    - **Files to check/modify**
-
-      - [x] `src/nicestlog/systemd_integration.py`
-      - [x] `src/nicestlog/journal_viewer.py`
-      - [x] `src/nicestlog/eliot_integration.py`
-
-    - **Steps** (always action verbs, explicit order)
-
-      - [x] Review systemd integration error handling
-      - [x] Fix missing dependency error messages
-      - [x] Ensure proper fallback behavior
-      - [x] Test with and without optional dependencies
-
-    - **Commit message hint**: "fix(integration): restore dependency error handling"
-
-1. [x] **Fix I18n functionality** – Restore translation checking and validation
-
-    - **Context**: I18n tests are failing, indicating translation functionality issues
-
-    - **Success criteria** (must be checked to finish task)
-
-      - [x] I18n check commands work correctly
-      - [x] Translation validation functions properly
-      - [x] Missing and extra key detection works
-
-    - **Files to check/modify**
-
-      - [x] `src/nicestlog/i18n.py`
-      - [x] `src/nicestlog/i18n_check.py`
-      - [x] `src/nicestlog/cli.py`
-
-    - **Steps** (always action verbs, explicit order)
-
-      - [x] Review I18n check functionality
-      - [x] Fix translation key detection
-      - [x] Restore proper error reporting
-      - [x] Test translation validation
-
-    - **Commit message hint**: "fix(i18n): restore translation checking functionality"
-
-1. [ ] **Validate and test** – Run full test suite and ensure no regressions
-
-   - **Context**: Ensure all fixes work together and no new issues are introduced
+   - **Context**: Tests for systemd and other optional dependencies are failing
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All tests pass (0 failures)
-     - [ ] No new test failures introduced
-     - [ ] Functionality preserved
-     - [ ] Performance not degraded
+     - [x] Systemd integration tests pass
+     - [x] Optional dependency handling works correctly
+     - [x] Error messages for missing dependencies are displayed
 
    - **Files to check/modify**
 
-     - [ ] All test files
-     - [ ] Integration tests
+     - [x] `src/nicestlog/systemd_integration.py`
+     - [x] `src/nicestlog/journal_viewer.py`
+     - [x] `src/nicestlog/eliot_integration.py`
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Run full test suite
-     - [ ] Fix any remaining failures
-     - [ ] Verify no regressions
-     - [ ] Check test coverage maintained
+     - [x] Review systemd integration error handling
+     - [x] Fix missing dependency error messages
+     - [x] Ensure proper fallback behavior
+     - [x] Test with and without optional dependencies
 
-   - **Commit message hint**: "test: validate all fixes and ensure no regressions"
+   - **Commit message hint**: "fix(integration): restore dependency error handling"
+
+1. [x] **Fix I18n functionality** – Restore translation checking and validation
+
+   - **Context**: I18n tests are failing, indicating translation functionality issues
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [x] I18n check commands work correctly
+     - [x] Translation validation functions properly
+     - [x] Missing and extra key detection works
+
+   - **Files to check/modify**
+
+     - [x] `src/nicestlog/i18n.py`
+     - [x] `src/nicestlog/i18n_check.py`
+     - [x] `src/nicestlog/cli.py`
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [x] Review I18n check functionality
+     - [x] Fix translation key detection
+     - [x] Restore proper error reporting
+     - [x] Test translation validation
+
+   - **Commit message hint**: "fix(i18n): restore translation checking functionality"
+
+ 1. [x] **Validate and test** – Run full test suite and ensure no regressions
+
+    - **Context**: Ensure all fixes work together and no new issues are introduced
+
+    - **Success criteria** (must be checked to finish task)
+
+      - [x] All tests pass (0 failures)
+      - [x] No new test failures introduced
+      - [x] Functionality preserved
+      - [x] Performance not degraded
+
+    - **Files to check/modify**
+
+      - [x] All test files
+      - [x] Integration tests
+
+    - **Steps** (always action verbs, explicit order)
+
+      - [x] Run full test suite
+      - [x] Fix any remaining failures
+      - [x] Verify no regressions
+      - [x] Check test coverage maintained
+
+    - **Commit message hint**: "test: validate all fixes and ensure no regressions"
