@@ -92,3 +92,128 @@ ______________________________________________________________________
      - [x] Dokumentiere Performance-Verbesserungen
 
    - **Commit message hint**: "test: verify migrate performance improvements"
+
+1. [x] **Migrate-Output überarbeiten: Alle Treffer ausgeben** – Verbose-Modus sinnvoll machen
+
+    - **Context**: Aktuelle Logging-Patterns-Tabelle zeigt nur aggregierte Zahlen, aber Benutzer möchte alle konkreten Treffer sehen (z.B. alle 535 Print-Statements mit Datei/Zeile).
+
+    - **Success criteria** (must be checked to finish task)
+
+      - [x] Alle gefundenen Treffer werden ausgegeben (nicht nur aggregiert)
+      - [x] Verbose-Modus zeigt detaillierte Liste mit file:line
+      - [x] Output bleibt lesbar, aber vollständig
+
+    - **Files to check/modify**
+
+      - [x] `src/nicestlog/cli.py` (\_display_project_analysis)
+      - [x] `src/nicestlog/project_analyzer.py` (\_analyze_complexity)
+
+    - **Steps** (always action verbs, explicit order)
+
+      - [x] Aktuelle Ausgabe analysieren (was wird aggregiert?)
+      - [x] Funktion erweitern um detaillierte Treffer-Liste
+      - [x] Verbose-Flag sinnvoll implementieren
+      - [x] Testen mit verschiedenen Projekten
+
+    - **Commit message hint**: "feat: show all matches in migrate output, improve verbose mode"
+
+1. [x] **Migrate-Scan einschränken: Nur src/ Verzeichnis** – Weniger Rauschen in Ausgabe
+
+    - **Context**: Migrate scannt derzeit das gesamte Projekt, inkl. examples/, tests/, docs/ - das erzeugt viel Rauschen mit Print-Statements in Demos. Sollte nur src/ scannen wie andere Kommandos.
+
+    - **Success criteria** (must be checked to finish task)
+
+      - [x] Migrate scannt nur src/ Verzeichnis
+      - [x] Weniger irrelevante Print-Statements in Ausgabe
+      - [x] Konsistent mit anderen Kommandos (check, etc.)
+      - [x] Keine Regression in Funktionalität
+
+    - **Files to check/modify**
+
+      - [x] `src/nicestlog/cli.py` (migrate command implementation)
+      - [x] `src/nicestlog/project_analyzer.py` (analyze_project function)
+
+    - **Steps** (always action verbs, explicit order)
+
+      - [x] Aktuelle Scan-Logik im migrate-Kommando finden
+      - [x] Start-Verzeichnis von Projekt-Root auf src/ ändern
+      - [x] Sicherstellen, dass .gitignore weiterhin respektiert wird
+      - [x] Testen mit verbose-Modus - weniger Rauschen
+      - [x] Vergleichen mit check-Kommando für Konsistenz
+
+    - **Commit message hint**: "fix: migrate command should only scan src/ directory"
+
+1. [x] **AST-Analyse verbessern: Nur echten Code finden** – Keine Strings/Kommentare
+
+    - **Context**: Aktuelle Analyse findet Logging-Patterns in Strings und Kommentaren (z.B. "getLogger" in Listen, Docstrings), die nicht migriert werden müssen.
+
+    - **Success criteria** (must be checked to finish task)
+
+      - [x] Nur echte ausführbare Logging-Calls werden gefunden
+      - [x] Strings und Kommentare werden ignoriert
+      - [x] Weniger falsch-positive Treffer
+      - [x] Genauere Migration-Empfehlungen
+
+    - **Files to check/modify**
+
+      - [x] `src/nicestlog/project_analyzer.py` (_analyze_file_patterns)
+
+    - **Steps** (always action verbs, explicit order)
+
+      - [x] AST-Analyse verstehen (findet derzeit alles mit regex)
+      - [x] Funktion ändern um echte AST-Knoten zu analysieren
+      - [x] Strings und Kommentare ausschließen
+      - [x] Testen mit verbose-Modus - nur echte Treffer
+      - [x] Performance-Impact prüfen
+
+    - **Commit message hint**: "fix: AST analysis should only find executable code, not strings/comments"
+
+1. [x] **AST-Analyse: Logger-Typen korrekt unterscheiden** – Structlog vs Logging
+
+    - **Context**: Aktuelle AST-Analyse erkennt viele structlog-Aufrufe fälschlicherweise als "logging" (z.B. log.info() wird als logging erkannt, obwohl es structlog ist).
+
+    - **Success criteria** (must be checked to finish task)
+
+      - [x] Structlog-Aufrufe werden korrekt als "structlog" erkannt
+      - [x] Nur echte logging-Modul-Aufrufe werden als "logging" markiert
+      - [x] Print-Statements bleiben als "print"
+      - [x] Keine falsch-positiven Migration-Kandidaten
+
+    - **Files to check/modify**
+
+      - [x] `src/nicestlog/project_analyzer.py` (_analyze_ast_tree, LoggingVisitor)
+
+    - **Steps** (always action verbs, explicit order)
+
+      - [x] Logger-Variablen tracken (welche Variable kommt von structlog.get_logger?)
+      - [x] _is_logging_call verbessern um Logger-Herkunft zu prüfen
+      - [x] _is_structlog_call erweitern um alle structlog-Aufrufe zu erkennen
+      - [x] Testen mit verbose-Modus - korrekte Klassifizierung
+      - [x] Performance sicherstellen
+
+    - **Commit message hint**: "fix: AST analysis should correctly distinguish structlog from logging calls"
+
+1. [x] **Check-Kommando: Output optimieren** – Weniger Rauschen für häufige Nutzung
+
+    - **Context**: Check-Kommando produziert zu viel Output für normale Nutzung, vieles sollte nur im verbose-Modus erscheinen.
+
+    - **Success criteria** (must be checked to finish task)
+
+      - [x] Normale check-Ausgabe ist kompakt und übersichtlich
+      - [x] Detaillierte Infos nur im --verbose Modus
+      - [x] Wichtige Probleme werden trotzdem angezeigt
+      - [x] Performance nicht beeinträchtigt
+
+    - **Files to check/modify**
+
+      - [x] `src/nicestlog/cli.py` (check command output functions)
+
+    - **Steps** (always action verbs, explicit order)
+
+      - [x] Aktuelle check-Ausgabe analysieren
+      - [x] Output in normal/verbose Modi aufteilen
+      - [x] Wichtige Probleme priorisieren
+      - [x] Testen mit verschiedenen Szenarien
+      - [x] Sicherstellen, dass nichts Wichtiges fehlt
+
+    - **Commit message hint**: "feat: optimize check command output for frequent use"

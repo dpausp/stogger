@@ -58,9 +58,7 @@ class DependencyAnalysis:
 class MigrationRecommendation:
     """Recommended migration strategy for the project."""
 
-    strategy: (
-        str  # 'print-to-structlog', 'logging-to-structlog', 'enhancement', 'greenfield'
-    )
+    strategy: str  # 'print-to-structlog', 'logging-to-structlog', 'enhancement', 'greenfield'
     priority: str  # 'high', 'medium', 'low'
     estimated_effort: str  # 'low', 'medium', 'high'
     recommended_approach: str  # 'automatic', 'interactive', 'manual'
@@ -287,20 +285,37 @@ class ProjectAnalyzer:
         return False
 
     def _get_python_files(self, project_path: Path) -> list[Path]:
-        """Get all Python files, respecting ignore patterns."""
+        """Get all Python files, respecting ignore patterns and project structure."""
         ignore_patterns = self._load_ignore_patterns(project_path)
         python_files = []
 
-        for py_file in project_path.rglob("*.py"):
-            if not self._should_ignore_file(py_file, project_path, ignore_patterns):
-                python_files.append(py_file)
+        # Use project structure detection like check command does
+        try:
+            from .config import detect_project_structure
+
+            project_structure = detect_project_structure(project_path)
+
+            # Get Python files from source directories only (like check command)
+            for src_dir in project_structure.source_dirs:
+                src_path = project_path / src_dir
+                if src_path.exists():
+                    for py_file in src_path.rglob("*.py"):
+                        if not self._should_ignore_file(py_file, project_path, ignore_patterns):
+                            # Additional filtering to exclude test files (like check command)
+                            if not project_structure.should_exclude_from_logging_analysis(py_file):
+                                python_files.append(py_file)
+        except Exception:
+            # Fallback to original behavior if project structure detection fails
+            for py_file in project_path.rglob("*.py"):
+                if not self._should_ignore_file(py_file, project_path, ignore_patterns):
+                    python_files.append(py_file)
 
         if self.verbose:
             total_py_files = len(list(project_path.rglob("*.py")))
             ignored_count = total_py_files - len(python_files)
             self.log.debug(
                 "file-filtering-complete",
-                _replace_msg="Found {total} Python files, ignored {ignored} files",
+                _replace_msg="Found {total} Python files, ignored {ignored} files (scanning source dirs only)",
                 total=total_py_files,
                 ignored=ignored_count,
                 included=len(python_files),
@@ -339,7 +354,295 @@ class ProjectAnalyzer:
         file_path: Path,
         content: str,
     ) -> list[LoggingPattern]:
-        """Analyze a single file for logging patterns."""
+        """Analyze a single file for logging patterns using AST analysis."""
+        patterns = []
+
+        try:
+            # Parse the file using AST to find only executable code
+            tree = ast.parse(content, filename=str(file_path))
+            patterns.extend(self._analyze_ast_tree(file_path, tree, content))
+        except SyntaxError:
+            # Fallback to line-by-line analysis if AST parsing fails
+            self.log.warning(
+                "ast-parsing-failed",
+                _replace_msg="AST parsing failed for {file}, falling back to line analysis",
+                file=str(file_path),
+            )
+            patterns.extend(self._analyze_file_patterns_fallback(file_path, content))
+
+        return patterns
+
+    def _analyze_ast_tree(
+        self,
+        file_path: Path,
+        tree: ast.AST,
+        content: str,
+    ) -> list[LoggingPattern]:
+        """Analyze AST tree for executable logging patterns."""
+        patterns = []
+        lines = content.split("\n")
+
+        class LoggingVisitor(ast.NodeVisitor):
+            def __init__(self, analyzer, file_path, lines):
+                self.analyzer = analyzer
+                self.file_path = file_path
+                self.lines = lines
+                self.patterns = []
+                # Track logger variables and their sources
+                self.logger_variables = {}  # var_name -> source ('structlog', 'logging', 'unknown')
+                self.current_scope = []  # For scope tracking (future enhancement)
+
+            def visit_Call(self, node: ast.Call) -> None:
+                """Visit function calls to detect logging patterns."""
+                line_num = node.lineno
+                line_content = self.lines[line_num - 1] if line_num <= len(self.lines) else ""
+
+                # Check for CLI framework output functions
+                if self._is_cli_output_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="cli_output",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="high",
+                            migration_priority=8,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Check for print statements
+                if self._is_print_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="print",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="high",
+                            migration_priority=9,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Check for structlog calls first (higher priority)
+                if self._is_structlog_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="structlog",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="low",
+                            migration_priority=1,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Check for standard logging calls
+                if self._is_logging_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="logging",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="medium",
+                            migration_priority=6,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Continue visiting child nodes
+                self.generic_visit(node)
+
+            def visit_Assign(self, node: ast.Assign) -> None:
+                """Visit assignment statements to track logger variables."""
+                # Check if this is a logger assignment
+                if (
+                    len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)
+                    and isinstance(node.value, ast.Call)
+                ):
+                    var_name = node.targets[0].id
+                    call_node = node.value
+
+                    # Check if it's structlog.get_logger()
+                    if self._is_structlog_get_logger_call(call_node):
+                        self.logger_variables[var_name] = "structlog"
+                    # Check if it's logging.getLogger()
+                    elif self._is_logging_get_logger_call(call_node):
+                        self.logger_variables[var_name] = "logging"
+                    # Check if it's a direct import like 'log = logging.getLogger(...)'
+                    elif self._is_direct_logger_assignment(call_node):
+                        if "structlog" in self._get_full_func_name(call_node.func):
+                            self.logger_variables[var_name] = "structlog"
+                        elif "logging" in self._get_full_func_name(call_node.func):
+                            self.logger_variables[var_name] = "logging"
+
+                # Continue visiting child nodes
+                self.generic_visit(node)
+
+            def _is_cli_output_call(self, node: ast.Call) -> bool:
+                """Check if this is a CLI output call (typer.echo, click.echo, etc.)."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return func_name in ["typer.echo", "click.echo", "rich.print", "console.print"]
+
+            def _is_print_call(self, node: ast.Call) -> bool:
+                """Check if this is a print call."""
+                if isinstance(node.func, ast.Name) and node.func.id == "print":
+                    return True
+
+                # Check for sys.stdout.write, sys.stderr.write
+                if isinstance(node.func, ast.Attribute):
+                    func_name = self._get_full_func_name(node.func)
+                    return func_name in ["sys.stdout.write", "sys.stderr.write"]
+
+                return False
+
+            def _is_logging_call(self, node: ast.Call) -> bool:
+                """Check if this is a standard logging call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                # First check if it's a call on a tracked logging variable
+                if isinstance(node.func.value, ast.Name):
+                    var_name = node.func.value.id
+                    if var_name in self.logger_variables:
+                        # If it's tracked as structlog, it's not a logging call
+                        if self.logger_variables[var_name] == "structlog":
+                            return False
+                        # If it's tracked as logging, it is a logging call
+                        if self.logger_variables[var_name] == "logging":
+                            return True
+
+                func_name = self._get_full_func_name(node.func)
+                if not func_name:
+                    return False
+
+                # Check if it's a logging method call on a real logger
+                if "." in func_name:
+                    module_part, method_part = func_name.rsplit(".", 1)
+                    # Check if module is a logger variable or logging module
+                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
+                        module_part.startswith("log") or module_part == "logging"
+                    ):
+                        return True
+
+                return False
+
+                func_name = self._get_full_func_name(node.func)
+                if not func_name:
+                    return False
+
+                # Check if it's a logging method call
+                if "." in func_name:
+                    module_part, method_part = func_name.rsplit(".", 1)
+                    # Check if module is a logger variable or logging module
+                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
+                        module_part.startswith("log") or module_part == "logging"
+                    ):
+                        return True
+
+                return False
+
+            def _is_structlog_get_logger_call(self, node: ast.Call) -> bool:
+                """Check if this is structlog.get_logger() call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return func_name == "structlog.get_logger"
+
+            def _is_logging_get_logger_call(self, node: ast.Call) -> bool:
+                """Check if this is logging.getLogger() call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return func_name == "logging.getLogger"
+
+            def _is_direct_logger_assignment(self, node: ast.Call) -> bool:
+                """Check if this is a direct logger assignment like logging.getLogger()."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return "getLogger" in func_name or "get_logger" in func_name
+
+            def _is_structlog_call(self, node: ast.Call) -> bool:
+                """Check if this is a structlog call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                # Check if it's a call on a tracked structlog variable
+                if isinstance(node.func.value, ast.Name):
+                    var_name = node.func.value.id
+                    if var_name in self.logger_variables and self.logger_variables[var_name] == "structlog":
+                        return True
+
+                func_name = self._get_full_func_name(node.func)
+                if not func_name:
+                    return False
+
+                # Check for structlog method calls
+                if "." in func_name:
+                    module_part, method_part = func_name.rsplit(".", 1)
+                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
+                        module_part.startswith("log") or "structlog" in module_part
+                    ):
+                        return True
+
+                # Check for structlog.get_logger()
+                if func_name == "structlog.get_logger":
+                    return True
+
+                return False
+
+                func_name = self._get_full_func_name(node.func)
+                if not func_name:
+                    return False
+
+                # Check for structlog method calls
+                if "." in func_name:
+                    module_part, method_part = func_name.rsplit(".", 1)
+                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
+                        module_part.startswith("log") or "structlog" in module_part
+                    ):
+                        return True
+
+                # Check for structlog.get_logger()
+                if func_name == "structlog.get_logger":
+                    return True
+
+                return False
+
+            def _get_full_func_name(self, node: ast.Attribute) -> str:
+                """Get the full function name from an attribute node."""
+                parts = []
+                current = node
+                while isinstance(current, ast.Attribute):
+                    parts.insert(0, current.attr)
+                    current = current.value
+
+                if isinstance(current, ast.Name):
+                    parts.insert(0, current.id)
+
+                return ".".join(parts)
+
+        visitor = LoggingVisitor(self, file_path, lines)
+        visitor.visit(tree)
+        return visitor.patterns
+
+    def _analyze_file_patterns_fallback(
+        self,
+        file_path: Path,
+        content: str,
+    ) -> list[LoggingPattern]:
+        """Fallback analysis using line-by-line regex (original implementation)."""
         patterns = []
         lines = content.split("\n")
 
@@ -404,21 +707,7 @@ class ProjectAnalyzer:
                             line_number=line_num,
                             code_snippet=line,
                             severity="low",
-                            migration_priority=2,
-                        ),
-                    )
-
-            # Check for log wrapper anti-patterns
-            for pattern in self.wrapper_patterns:
-                if re.search(pattern, line):
-                    patterns.append(
-                        LoggingPattern(
-                            pattern_type="wrapper",
-                            file_path=str(file_path),
-                            line_number=line_num,
-                            code_snippet=line,
-                            severity="medium",
-                            migration_priority=7,
+                            migration_priority=1,
                         ),
                     )
 
@@ -427,7 +716,7 @@ class ProjectAnalyzer:
     def _analyze_complexity(self, project_path: Path) -> ProjectComplexity:
         """Analyze project complexity metrics."""
         python_files = self._get_python_files(project_path)
-        total_files = len(list(project_path.rglob("*")))
+        total_files = len(python_files)  # Only count Python files, not all files
         total_lines = 0
         complexities = []
 
@@ -572,10 +861,7 @@ class ProjectAnalyzer:
             effort = "low"
 
         # Determine approach
-        if (
-            complexity.complexity_category == "simple"
-            and not dependencies.dependency_conflicts
-        ):
+        if complexity.complexity_category == "simple" and not dependencies.dependency_conflicts:
             approach = "automatic"
             risk = "low"
         elif complexity.complexity_category == "medium":

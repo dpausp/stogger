@@ -513,7 +513,7 @@ def check(
         # Perform AST analysis
         if path_obj.is_file():
             ast_result = assistant.analyze_file(path_obj)
-            _display_check_analysis_result(ast_result, complexity)
+            _display_check_analysis_result(ast_result, complexity, verbose)
 
             # Store issues for potential fixing
             ast_issues = [ast_result]
@@ -544,7 +544,7 @@ def check(
                         progress.remove_task(task)
 
                 # Display unified table with AST insights integrated
-                _display_unified_check_analysis(ast_results, complexity)
+                _display_unified_check_analysis(ast_results, complexity, verbose)
                 ast_issues = ast_results
             else:
                 console.print(
@@ -634,75 +634,96 @@ def check(
         console.print("\n✅ [green]All checks passed![/green]")
 
 
-def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: bool):
+def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: bool, verbose: bool = False):
     """Display analysis results for check command."""
-    console.print(
-        f"\n📊 [bold blue]Analysis Results for {result.file_path.name}[/bold blue]",
-    )
+    if verbose or show_complexity:
+        console.print(
+            f"\n📊 [bold blue]Analysis Results for {result.file_path.name}[/bold blue]",
+        )
 
-    # Basic metrics
-    metrics_table = Table(title="📈 Code Metrics")
-    metrics_table.add_column("Metric", style="cyan")
-    metrics_table.add_column("Value", style="green", justify="right")
+        # Basic metrics - show in verbose mode or when complexity is requested
+        metrics_table = Table(title="📈 Code Metrics")
+        metrics_table.add_column("Metric", style="cyan")
+        metrics_table.add_column("Value", style="green", justify="right")
 
-    metrics_table.add_row("Lines of Code", str(result.lines_of_code))
-    metrics_table.add_row("Functions", str(result.function_count))
-    metrics_table.add_row("Classes", str(result.class_count))
+        metrics_table.add_row("Lines of Code", str(result.lines_of_code))
+        metrics_table.add_row("Functions", str(result.function_count))
+        metrics_table.add_row("Classes", str(result.class_count))
 
-    if show_complexity:
-        metrics_table.add_row("Complexity Score", f"{result.complexity_score:.2f}")
+        if show_complexity:
+            metrics_table.add_row("Complexity Score", f"{result.complexity_score:.2f}")
 
-    console.print(metrics_table)
-
-    # Issues found - categorize by type
-    if result.issues:
-        # Separate logging issues from general issues
-        logging_issues = []
-        general_issues = []
-
-        for issue in result.issues:
-            if any(keyword in issue.lower() for keyword in ["print", "log", "logging"]):
-                logging_issues.append(issue)
-            else:
-                general_issues.append(issue)
-
-        if logging_issues:
-            logging_table = Table(title="🔍 Logging Improvement Opportunities")
-            logging_table.add_column("Priority", style="yellow")
-            logging_table.add_column("Suggestion", style="cyan")
-
-            for _i, issue in enumerate(logging_issues, 1):
-                priority = "High" if "print" in issue.lower() else "Medium"
-                logging_table.add_row(priority, issue)
-
-            console.print(logging_table)
-
-        if general_issues:
-            general_table = Table(title="⚠️ Code Quality Issues")
-            general_table.add_column("Type", style="red")
-            general_table.add_column("Description", style="white")
-
-            for issue in general_issues:
-                general_table.add_row("Complexity", issue)
-
-            console.print(general_table)
-
-        # Add summary with actionable suggestions
-        if logging_issues:
-            console.print("\n💡 [bold blue]Logging Improvements:[/bold blue]")
-            console.print(
-                "  • Run with --fix to automatically convert print statements",
-            )
-            console.print(
-                "  • Consider adding structured logging to functions without logs",
-            )
+        console.print(metrics_table)
     else:
-        console.print("✅ [green]No AST issues found![/green]")
+        # Compact mode: Just show filename and issue count
+        issue_count = len(result.issues) if result.issues else 0
+        status = "❌" if issue_count > 0 else "✅"
+        console.print(f"{status} {result.file_path.name} ({issue_count} issues)")
+
+    # Issues found - show differently based on verbose mode
+    if result.issues:
+        if verbose:
+            # Verbose mode: Show detailed tables
+            # Separate logging issues from general issues
+            logging_issues = []
+            general_issues = []
+
+            for issue in result.issues:
+                if any(keyword in issue.lower() for keyword in ["print", "log", "logging"]):
+                    logging_issues.append(issue)
+                else:
+                    general_issues.append(issue)
+
+            if logging_issues:
+                logging_table = Table(title="🔍 Logging Improvement Opportunities")
+                logging_table.add_column("Priority", style="yellow")
+                logging_table.add_column("Suggestion", style="cyan")
+
+                for _i, issue in enumerate(logging_issues, 1):
+                    priority = "High" if "print" in issue.lower() else "Medium"
+                    logging_table.add_row(priority, issue)
+
+                console.print(logging_table)
+
+            if general_issues:
+                general_table = Table(title="⚠️ Code Quality Issues")
+                general_table.add_column("Type", style="red")
+                general_table.add_column("Description", style="white")
+
+                for issue in general_issues:
+                    general_table.add_row("Complexity", issue)
+
+                console.print(general_table)
+
+            # Add summary with actionable suggestions
+            if logging_issues:
+                console.print("\n💡 [bold blue]Logging Improvements:[/bold blue]")
+                console.print(
+                    "  • Run with --fix to automatically convert print statements",
+                )
+                console.print(
+                    "  • Consider adding structured logging to functions without logs",
+                )
+        else:
+            # Compact mode: Just show issue summary
+            logging_count = sum(
+                1 for issue in result.issues if any(keyword in issue.lower() for keyword in ["print", "log", "logging"])
+            )
+            general_count = len(result.issues) - logging_count
+
+            if logging_count > 0:
+                console.print(f"  🔍 {logging_count} logging issues")
+            if general_count > 0:
+                console.print(f"  ⚠️  {general_count} code quality issues")
+    else:
+        if verbose:
+            console.print("✅ [green]No AST issues found![/green]")
 
 
 def _display_unified_check_analysis(
     results: list[CodeAnalysisResult],
     show_complexity: bool,
+    verbose: bool = False,
 ):
     """Display unified analysis results combining logging quality and AST metrics."""
     from .linter import lint_directory
@@ -744,32 +765,43 @@ def _display_unified_check_analysis(
         if "NICESTLOG_AST_METRICS" in os.environ:
             del os.environ["NICESTLOG_AST_METRICS"]
 
-    # Display AST insights if any found
-    if all_ast_insights:
-        console.print("\n💡 [bold blue]AST Analysis Insights:[/bold blue]")
-        console.print(
-            f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",
-        )
-        console.print(
-            f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",
-        )
-        if total_ast_issues > 0:
+    # Display AST insights based on verbose mode
+    if verbose:
+        # Verbose mode: Show detailed insights
+        if all_ast_insights:
+            console.print("\n💡 [bold blue]AST Analysis Insights:[/bold blue]")
             console.print(
-                f"  • {total_ast_issues} code quality improvements identified:",
+                f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",
             )
-            for insight in all_ast_insights[:5]:  # Show first 5 insights
-                console.print(insight)
-            if len(all_ast_insights) > 5:
+            console.print(
+                f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",
+            )
+            if total_ast_issues > 0:
                 console.print(
-                    f"    ... and {len(all_ast_insights) - 5} more suggestions",
+                    f"  • {total_ast_issues} code quality improvements identified:",
                 )
-        else:
+                for insight in all_ast_insights[:5]:  # Show first 5 insights
+                    console.print(insight)
+                if len(all_ast_insights) > 5:
+                    console.print(
+                        f"    ... and {len(all_ast_insights) - 5} more suggestions",
+                    )
+            else:
+                console.print(
+                    "  • No code quality issues detected - excellent code structure!",
+                )
             console.print(
-                "  • No code quality issues detected - excellent code structure!",
+                "  • Consider adding structured logging to functions without logs",
             )
-        console.print(
-            "  • Consider adding structured logging to functions without logs",
-        )
+    else:
+        # Compact mode: Just show summary
+        total_files = len(results)
+        total_issues = total_ast_issues
+        if total_issues > 0:
+            console.print(f"\n📊 {total_files} files checked, {total_issues} issues found")
+            console.print("💡 Use --verbose for detailed analysis")
+        else:
+            console.print(f"\n✅ {total_files} files checked - no issues found!")
 
 
 def _display_check_directory_analysis(
@@ -1207,7 +1239,7 @@ def migrate(
                     pass
             else:
                 # Human-readable output
-                _display_project_analysis(result)
+                _display_project_analysis(result, verbose=verbose)
 
                 # Enhanced user guidance based on analysis
                 _display_next_steps_guidance(result, path)
@@ -2481,7 +2513,7 @@ def _display_project_context(
                 )
 
 
-def _display_project_analysis(result):
+def _display_project_analysis(result, verbose: bool = False):
     """Display human-readable project analysis results."""
     console.print(
         f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]",
@@ -2492,33 +2524,49 @@ def _display_project_analysis(result):
     overview_table.add_column("Metric", style="cyan")
     overview_table.add_column("Value", style="green", justify="right")
 
-    overview_table.add_row("Total Files", str(result.complexity.total_files))
     overview_table.add_row("Python Files", str(result.complexity.python_files))
     overview_table.add_row("Total Lines", str(result.complexity.total_lines))
-    overview_table.add_row("Complexity", result.complexity.complexity_category.title())
-    overview_table.add_row(
-        "Package Manager",
-        result.dependencies.package_manager.title(),
-    )
 
     console.print(overview_table)
 
     # Logging Patterns
     if result.logging_patterns:
-        patterns_table = Table(title="🔍 Logging Patterns Found")
-        patterns_table.add_column("Type", style="cyan")
-        patterns_table.add_column("Count", style="yellow", justify="right")
-        patterns_table.add_column("Priority", style="red", justify="right")
+        if verbose:
+            # Detailed view: Show all matches with file:line
+            console.print(
+                f"\n🔍 [bold blue]Detailed Logging Patterns ({len(result.logging_patterns)} total):[/bold blue]"
+            )
 
-        pattern_counts = {}
-        for pattern in result.logging_patterns:
-            pattern_counts[pattern.pattern_type] = pattern_counts.get(pattern.pattern_type, 0) + 1
+            # Group by type for better organization
+            patterns_by_type = {}
+            for pattern in result.logging_patterns:
+                if pattern.pattern_type not in patterns_by_type:
+                    patterns_by_type[pattern.pattern_type] = []
+                patterns_by_type[pattern.pattern_type].append(pattern)
 
-        for pattern_type, count in pattern_counts.items():
-            priority = "High" if pattern_type == "print" else "Medium" if pattern_type == "logging" else "Low"
-            patterns_table.add_row(pattern_type.title(), str(count), priority)
+            for pattern_type, patterns in patterns_by_type.items():
+                console.print(f"\n[bold cyan]{pattern_type.title()}:[/bold cyan] ({len(patterns)} found)")
+                for pattern in patterns:
+                    console.print(f"  {pattern.file_path}:{pattern.line_number} - {pattern.code_snippet}")
+        else:
+            # Summary view: Show aggregated counts
+            patterns_table = Table(title="🔍 Logging Patterns Summary")
+            patterns_table.add_column("Type", style="cyan")
+            patterns_table.add_column("Count", style="yellow", justify="right")
+            patterns_table.add_column("Priority", style="red", justify="right")
 
-        console.print(patterns_table)
+            pattern_counts = {}
+            for pattern in result.logging_patterns:
+                pattern_counts[pattern.pattern_type] = pattern_counts.get(pattern.pattern_type, 0) + 1
+
+            for pattern_type, count in pattern_counts.items():
+                priority = "High" if pattern_type == "print" else "Medium" if pattern_type == "logging" else "Low"
+                patterns_table.add_row(pattern_type.title(), str(count), priority)
+
+            console.print(patterns_table)
+            console.print(
+                f"\n[dim]💡 Use --verbose to see all {len(result.logging_patterns)} matches with file locations[/dim]"
+            )
 
     # Dependencies
     deps_table = Table(title="📦 Dependencies Analysis")
