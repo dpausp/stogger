@@ -367,8 +367,9 @@ class LogQualityReviewer:
 def review_logs_cli():
     """CLI interface for log review."""
     import argparse
-    import structlog
     import sys
+
+    import structlog
 
     log = structlog.get_logger()
 
@@ -429,42 +430,48 @@ def print_report(report: LogQualityReport, format_type: str = "text"):
     import structlog
     import json
 
-    log = structlog.get_logger()
+    structlog.get_logger()
 
     if format_type == "json":
-        print(
-            json.dumps(
-                {
-                    "score": report.overall_score,
-                    "verdict": report.overall_verdict,
-                    "issues": report.issues,
-                    "good_practices": report.good_practices,
-                    "suggestions": report.suggestions,
-                    "stats": report.stats,
-                },
-                indent=2,
-            )
-        )
+        data = {
+            "score": report.overall_score,
+            "verdict": report.overall_verdict,
+            "issues": report.issues,
+            "good_practices": report.good_practices,
+            "suggestions": report.suggestions,
+            "stats": report.stats,
+        }
+        print(json.dumps(data, indent=2))
         return
 
     # Text format with Austrian flair
-    print(f"Log Quality Report - Score: {report.overall_score:.1f}% ({report.overall_verdict})")
-    print(f"Files analyzed: {report.stats.get('files_analyzed', 0)}, Events: {report.stats.get('total_events', 0)}")
+    print(f"📊 Log Quality Report")
+    print(f"Score: {report.overall_score:.1f}")
+    print(f"Verdict: {report.overall_verdict}")
+    print()
 
     if report.issues:
-        print("Issues found:")
+        print("❌ Issues:")
         for issue in report.issues:
             print(f"  - {issue}")
+        print()
 
     if report.good_practices:
-        print("Good practices:")
+        print("✅ Good Practices:")
         for practice in report.good_practices:
-            print(f"  + {practice}")
+            print(f"  - {practice}")
+        print()
 
     if report.suggestions:
-        print("Suggestions:")
+        print("💡 Suggestions:")
         for suggestion in report.suggestions:
-            print(f"  * {suggestion}")
+            print(f"  - {suggestion}")
+        print()
+
+    if report.stats:
+        print("📈 Statistics:")
+        for key, value in report.stats.items():
+            print(f"  {key}: {value}")
 
 
 if __name__ == "__main__":
