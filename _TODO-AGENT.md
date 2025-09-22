@@ -1,20 +1,20 @@
-# Implementation TODO - Add linter rules section to logging_conventions.md
+# Implementation TODO - Review nicestlog docs command and README
 
-Beschreibe das Problem: Dokumentation fehlt Erklärung der spezifischen Linter-Regeln wie "Too little logging", redundante error=str(e), falsche Log-Levels. Füge Abschnitt hinzu, damit User wissen, wie richtig implementieren.
+Beschreibe das Problem: Führe uv run nicestlog docs aus, stelle sicher dass Best Practices gut sichtbar sind, entferne überflüssiges. Überprüfe ob README überladen ist.
 
 ## Description
 
 *(Scope, Motivation, Research, Related work – no checkboxes here!)*
 
-- Problem statement: nicestlog check findet Issues, aber User wissen nicht, warum oder wie beheben.
-- Why we want to solve it (value, impact): Bessere User-Experience, weniger Verwirrung.
-- Research / references: Aus nicestlog check Output: Too little logging, redundant error params, wrong levels.
-- Constraints: Nur docs/user_guide/logging_conventions.md ergänzen, keine Code-Änderungen.
+- Problem statement: Docs-Befehl und README könnten unübersichtlich sein, Best Practices nicht prominent genug.
+- Why we want to solve it (value, impact): Bessere User-Experience, schneller Zugriff auf wichtige Infos.
+- Research / references: nicestlog docs zeigt Dokumentation, README ist Haupteinstiegspunkt.
+- Constraints: Nur docs/ und README.md bearbeiten, keine Code-Änderungen.
 
 ### Task Goal
 
-- **Outcome we want**: Neuer Abschnitt "Linter Rules and Common Issues" mit Erklärungen und Beispielen.
-- **Success criteria**: Alle identifizierten Issues erklärt, mit korrekten und falschen Beispielen.
+- **Outcome we want**: nicestlog docs zeigt Best Practices prominent, README schlank und fokussiert.
+- **Success criteria**: Best Practices in docs-Ausgabe gut sichtbar, überflüssiges entfernt, README nicht überladen.
 
 ______________________________________________________________________
 
@@ -22,26 +22,69 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [x] **Füge Abschnitt "Linter Rules and Common Issues" zu logging_conventions.md hinzu**
+1. [ ] **Führe uv run nicestlog docs aus und analysiere Output**
 
-   - **Context**: Erkläre die Regeln, die nicestlog check erzwingt.
+   - **Context**: Verstehe, was angezeigt wird.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] Abschnitt hinzugefügt mit Erklärung von Too little logging
-     - [x] Erklärung von redundant error=str(e) in log.exception()
-     - [x] Erklärung von Log-Levels für interne Operationen
-     - [x] Beispiele für korrekt und falsch
+     - [ ] Output von nicestlog docs gesammelt
+     - [ ] Best Practices Sichtbarkeit bewertet
+     - [ ] Überflüssiges identifiziert
 
    - **Files to check/modify**
 
-     - [x] docs/user_guide/logging_conventions.md
+     - [ ] Keine Änderungen
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Lies aktuelle logging_conventions.md
-     - [x] Füge neuen Abschnitt nach "Best Practices" hinzu
-     - [x] Schreibe Erklärungen mit Code-Beispielen
-     - [x] Stelle sicher, Englisch und klar
+     - [ ] Run uv run nicestlog docs
+     - [ ] Sammle die Ausgabe
+     - [ ] Bewerte Struktur und Inhalt
 
-   - **Commit message hint**: "docs: add linter rules section to logging conventions"
+   - **Commit message hint**: "Analyze nicestlog docs command output"
+
+1. [ ] **Überprüfe README.md auf Überladenheit**
+
+   - **Context**: Stelle sicher, README ist fokussiert.
+
+   - **Success criteria**
+
+     - [ ] README Länge und Inhalt bewertet
+     - [ ] Überladenheit festgestellt oder nicht
+     - [ ] Verbesserungsvorschläge
+
+   - **Files to check/modify**
+
+     - [ ] README.md
+
+   - **Steps**
+
+     - [ ] Lies README.md
+     - [ ] Analysiere Struktur und Länge
+     - [ ] Identifiziere überflüssige Teile
+
+   - **Commit message hint**: "Review README for overload and focus"
+
+1. [ ] **Verbessere Sichtbarkeit von Best Practices**
+
+   - **Context**: Mache Best Practices prominenter.
+
+   - **Success criteria**
+
+     - [ ] Best Practices in docs-Ausgabe hervorgehoben
+     - [ ] Überflüssiges entfernt
+     - [ ] README ggf. gestrafft
+
+   - **Files to check/modify**
+
+     - [ ] docs/ Dateien
+     - [ ] README.md
+
+   - **Steps**
+
+     - [ ] Bearbeite docs/ für bessere Sichtbarkeit
+     - [ ] Entferne überflüssiges aus README
+     - [ ] Teste nicestlog docs erneut
+
+   - **Commit message hint**: "Improve best practices visibility and remove unnecessary content"
