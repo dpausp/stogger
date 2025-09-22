@@ -494,6 +494,8 @@ def check(
         console.print("\n📋 [bold blue]Running basic linting...[/bold blue]")
         basic_success = lint_directory(path_obj, project_structure=project_structure)
 
+    lint_success = basic_success
+
     # 2. AST Analysis (enabled by default, disabled with --no-ast)
     ast_issues = None
     if not no_ast or interactive or patterns or complexity:
@@ -517,6 +519,7 @@ def check(
 
             # Store issues for potential fixing
             ast_issues = [ast_result]
+            lint_success = True
 
         elif path_obj.is_dir():
             # Use gitignore-aware file filtering
@@ -544,7 +547,7 @@ def check(
                         progress.remove_task(task)
 
                 # Display unified table with AST insights integrated
-                _display_unified_check_analysis(ast_results, complexity, verbose)
+                lint_success = _display_unified_check_analysis(ast_results, complexity, verbose)
                 ast_issues = ast_results
             else:
                 console.print(
@@ -623,7 +626,7 @@ def check(
             _display_directory_transformation(transform_results, dry_run)
 
     # 5. Summary and exit code
-    has_issues = not basic_success or (ast_issues and _has_ast_issues(ast_issues))
+    has_issues = not lint_success or (ast_issues and _has_ast_issues(ast_issues))
 
     if has_issues:
         console.print(
@@ -724,7 +727,7 @@ def _display_unified_check_analysis(
     results: list[CodeAnalysisResult],
     show_complexity: bool,
     verbose: bool = False,
-):
+) -> bool:
     """Display unified analysis results combining logging quality and AST metrics."""
     from .linter import lint_directory
 
@@ -754,12 +757,13 @@ def _display_unified_check_analysis(
 
     os.environ["NICESTLOG_AST_METRICS"] = json.dumps(ast_metrics)
 
+    lint_success = True
     try:
         # Get the directory path from the first result
         if results:
             directory_path = results[0].file_path.parent
-            lint_directory(directory_path)
-        # Note: lint_success not used, just run for side effects
+            lint_success = lint_directory(directory_path)
+        # Note: lint_success used for return
     finally:
         # Clean up environment variable
         if "NICESTLOG_AST_METRICS" in os.environ:
@@ -802,6 +806,8 @@ def _display_unified_check_analysis(
             console.print("💡 Use --verbose for detailed analysis")
         else:
             console.print(f"\n✅ {total_files} files checked - no issues found!")
+
+    return lint_success
 
 
 def _display_check_directory_analysis(
