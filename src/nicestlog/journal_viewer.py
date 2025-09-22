@@ -27,7 +27,6 @@ try:
 except ImportError:
     SYSTEMD_AVAILABLE = False
     journal = None
-
 try:
     from .core import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
 except ImportError:

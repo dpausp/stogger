@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from src.nicestlog.core import init_logging
 from src.nicestlog.log_reviewer import LogQualityReport, LogQualityReviewer
 
 
@@ -50,9 +51,7 @@ class TestLogQualityReviewer:
         reviewer = LogQualityReviewer()
 
         expected_verdicts = {"leiwand", "verziehbar", "mäßig", "schlecht", "arsch"}
-        actual_verdicts = {
-            verdict for (_, _), (verdict, _) in reviewer.quality_levels.items()
-        }
+        actual_verdicts = {verdict for (_, _), (verdict, _) in reviewer.quality_levels.items()}
 
         assert actual_verdicts == expected_verdicts
 
@@ -144,15 +143,9 @@ ERROR: Database connection failed"""
         reviewer = LogQualityReviewer()
 
         assert reviewer._extract_log_level("I message") == "i"
-        assert (
-            reviewer._extract_log_level("E something") == "e"
-        )  # Avoid "error" which matches full word
-        assert (
-            reviewer._extract_log_level("D something") == "d"
-        )  # Avoid "debug" which matches full word
-        assert (
-            reviewer._extract_log_level("W something") == "w"
-        )  # Avoid "warning" which matches full word
+        assert reviewer._extract_log_level("E something") == "e"  # Avoid "error" which matches full word
+        assert reviewer._extract_log_level("D something") == "d"  # Avoid "debug" which matches full word
+        assert reviewer._extract_log_level("W something") == "w"  # Avoid "warning" which matches full word
 
     def test_extract_log_level_none(self):
         """Test log level extraction returns None when no level found."""
@@ -236,14 +229,9 @@ ERROR: Database connection failed"""
         reviewer = LogQualityReviewer()
 
         assert reviewer._extract_event_name("user_login successful") == "user_login"
-        assert (
-            reviewer._extract_event_name("api_request_started") == "api_request_started"
-        )
+        assert reviewer._extract_event_name("api_request_started") == "api_request_started"
         assert reviewer._extract_event_name("db_query_executed") == "db_query_executed"
-        assert (
-            reviewer._extract_event_name("auth_token_validated")
-            == "auth_token_validated"
-        )
+        assert reviewer._extract_event_name("auth_token_validated") == "auth_token_validated"
 
     def test_extract_event_name_none(self):
         """Test event name extraction returns None when no event found."""
@@ -435,17 +423,13 @@ ERROR: Database connection failed"""
 
         assert report.stats["total_lines"] == 6
         assert report.stats["empty_lines"] == 1
-        assert (
-            report.stats["structured_lines"] >= 1
-        )  # At least the JSON lines and key=value line
+        assert report.stats["structured_lines"] >= 1  # At least the JSON lines and key=value line
         assert report.stats["unstructured_lines"] >= 1
         assert report.stats["timestamps_found"] >= 3
         assert report.stats["debug_prints"] >= 1
         assert "info" in report.stats["levels_found"]
         assert "error" in report.stats["levels_found"]
-        assert (
-            len(report.stats["events_found"]) >= 1
-        )  # At least some events should be found
+        assert len(report.stats["events_found"]) >= 1  # At least some events should be found
 
 
 class TestCLIFunctions:
@@ -478,9 +462,7 @@ class TestCLIFunctions:
             assert mock_print.call_count > 5
 
             # Check some key content was printed
-            printed_text = " ".join(
-                str(call.args[0]) for call in mock_print.call_args_list if call.args
-            )
+            printed_text = " ".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
             assert "75.5" in printed_text
             assert "verziehbar" in printed_text
 
@@ -625,6 +607,7 @@ class TestCLIFunctions:
                     # Make sys.exit actually raise SystemExit to stop execution
                     mock_exit.side_effect = SystemExit(1)
 
+                    init_logging()
                     from src.nicestlog.log_reviewer import review_logs_cli
 
                     with pytest.raises(SystemExit):
@@ -642,6 +625,7 @@ class TestCLIFunctions:
             with patch("sys.exit") as mock_exit:
                 mock_exit.side_effect = SystemExit(1)
 
+                init_logging()
                 from src.nicestlog.log_reviewer import review_logs_cli
 
                 with pytest.raises(SystemExit):

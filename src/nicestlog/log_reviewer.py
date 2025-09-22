@@ -232,16 +232,12 @@ class LogQualityReviewer:
 
         # Structured logging (40 points)
         if stats["total_lines"] > 0:
-            structured_ratio = stats["structured_lines"] / (
-                stats["total_lines"] - stats["empty_lines"]
-            )
+            structured_ratio = stats["structured_lines"] / (stats["total_lines"] - stats["empty_lines"])
             score += structured_ratio * 40
 
         # Timestamp presence (20 points)
         if stats["total_lines"] > 0:
-            timestamp_ratio = stats["timestamps_found"] / (
-                stats["total_lines"] - stats["empty_lines"]
-            )
+            timestamp_ratio = stats["timestamps_found"] / (stats["total_lines"] - stats["empty_lines"])
             score += timestamp_ratio * 20
 
         # Log level usage (15 points)
@@ -406,6 +402,7 @@ def review_logs_cli():
     elif path.is_dir():
         log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
         if not log_files:
+            print("Keine Log-Dateien gefunden", file=sys.stderr)
             sys.exit(1)
 
         total_score = 0
@@ -420,17 +417,43 @@ def review_logs_cli():
             sys.exit(1)
 
     else:
+        print("Pfad nicht gefunden", file=sys.stderr)
         sys.exit(1)
 
 
 def print_report(report: LogQualityReport, format_type: str = "text"):
     """Print the quality report."""
     if format_type == "json":
+        print(
+            json.dumps(
+                {
+                    "score": report.overall_score,
+                    "verdict": report.overall_verdict,
+                    "issues": report.issues,
+                    "good_practices": report.good_practices,
+                    "suggestions": report.suggestions,
+                    "stats": report.stats,
+                }
+            )
+        )
         return
 
     # Text format with Austrian flair
-
-
+    print(f"Log Quality Score: {report.overall_score}")
+    print(f"Verdict: {report.overall_verdict}")
+    if report.issues:
+        print("Issues:")
+        for issue in report.issues:
+            print(f"  - {issue}")
+    if report.good_practices:
+        print("Good Practices:")
+        for practice in report.good_practices:
+            print(f"  - {practice}")
+    if report.suggestions:
+        print("Suggestions:")
+        for suggestion in report.suggestions:
+            print(f"  - {suggestion}")
+    print(f"Stats: {report.stats}")
 
     if report.issues:
         for _issue in report.issues:
@@ -443,7 +466,6 @@ def print_report(report: LogQualityReport, format_type: str = "text"):
     if report.suggestions:
         for _suggestion in report.suggestions:
             pass
-
 
 
 if __name__ == "__main__":

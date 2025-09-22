@@ -146,10 +146,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
                 # Check for attribute access like self.logger.info()
                 elif isinstance(node.func.value, ast.Attribute):
-                    if (
-                        isinstance(node.func.value.attr, str)
-                        and "logger" in node.func.value.attr.lower()
-                    ):
+                    if isinstance(node.func.value.attr, str) and "logger" in node.func.value.attr.lower():
                         return True
 
                 # Check for chained calls like structlog.get_logger().info()
@@ -191,11 +188,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         # Determine event ID
         event_id = None
         has_event_id = False
-        if (
-            args
-            and isinstance(node.args[0], ast.Constant)
-            and isinstance(node.args[0].value, str)
-        ):
+        if args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
             event_id = node.args[0].value
             has_event_id = True
 
@@ -312,10 +305,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         if (
             method == "debug"
             and event_id
-            and any(
-                word in event_id.lower()
-                for word in ["error", "fail", "critical", "fatal"]
-            )
+            and any(word in event_id.lower() for word in ["error", "fail", "critical", "fatal"])
         ):
             issues.append("debug_for_error_event")
 
@@ -416,12 +406,8 @@ def analyze_file(file_path: Path, prefer_dash_case: bool = True) -> LogAnalysisR
         total = len(statements)
         with_event_id = sum(1 for s in statements if s.has_event_id)
         without_event_id = total - with_event_id
-        dash_case_violations = sum(
-            1 for s in statements if s.event_id and s.event_id_format != "dash-case"
-        )
-        single_string_args = sum(
-            1 for s in statements if "single_string_argument" in s.issues
-        )
+        dash_case_violations = sum(1 for s in statements if s.event_id and s.event_id_format != "dash-case")
+        single_string_args = sum(1 for s in statements if "single_string_argument" in s.issues)
 
         # Count magic args usage
         magic_usage: dict[str, int] = {}
@@ -459,23 +445,28 @@ def print_analysis_summary(result: LogAnalysisResult, verbose: bool = False) -> 
     if result.total_statements == 0:
         return
 
+    print(f"📁 {result.file_path}")
+    print(f"Total log statements: {result.total_statements}")
+    print(f"With event ID: {result.statements_with_event_id}")
+    print(f"Without event ID: {result.statements_without_event_id}")
 
     if result.dash_case_violations > 0:
-        pass
+        print(f"Dash case violations: {result.dash_case_violations}")
 
     if result.single_string_args > 0:
-        pass
+        print(f"❌ Single string arguments: {result.single_string_args}")
 
     if result.magic_args_usage:
-        ", ".join(
-            f"{k}:{v}" for k, v in result.magic_args_usage.items()
-        )
+        print(f"🪄 Magic args: {', '.join(f'{k}:{v}' for k, v in result.magic_args_usage.items())}")
 
     if verbose:
+        print("Detailed statements:")
         for stmt in result.statements:
-            f" ❌ {', '.join(stmt.issues)}" if stmt.issues else " ✅"
-            f" magic:{list(stmt.magic_args)}" if stmt.magic_args else ""
-
+            args_str = ", ".join(stmt.arguments)
+            print(f"L{stmt.line_number}: {stmt.method}({args_str})")
+            status = f" ❌ {', '.join(stmt.issues)}" if stmt.issues else " ✅"
+            magic = f" magic:{list(stmt.magic_args)}" if stmt.magic_args else ""
+            print(f"  {status}{magic}")
 
 
 def main():
@@ -523,11 +514,7 @@ def main():
             "dist",
             ".eggs",
         }
-        python_files = [
-            p
-            for p in path.rglob("*.py")
-            if not any(part in EXCLUDE_DIRS for part in p.parts)
-        ]
+        python_files = [p for p in path.rglob("*.py") if not any(part in EXCLUDE_DIRS for part in p.parts)]
         total_files = 0
         total_statements = 0
         total_issues = 0
@@ -544,7 +531,6 @@ def main():
                 total_issues += file_issues
 
                 print_analysis_summary(result, args.verbose)
-
 
 
 if __name__ == "__main__":

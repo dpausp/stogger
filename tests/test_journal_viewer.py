@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from io import StringIO
 from unittest.mock import Mock, patch
 
+from src.nicestlog.core import init_logging
 from src.nicestlog.journal_viewer import JournalEntry, JournalViewer
 
 
@@ -69,9 +70,10 @@ class TestJournalViewer:
         """Test initialization when systemd is unavailable."""
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False):
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
+                init_logging()
                 JournalViewer()
 
-                assert "Warning: systemd-python not available" in mock_stderr.getvalue()
+                assert "❌ Cannot initialize journal viewer - systemd-python not available" in mock_stderr.getvalue()
 
     def test_priority_to_level_mapping(self):
         """Test the priority to level mapping."""
@@ -324,13 +326,14 @@ class TestJournalViewer:
     def test_query_journal_systemd_unavailable(self):
         """Test query_journal when systemd is unavailable."""
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False):
-            viewer = JournalViewer()
-
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
+                init_logging()
+                viewer = JournalViewer()
+
                 entries = list(viewer.query_journal())
 
                 assert entries == []
-                assert "systemd-python not available" in mock_stderr.getvalue()
+                assert "❌ Cannot query journal - systemd-python not available" in mock_stderr.getvalue()
 
     def test_query_journal_basic(self):
         """Test basic journal querying."""
@@ -386,9 +389,7 @@ class TestJournalViewer:
                     (("PRIORITY", 2),),
                     (("PRIORITY", 3),),
                 ]
-                actual_calls = [
-                    call.args for call in mock_reader.add_match.call_args_list
-                ]
+                actual_calls = [call.args for call in mock_reader.add_match.call_args_list]
                 assert actual_calls == expected_calls
 
     def test_query_journal_with_lines_limit(self):
@@ -399,9 +400,7 @@ class TestJournalViewer:
                 mock_journal.Reader.return_value = mock_reader
 
                 # Mock many entries
-                mock_entries = [
-                    {"MESSAGE": f"entry {i}", "PRIORITY": 6} for i in range(100)
-                ]
+                mock_entries = [{"MESSAGE": f"entry {i}", "PRIORITY": 6} for i in range(100)]
                 mock_reader.__iter__ = Mock(return_value=iter(mock_entries))
 
                 viewer = JournalViewer()
@@ -453,14 +452,13 @@ class TestJournalViewer:
             with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
                 mock_journal.Reader.side_effect = Exception("Journal error")
 
-                viewer = JournalViewer()
                 with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
+                    init_logging()
+                    viewer = JournalViewer()
                     entries = list(viewer.query_journal())
 
                     assert entries == []
-                    assert (
-                        "Error reading journal: Journal error" in mock_stderr.getvalue()
-                    )
+                    assert "❌ Error reading journal" in mock_stderr.getvalue()
 
     def test_parse_time_string_relative_hours(self):
         """Test parsing relative time strings with hours."""
@@ -576,14 +574,13 @@ class TestMainFunction:
         with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False):
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                 with patch("sys.exit") as mock_exit:
+                    init_logging()
                     from src.nicestlog.journal_viewer import main
 
                     main()
 
                     mock_exit.assert_called_once_with(1)
-                    assert (
-                        "Error: systemd-python not available" in mock_stderr.getvalue()
-                    )
+                    assert "❌ Cannot start journal viewer - systemd-python not available" in mock_stderr.getvalue()
 
     def test_main_with_arguments(self):
         """Test main function with command line arguments."""
@@ -674,12 +671,13 @@ class TestMainFunction:
 
                     with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                         with patch("sys.exit") as mock_exit:
+                            init_logging()
                             from src.nicestlog.journal_viewer import main
 
                             main()
 
                             mock_exit.assert_called_once_with(0)
-                            assert "👋 Goodbye!" in mock_stderr.getvalue()
+                            assert "👋 User interrupted journal viewer" in mock_stderr.getvalue()
 
     def test_main_general_exception(self):
         """Test main function handling general exceptions."""
@@ -692,12 +690,13 @@ class TestMainFunction:
 
                     with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                         with patch("sys.exit") as mock_exit:
+                            init_logging()
                             from src.nicestlog.journal_viewer import main
 
                             main()
 
                             mock_exit.assert_called_once_with(1)
-                            assert "Error: Test error" in mock_stderr.getvalue()
+                            assert "❌ Failed to create journal viewer" in mock_stderr.getvalue()
 
 
 class TestColorImports:
