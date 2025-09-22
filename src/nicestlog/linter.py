@@ -12,9 +12,9 @@ from pathlib import Path
 import sys
 from typing import Any
 
+from rich.console import Console
 import structlog
 import toml
-from rich.console import Console
 
 from .log_statement_analyzer import (
     analyze_file as analyze_log_statements,
