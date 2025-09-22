@@ -1,20 +1,20 @@
-# Implementation TODO - nicestlog check text-only output per log.info statt print oder console.print
+# Implementation TODO - Überprüfe nicestlog check Output und Dokumentation
 
-Beschreibe das Problem: nicestlog check verwendet print/console.print für Output, was nicht strukturiert ist. Stattdessen log.info verwenden für text-only, user-facing Output.
+Beschreibe das Problem: Führe uv run nicestlog check aus, analysiere was der Linter testet, und überprüfe ob alle getesteten Dinge in der Dokumentation gut erklärt sind, damit User das richtig implementieren können.
 
 ## Description
 
 *(Scope, Motivation, Research, Related work – no checkboxes here!)*
 
-- Problem statement: nicestlog check gibt Output mit print/console.print aus, was nicht in Logging integriert ist und nicht text-only ist (Farben, etc.).
-- Why we want to solve it (value, impact): Konsistentes Logging, besser für Debugging und User-Feedback via Logs.
-- Research / references: nicestlog verwendet rich/console für CLI-Output. log.info ist standard für Info-Messages.
-- Constraints: Out-of-scope: Andere Befehle, nur check.
+- Problem statement: Möglicherweise sind nicht alle Linter-Regeln oder getesteten Dinge in der User-Dokumentation erklärt, was zu Verwirrung führt.
+- Why we want to solve it (value, impact): Bessere User-Experience, damit User wissen, wie sie ihren Code richtig schreiben.
+- Research / references: nicestlog check läuft Linter über Python-Dateien, prüft Logging-Konventionen.
+- Constraints: Out-of-scope: Änderungen am Linter-Code, nur Dokumentation überprüfen.
 
 ### Task Goal
 
-- **Outcome we want**: nicestlog check verwendet log.info für alle user-facing Messages, text-only.
-- **Success criteria**: Keine print/console.print in check-Code, Output ist text-only, funktioniert wie vorher.
+- **Outcome we want**: Vollständige Liste der vom Linter getesteten Dinge und Überprüfung, ob sie in docs/ dokumentiert sind.
+- **Success criteria**: Alle getesteten Regeln sind in der Dokumentation erklärt, mit Beispielen.
 
 ______________________________________________________________________
 
@@ -22,67 +22,48 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [x] **Finde alle print/console.print in nicestlog check Code**
+1. [ ] **Führe uv run nicestlog check aus und analysiere Output**
 
-   - **Context**: Identifiziere Stellen, wo Output erzeugt wird.
+   - **Context**: Verstehe, was der Linter testet.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] Liste aller print/console.print in relevanten Dateien
+     - [ ] Output von nicestlog check gesammelt
+     - [ ] Liste der getesteten Dinge extrahiert (z.B. Logging-Konventionen, Imports, etc.)
 
    - **Files to check/modify**
 
-     - [x] `src/nicestlog/cli.py` (check command)
+     - [ ] Keine Änderungen
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Grep nach print und console.print in src/nicestlog/
-     - [x] Fokussiere auf check-related Code
+     - [ ] Run uv run nicestlog check
+     - [ ] Sammle die Ausgabe
+     - [ ] Identifiziere alle gemeldeten Issues und Regeln
 
-   - **Commit message hint**: "Analyze print/console usage in nicestlog check"
+   - **Commit message hint**: "Analyze nicestlog check output for tested rules"
 
-1. [x] **Ersetze print/console.print durch log.info**
+1. [ ] **Überprüfe Dokumentation auf Vollständigkeit**
 
-   - **Context**: Stelle sicher, Logging ist konfiguriert. nicestlog.init_logging ist schon in check-Funktion.
-
-   - **Success criteria**
-
-     - [x] Alle console.print in check-Funktion ersetzt durch log.info
-     - [x] Rich markup entfernt für text-only Output
-     - [x] Output bleibt informativ, aber ohne Farben
-
-   - **Files to check/modify**
-
-     - [x] `src/nicestlog/cli.py` (check-Funktion)
-
-   - **Steps**
-
-     - [x] Logger in check-Funktion einrichten: import logging; log = logging.getLogger(__name__)
-     - [x] Jede console.print(...) ersetzen mit log.info(...), entferne [color] markup
-     - [x] Behalte Emojis und Text, aber plain text
-     - [x] Teste, dass Logging Output korrekt ist
-
-   - **Commit message hint**: "Replace console.print with log.info in check command for text-only output"
-
-1. [x] **Teste Änderungen**
-
-   - **Context**: Stelle sicher, funktioniert. Zusätzlich: caplog in Tests funktioniert nicht mit structlog, daher Bridge zu standard logging hinzugefügt.
+   - **Context**: Stelle sicher, dass alle getesteten Dinge dokumentiert sind.
 
    - **Success criteria**
 
-     - [x] uv run nicestlog check läuft ohne Fehler
-     - [x] Output ist text-only für check-Messages
-     - [x] Tests mit caplog funktionieren (Bridge zu logging)
+     - [ ] Alle getesteten Regeln in docs/ gefunden
+     - [ ] Dokumentation enthält Beispiele und Erklärungen
+     - [ ] User können daraus lernen, wie richtig implementieren
 
    - **Files to check/modify**
 
-     - [x] Tests anpassen falls nötig
-     - [x] `src/nicestlog/core.py` (Bridge für caplog)
+     - [ ] docs/user_guide/logging_conventions.md
+     - [ ] docs/user_guide/best_practices.md
+     - [ ] Andere relevante docs/
 
    - **Steps**
 
-     - [x] Run check, vergleiche Output
-     - [x] Run tests
-     - [x] Bridge zu standard logging für caplog-Unterstützung
+     - [ ] Lies relevante Dokumentationsdateien
+     - [ ] Vergleiche mit der Liste der getesteten Dinge
+     - [ ] Identifiziere fehlende Dokumentation
+     - [ ] Vorschlage Ergänzungen falls nötig
 
-   - **Commit message hint**: "Test text-only output changes and add logging bridge for tests"
+   - **Commit message hint**: "Review documentation for linter-tested rules completeness"
