@@ -231,3 +231,118 @@ def validate_config(config_path: Path):
     
     return config
 ```
+
+## Linter Rules and Common Issues
+
+nicestlog's `check` command enforces specific logging quality rules to ensure consistent, maintainable, and observable code. Below are the most common issues detected and how to fix them.
+
+### 1. Too Little Logging (E1/E2 Errors)
+
+**What it means**: Modules should have adequate logging coverage. The linter flags modules with insufficient logging statements relative to their size.
+
+**Why it matters**: Logging provides observability. Modules without logging are harder to debug and monitor.
+
+**How to fix**:
+- Add logging for key operations, especially in functions that perform business logic
+- Use `log.info()` for user-facing operations, `log.debug()` for internal details
+- Aim for at least one log statement per significant function
+
+```python
+# ❌ Bad: No logging in a utility function
+def calculate_total(items):
+    return sum(item.price for item in items)
+
+# ✅ Good: Add logging for observability
+def calculate_total(items):
+    log.debug("calculating-total", item_count=len(items))
+    total = sum(item.price for item in items)
+    log.info("total-calculated", total=total, item_count=len(items))
+    return total
+```
+
+### 2. Redundant Error Parameter in log.exception()
+
+**What it means**: When using `log.exception()`, do not pass `error=str(e)` as a keyword argument. The exception and traceback are automatically included.
+
+**Why it matters**: `log.exception()` is designed to capture the full exception context. Adding `error=str(e)` is redundant and can clutter logs.
+
+**How to fix**:
+- Remove the `error` parameter from `log.exception()` calls
+- The exception message and stack trace are already captured
+
+```python
+# ❌ Bad: Redundant error parameter
+try:
+    risky_operation()
+except ValueError as e:
+    log.exception("operation-failed", error=str(e))
+
+# ✅ Good: Let log.exception() handle the exception
+try:
+    risky_operation()
+except ValueError as e:
+    log.exception("operation-failed", operation="risky_operation")
+```
+
+### 3. Incorrect Log Levels for Internal Operations
+
+**What it means**: Internal library operations should use `DEBUG` level, not `INFO`. Completion messages for internal operations should also be `DEBUG`.
+
+**Why it matters**: `INFO` level should be reserved for user-facing events. Internal operations at `INFO` can spam user logs.
+
+**How to fix**:
+- Use `log.debug()` for internal operations and their completion
+- Reserve `log.info()` for events users care about
+
+```python
+# ❌ Bad: Internal operation at INFO level
+def load_config():
+    log.info("loading-config")  # Too verbose for users
+    config = _load_from_file()
+    log.info("config-loaded")   # Completion message at INFO
+
+# ✅ Good: Internal operations at DEBUG
+def load_config():
+    log.debug("loading-config", config_path=str(config_path))
+    config = _load_from_file()
+    log.debug("config-loaded", key_count=len(config))
+    return config
+```
+
+### 4. User-Facing Operations at Wrong Level
+
+**What it means**: Operations that users interact with should use appropriate levels. User commands should be `INFO`, internal processing `DEBUG`.
+
+**Why it matters**: Users need to see important events, but not implementation details.
+
+**How to fix**:
+- User-initiated actions: `log.info()`
+- Background processing: `log.debug()`
+
+```python
+# ❌ Bad: User command logged at DEBUG
+@app.command()
+def deploy():
+    log.debug("deploy-command-started")  # Users won't see this
+
+# ✅ Good: User command at INFO
+@app.command()
+def deploy():
+    log.info("deployment-started", _replace_msg="🚀 Starting deployment...")
+    _perform_deployment()
+    log.info("deployment-completed", _replace_msg="✅ Deployment finished")
+```
+
+### Running the Linter
+
+Use `nicestlog check` to validate your logging:
+
+```bash
+# Check current directory
+nicestlog check .
+
+# Fix issues automatically (where possible)
+nicestlog check . --fix
+```
+
+The linter helps maintain high-quality, consistent logging across your codebase.

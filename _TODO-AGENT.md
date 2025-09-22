@@ -22,26 +22,26 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Füge Abschnitt "Linter Rules and Common Issues" zu logging_conventions.md hinzu**
+1. [x] **Füge Abschnitt "Linter Rules and Common Issues" zu logging_conventions.md hinzu**
 
    - **Context**: Erkläre die Regeln, die nicestlog check erzwingt.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] Abschnitt hinzugefügt mit Erklärung von Too little logging
-     - [ ] Erklärung von redundant error=str(e) in log.exception()
-     - [ ] Erklärung von Log-Levels für interne Operationen
-     - [ ] Beispiele für korrekt und falsch
+     - [x] Abschnitt hinzugefügt mit Erklärung von Too little logging
+     - [x] Erklärung von redundant error=str(e) in log.exception()
+     - [x] Erklärung von Log-Levels für interne Operationen
+     - [x] Beispiele für korrekt und falsch
 
    - **Files to check/modify**
 
-     - [ ] docs/user_guide/logging_conventions.md
+     - [x] docs/user_guide/logging_conventions.md
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Lies aktuelle logging_conventions.md
-     - [ ] Füge neuen Abschnitt nach "Best Practices" hinzu
-     - [ ] Schreibe Erklärungen mit Code-Beispielen
-     - [ ] Stelle sicher, Englisch und klar
+     - [x] Lies aktuelle logging_conventions.md
+     - [x] Füge neuen Abschnitt nach "Best Practices" hinzu
+     - [x] Schreibe Erklärungen mit Code-Beispielen
+     - [x] Stelle sicher, Englisch und klar
 
    - **Commit message hint**: "docs: add linter rules section to logging conventions"
