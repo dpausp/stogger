@@ -1,20 +1,20 @@
-# Implementation TODO - Kürze nicestlog docs Ausgabe, entferne ablenkenden Text
+# Implementation TODO - Entferne negative Code-Beispiele aus docs
 
-Beschreibe das Problem: nicestlog docs zeigt zu viel Text, speziell in best_practices.md der Anti-Patterns Abschnitt und Summary lenken ab. Kürze für bessere Fokussierung.
+Beschreibe das Problem: Negative (❌) Code-Beispiele in docs verseuchen Agent-Kontext. Entferne sie, behalte nur positive (✅) Beispiele.
 
 ## Description
 
 *(Scope, Motivation, Research, Related work – no checkboxes here!)*
 
-- Problem statement: Zu viel Text in docs lenkt ab, besonders für User mit geringer Aufmerksamkeitsspanne.
-- Why we want to solve it (value, impact): Schnellere Info-Aufnahme, bessere UX.
-- Research / references: nicestlog docs zeigt docs-Dateien, best_practices.md ist zu lang.
-- Constraints: Nur docs/user_guide/best_practices.md bearbeiten, Essentials behalten.
+- Problem statement: ❌ Beispiele lenken ab und verunreinigen Kontext für Agents.
+- Why we want to solve it (value, impact): Sauberer Kontext, bessere Fokussierung auf korrekte Patterns.
+- Research / references: In best_practices.md und anderen docs.
+- Constraints: Nur ❌ Beispiele entfernen, ✅ Beispiele und Erklärungen behalten.
 
 ### Task Goal
 
-- **Outcome we want**: nicestlog docs prägnanter, ablenkender Text entfernt.
-- **Success criteria**: Anti-Patterns Abschnitt gekürzt, Summary gestrafft, Essentials bleiben.
+- **Outcome we want**: Docs zeigen nur korrekte Code-Beispiele, keine negativen.
+- **Success criteria**: Alle ❌ Beispiele entfernt, ✅ Beispiele bleiben.
 
 ______________________________________________________________________
 
@@ -22,45 +22,44 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [x] **Kürze Anti-Patterns Abschnitt in best_practices.md**
+1. [ ] **Entferne ❌ Beispiele aus best_practices.md**
 
-   - **Context**: Der Abschnitt über wrapper functions ist zu detailliert.
+   - **Context**: Anti-Patterns zeigen schlechte Beispiele, die Kontext verseuchen.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] Wrapper functions Erklärung gekürzt
-     - [x] Detection-Teil entfernt oder gekürzt
-     - [x] Essentials bleiben
+     - [ ] Alle ❌ Code-Blöcke entfernt
+     - [ ] ✅ Beispiele bleiben
+     - [ ] Erklärungen angepasst falls nötig
 
    - **Files to check/modify**
 
-     - [x] docs/user_guide/best_practices.md
+     - [ ] docs/user_guide/best_practices.md
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Lies aktuellen Anti-Patterns Abschnitt
-     - [x] Entferne detaillierte Erklärung
-     - [x] Behalte kurze Warnung
+     - [ ] Durchsuche nach ❌ Beispielen
+     - [ ] Entferne sie komplett
+     - [ ] Stelle sicher, ✅ Beispiele bleiben klar
 
-   - **Commit message hint**: "docs: shorten anti-patterns section in best practices"
+   - **Commit message hint**: "docs: remove negative code examples from best practices"
 
-1. [x] **Straffe Summary Abschnitt**
+1. [ ] **Prüfe andere docs auf ❌ Beispiele**
 
-   - **Context**: Summary ist zu lang und repetitiv.
+   - **Context**: Stelle sicher, keine anderen docs betroffen.
 
    - **Success criteria**
 
-     - [x] Summary gekürzt auf Essentials
-     - [x] Wiederholungen entfernt
+     - [ ] Andere docs-Dateien geprüft
+     - [ ] Keine ❌ Beispiele gefunden oder entfernt
 
    - **Files to check/modify**
 
-     - [x] docs/user_guide/best_practices.md
+     - [ ] docs/ Verzeichnis
 
    - **Steps**
 
-     - [x] Lies Summary
-     - [x] Kürze auf 2-3 Bullet Points
-     - [x] Entferne redundanten Text
+     - [ ] Grep nach ❌ in docs/
+     - [ ] Entferne falls gefunden
 
-   - **Commit message hint**: "docs: streamline summary in best practices"
+   - **Commit message hint**: "docs: check and remove negative examples from all docs"
