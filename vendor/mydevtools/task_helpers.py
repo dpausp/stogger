@@ -987,23 +987,8 @@ def get_workflow_state(status_file: str = ".agent-run-status.json") -> dict[str,
                 "raw_status": {},
             }
 
-        try:
-            run_status = json.loads(run_status_file.read_text())
-            logger.debug("workflow-status-read-success", keys_count=len(run_status))
-        except Exception as e:
-            logger.error(
-                "failed-to-read-workflow-state",
-                _replace_msg="Failed to read workflow state: {error}",
-                error=str(e),
-            )
-            return {
-                "session_active": False,
-                "events": {},
-                "last_event": None,
-                "session_started": False,
-                "raw_status": {},
-                "error": f"Failed to read workflow state: {e}",
-            }
+        run_status = json.loads(run_status_file.read_text())
+        logger.debug("workflow-status-read-success", keys_count=len(run_status))
 
         # Extract event information
         events: dict[str, Any] = {}
@@ -4019,7 +4004,7 @@ def validate_todo() -> bool:  # noqa: PLR0912
                     )
 
             # Check for common markdown issues
-            if line.strip().startswith("#") and not line.startswith("# ") and len(line.strip()) > 1:
+            if line.strip().startswith("#") and not re.match(r"^#+\s", line) and len(line.strip()) > 1:
                 warnings.append(
                     f"Line {i}: Missing space after # in heading: {line.strip()}",
                 )

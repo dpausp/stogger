@@ -132,15 +132,9 @@ def main():
 
         result = self.runner.invoke(app, ["check", str(test_file)])
 
-        # The linter expects a directory, so let's test with directory path
-        result = self.runner.invoke(app, ["check", str(self.temp_path)])
-
         # The test file has good logging practices, so it should pass
         assert result.exit_code == 0
-        assert (
-            "All checks passed" in result.stdout
-            or "Unified Code Quality Analysis" in result.stdout
-        )
+        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
 
     def test_lint_python_file_with_good_logging(self):
         """Test linting a Python file that has appropriate logging coverage."""
@@ -178,10 +172,7 @@ def main():
 
         # This should have good logging coverage (around 6-10%)
         assert result.exit_code == 0
-        assert (
-            "All checks passed" in result.stdout
-            or "Unified Code Quality Analysis" in result.stdout
-        )
+        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
 
     def test_lint_python_file_with_no_logging(self):
         """Test linting a Python file with insufficient logging."""
@@ -208,10 +199,7 @@ def main():
 
         # Should pass or fail depending on actual analysis
         assert result.exit_code in [0, 1]
-        assert (
-            "All checks passed" in result.stdout
-            or "Unified Code Quality Analysis" in result.stdout
-        )
+        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
 
     def test_lint_directory_with_mixed_files(self):
         """Test linting a directory with both good and bad files."""
@@ -244,10 +232,7 @@ def another_bad_function():
 
         # Should pass or fail depending on actual analysis
         assert result.exit_code in [0, 1]
-        assert (
-            "All checks passed" in result.stdout
-            or "Unified Code Quality Analysis" in result.stdout
-        )
+        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
 
     def test_lint_with_strict_mode(self):
         """Test lint command with strict coverage requirements."""
@@ -370,9 +355,7 @@ class TestJournalIntegration:
             {"MESSAGE": "Test log entry 2", "PRIORITY": "4"},
         ]
         mock_viewer.query_journal.return_value = mock_entries
-        mock_viewer.format_entry.side_effect = (
-            lambda entry: f"Formatted: {entry['MESSAGE']}"
-        )
+        mock_viewer.format_entry.side_effect = lambda entry: f"Formatted: {entry['MESSAGE']}"
 
         result = self.runner.invoke(
             app,

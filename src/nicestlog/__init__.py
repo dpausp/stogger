@@ -86,7 +86,6 @@ from .interactive_transformer import (
     transform_directory_interactive,
     transform_file_interactive,
 )
-from .journal_viewer import main as journal_viewer_main
 from .linter import main as linter_main
 from .live_editor import create_live_editor, edit_code_live
 from .log_reviewer import review_logs_cli

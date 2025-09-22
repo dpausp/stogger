@@ -18,29 +18,29 @@ sys.path.insert(0, str(Path(__file__).parent / "vendor"))
 from rich.console import Console
 
 from mydevtools.task_helpers import (
+    clean_artifacts,
     create_uv_commands,
     format_todo_markdown,
-    validate_all_tools,
-    validate_todo,
-    validate_todo_discipline,
-    validate_no_code_in_todo,
-    validate_todo_files_only,
-    validate_impl_progress,
     run_linting_with_warnings,
-    clean_artifacts,
-    show_agent_status,
     show_agent_start,
-    switch_to_todo,
-    show_todo_end,
-    switch_to_impl,
-    switch_to_discuss,
-    show_todo_start,
-    show_start,
+    show_agent_status,
     show_checkpoint,
     show_coding_task_finished,
-    show_pre_commit,
     show_post_commit,
+    show_pre_commit,
+    show_start,
+    show_todo_end,
+    show_todo_start,
     show_workflow,
+    switch_to_discuss,
+    switch_to_impl,
+    switch_to_todo,
+    validate_all_tools,
+    validate_impl_progress,
+    validate_no_code_in_todo,
+    validate_todo,
+    validate_todo_discipline,
+    validate_todo_files_only,
 )
 
 console = Console()
@@ -142,6 +142,7 @@ def task_format():
             "format_todo_markdown",
             "check_ruff",
             "format_ruff",
+            "format_nix",
         ],
     }
 
@@ -156,6 +157,14 @@ def task_format_todo_markdown():
 def task_format_ruff():
     """Format code with ruff and apply autofixes (src only)."""
     return create_uv_commands("ruff format src/", verbosity=2)
+
+
+def task_format_nix():
+    """Format Nix code with treefmt (via nix fmt)."""
+    return {
+        "actions": ["nix fmt"],
+        "verbosity": 2,
+    }
 
 
 def task_check_ruff():
