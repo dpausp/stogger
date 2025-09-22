@@ -1377,6 +1377,7 @@ def _show_docs_interactive(use_pager: bool = False):
         _show_markdown_files(docs_map[choice], use_pager=use_pager)
     else:
         console.print("❌ [red]Invalid choice[/red]")
+        sys.exit(1)
 
 
 def _show_feature_docs(feature: str, use_pager: bool = False):
