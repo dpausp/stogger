@@ -442,16 +442,18 @@ def check(
 
     """
     # Initialize proper logging format
+
     import nicestlog
 
     nicestlog.init_logging(verbose=verbose)
+    log = structlog.get_logger()
 
     from .config import detect_project_structure
     from .linter import lint_directory
 
     path_obj = Path(path)
     if not path_obj.exists():
-        console.print(f"❌ [red]Path {path} does not exist[/red]")
+        log.info("check-path-not-found", path=path, _replace_msg=f"Path {path} does not exist")
         sys.exit(1)
 
     # Step 1: Detect and report project structure (Rule 2 requirement)
@@ -464,9 +466,11 @@ def check(
             project_structure = detect_project_structure(path_obj.parent)
             _display_project_context(project_structure, verbose, single_file=path_obj)
     except ValueError as e:
-        console.print(f"❌ [red]Project structure detection failed: {e}[/red]")
-        console.print(
-            "💡 [blue]Please configure [tool.nicestlog] section in pyproject.toml[/blue]",
+        log.info(
+            "check-project-structure-failed", error=str(e), _replace_msg=f"Project structure detection failed: {e}"
+        )
+        log.info(
+            "check-configure-pyproject", _replace_msg="Please configure [tool.nicestlog] section in pyproject.toml"
         )
         sys.exit(1)
 
@@ -486,12 +490,12 @@ def check(
         mode_info.append("📊 Complexity check")
 
     if mode_info:
-        console.print(f"Mode: {' + '.join(mode_info)}")
+        log.info("check-mode-info", modes=mode_info, _replace_msg=f"Mode: {' + '.join(mode_info)}")
 
     # 1. Basic linting (performed only when AST is disabled)
     basic_success = True
     if no_ast and not interactive and not patterns and not complexity:
-        console.print("\n📋 [bold blue]Running basic linting...[/bold blue]")
+        log.info("check-basic-linting-start", _replace_msg="Running basic linting...")
         basic_success = lint_directory(path_obj, project_structure=project_structure)
 
     lint_success = basic_success
@@ -499,7 +503,7 @@ def check(
     # 2. AST Analysis (enabled by default, disabled with --no-ast)
     ast_issues = None
     if not no_ast or interactive or patterns or complexity:
-        console.print("\n🔬 [bold blue]Running AST analysis...[/bold blue]")
+        log.info("check-ast-analysis-start", _replace_msg="Running AST analysis...")
 
         assistant = AdvancedAssistant(verbose=verbose)
 
@@ -528,8 +532,10 @@ def check(
             python_files = filter_python_files(path_obj, respect_gitignore=True)
 
             if python_files:
-                console.print(
-                    f"📁 [blue]Analyzing {len(python_files)} Python files (respecting .gitignore)[/blue]",
+                log.info(
+                    "check-files-analyzed",
+                    file_count=len(python_files),
+                    _replace_msg=f"Analyzing {len(python_files)} Python files (respecting .gitignore)",
                 )
                 ast_results = []
                 with Progress(
@@ -552,20 +558,26 @@ def check(
                 )
                 ast_issues = ast_results
             else:
-                console.print(
-                    "❌ [red]No Python files found in directory (after applying .gitignore)[/red]",
+                log.info(
+                    "check-no-files-found",
+                    _replace_msg="No Python files found in directory (after applying .gitignore)",
                 )
 
     # Display AST issues in detail if found
     if ast_issues and _has_ast_issues(ast_issues):
-        console.print("\n🔬 [bold red]AST Issues Found:[/bold red]")
+        log.info("check-ast-issues-found", _replace_msg="AST Issues Found:")
         for result in ast_issues:
             if result.issues:
-                console.print(f"  {result.file_path.name}: {', '.join(result.issues)}")
+                log.info(
+                    "check-file-issues",
+                    file=result.file_path.name,
+                    issues=result.issues,
+                    _replace_msg=f"  {result.file_path.name}: {', '.join(result.issues)}",
+                )
 
     # 3. Interactive Mode
     if interactive and ast_issues:
-        console.print("\n🎯 [bold magenta]Starting interactive mode...[/bold magenta]")
+        log.info("check-interactive-start", _replace_msg="Starting interactive mode...")
         transformer = InteractiveTransformer()
 
         if path_obj.is_file():
@@ -576,13 +588,13 @@ def check(
 
             python_files = filter_python_files(path_obj, respect_gitignore=True)
             for py_file in python_files:
-                console.print(f"\n📁 Processing: {py_file}")
+                log.info("check-processing-file", file=str(py_file), _replace_msg=f"Processing: {py_file}")
                 if typer.confirm(f"Transform {py_file.name}?"):
                     transformer.transform_file_interactive(py_file)
 
     # 4. AST-based Fixes
     elif fix and not no_ast and ast_issues:
-        console.print("\n🔧 [bold green]Applying AST-based fixes...[/bold green]")
+        log.info("check-fixes-start", _replace_msg="Applying AST-based fixes...")
 
         # No backup creation - users should use git for version control
 
@@ -638,39 +650,52 @@ def check(
     has_issues = not lint_success or (ast_issues and _has_ast_issues(ast_issues))
 
     if has_issues:
-        console.print(
-            "\n❌ [red]Issues found. Run with --fix to apply automatic fixes.[/red]",
-        )
+        log.info("check-issues-found", _replace_msg="Issues found. Run with --fix to apply automatic fixes.")
         sys.exit(1)
     else:
-        console.print("\n✅ [green]All checks passed![/green]")
+        log.info("check-all-passed", _replace_msg="All checks passed!")
 
 
 def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: bool, verbose: bool = False):
     """Display analysis results for check command."""
+    import structlog
+
+    log = structlog.get_logger()
     if verbose or show_complexity:
-        console.print(
-            f"\n📊 [bold blue]Analysis Results for {result.file_path.name}[/bold blue]",
+        log.info(
+            "check-analysis-results",
+            file=result.file_path.name,
+            _replace_msg=f"Analysis Results for {result.file_path.name}",
         )
 
         # Basic metrics - show in verbose mode or when complexity is requested
-        metrics_table = Table(title="📈 Code Metrics")
-        metrics_table.add_column("Metric", style="cyan")
-        metrics_table.add_column("Value", style="green", justify="right")
-
-        metrics_table.add_row("Lines of Code", str(result.lines_of_code))
-        metrics_table.add_row("Functions", str(result.function_count))
-        metrics_table.add_row("Classes", str(result.class_count))
+        log.info(
+            "check-metrics",
+            lines=result.lines_of_code,
+            functions=result.function_count,
+            classes=result.class_count,
+            complexity=result.complexity_score if show_complexity else None,
+            _replace_msg=f"Lines of Code: {result.lines_of_code}",
+        )
+        log.info("check-functions", count=result.function_count, _replace_msg=f"Functions: {result.function_count}")
+        log.info("check-classes", count=result.class_count, _replace_msg=f"Classes: {result.class_count}")
 
         if show_complexity:
-            metrics_table.add_row("Complexity Score", f"{result.complexity_score:.2f}")
-
-        console.print(metrics_table)
+            log.info(
+                "check-complexity",
+                score=result.complexity_score,
+                _replace_msg=f"Complexity Score: {result.complexity_score:.2f}",
+            )
     else:
         # Compact mode: Just show filename and issue count
         issue_count = len(result.issues) if result.issues else 0
         status = "❌" if issue_count > 0 else "✅"
-        console.print(f"{status} {result.file_path.name} ({issue_count} issues)")
+        log.info(
+            "check-file-status",
+            file=result.file_path.name,
+            issues=issue_count,
+            _replace_msg=f"{status} {result.file_path.name} ({issue_count} issues)",
+        )
 
     # Issues found - show differently based on verbose mode
     if result.issues:
@@ -687,34 +712,25 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
                     general_issues.append(issue)
 
             if logging_issues:
-                logging_table = Table(title="🔍 Logging Improvement Opportunities")
-                logging_table.add_column("Priority", style="yellow")
-                logging_table.add_column("Suggestion", style="cyan")
-
+                log.info("Logging Improvement Opportunities:")
                 for _i, issue in enumerate(logging_issues, 1):
                     priority = "High" if "print" in issue.lower() else "Medium"
-                    logging_table.add_row(priority, issue)
-
-                console.print(logging_table)
+                    log.info(f"  {priority}: {issue}")
 
             if general_issues:
-                general_table = Table(title="⚠️ Code Quality Issues")
-                general_table.add_column("Type", style="red")
-                general_table.add_column("Description", style="white")
-
+                log.info("Code Quality Issues:")
                 for issue in general_issues:
-                    general_table.add_row("Complexity", issue)
-
-                console.print(general_table)
+                    log.info(f"  Complexity: {issue}")
 
             # Add summary with actionable suggestions
             if logging_issues:
-                console.print("\n💡 [bold blue]Logging Improvements:[/bold blue]")
-                console.print(
-                    "  • Run with --fix to automatically convert print statements",
+                log.info("check-logging-improvements", _replace_msg="Logging Improvements:")
+                log.info(
+                    "check-fix-suggestion", _replace_msg="  • Run with --fix to automatically convert print statements"
                 )
-                console.print(
-                    "  • Consider adding structured logging to functions without logs",
+                log.info(
+                    "check-structured-logging-suggestion",
+                    _replace_msg="  • Consider adding structured logging to functions without logs",
                 )
         else:
             # Compact mode: Just show issue summary
@@ -724,12 +740,19 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
             general_count = len(result.issues) - logging_count
 
             if logging_count > 0:
-                console.print(f"  🔍 {logging_count} logging issues")
+                log.info(
+                    "check-logging-issues-count",
+                    count=logging_count,
+                    _replace_msg=f"  🔍 {logging_count} logging issues",
+                )
             if general_count > 0:
-                console.print(f"  ⚠️  {general_count} code quality issues")
-    else:
-        if verbose:
-            console.print("✅ [green]No AST issues found![/green]")
+                log.info(
+                    "check-general-issues-count",
+                    count=general_count,
+                    _replace_msg=f"  ⚠️  {general_count} code quality issues",
+                )
+    elif verbose:
+        log.info("check-no-issues", _replace_msg="No AST issues found!")
 
 
 def _display_unified_check_analysis(
@@ -740,6 +763,9 @@ def _display_unified_check_analysis(
     project_structure=None,
 ) -> bool:
     """Display unified analysis results combining logging quality and AST metrics."""
+    import structlog
+
+    log = structlog.get_logger()
     from .linter import lint_directory
 
     # Extract AST metrics for integration with linter output
@@ -761,7 +787,7 @@ def _display_unified_check_analysis(
             )
 
     # Run the enhanced linter with AST metrics
-    console.print("\n📊 [bold blue]Unified Code Quality Analysis[/bold blue]")
+    log.info("check-unified-analysis", _replace_msg="Unified Code Quality Analysis")
 
     # Set environment variable to pass AST metrics to linter
     import json
@@ -784,39 +810,59 @@ def _display_unified_check_analysis(
     if verbose:
         # Verbose mode: Show detailed insights
         if all_ast_insights:
-            console.print("\n💡 [bold blue]AST Analysis Insights:[/bold blue]")
-            console.print(
-                f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",
+            log.info("check-ast-insights", _replace_msg="AST Analysis Insights:")
+            log.info(
+                "check-files-analyzed",
+                file_count=len(results),
+                total_functions=sum(r.function_count for r in results),
+                _replace_msg=f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",
             )
-            console.print(
-                f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",
+            log.info(
+                "check-average-functions",
+                average=sum(r.function_count for r in results) / len(results),
+                _replace_msg=f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",
             )
             if total_ast_issues > 0:
-                console.print(
-                    f"  • {total_ast_issues} code quality improvements identified:",
+                log.info(
+                    "check-improvements-identified",
+                    count=total_ast_issues,
+                    _replace_msg=f"  • {total_ast_issues} code quality improvements identified:",
                 )
                 for insight in all_ast_insights[:5]:  # Show first 5 insights
-                    console.print(insight)
+                    log.info("check-insight", text=insight, _replace_msg=insight)
                 if len(all_ast_insights) > 5:
-                    console.print(
-                        f"    ... and {len(all_ast_insights) - 5} more suggestions",
+                    log.info(
+                        "check-more-insights",
+                        more=len(all_ast_insights) - 5,
+                        _replace_msg=f"    ... and {len(all_ast_insights) - 5} more suggestions",
                     )
             else:
-                console.print(
-                    "  • No code quality issues detected - excellent code structure!",
+                log.info(
+                    "check-no-issues-detected",
+                    _replace_msg="  • No code quality issues detected - excellent code structure!",
                 )
-            console.print(
-                "  • Consider adding structured logging to functions without logs",
+            log.info(
+                "check-consider-structured-logging",
+                _replace_msg="  • Consider adding structured logging to functions without logs",
             )
     else:
         # Compact mode: Just show summary
         total_files = len(results)
         total_issues = total_ast_issues
         if total_issues > 0:
-            console.print(f"\n📊 {total_files} files checked, {total_issues} issues found")
-            console.print("💡 Use --verbose for detailed analysis")
+            log.info(
+                "check-issues-summary",
+                files=total_files,
+                issues=total_issues,
+                _replace_msg=f"{total_files} files checked, {total_issues} issues found",
+            )
+            log.info("check-use-verbose", _replace_msg="Use --verbose for detailed analysis")
         else:
-            console.print(f"\n✅ {total_files} files checked - no issues found!")
+            log.info(
+                "check-no-issues-found",
+                files=total_files,
+                _replace_msg=f"{total_files} files checked - no issues found!",
+            )
 
     return lint_success
 
@@ -826,16 +872,20 @@ def _display_check_directory_analysis(
     show_complexity: bool,
 ):
     """Display analysis results for check command on directories."""
-    console.print("\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
+    from rich.console import Console
+    from rich.table import Table
 
-    summary_table = Table(title="📈 Summary Statistics")
-    summary_table.add_column("File", style="cyan")
-    summary_table.add_column("LOC", style="green", justify="right")
-    summary_table.add_column("Functions", style="blue", justify="right")
-    summary_table.add_column("Classes", style="magenta", justify="right")
+    console = Console()
+    console.print("Directory Analysis Summary", style="bold blue")
+
+    table = Table(title="Summary Statistics")
+    table.add_column("File", style="cyan")
+    table.add_column("LOC", justify="right")
+    table.add_column("Functions", justify="right")
+    table.add_column("Classes", justify="right")
     if show_complexity:
-        summary_table.add_column("Complexity", style="red", justify="right")
-    summary_table.add_column("Issues", style="yellow", justify="right")
+        table.add_column("Complexity", justify="right")
+    table.add_column("Issues", justify="right")
 
     total_loc = 0
     total_functions = 0
@@ -859,23 +909,23 @@ def _display_check_directory_analysis(
             row.append(f"{result.complexity_score:.1f}")
 
         row.append(str(len(result.issues)))
-        summary_table.add_row(*row)
+        table.add_row(*row)
 
     # Add totals row
     totals_row = [
-        "[bold]TOTAL[/bold]",
-        f"[bold]{total_loc}[/bold]",
-        f"[bold]{total_functions}[/bold]",
-        f"[bold]{total_classes}[/bold]",
+        "TOTAL",
+        str(total_loc),
+        str(total_functions),
+        str(total_classes),
     ]
 
     if show_complexity:
-        totals_row.append("[bold]-[/bold]")
+        totals_row.append("-")
 
-    totals_row.append(f"[bold]{total_issues}[/bold]")
-    summary_table.add_row(*totals_row)
+    totals_row.append(str(total_issues))
+    table.add_row(*totals_row, style="bold")
 
-    console.print(summary_table)
+    console.print(table)
 
 
 def _has_ast_issues(ast_issues) -> bool:
@@ -2470,31 +2520,31 @@ def _display_project_context(
     single_file: Path | None = None,
 ):
     """Display project context and configuration being used."""
-    console.print("\n🏗️ [bold blue]Project Context[/bold blue]")
+    import structlog
+
+    log = structlog.get_logger()
+    log.info("check-project-context", _replace_msg="Project Context")
 
     # Create context table
-    context_table = Table(title="📋 Configuration")
-    context_table.add_column("Setting", style="cyan")
-    context_table.add_column("Value", style="green")
-    context_table.add_column("Source", style="yellow")
-
-    context_table.add_row(
-        "Project Root",
-        str(project_structure.project_root),
-        project_structure.detection_source,
+    log.info("check-configuration", _replace_msg="Configuration:")
+    log.info(
+        "check-project-root",
+        root=str(project_structure.project_root),
+        source=project_structure.detection_source,
+        _replace_msg=f"Project Root: {project_structure.project_root} ({project_structure.detection_source})",
     )
-    context_table.add_row(
-        "Source Directories",
-        ", ".join(project_structure.source_dirs),
-        project_structure.detection_source,
+    log.info(
+        "check-source-dirs",
+        dirs=project_structure.source_dirs,
+        source=project_structure.detection_source,
+        _replace_msg=f"Source Directories: {', '.join(project_structure.source_dirs)} ({project_structure.detection_source})",
     )
-    context_table.add_row(
-        "Test Directories",
-        ", ".join(project_structure.test_dirs),
-        project_structure.detection_source,
+    log.info(
+        "check-test-dirs",
+        dirs=project_structure.test_dirs,
+        source=project_structure.detection_source,
+        _replace_msg=f"Test Directories: {', '.join(project_structure.test_dirs)} ({project_structure.detection_source})",
     )
-
-    console.print(context_table)
 
     # Show scope information
     if single_file:
@@ -2502,32 +2552,30 @@ def _display_project_context(
         is_excluded = project_structure.should_exclude_from_logging_analysis(
             single_file,
         )
-        scope_status = "❌ Excluded from logging analysis" if is_excluded else "✅ Included in logging analysis"
-        console.print(f"\n📄 [bold]File Scope:[/bold] {scope_status}")
+        scope_status = "Excluded from logging analysis" if is_excluded else "Included in logging analysis"
+        log.info("check-file-scope", excluded=is_excluded, _replace_msg=f"File Scope: {scope_status}")
         if is_excluded:
-            console.print(
-                "💡 [blue]This file is in a test directory or excluded pattern[/blue]",
-            )
+            log.info("check-file-excluded", _replace_msg="This file is in a test directory or excluded pattern")
     else:
         # Directory analysis
-        console.print("\n📁 [bold]Analysis Scope:[/bold]")
-        console.print(
-            f"  • [green]Logging analysis:[/green] Source directories only ({', '.join(project_structure.source_dirs)})",
+        log.info("check-analysis-scope", _replace_msg="Analysis Scope:")
+        log.info(
+            "check-logging-analysis",
+            dirs=project_structure.source_dirs,
+            _replace_msg=f"  • Logging analysis: Source directories only ({', '.join(project_structure.source_dirs)})",
         )
-        console.print(
-            "  • [yellow]Excluded from logging:[/yellow] Tests and other patterns",
-        )
-        console.print(
-            "  • [blue]Code coverage:[/blue] All Python files (including tests)",
-        )
+        log.info("check-excluded-logging", _replace_msg="  • Excluded from logging: Tests and other patterns")
+        log.info("check-code-coverage", _replace_msg="  • Code coverage: All Python files (including tests)")
 
         if verbose:
-            console.print("\n🔍 [bold]Exclude Patterns:[/bold]")
+            log.info("check-exclude-patterns", _replace_msg="Exclude Patterns:")
             for pattern in project_structure.exclude_patterns[:5]:  # Show first 5
-                console.print(f"  • {pattern}")
+                log.info("check-pattern", pattern=pattern, _replace_msg=f"  • {pattern}")
             if len(project_structure.exclude_patterns) > 5:
-                console.print(
-                    f"  • ... and {len(project_structure.exclude_patterns) - 5} more",
+                log.info(
+                    "check-more-patterns",
+                    more=len(project_structure.exclude_patterns) - 5,
+                    _replace_msg=f"  • ... and {len(project_structure.exclude_patterns) - 5} more",
                 )
 
 

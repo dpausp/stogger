@@ -1,5 +1,6 @@
 """Comprehensive tests for the CLI module functionality."""
 
+import logging
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -467,11 +468,12 @@ class TestCliErrorHandling:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    def test_check_command_file_not_found(self):
+    def test_check_command_file_not_found(self, caplog):
         """Test check command with non-existent file."""
+        caplog.set_level(logging.INFO)
         result = self.runner.invoke(app, ["check", "/nonexistent/file.py"])
         assert result.exit_code == 1
-        assert "does not exist" in result.output
+        assert "does not exist" in caplog.text
 
     def test_check_command_permission_denied(self):
         """Test check command with permission denied scenario."""
@@ -599,13 +601,14 @@ class TestCliErrorHandling:
                 # Restore permissions for cleanup
                 src_dir.chmod(0o755)
 
-    def test_check_command_empty_directory(self):
+    def test_check_command_empty_directory(self, caplog):
         """Test check command with empty directory."""
+        caplog.set_level(logging.INFO)
         with TemporaryDirectory() as temp_dir:
             result = self.runner.invoke(app, ["check", temp_dir])
             # Should handle empty directory gracefully - exits with 1 due to project structure detection failure
             assert result.exit_code == 1
-            assert "Project structure detection failed" in result.output
+            assert "Project structure detection failed" in caplog.text
 
     def test_migrate_interactive_mode_error(self):
         """Test migrate command interactive mode with errors."""

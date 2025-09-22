@@ -379,7 +379,6 @@ class ProjectAnalyzer:
         content: str,
     ) -> list[LoggingPattern]:
         """Analyze AST tree for executable logging patterns."""
-        patterns = []
         lines = content.split("\n")
 
         class LoggingVisitor(ast.NodeVisitor):
@@ -597,10 +596,7 @@ class ProjectAnalyzer:
                         return True
 
                 # Check for structlog.get_logger()
-                if func_name == "structlog.get_logger":
-                    return True
-
-                return False
+                return func_name == "structlog.get_logger"
 
                 func_name = self._get_full_func_name(node.func)
                 if not func_name:
@@ -615,10 +611,7 @@ class ProjectAnalyzer:
                         return True
 
                 # Check for structlog.get_logger()
-                if func_name == "structlog.get_logger":
-                    return True
-
-                return False
+                return func_name == "structlog.get_logger"
 
             def _get_full_func_name(self, node: ast.Attribute) -> str:
                 """Get the full function name from an attribute node."""

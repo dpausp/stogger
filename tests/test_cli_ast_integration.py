@@ -2,6 +2,7 @@
 Tests the new --ast, --interactive, --complexity, and --pattern options.
 """
 
+import logging
 from pathlib import Path
 import tempfile
 from unittest.mock import MagicMock, patch
@@ -70,8 +71,9 @@ def test_function():
             assert result.exit_code == 0  # CLI may not return error for mock issues
             assert mock_assistant.analyze_file.called
 
-    def test_check_with_complexity_analysis(self):
+    def test_check_with_complexity_analysis(self, caplog):
         """Test check command with --complexity flag."""
+        caplog.set_level(logging.INFO)
         test_file = self.temp_path / "complex.py"
         test_file.write_text("""
 def complex_function(x):
@@ -100,8 +102,8 @@ def complex_function(x):
             result = self.runner.invoke(app, ["check", str(test_file), "--complexity"])
 
             assert result.exit_code == 0
-            assert "Complexity Score" in result.stdout
-            assert "8.5" in result.stdout
+            assert "Complexity Score" in caplog.text
+            assert "8.5" in caplog.text
 
     def test_check_with_patterns(self):
         """Test check command with --pattern flag."""
@@ -142,7 +144,8 @@ def test():
             assert mock_pattern.enabled  # Pattern should be enabled
 
     @patch("nicestlog.cli.InteractiveTransformer")
-    def test_check_interactive_mode(self, mock_transformer_class):
+    def test_check_interactive_mode(self, mock_transformer_class, caplog):
+        caplog.set_level(logging.INFO)
         """Test check command with --interactive flag."""
         test_file = self.temp_path / "interactive.py"
         test_file.write_text("""
@@ -169,7 +172,7 @@ def test():
             result = self.runner.invoke(app, ["check", str(test_file), "--interactive"])
 
             assert result.exit_code == 1  # Issues found
-            assert "interactive mode" in result.stdout.lower()
+            assert "interactive mode" in caplog.text.lower()
             assert mock_transformer.transform_file_interactive.called
 
 
@@ -232,7 +235,9 @@ print("This should be fixed")
             mock_result.file_path = test_file
             mock_result.changes_made = True
             mock_result.changes_made = ["Convert print to structured log"]
-            mock_result.transformed_code = 'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="This should be fixed")'
+            mock_result.transformed_code = (
+                'import structlog\nlog = structlog.get_logger()\nlog.info("output", message="This should be fixed")'
+            )
             mock_assistant.transform_file.return_value = mock_result
 
             result = self.runner.invoke(app, ["migrate", str(test_file)])
@@ -318,9 +323,7 @@ def hello():
             # Create a more complete mock that matches ProjectAnalysisResult structure
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = (
-                '{"recommendations": ["Convert print statements"]}'
-            )
+            mock_result.to_json.return_value = '{"recommendations": ["Convert print statements"]}'
 
             # Mock the complexity object
             mock_complexity = MagicMock()
@@ -378,9 +381,7 @@ print("Test migration")
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = (
-                '{"recommendations": ["Convert print statements"]}'
-            )
+            mock_result.to_json.return_value = '{"recommendations": ["Convert print statements"]}'
 
             # Mock the complexity object
             mock_complexity = MagicMock()
@@ -440,9 +441,7 @@ print("Interactive migration test")
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = (
-                '{"recommendations": ["Interactive migration available"]}'
-            )
+            mock_result.to_json.return_value = '{"recommendations": ["Interactive migration available"]}'
 
             # Mock the complexity object
             mock_complexity = MagicMock()
@@ -503,9 +502,7 @@ print("Interactive migration test")
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_dir)
-            mock_result.to_json.return_value = (
-                '{"recommendations": ["Convert print statements in multiple files"]}'
-            )
+            mock_result.to_json.return_value = '{"recommendations": ["Convert print statements in multiple files"]}'
 
             # Mock the complexity object
             mock_complexity = MagicMock()
@@ -560,9 +557,7 @@ print("Interactive migration test")
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = (
-                '{"recommendations": ["Convert print to structured logging"]}'
-            )
+            mock_result.to_json.return_value = '{"recommendations": ["Convert print to structured logging"]}'
 
             # Mock the complexity object
             mock_complexity = MagicMock()
@@ -621,9 +616,7 @@ logging.info("Test message")
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = (
-                '{"recommendations": ["Convert logging to structlog"]}'
-            )
+            mock_result.to_json.return_value = '{"recommendations": ["Convert logging to structlog"]}'
 
             # Mock the complexity object
             mock_complexity = MagicMock()
@@ -693,9 +686,7 @@ def main():
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
-            mock_result.to_json.return_value = (
-                '{"recommendations": ["Convert wrapper functions to direct logging"]}'
-            )
+            mock_result.to_json.return_value = '{"recommendations": ["Convert wrapper functions to direct logging"]}'
 
             # Mock the complexity object
             mock_complexity = MagicMock()
@@ -808,8 +799,9 @@ def test():
             # Note: check command now uses AST analysis by default, not the old linter
 
     @pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
-    def test_existing_commands_unchanged(self):
+    def test_existing_commands_unchanged(self, caplog):
         """Test that existing commands like lint, dashboard etc. are unchanged."""
+        caplog.set_level(logging.INFO)
         # Test check command (lint was renamed to check)
         result = self.runner.invoke(app, ["check", "--help"])
         assert result.exit_code == 0

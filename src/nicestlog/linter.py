@@ -7,16 +7,14 @@ import argparse
 import ast
 from dataclasses import dataclass
 import fnmatch
-import json
 import os
 from pathlib import Path
 import sys
 from typing import Any
 
-from colorama import Fore, Style
-from colorama import init as colorama_init
 import structlog
 import toml
+from rich.console import Console
 
 from .log_statement_analyzer import (
     analyze_file as analyze_log_statements,
@@ -588,12 +586,11 @@ def lint_directory(
     allow_snake_case: bool = False,
     project_structure=None,
 ) -> bool:
-    import json
-
     """Lint all Python files in a directory and its subdirectories.
 
     Uses smart project structure detection to exclude tests from logging analysis.
     """
+    console = Console()
     # Use project structure detection if provided, otherwise fall back to legacy method
     if project_structure:
         # Smart filtering: only analyze source files for logging coverage
@@ -748,7 +745,7 @@ def lint_directory(
         # Machine-readable JSON output
         import json
 
-        output = {
+        {
             "files": rows,
             "summary": {
                 "total_files": len(python_files),
@@ -764,12 +761,10 @@ def lint_directory(
                 ),
             },
         }
-        print(json.dumps(output, indent=2))
     elif output_format == "toml":
         # Machine-readable TOML output
-        import toml
 
-        output = {
+        {
             "files": rows,
             "summary": {
                 "total_files": len(python_files),
@@ -785,7 +780,6 @@ def lint_directory(
                 ),
             },
         }
-        print(toml.dumps(output))
     else:
         # Check if AST metrics are available for unified display
         ast_metrics = {}
@@ -838,26 +832,26 @@ def lint_directory(
         issues_width = max(len("ISSUES"), *(len(s) for s in issues_plain_list))
         primary_width = max(len("SUMMARY"), *(len(r["primary"]) for r in rows))
 
-        h_module = Fore.CYAN + Style.BRIGHT + "MODULE" + Style.RESET_ALL
-        h_lines = Fore.CYAN + Style.BRIGHT + "LINES" + Style.RESET_ALL
-        h_funcs = Fore.CYAN + Style.BRIGHT + "FUNCS" + Style.RESET_ALL
-        h_classes = Fore.CYAN + Style.BRIGHT + "CLASSES" + Style.RESET_ALL
-        h_logs = Fore.CYAN + Style.BRIGHT + "LOGS" + Style.RESET_ALL
-        h_cov = Fore.CYAN + Style.BRIGHT + "COVERAGE" + Style.RESET_ALL
-        h_issues = Fore.CYAN + Style.BRIGHT + "ISSUES" + Style.RESET_ALL
-        h_summary = Fore.CYAN + Style.BRIGHT + "SUMMARY" + Style.RESET_ALL
+        h_module = "MODULE"
+        h_lines = "LINES"
+        h_funcs = "FUNCS"
+        h_classes = "CLASSES"
+        h_logs = "LOGS"
+        h_cov = "COVERAGE"
+        h_issues = "ISSUES"
+        h_summary = "SUMMARY"
 
         # Build header with or without AST columns
         if ast_metrics:
             header = (
-                f"{h_module.ljust(module_width + (len(h_module) - len('MODULE')))}  "
-                f"{h_lines.rjust(lines_width + (len(h_lines) - len('LINES')))}  "
-                f"{h_funcs.rjust(funcs_width + (len(h_funcs) - len('FUNCS')))}  "
-                f"{h_classes.rjust(classes_width + (len(h_classes) - len('CLASSES')))}  "
-                f"{h_logs.rjust(logs_width + (len(h_logs) - len('LOGS')))}  "
-                f"{h_cov.rjust(cov_width + (len(h_cov) - len('COVERAGE')))}  "
-                f"{h_issues.rjust(issues_width + (len(h_issues) - len('ISSUES')))}  "
-                f"{h_summary.ljust(primary_width + (len(h_summary) - len('SUMMARY')))}"
+                f"{h_module.ljust(module_width)}  "
+                f"{h_lines.rjust(lines_width)}  "
+                f"{h_funcs.rjust(funcs_width)}  "
+                f"{h_classes.rjust(classes_width)}  "
+                f"{h_logs.rjust(logs_width)}  "
+                f"{h_cov.rjust(cov_width)}  "
+                f"{h_issues.rjust(issues_width)}  "
+                f"{h_summary.ljust(primary_width)}"
             )
         else:
             header = (
@@ -868,7 +862,7 @@ def lint_directory(
                 f"{h_issues.rjust(issues_width + (len(h_issues) - len('ISSUES')))}  "
                 f"{h_summary.ljust(primary_width + (len(h_summary) - len('SUMMARY')))}"
             )
-        print(header)
+        console.print(header)
         # Calculate separator width based on whether AST metrics are included
         if ast_metrics:
             sep_width = (
@@ -884,45 +878,23 @@ def lint_directory(
             )
         else:
             sep_width = module_width + lines_width + logs_width + cov_width + issues_width + primary_width + 10
-        print("-" * sep_width)
+        console.print("-" * sep_width)
 
         for r in rows:
             issues_txt = []
             if r["errors"]:
-                issues_txt.append(Fore.RED + f"E{r['errors']}" + Style.RESET_ALL)
+                issues_txt.append(f"E{r['errors']}")
             if r["warnings"]:
-                issues_txt.append(Fore.YELLOW + f"W{r['warnings']}" + Style.RESET_ALL)
+                issues_txt.append(f"W{r['warnings']}")
             issues_cell = " ".join(issues_txt)
             coverage_txt = f"{r['coverage']:.1f}%"
-            coverage_colored = (
-                Fore.GREEN + coverage_txt + Style.RESET_ALL
-                if r["coverage"] >= 5.0 and r["coverage"] <= 15.0
-                else (
-                    Fore.RED + coverage_txt + Style.RESET_ALL
-                    if r["coverage"] < 5.0
-                    else Fore.YELLOW + coverage_txt + Style.RESET_ALL
-                )
-            )
 
-            # Right-pad issues cell based on visible length (strip ANSI)
-            def visible_len(s: str) -> int:
-                # naive removal of color codes we add
-                return (
-                    len(s)
-                    - s.count(Style.RESET_ALL) * len(Style.RESET_ALL)
-                    - s.count(Fore.RED) * len(Fore.RED)
-                    - s.count(Fore.YELLOW) * len(Fore.YELLOW)
-                )
-
-            pad = issues_width - visible_len(issues_cell)
-            issues_cell_padded = issues_cell + (" " * max(0, pad))
+            issues_cell_padded = issues_cell.ljust(issues_width)
 
             # Build and print row with or without AST columns
-            coverage_visible_len = len(coverage_txt)
-            coverage_padded = coverage_colored + (" " * max(0, cov_width - coverage_visible_len))
+            coverage_padded = coverage_txt.rjust(cov_width)
 
-            issues_visible_len = visible_len(issues_cell)
-            issues_padded = issues_cell + (" " * max(0, issues_width - issues_visible_len))
+            issues_padded = issues_cell_padded
 
             if ast_metrics:
                 row = (
@@ -944,43 +916,53 @@ def lint_directory(
                     f"{issues_padded}  "
                     f"{r['primary'].ljust(primary_width)}"
                 )
-            print(row)
+            console.print(row)
 
         # Global issue legend: what E#/W# counts refer to and categories
-        print(Fore.CYAN + Style.BRIGHT + "ISSUE LEGEND" + Style.RESET_ALL)
-        print("E# = Errors (critical issues requiring attention)")
-        print("W# = Warnings (suggestions for improvement)")
-        print()
+        console.print("\nISSUE LEGEND")
+        console.print("E# = Errors (critical issues requiring attention)")
+        console.print("W# = Warnings (suggestions for improvement)")
 
         # Display detailed level issues if any found
         level_issues = [issue for file_path, issue in all_level_issues if issue.category != "wrapper"]
         wrapper_issues = [issue for file_path, issue in all_level_issues if issue.category == "wrapper"]
 
         if level_issues:
-            print(Fore.YELLOW + Style.BRIGHT + "🔧 LOGGING LEVEL ISSUES DETECTED" + Style.RESET_ALL)
+            console.print("🔧 LOGGING LEVEL ISSUES DETECTED")
 
             for file_path, issue in all_level_issues:
                 if issue.category != "wrapper":
-                    print(f"  {file_path}:{issue.line_no} - {issue.reason}")
+                    console.print(f"  {file_path}:{issue.line_no} - {issue.reason}")
 
         # Display wrapper issues if any found
         if wrapper_issues:
-            print(Fore.YELLOW + Style.BRIGHT + "🚫 LOG WRAPPER ANTI-PATTERNS DETECTED" + Style.RESET_ALL)
+            console.print("🚫 LOG WRAPPER ANTI-PATTERNS DETECTED")
 
             for file_path, issue in all_level_issues:
                 if issue.category == "wrapper":
-                    print(f"  {file_path}:{issue.line_no} - {issue.reason}")
+                    console.print(
+                        reason=issue.reason,
+                        _replace_msg=f"  {file_path}:{issue.line_no} - {issue.reason}",
+                    )
 
     if output_format not in {"json", "toml"}:
         pass
 
     if total_issues == 0:
         if output_format not in {"json", "toml"}:
-            print(Fore.GREEN + f"✅ {len(python_files)} files checked - no issues found!" + Style.RESET_ALL)
+            log.info(
+                "linter-no-issues",
+                files=len(python_files),
+                _replace_msg=f"✅ {len(python_files)} files checked - no issues found!",
+            )
         return True
     else:
         if output_format not in {"json", "toml"}:
-            print(Fore.RED + f"❌ {total_issues} files have logging issues" + Style.RESET_ALL)
+            log.info(
+                "linter-issues-found",
+                total_issues=total_issues,
+                _replace_msg=f"❌ {total_issues} files have logging issues",
+            )
         return False
 
 

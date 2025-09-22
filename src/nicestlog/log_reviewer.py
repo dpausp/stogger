@@ -367,7 +367,10 @@ class LogQualityReviewer:
 def review_logs_cli():
     """CLI interface for log review."""
     import argparse
+    import structlog
     import sys
+
+    log = structlog.get_logger()
 
     parser = argparse.ArgumentParser(
         description="Log Quality Reviewer - tells you if your logs are 'arsch' or not",
@@ -402,7 +405,7 @@ def review_logs_cli():
     elif path.is_dir():
         log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
         if not log_files:
-            print("Keine Log-Dateien gefunden", file=sys.stderr)
+            log.error("no-log-files-found", _replace_msg="Keine Log-Dateien gefunden")
             sys.exit(1)
 
         total_score = 0
@@ -417,12 +420,17 @@ def review_logs_cli():
             sys.exit(1)
 
     else:
-        print("Pfad nicht gefunden", file=sys.stderr)
+        log.error("path-not-found", _replace_msg="Pfad nicht gefunden")
         sys.exit(1)
 
 
 def print_report(report: LogQualityReport, format_type: str = "text"):
     """Print the quality report."""
+    import structlog
+    import json
+
+    log = structlog.get_logger()
+
     if format_type == "json":
         print(
             json.dumps(
@@ -433,39 +441,30 @@ def print_report(report: LogQualityReport, format_type: str = "text"):
                     "good_practices": report.good_practices,
                     "suggestions": report.suggestions,
                     "stats": report.stats,
-                }
+                },
+                indent=2,
             )
         )
         return
 
     # Text format with Austrian flair
-    print(f"Log Quality Score: {report.overall_score}")
-    print(f"Verdict: {report.overall_verdict}")
+    print(f"Log Quality Report - Score: {report.overall_score:.1f}% ({report.overall_verdict})")
+    print(f"Files analyzed: {report.stats.get('files_analyzed', 0)}, Events: {report.stats.get('total_events', 0)}")
+
     if report.issues:
-        print("Issues:")
+        print("Issues found:")
         for issue in report.issues:
             print(f"  - {issue}")
+
     if report.good_practices:
-        print("Good Practices:")
+        print("Good practices:")
         for practice in report.good_practices:
-            print(f"  - {practice}")
+            print(f"  + {practice}")
+
     if report.suggestions:
         print("Suggestions:")
         for suggestion in report.suggestions:
-            print(f"  - {suggestion}")
-    print(f"Stats: {report.stats}")
-
-    if report.issues:
-        for _issue in report.issues:
-            pass
-
-    if report.good_practices:
-        for _practice in report.good_practices:
-            pass
-
-    if report.suggestions:
-        for _suggestion in report.suggestions:
-            pass
+            print(f"  * {suggestion}")
 
 
 if __name__ == "__main__":

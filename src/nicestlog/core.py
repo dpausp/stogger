@@ -3,6 +3,7 @@
 from datetime import datetime
 import io
 import json
+import logging
 import os
 import string
 import subprocess
@@ -43,9 +44,7 @@ if sys.stdout.isatty() and colorama:
     YELLOW = colorama.Fore.YELLOW
     GREEN = colorama.Fore.GREEN
 else:
-    RESET_ALL, BRIGHT, DIM, RED, BACKRED, BLUE, CYAN, MAGENTA, YELLOW, GREEN = (
-        "",
-    ) * 10
+    RESET_ALL, BRIGHT, DIM, RED, BACKRED, BLUE, CYAN, MAGENTA, YELLOW, GREEN = ("",) * 10
 
 
 class PartialFormatter(string.Formatter):
@@ -294,13 +293,7 @@ class ConsoleFileRenderer:
         else:
             write(
                 " ".join(
-                    CYAN
-                    + key
-                    + RESET_ALL
-                    + "="
-                    + MAGENTA
-                    + repr(event_dict[key])
-                    + RESET_ALL
+                    CYAN + key + RESET_ALL + "=" + MAGENTA + repr(event_dict[key]) + RESET_ALL
                     for key in sorted(event_dict.keys())
                 ),
             )
@@ -390,9 +383,7 @@ def format_exc_info(logger, name, event_dict):
         formatted_traceback = structlog.processors._format_exception(exc_info)
         event_dict["exception_traceback"] = formatted_traceback
         event_dict["exception_msg"] = str(exc_info[1])
-        event_dict["exception_class"] = (
-            exception_class.__module__ + "." + exception_class.__name__
-        )
+        event_dict["exception_class"] = exception_class.__module__ + "." + exception_class.__name__
 
     return event_dict
 
@@ -429,6 +420,22 @@ class SelectRenderedString:
         return str(event_dict)
 
 
+def log_to_stdlib(logger, name, event_dict):
+    """Bridge structlog events to Python's standard logging for test capture."""
+    level = event_dict.get("level", "info")
+    level_map = {
+        "debug": logging.DEBUG,
+        "info": logging.INFO,
+        "warning": logging.WARNING,
+        "error": logging.ERROR,
+        "critical": logging.CRITICAL,
+    }
+    logging_level = level_map.get(level, logging.INFO)
+    msg = event_dict.get("_replace_msg", event_dict.get("event", ""))
+    logging.log(logging_level, msg)
+    return event_dict
+
+
 def init_logging(*args, **kwargs):
     """Initialize logging with the new reference-style signature.
 
@@ -440,18 +447,10 @@ def init_logging(*args, **kwargs):
     if len(args) >= 1:
         args[0]
         logdir = args[1] if len(args) > 1 else kwargs.get("logdir")
-        log_cmd_output = (
-            args[2] if len(args) > 2 else kwargs.get("log_cmd_output", False)
-        )
-        log_to_console = (
-            args[3] if len(args) > 3 else kwargs.get("log_to_console", True)
-        )
-        syslog_identifier = (
-            args[4] if len(args) > 4 else kwargs.get("syslog_identifier", "nicestlog")
-        )
-        (
-            args[5] if len(args) > 5 else kwargs.get("show_caller_info", False)
-        )
+        log_cmd_output = args[2] if len(args) > 2 else kwargs.get("log_cmd_output", False)
+        log_to_console = args[3] if len(args) > 3 else kwargs.get("log_to_console", True)
+        syslog_identifier = args[4] if len(args) > 4 else kwargs.get("syslog_identifier", "nicestlog")
+        (args[5] if len(args) > 5 else kwargs.get("show_caller_info", False))
     else:
         # All keyword arguments for new style
         kwargs.get("verbose", False)
@@ -475,6 +474,7 @@ def init_logging(*args, **kwargs):
         structlog.processors.StackInfoRenderer(),
         structlog.processors.TimeStamper(fmt="iso", utc=False),
         add_caller_info,
+        log_to_stdlib,
         multi_renderer,
     ]
 
@@ -644,11 +644,7 @@ class SystemdJournalRenderer:
             kv = kv_renderer(
                 None,
                 None,
-                {
-                    k: v
-                    for k, v in event_dict.items()
-                    if k not in KEYS_TO_SKIP_IN_JOURNAL_MESSAGE
-                },
+                {k: v for k, v in event_dict.items() if k not in KEYS_TO_SKIP_IN_JOURNAL_MESSAGE},
             )
 
             if kv:
@@ -658,9 +654,7 @@ class SystemdJournalRenderer:
         event_dict.pop("pid", None)
         code_lineno = event_dict.pop("code_lineno", None)
 
-        event_dict = {
-            k.upper(): self.dump_for_journal(v) for k, v in event_dict.items()
-        }
+        event_dict = {k.upper(): self.dump_for_journal(v) for k, v in event_dict.items()}
 
         event_dict["PRIORITY"] = JOURNAL_LEVELS.get(
             event_dict.get("LEVEL"),
@@ -806,10 +800,7 @@ def init_command_logging(log, logdir=None):
     if logdir is None:
         log.warning(
             "logging-cmd-output-no-logdir",
-            _replace_msg=(
-                "Cannot set up command logging: "
-                "No logdir given and factory context has no logdir either."
-            ),
+            _replace_msg=("Cannot set up command logging: No logdir given and factory context has no logdir either."),
         )
         return
 
@@ -818,9 +809,7 @@ def init_command_logging(log, logdir=None):
     invocation_id = os.environ.get("INVOCATION_ID")
     if invocation_id:
         formatted_dt = datetime.now().strftime("%Y-%m-%dT%H_%m_%S")
-        cmd_log_file_name = (
-            logdir / f"fc-agent/{formatted_dt}_build-output_{invocation_id}.log"
-        )
+        cmd_log_file_name = logdir / f"fc-agent/{formatted_dt}_build-output_{invocation_id}.log"
     else:
         cmd_log_file_name = logdir / "fc-agent/build-output.log"
 

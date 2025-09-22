@@ -2,6 +2,7 @@
 These tests actually run the commands with real functionality.
 """
 
+import logging
 from pathlib import Path
 import subprocess
 import sys
@@ -107,8 +108,9 @@ class TestLintIntegration:
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_lint_python_file_with_logging(self):
+    def test_lint_python_file_with_logging(self, caplog):
         """Test linting a Python file that has good logging."""
+        caplog.set_level(logging.INFO)
         test_file = self.temp_path / "good_logging.py"
         test_file.write_text('''import logging
 
@@ -134,10 +136,11 @@ def main():
 
         # The test file has good logging practices, so it should pass
         assert result.exit_code == 0
-        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
+        assert "All checks passed" in caplog.text or "Unified Code Quality Analysis" in caplog.text
 
-    def test_lint_python_file_with_good_logging(self):
+    def test_lint_python_file_with_good_logging(self, caplog):
         """Test linting a Python file that has appropriate logging coverage."""
+        caplog.set_level(logging.INFO)
         test_file = self.temp_path / "good_coverage.py"
         test_file.write_text('''import logging
 
@@ -172,10 +175,11 @@ def main():
 
         # This should have good logging coverage (around 6-10%)
         assert result.exit_code == 0
-        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
+        assert "All checks passed" in caplog.text or "Unified Code Quality Analysis" in caplog.text
 
-    def test_lint_python_file_with_no_logging(self):
+    def test_lint_python_file_with_no_logging(self, caplog):
         """Test linting a Python file with insufficient logging."""
+        caplog.set_level(logging.INFO)
         test_file = self.temp_path / "bad_logging.py"
         test_file.write_text('''def calculate(x, y):
     """Calculate something without any logging."""
@@ -201,8 +205,9 @@ def main():
         assert result.exit_code in [0, 1]
         assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
 
-    def test_lint_directory_with_mixed_files(self):
+    def test_lint_directory_with_mixed_files(self, caplog):
         """Test linting a directory with both good and bad files."""
+        caplog.set_level(logging.INFO)
         # Create a good file
         good_file = self.temp_path / "good.py"
         good_file.write_text("""
@@ -232,7 +237,7 @@ def another_bad_function():
 
         # Should pass or fail depending on actual analysis
         assert result.exit_code in [0, 1]
-        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
+        assert "All checks passed" in caplog.text or "Unified Code Quality Analysis" in caplog.text
 
     def test_lint_with_strict_mode(self):
         """Test lint command with strict coverage requirements."""

@@ -4,6 +4,7 @@ This module tests AST-based log statement analysis functionality.
 """
 
 import ast
+import logging
 from pathlib import Path
 import tempfile
 
@@ -75,15 +76,10 @@ class TestElementCounting:
 
         # Test threshold cases
         assert analyzer._count_event_id_elements("a-b-c-d-e") == 5  # warning threshold
-        assert (
-            analyzer._count_event_id_elements("a-b-c-d-e-f-g") == 7
-        )  # error threshold
+        assert analyzer._count_event_id_elements("a-b-c-d-e-f-g") == 7  # error threshold
 
         # Test mixed cases
-        assert (
-            analyzer._count_event_id_elements("api-key-validation-failed-retry-needed")
-            == 6
-        )
+        assert analyzer._count_event_id_elements("api-key-validation-failed-retry-needed") == 6
 
     def test_element_count_issues_detection(self):
         """Test that element count issues are properly detected."""
@@ -137,8 +133,7 @@ class TestElementCounting:
         element_issues = [
             issue
             for issue in issues_short
-            if "event_id_many_elements" in issue
-            or "event_id_too_many_elements" in issue
+            if "event_id_many_elements" in issue or "event_id_too_many_elements" in issue
         ]
         assert len(element_issues) == 0
 
@@ -316,9 +311,7 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         assert analyzer._check_event_id_format("user-login") == "dash-case"
-        assert (
-            analyzer._check_event_id_format("data-processing-complete") == "dash-case"
-        )
+        assert analyzer._check_event_id_format("data-processing-complete") == "dash-case"
         assert analyzer._check_event_id_format("test123-event") == "dash-case"
         assert analyzer._check_event_id_format("simple") == "dash-case"
 
@@ -327,9 +320,7 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         assert analyzer._check_event_id_format("user_login") == "snake_case"
-        assert (
-            analyzer._check_event_id_format("data_processing_complete") == "snake_case"
-        )
+        assert analyzer._check_event_id_format("data_processing_complete") == "snake_case"
         assert analyzer._check_event_id_format("simple_event") == "snake_case"
 
     def test_check_event_id_format_camel_case(self):
@@ -367,13 +358,8 @@ my_log = get_logger()
         assert analyzer._convert_to_dash_case("user_login") == "user-login"
         assert analyzer._convert_to_dash_case("userLogin") == "user-login"
         assert analyzer._convert_to_dash_case("UserLogin") == "user-login"
-        assert (
-            analyzer._convert_to_dash_case("DataProcessingComplete")
-            == "data-processing-complete"
-        )
-        assert (
-            analyzer._convert_to_dash_case("already-dash-case") == "already-dash-case"
-        )
+        assert analyzer._convert_to_dash_case("DataProcessingComplete") == "data-processing-complete"
+        assert analyzer._convert_to_dash_case("already-dash-case") == "already-dash-case"
         assert analyzer._convert_to_dash_case("") == ""
 
     def test_detect_issues_missing_event_id(self):
@@ -762,9 +748,7 @@ def problematic_logging():
             assert result.statements_with_event_id == 3
             assert result.statements_without_event_id == 1
             # "Simple message" has spaces so it's invalid format, "user_login" is snake_case
-            assert (
-                result.dash_case_violations == 2
-            )  # Both "user_login" and "Simple message"
+            assert result.dash_case_violations == 2  # Both "user_login" and "Simple message"
             assert result.single_string_args == 1
 
             # Check that issues were detected
@@ -841,14 +825,8 @@ log.debug("user-logout", user_id=123)  # dash-case should still be OK
             assert result.dash_case_violations == 1  # "user_login" is snake_case
 
             # Check that snake_case doesn't trigger format violation
-            snake_case_stmt = next(
-                stmt for stmt in result.statements if stmt.event_id == "user_login"
-            )
-            format_issues = [
-                issue
-                for issue in snake_case_stmt.issues
-                if "event_id_not_dash_case" in issue
-            ]
+            snake_case_stmt = next(stmt for stmt in result.statements if stmt.event_id == "user_login")
+            format_issues = [issue for issue in snake_case_stmt.issues if "event_id_not_dash_case" in issue]
             assert len(format_issues) == 0
 
         finally:
@@ -858,7 +836,7 @@ log.debug("user-logout", user_id=123)  # dash-case should still be OK
 class TestPrintAnalysisSummary:
     """Test the print_analysis_summary function."""
 
-    def test_print_analysis_summary_basic(self, capsys):
+    def test_print_analysis_summary_basic(self, caplog):
         """Test basic analysis summary printing."""
         statements = [
             LogStatement(
@@ -886,15 +864,15 @@ class TestPrintAnalysisSummary:
             magic_args_usage={},
         )
 
+        caplog.set_level(logging.INFO)
         print_analysis_summary(result)
-        captured = capsys.readouterr()
 
-        assert "📁 test.py" in captured.out
-        assert "Total log statements: 1" in captured.out
-        assert "With event ID: 1" in captured.out
-        assert "Without event ID: 0" in captured.out
+        assert "📁 test.py" in caplog.text
+        assert "Total log statements: 1" in caplog.text
+        assert "With event ID: 1" in caplog.text
+        assert "Without event ID: 0" in caplog.text
 
-    def test_print_analysis_summary_with_issues(self, capsys):
+    def test_print_analysis_summary_with_issues(self, caplog):
         """Test analysis summary printing with issues."""
         statements = [
             LogStatement(
@@ -922,11 +900,11 @@ class TestPrintAnalysisSummary:
             magic_args_usage={},
         )
 
+        caplog.set_level(logging.INFO)
         print_analysis_summary(result)
-        captured = capsys.readouterr()
 
-        assert "📁 problematic.py" in captured.out
-        assert "❌ Single string arguments: 1" in captured.out
+        assert "📁 problematic.py" in caplog.text
+        assert "❌ Single string arguments: 1" in caplog.text
 
     def test_print_analysis_summary_empty_file(self, capsys):
         """Test analysis summary for file with no log statements."""
@@ -947,7 +925,7 @@ class TestPrintAnalysisSummary:
         # Should print nothing for empty files
         assert captured.out == ""
 
-    def test_print_analysis_summary_verbose(self, capsys):
+    def test_print_analysis_summary_verbose(self, caplog):
         """Test verbose analysis summary printing."""
         statements = [
             LogStatement(
@@ -975,12 +953,12 @@ class TestPrintAnalysisSummary:
             magic_args_usage={"exc_info": 1},
         )
 
+        caplog.set_level(logging.INFO)
         print_analysis_summary(result, verbose=True)
-        captured = capsys.readouterr()
 
-        assert "📁 detailed.py" in captured.out
-        assert "🪄 Magic args: exc_info:1" in captured.out
-        assert "Detailed statements:" in captured.out
-        assert "L10: error('test-error')" in captured.out
-        assert "magic:['exc_info']" in captured.out
-        assert "❌ some_issue" in captured.out
+        assert "📁 detailed.py" in caplog.text
+        assert "🪄 Magic args: exc_info:1" in caplog.text
+        assert "Detailed statements:" in caplog.text
+        assert "L10: error('test-error')" in caplog.text
+        assert "magic:['exc_info']" in caplog.text
+        assert "❌ some_issue" in caplog.text

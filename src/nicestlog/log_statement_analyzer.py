@@ -442,31 +442,63 @@ def analyze_file(file_path: Path, prefer_dash_case: bool = True) -> LogAnalysisR
 
 def print_analysis_summary(result: LogAnalysisResult, verbose: bool = False) -> None:
     """Print analysis summary for a file."""
+    import structlog
+
+    log = structlog.get_logger()
+
     if result.total_statements == 0:
         return
 
-    print(f"📁 {result.file_path}")
-    print(f"Total log statements: {result.total_statements}")
-    print(f"With event ID: {result.statements_with_event_id}")
-    print(f"Without event ID: {result.statements_without_event_id}")
+    log.info("analysis-summary-file", file=result.file_path.name, _replace_msg=f"📁 {result.file_path.name}")
+    log.info(
+        "analysis-summary-total",
+        count=result.total_statements,
+        _replace_msg=f"Total log statements: {result.total_statements}",
+    )
+    log.info(
+        "analysis-summary-with-event",
+        count=result.statements_with_event_id,
+        _replace_msg=f"With event ID: {result.statements_with_event_id}",
+    )
+    log.info(
+        "analysis-summary-without-event",
+        count=result.statements_without_event_id,
+        _replace_msg=f"Without event ID: {result.statements_without_event_id}",
+    )
 
     if result.dash_case_violations > 0:
-        print(f"Dash case violations: {result.dash_case_violations}")
+        log.info(
+            "analysis-summary-dash-violations",
+            count=result.dash_case_violations,
+            _replace_msg=f"Dash-case violations: {result.dash_case_violations}",
+        )
 
     if result.single_string_args > 0:
-        print(f"❌ Single string arguments: {result.single_string_args}")
+        log.info(
+            "analysis-summary-single-string",
+            count=result.single_string_args,
+            _replace_msg=f"❌ Single string arguments: {result.single_string_args}",
+        )
 
     if result.magic_args_usage:
-        print(f"🪄 Magic args: {', '.join(f'{k}:{v}' for k, v in result.magic_args_usage.items())}")
+        magic_str = ", ".join(f"{arg}:{count}" for arg, count in result.magic_args_usage.items())
+        log.info("analysis-summary-magic-args", _replace_msg=f"🪄 Magic args: {magic_str}")
 
     if verbose:
-        print("Detailed statements:")
+        log.info("analysis-summary-statements", _replace_msg="Detailed statements:")
         for stmt in result.statements:
             args_str = ", ".join(stmt.arguments)
-            print(f"L{stmt.line_number}: {stmt.method}({args_str})")
             status = f" ❌ {', '.join(stmt.issues)}" if stmt.issues else " ✅"
             magic = f" magic:{list(stmt.magic_args)}" if stmt.magic_args else ""
-            print(f"  {status}{magic}")
+            log.info(
+                "analysis-summary-statement",
+                line=stmt.line_number,
+                event_id=stmt.event_id,
+                args=args_str,
+                status=status,
+                magic=magic,
+                _replace_msg=f"L{stmt.line_number}: {stmt.method}({args_str}){status}{magic}",
+            )
 
 
 def main():
