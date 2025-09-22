@@ -14,10 +14,6 @@ The AST-based analyzer (`LogStatementAnalyzer`) automatically detects common log
 **Description**: No event ID (first string argument) found in log call.
 
 ```python
-# ❌ Problematic
-log.info(user_id=123, action="login")
-
-# ✅ Fixed  
 log.info("user-login", user_id=123, action="login")
 ```
 
@@ -27,12 +23,6 @@ log.info("user-login", user_id=123, action="login")
 **Description**: Event ID is not in preferred dash-case format.
 
 ```python
-# ❌ Problematic
-log.info("userLogin", user_id=123)        # camelCase
-log.info("user_login", user_id=123)       # snake_case
-log.info("UserLogin", user_id=123)        # PascalCase
-
-# ✅ Fixed
 log.info("user-login", user_id=123)       # dash-case
 ```
 
@@ -42,10 +32,6 @@ log.info("user-login", user_id=123)       # dash-case
 **Description**: Exactly one string argument with no structured data - missing context.
 
 ```python
-# ❌ Problematic
-log.info("User logged in")
-
-# ✅ Fixed
 log.info("user-login", user_id=123, session_id="abc123")
 ```
 
@@ -68,10 +54,6 @@ log.info("user-action", action=action, user_id=123)
 **Description**: `log.debug(...)` used together with `_replace_msg` (usually not needed).
 
 ```python
-# ❌ Problematic
-log.debug("debug-info", data=value, _replace_msg="Custom debug message")
-
-# ✅ Fixed
 log.debug("debug-info", data=value)
 ```
 
@@ -81,12 +63,6 @@ log.debug("debug-info", data=value)
 **Description**: More than 7 regular keyword arguments (excluding magic args) - too complex/verbose.
 
 ```python
-# ❌ Problematic
-log.info("complex-event", 
-         arg1=1, arg2=2, arg3=3, arg4=4, 
-         arg5=5, arg6=6, arg7=7, arg8=8)
-
-# ✅ Fixed - group related data
 log.info("complex-event", 
          user_data={"id": 1, "name": "Alice"},
          request_data={"method": "POST", "path": "/api"})
@@ -98,10 +74,6 @@ log.info("complex-event",
 **Description**: Event ID present, but no keyword arguments and no `_replace_msg` - structured data missing.
 
 ```python
-# ❌ Problematic
-log.info("user-login")
-
-# ✅ Fixed
 log.info("user-login", user_id=123, ip="192.168.1.1")
 ```
 
@@ -111,10 +83,6 @@ log.info("user-login", user_id=123, ip="192.168.1.1")
 **Description**: `debug` level used for event IDs that sound like errors.
 
 ```python
-# ❌ Problematic
-log.debug("database-error", error="Connection failed")
-
-# ✅ Fixed
 log.error("database-error", error="Connection failed")
 ```
 
@@ -124,10 +92,6 @@ log.error("database-error", error="Connection failed")
 **Description**: `error`/`critical` level while event ID looks like info/debug.
 
 ```python
-# ❌ Problematic
-log.error("user-info-updated", user_id=123)
-
-# ✅ Fixed
 log.info("user-info-updated", user_id=123)
 ```
 
@@ -137,10 +101,6 @@ log.info("user-info-updated", user_id=123)
 **Description**: Keyword name appears sensitive (possible credential leak).
 
 ```python
-# ❌ Problematic
-log.info("api-call", password="secret123", api_key="sk_live_...")
-
-# ✅ Fixed
 log.info("api-call", user_id=123, endpoint="/api/users")
 ```
 
@@ -156,10 +116,6 @@ log.info("api-call", user_id=123, endpoint="/api/users")
 **Description**: Event ID is longer than 50 characters.
 
 ```python
-# ❌ Problematic
-log.info("this-is-a-very-long-event-id-that-exceeds-the-recommended-maximum-length")
-
-# ✅ Fixed
 log.info("long-operation-completed", operation_type="data-processing")
 ```
 

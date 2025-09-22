@@ -248,11 +248,6 @@ nicestlog's `check` command enforces specific logging quality rules to ensure co
 - Aim for at least one log statement per significant function
 
 ```python
-# ❌ Bad: No logging in a utility function
-def calculate_total(items):
-    return sum(item.price for item in items)
-
-# ✅ Good: Add logging for observability
 def calculate_total(items):
     log.debug("calculating-total", item_count=len(items))
     total = sum(item.price for item in items)
@@ -271,13 +266,6 @@ def calculate_total(items):
 - The exception message and stack trace are already captured
 
 ```python
-# ❌ Bad: Redundant error parameter
-try:
-    risky_operation()
-except ValueError as e:
-    log.exception("operation-failed", error=str(e))
-
-# ✅ Good: Let log.exception() handle the exception
 try:
     risky_operation()
 except ValueError as e:
@@ -295,13 +283,6 @@ except ValueError as e:
 - Reserve `log.info()` for events users care about
 
 ```python
-# ❌ Bad: Internal operation at INFO level
-def load_config():
-    log.info("loading-config")  # Too verbose for users
-    config = _load_from_file()
-    log.info("config-loaded")   # Completion message at INFO
-
-# ✅ Good: Internal operations at DEBUG
 def load_config():
     log.debug("loading-config", config_path=str(config_path))
     config = _load_from_file()
@@ -320,12 +301,6 @@ def load_config():
 - Background processing: `log.debug()`
 
 ```python
-# ❌ Bad: User command logged at DEBUG
-@app.command()
-def deploy():
-    log.debug("deploy-command-started")  # Users won't see this
-
-# ✅ Good: User command at INFO
 @app.command()
 def deploy():
     log.info("deployment-started", _replace_msg="🚀 Starting deployment...")

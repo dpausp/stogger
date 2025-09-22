@@ -46,11 +46,7 @@ uv run mypy src/nicestlog/filename.py --show-error-codes
 ### Container Type Annotations
 
 ```python
-# ❌ Poor - mypy infers Any
-data = {}
-items = []
-
-# ✅ Good - explicit types
+# Explicit types
 data: Dict[str, Any] = {}
 items: List[str] = []
 ```
@@ -58,12 +54,6 @@ items: List[str] = []
 ### Optional Type Handling
 
 ```python
-# ❌ Poor - runtime errors possible
-def process(data: Optional[List[str]]):
-    for item in data:  # Error if data is None
-        print(item)
-
-# ✅ Good - proper null checking
 def process(data: Optional[List[str]]):
     if data is not None:
         for item in data:
@@ -75,13 +65,10 @@ def process(data: Optional[List[str]]):
 The most common issue in nicestlog was `dict.get()` returning `object` type:
 
 ```python
-# ❌ Poor - returns object type
-missing_keys = result.get("missing_keys", [])
-
-# ✅ Good - explicit casting
+# Explicit casting
 missing_keys = cast(List[str], result.get("missing_keys", []))
 
-# ✅ Alternative - type annotation with ignore
+# Alternative - type annotation with ignore
 missing_keys: List[str] = result.get("missing_keys", [])  # type: ignore[assignment]
 ```
 
@@ -205,21 +192,7 @@ def complex_function(
 
 ## Common Anti-Patterns
 
-### ❌ What NOT to Do
-
-```python
-# Don't scatter type ignores everywhere
-data = get_data()  # type: ignore
-process(data)  # type: ignore
-
-# Don't use overly broad ignores
-result = function()  # type: ignore
-
-# Don't ignore without understanding the error
-problematic_call()  # type: ignore
-```
-
-### ✅ Better Approaches
+### Better Approaches
 
 ```python
 # Fix root causes with proper typing

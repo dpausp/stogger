@@ -37,11 +37,7 @@ log.error("database-connection-failed", _replace_msg="Database connection failed
 nicestlog promotes event-style logging where each log entry represents a specific event:
 
 ```python
-# ✅ Good: Event-style with structured data
 log.info("order-created", _replace_msg="Order {order_id} created for customer {customer_id}", order_id=12345, customer_id=67890, amount=99.99)
-
-# ❌ Avoid: String formatting without structure
-log.info(f"Order {order_id} created for customer {customer_id}")
 ```
 
 ### Structured Data
