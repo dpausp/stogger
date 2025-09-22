@@ -90,7 +90,7 @@ log.info(
 )
 ```
 
-For more examples and best practices, see the [documentation](docs/user_guide/best_practices.md).
+📚 **Important**: Read the [Best Practices](docs/user_guide/best_practices.md) guide for effective logging patterns and common pitfalls to avoid.
 
 For detailed CLI reference and command documentation, see [CLI Reference](docs/user_guide/cli_reference.md).
 
@@ -121,32 +121,6 @@ nicestlog docs                         # Browse documentation
 nicestlog docs --pager                 # Browse documentation with pager
 nicestlog tools demo                   # Run interactive demos
 ```
-
-## CLI Docs Viewer
-
-Use the built-in docs viewer to read project docs with colorized Markdown rendering.
-
-```bash
-# Show all docs (prefers local README.md + docs/*.md, falls back to packaged)
-uv run nicestlog docs
-
-# Show a specific doc by filename
-uv run nicestlog docs README.md
-
-# Use a glob pattern
-uv run nicestlog docs 'docs/*.md'
-
-# Use pager for displaying docs (uses glow, bat, or less/more)
-uv run nicestlog docs --pager
-```
-
-Behavior:
-- Prefers local files: ./README.md and ./docs/*.md
-- Falls back to packaged docs when installed as a package
-- Supports selecting a specific file or glob pattern
-- Uses Rich markdown rendering (with a code theme) for a pleasant reading experience
-- With --pager flag, uses glow (if installed), bat (if installed), or falls back to less/more
-
 
 ## 🚀 Project Migration & Code Analysis
 
