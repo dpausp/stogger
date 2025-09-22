@@ -22,48 +22,48 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Führe uv run nicestlog check aus und analysiere Output**
+1. [x] **Führe uv run nicestlog check aus und analysiere Output**
 
    - **Context**: Verstehe, was der Linter testet.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] Output von nicestlog check gesammelt
-     - [ ] Liste der getesteten Dinge extrahiert (z.B. Logging-Konventionen, Imports, etc.)
+     - [x] Output von nicestlog check gesammelt
+     - [x] Liste der getesteten Dinge extrahiert (z.B. Logging-Konventionen, Imports, etc.)
 
    - **Files to check/modify**
 
-     - [ ] Keine Änderungen
+     - [x] Keine Änderungen
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Run uv run nicestlog check
-     - [ ] Sammle die Ausgabe
-     - [ ] Identifiziere alle gemeldeten Issues und Regeln
+     - [x] Run uv run nicestlog check
+     - [x] Sammle die Ausgabe
+     - [x] Identifiziere alle gemeldeten Issues und Regeln
 
    - **Commit message hint**: "Analyze nicestlog check output for tested rules"
 
-1. [ ] **Überprüfe Dokumentation auf Vollständigkeit**
+1. [x] **Überprüfe Dokumentation auf Vollständigkeit**
 
    - **Context**: Stelle sicher, dass alle getesteten Dinge dokumentiert sind.
 
    - **Success criteria**
 
-     - [ ] Alle getesteten Regeln in docs/ gefunden
-     - [ ] Dokumentation enthält Beispiele und Erklärungen
-     - [ ] User können daraus lernen, wie richtig implementieren
+     - [x] Alle getesteten Regeln in docs/ gefunden
+     - [x] Dokumentation enthält Beispiele und Erklärungen
+     - [x] User können daraus lernen, wie richtig implementieren
 
    - **Files to check/modify**
 
-     - [ ] docs/user_guide/logging_conventions.md
-     - [ ] docs/user_guide/best_practices.md
-     - [ ] Andere relevante docs/
+     - [x] docs/user_guide/logging_conventions.md
+     - [x] docs/user_guide/best_practices.md
+     - [x] Andere relevante docs/
 
    - **Steps**
 
-     - [ ] Lies relevante Dokumentationsdateien
-     - [ ] Vergleiche mit der Liste der getesteten Dinge
-     - [ ] Identifiziere fehlende Dokumentation
-     - [ ] Vorschlage Ergänzungen falls nötig
+     - [x] Lies relevante Dokumentationsdateien
+     - [x] Vergleiche mit der Liste der getesteten Dinge
+     - [x] Identifiziere fehlende Dokumentation
+     - [x] Vorschlage Ergänzungen falls nötig
 
    - **Commit message hint**: "Review documentation for linter-tested rules completeness"
