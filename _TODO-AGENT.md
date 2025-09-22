@@ -22,44 +22,44 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Entferne ❌ Beispiele aus best_practices.md**
+1. [x] **Entferne ❌ Beispiele aus best_practices.md**
 
-   - **Context**: Anti-Patterns zeigen schlechte Beispiele, die Kontext verseuchen.
+    - **Context**: Anti-Patterns zeigen schlechte Beispiele, die Kontext verseuchen.
 
-   - **Success criteria** (must be checked to finish task)
+    - **Success criteria** (must be checked to finish task)
 
-     - [ ] Alle ❌ Code-Blöcke entfernt
-     - [ ] ✅ Beispiele bleiben
-     - [ ] Erklärungen angepasst falls nötig
+      - [x] Alle ❌ Code-Blöcke entfernt
+      - [x] ✅ Beispiele bleiben
+      - [x] Erklärungen angepasst falls nötig
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [ ] docs/user_guide/best_practices.md
+      - [x] docs/user_guide/best_practices.md
 
-   - **Steps** (always action verbs, explicit order)
+    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Durchsuche nach ❌ Beispielen
-     - [ ] Entferne sie komplett
-     - [ ] Stelle sicher, ✅ Beispiele bleiben klar
+      - [x] Durchsuche nach ❌ Beispielen
+      - [x] Entferne sie komplett
+      - [x] Stelle sicher, ✅ Beispiele bleiben klar
 
-   - **Commit message hint**: "docs: remove negative code examples from best practices"
+    - **Commit message hint**: "docs: remove negative code examples from best practices"
 
-1. [ ] **Prüfe andere docs auf ❌ Beispiele**
+1. [x] **Prüfe andere docs auf ❌ Beispiele**
 
-   - **Context**: Stelle sicher, keine anderen docs betroffen.
+    - **Context**: Stelle sicher, keine anderen docs betroffen.
 
-   - **Success criteria**
+    - **Success criteria**
 
-     - [ ] Andere docs-Dateien geprüft
-     - [ ] Keine ❌ Beispiele gefunden oder entfernt
+      - [x] Andere docs-Dateien geprüft
+      - [x] Keine ❌ Beispiele gefunden oder entfernt
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [ ] docs/ Verzeichnis
+      - [x] docs/ Verzeichnis
 
-   - **Steps**
+    - **Steps**
 
-     - [ ] Grep nach ❌ in docs/
-     - [ ] Entferne falls gefunden
+      - [x] Grep nach ❌ in docs/
+      - [x] Entferne falls gefunden
 
-   - **Commit message hint**: "docs: check and remove negative examples from all docs"
+    - **Commit message hint**: "docs: check and remove negative examples from all docs"
