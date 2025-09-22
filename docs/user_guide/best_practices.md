@@ -270,53 +270,16 @@ log.info("user-login-successful", user_id=123)
 ### 4. Log Wrapper Functions
 
 ```python
-# ❌ Avoid: Wrapper functions hide source location
-def log_debug(message):
-    print(f"DEBUG: {message}")
-
-def write_info(msg):
-    logging.info(msg)
-
-def emit_warning(text):
-    logger.warning(text)
-
+# ❌ Avoid: Wrappers hide source location and reduce flexibility
 def log_user_action(user_id, action):
     log.info(f"User {user_id} performed {action}")
 
-# Usage creates problems
-log_debug("Starting application")  # Where did this actually happen?
-write_info("Processing data")      # Hard to trace back to source
-emit_warning("Low disk space")     # Lost structured data opportunity
-log_user_action(123, "login")      # No flexibility for additional context
-
-# ✅ Better: Direct logging with structure
-import structlog
-log = structlog.get_logger()
-
-# Direct calls with proper structure
-log.debug("application-starting", component="main", version="1.2.3")
-log.info("data-processing", status="started", batch_id="batch_001")
-log.warning("disk-space-low", available_gb=2.1, threshold_gb=5.0)
+# ✅ Better: Direct structured logging
 log.info("user-action", user_id=123, action="login", ip="192.168.1.100")
 ```
 
-**Why wrapper functions are problematic:**
-- **Hidden source location**: Stack traces show the wrapper, not the actual call site
-- **Reduced flexibility**: Wrappers limit structured data you can include
-- **Maintenance overhead**: Extra functions to test and maintain
-- **Inconsistent patterns**: Different developers create different wrapper styles
-- **Lost debugging context**: The actual call site information is obscured
-
-**Detection**: Use `nicestlog check .` to automatically detect wrapper anti-patterns in structlog-based codebases. For legacy projects without structlog, use `nicestlog migrate .` to analyze and migrate to structured logging.
+Wrapper functions obscure stack traces and limit structured data. Use direct logging calls instead.
 
 ## Summary
 
-Following these best practices will help you:
-
-- Create more maintainable and searchable logs
-- Improve application observability
-- Reduce debugging time
-- Enhance security posture
-- Build better monitoring and alerting
-
-Remember: Good logging is an investment in your application's maintainability and operational excellence!
+Good logging practices improve observability, debugging, and maintenance. Follow these patterns for better structured logs.

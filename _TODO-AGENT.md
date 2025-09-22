@@ -22,45 +22,45 @@ ______________________________________________________________________
 
 *(Top-level numbered tasks with checkboxes, each with sub-structure – explicit, not vague)*
 
-1. [ ] **Kürze Anti-Patterns Abschnitt in best_practices.md**
+1. [x] **Kürze Anti-Patterns Abschnitt in best_practices.md**
 
    - **Context**: Der Abschnitt über wrapper functions ist zu detailliert.
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] Wrapper functions Erklärung gekürzt
-     - [ ] Detection-Teil entfernt oder gekürzt
-     - [ ] Essentials bleiben
+     - [x] Wrapper functions Erklärung gekürzt
+     - [x] Detection-Teil entfernt oder gekürzt
+     - [x] Essentials bleiben
 
    - **Files to check/modify**
 
-     - [ ] docs/user_guide/best_practices.md
+     - [x] docs/user_guide/best_practices.md
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Lies aktuellen Anti-Patterns Abschnitt
-     - [ ] Entferne detaillierte Erklärung
-     - [ ] Behalte kurze Warnung
+     - [x] Lies aktuellen Anti-Patterns Abschnitt
+     - [x] Entferne detaillierte Erklärung
+     - [x] Behalte kurze Warnung
 
    - **Commit message hint**: "docs: shorten anti-patterns section in best practices"
 
-1. [ ] **Straffe Summary Abschnitt**
+1. [x] **Straffe Summary Abschnitt**
 
    - **Context**: Summary ist zu lang und repetitiv.
 
    - **Success criteria**
 
-     - [ ] Summary gekürzt auf Essentials
-     - [ ] Wiederholungen entfernt
+     - [x] Summary gekürzt auf Essentials
+     - [x] Wiederholungen entfernt
 
    - **Files to check/modify**
 
-     - [ ] docs/user_guide/best_practices.md
+     - [x] docs/user_guide/best_practices.md
 
    - **Steps**
 
-     - [ ] Lies Summary
-     - [ ] Kürze auf 2-3 Bullet Points
-     - [ ] Entferne redundanten Text
+     - [x] Lies Summary
+     - [x] Kürze auf 2-3 Bullet Points
+     - [x] Entferne redundanten Text
 
    - **Commit message hint**: "docs: streamline summary in best practices"
