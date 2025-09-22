@@ -547,12 +547,21 @@ def check(
                         progress.remove_task(task)
 
                 # Display unified table with AST insights integrated
-                lint_success = _display_unified_check_analysis(ast_results, complexity, verbose)
+                lint_success = _display_unified_check_analysis(
+                    ast_results, complexity, verbose, directory=path_obj, project_structure=project_structure
+                )
                 ast_issues = ast_results
             else:
                 console.print(
                     "❌ [red]No Python files found in directory (after applying .gitignore)[/red]",
                 )
+
+    # Display AST issues in detail if found
+    if ast_issues and _has_ast_issues(ast_issues):
+        console.print("\n🔬 [bold red]AST Issues Found:[/bold red]")
+        for result in ast_issues:
+            if result.issues:
+                console.print(f"  {result.file_path.name}: {', '.join(result.issues)}")
 
     # 3. Interactive Mode
     if interactive and ast_issues:
@@ -727,6 +736,8 @@ def _display_unified_check_analysis(
     results: list[CodeAnalysisResult],
     show_complexity: bool,
     verbose: bool = False,
+    directory: Path | None = None,
+    project_structure=None,
 ) -> bool:
     """Display unified analysis results combining logging quality and AST metrics."""
     from .linter import lint_directory
@@ -736,8 +747,9 @@ def _display_unified_check_analysis(
     total_ast_issues = 0
     all_ast_insights = []
 
+    directory_path = directory or results[0].file_path.parent
     for result in results:
-        ast_metrics[result.file_path.name] = {
+        ast_metrics[str(result.file_path.relative_to(directory_path))] = {
             "functions": result.function_count,
             "classes": result.class_count,
             "complexity": result.complexity_score if show_complexity else None,
@@ -759,10 +771,9 @@ def _display_unified_check_analysis(
 
     lint_success = True
     try:
-        # Get the directory path from the first result
+        # Get the directory path
         if results:
-            directory_path = results[0].file_path.parent
-            lint_success = lint_directory(directory_path)
+            lint_success = lint_directory(directory_path, project_structure=project_structure)
         # Note: lint_success used for return
     finally:
         # Clean up environment variable
