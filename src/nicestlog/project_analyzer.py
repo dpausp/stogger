@@ -533,21 +533,6 @@ class ProjectAnalyzer:
 
                 return False
 
-                func_name = self._get_full_func_name(node.func)
-                if not func_name:
-                    return False
-
-                # Check if it's a logging method call
-                if "." in func_name:
-                    module_part, method_part = func_name.rsplit(".", 1)
-                    # Check if module is a logger variable or logging module
-                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
-                        module_part.startswith("log") or module_part == "logging"
-                    ):
-                        return True
-
-                return False
-
             def _is_structlog_get_logger_call(self, node: ast.Call) -> bool:
                 """Check if this is structlog.get_logger() call."""
                 if not isinstance(node.func, ast.Attribute):
@@ -582,21 +567,6 @@ class ProjectAnalyzer:
                     var_name = node.func.value.id
                     if var_name in self.logger_variables and self.logger_variables[var_name] == "structlog":
                         return True
-
-                func_name = self._get_full_func_name(node.func)
-                if not func_name:
-                    return False
-
-                # Check for structlog method calls
-                if "." in func_name:
-                    module_part, method_part = func_name.rsplit(".", 1)
-                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
-                        module_part.startswith("log") or "structlog" in module_part
-                    ):
-                        return True
-
-                # Check for structlog.get_logger()
-                return func_name == "structlog.get_logger"
 
                 func_name = self._get_full_func_name(node.func)
                 if not func_name:
