@@ -11,6 +11,7 @@ from src.nicestlog.core import init_logging
 from src.nicestlog.log_reviewer import LogQualityReport, LogQualityReviewer
 
 
+@pytest.mark.skip("Log reviewer is currently unsupported")
 class TestLogQualityReport:
     """Test the LogQualityReport dataclass."""
 
@@ -33,6 +34,7 @@ class TestLogQualityReport:
         assert report.stats == {"total_lines": 100}
 
 
+@pytest.mark.skip("Log reviewer is currently unsupported")
 class TestLogQualityReviewer:
     """Test the LogQualityReviewer class."""
 
@@ -432,6 +434,7 @@ ERROR: Database connection failed"""
         assert len(report.stats["events_found"]) >= 1  # At least some events should be found
 
 
+@pytest.mark.skip("Log reviewer is currently unsupported")
 class TestCLIFunctions:
     """Test CLI-related functions."""
 

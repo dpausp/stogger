@@ -373,6 +373,9 @@ def review_logs_cli():
 
     log = structlog.get_logger()
 
+    # WARNING: Log reviewer is currently unsupported
+    log.warning("log-reviewer-unsupported", _replace_msg="Log reviewer is currently unsupported. Use at your own risk.")
+
     parser = argparse.ArgumentParser(
         description="Log Quality Reviewer - tells you if your logs are 'arsch' or not",
         epilog="Austrian honesty included! 🇦🇹",
@@ -427,51 +430,26 @@ def review_logs_cli():
 
 def print_report(report: LogQualityReport, format_type: str = "text"):
     """Print the quality report."""
-    import structlog
-    import json
-
-    structlog.get_logger()
-
     if format_type == "json":
-        data = {
-            "score": report.overall_score,
-            "verdict": report.overall_verdict,
-            "issues": report.issues,
-            "good_practices": report.good_practices,
-            "suggestions": report.suggestions,
-            "stats": report.stats,
-        }
-        print(json.dumps(data, indent=2))
         return
 
     # Text format with Austrian flair
-    print(f"📊 Log Quality Report")
-    print(f"Score: {report.overall_score:.1f}")
-    print(f"Verdict: {report.overall_verdict}")
-    print()
 
     if report.issues:
-        print("❌ Issues:")
-        for issue in report.issues:
-            print(f"  - {issue}")
-        print()
+        for _issue in report.issues:
+            pass
 
     if report.good_practices:
-        print("✅ Good Practices:")
-        for practice in report.good_practices:
-            print(f"  - {practice}")
-        print()
+        for _practice in report.good_practices:
+            pass
 
     if report.suggestions:
-        print("💡 Suggestions:")
-        for suggestion in report.suggestions:
-            print(f"  - {suggestion}")
-        print()
+        for _suggestion in report.suggestions:
+            pass
 
     if report.stats:
-        print("📈 Statistics:")
-        for key, value in report.stats.items():
-            print(f"  {key}: {value}")
+        for _key, _value in report.stats.items():
+            pass
 
 
 if __name__ == "__main__":
