@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from importlib import resources
 import importlib.metadata
+import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -34,13 +36,19 @@ from .advanced_assistant import (
 )
 from .assistant import migrate_directory, migrate_file
 from .cli_output_transformer import migrate_cli_outputs_file
+from .config import detect_project_structure
+from .gitignore_utils import filter_python_files
 from .interactive_transformer import (
     InteractiveTransformer,
 )
+from .linter import lint_directory
+from . import project_analyzer
 
 
 # Type protocol for migration results to handle different result types
 class MigrationResultProtocol(Protocol):
+    """Protocol for migration result types."""
+
     files_processed: int
     transformations_applied: int
     errors: int
@@ -53,7 +61,7 @@ console = Console()
 
 
 # Version callback function
-def version_callback(value: bool):
+def version_callback(*, value: bool):
     """Show version and exit."""
     if value:
         try:
@@ -140,6 +148,7 @@ def tools_journal(
         int,
         typer.Option("--lines", "-n", help="Number of lines to show"),
     ] = 50,
+    *,
     follow: Annotated[
         bool,
         typer.Option("--follow", "-f", help="Follow log output"),
@@ -181,7 +190,7 @@ if FLASK_AVAILABLE_FOR_CLI:
             typer.Option("--host", help="Host to bind to"),
         ] = "127.0.0.1",
         port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
-        debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
+        debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,  # noqa: FBT002
     ):
         """🌐 Start the web dashboard."""
         run_dashboard_cmd(host, port, debug)
@@ -194,7 +203,7 @@ tools_app.add_typer(i18n_app, name="i18n")
 
 # Add i18n check command
 @i18n_app.command("check")
-def i18n_check(
+def i18n_check(  # noqa: PLR0913
     src_dir: str = typer.Argument(..., help="Source directory to check"),
     translation_dir: str | None = typer.Option(
         None,
@@ -205,6 +214,7 @@ def i18n_check(
         str,
         typer.Option("-l", "--language", help="Language code"),
     ] = "en",
+    *,
     list_missing: Annotated[
         bool,
         typer.Option("--list-missing", help="List missing translations"),
@@ -220,7 +230,7 @@ def i18n_check(
     verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
 ):
     """🌍 Check translation completeness and quality."""
-    from .i18n_check import check_translations
+    from .i18n_check import check_translations  # noqa: PLC0415
 
     try:
         # Convert src_dir to Path and get all Python files
@@ -254,7 +264,7 @@ def i18n_check(
 
         # Normal mode: print report if verbose or if there are issues
         if verbose or missing_keys or extra_keys:
-            from .i18n_check import format_report
+            from .i18n_check import format_report  # noqa: PLC0415
 
             report_text = format_report(result, include_debug=verbose)
             console.print(report_text)
@@ -264,7 +274,7 @@ def i18n_check(
         if has_errors:
             sys.exit(1)
 
-    except Exception as e:
+    except (ValueError, OSError) as e:
         console.print(f"❌ [red]Error checking translations: {e}[/red]")
         sys.exit(2)
 
@@ -300,19 +310,19 @@ def init_config():
     config["enable_performance_monitoring"] = input("Enable performance monitoring? [y/N]: ").lower() == "y"
 
     # Write config to pyproject.toml
-    import toml
+    import toml  # noqa: PLC0415
 
     try:
-        with open(pyproject_path) as f:
+        with Path(pyproject_path).open() as f:
             pyproject = toml.load(f)
-    except Exception:
+    except Exception:  # noqa: BLE001
         pyproject = {}
 
     if "tool" not in pyproject:
         pyproject["tool"] = {}
     pyproject["tool"]["nicestlog"] = config
 
-    with open(pyproject_path, "w") as f:
+    with Path(pyproject_path).open("w") as f:
         toml.dump(pyproject, f)
 
     log.debug("config-wizard-completed", config=config)
@@ -320,6 +330,7 @@ def init_config():
 
 @app.command()
 def docs(
+    *,
     interactive: Annotated[
         bool,
         typer.Option("--interactive", "-i", help="Interactive docs browser"),
@@ -335,9 +346,9 @@ def docs(
 ):
     """📚 Show documentation and examples."""
     if interactive:
-        _show_docs_interactive(pager)
+        _show_docs_interactive(use_pager=pager)
     elif feature:
-        _show_feature_docs(feature, pager)
+        _show_feature_docs(feature, use_pager=pager)
     else:
         _show_markdown_files(
             [
@@ -353,6 +364,7 @@ def docs(
 def docs_serve(
     port: Annotated[int, typer.Option("--port", "-p", help="Port to serve on")] = 8000,
     host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "127.0.0.1",
+    *,
     open_browser: Annotated[
         bool,
         typer.Option("--open/--no-open", help="Open browser automatically"),
@@ -369,12 +381,12 @@ def docs_serve(
 @app.command("init")
 def init_config_cmd(
     path: str = typer.Argument(".", help="Project path to initialize"),
-    template: str | None = typer.Option(
+    template: str | None = typer.Option(  # noqa: ARG001
         None,
         "--template",
         help="Configuration template",
     ),
-    force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
+    force: bool = typer.Option(False, "--force", help="Overwrite existing config"),  # noqa: ARG001,FBT001,FBT003
 ):
     """🔧 Initialize nicestlog configuration."""
     # Enhanced init command that works with any project path
@@ -389,7 +401,7 @@ def init_config_cmd(
         target_path = target_path.parent
 
     # Change to target directory for init_config
-    import os
+    import os  # noqa: PLC0415
 
     os.chdir(target_path)
 
@@ -403,6 +415,7 @@ def init_config_cmd(
 @app.command()
 def check(
     path: Annotated[str, typer.Argument(help="Path to check")] = ".",
+    *,
     fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
     interactive: Annotated[
         bool,
@@ -443,13 +456,8 @@ def check(
     """
     # Initialize proper logging format
 
-    import nicestlog
-
     nicestlog.init_logging(verbose=verbose)
     log = structlog.get_logger()
-
-    from .config import detect_project_structure
-    from .linter import lint_directory
 
     path_obj = Path(path)
     if not path_obj.exists():
@@ -519,7 +527,7 @@ def check(
         # Perform AST analysis
         if path_obj.is_file():
             ast_result = assistant.analyze_file(path_obj)
-            _display_check_analysis_result(ast_result, complexity, verbose)
+            _display_check_analysis_result(ast_result, show_complexity=complexity, verbose=verbose)
 
             # Store issues for potential fixing
             ast_issues = [ast_result]
@@ -527,8 +535,6 @@ def check(
 
         elif path_obj.is_dir():
             # Use gitignore-aware file filtering
-            from .gitignore_utils import filter_python_files
-
             python_files = filter_python_files(path_obj, respect_gitignore=True)
 
             if python_files:
@@ -554,7 +560,11 @@ def check(
 
                 # Display unified table with AST insights integrated
                 lint_success = _display_unified_check_analysis(
-                    ast_results, complexity, verbose, directory=path_obj, project_structure=project_structure
+                    ast_results,
+                    show_complexity=complexity,
+                    verbose=verbose,
+                    directory=path_obj,
+                    project_structure=project_structure,
                 )
                 ast_issues = ast_results
             else:
@@ -584,8 +594,6 @@ def check(
             transformer.transform_file_interactive(path_obj)
         else:
             # For directories, process files one by one (respecting gitignore)
-            from .gitignore_utils import filter_python_files
-
             python_files = filter_python_files(path_obj, respect_gitignore=True)
             for py_file in python_files:
                 log.info("check-processing-file", file=str(py_file), _replace_msg=f"Processing: {py_file}")
@@ -605,9 +613,6 @@ def check(
             _display_transformation_result(transform_result, dry_run)
         else:
             # Use gitignore-aware file filtering and respect project structure
-            from .config import detect_project_structure
-            from .gitignore_utils import filter_python_files
-
             # Detect project structure to get source directories
             project_structure = detect_project_structure(path_obj)
 
@@ -656,10 +661,8 @@ def check(
         log.info("check-all-passed", _replace_msg="All checks passed!")
 
 
-def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: bool, verbose: bool = False):
+def _display_check_analysis_result(result: CodeAnalysisResult, *, show_complexity: bool, verbose: bool = False):
     """Display analysis results for check command."""
-    import structlog
-
     log = structlog.get_logger()
     if verbose or show_complexity:
         log.info(
@@ -715,12 +718,12 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
                 log.info("Logging Improvement Opportunities:")
                 for _i, issue in enumerate(logging_issues, 1):
                     priority = "High" if "print" in issue.lower() else "Medium"
-                    log.info(f"  {priority}: {issue}")
+                    log.info("logging-issue", priority=priority, issue=issue, _replace_msg=f"  {priority}: {issue}")
 
             if general_issues:
                 log.info("Code Quality Issues:")
                 for issue in general_issues:
-                    log.info(f"  Complexity: {issue}")
+                    log.info("code-quality-issue", issue=issue, _replace_msg=f"  Complexity: {issue}")
 
             # Add summary with actionable suggestions
             if logging_issues:
@@ -757,16 +760,15 @@ def _display_check_analysis_result(result: CodeAnalysisResult, show_complexity: 
 
 def _display_unified_check_analysis(
     results: list[CodeAnalysisResult],
+    *,
     show_complexity: bool,
     verbose: bool = False,
     directory: Path | None = None,
     project_structure=None,
 ) -> bool:
     """Display unified analysis results combining logging quality and AST metrics."""
-    import structlog
-
+    max_insights = 5
     log = structlog.get_logger()
-    from .linter import lint_directory
 
     # Extract AST metrics for integration with linter output
     ast_metrics = {}
@@ -790,9 +792,6 @@ def _display_unified_check_analysis(
     log.info("check-unified-analysis", _replace_msg="Unified Code Quality Analysis")
 
     # Set environment variable to pass AST metrics to linter
-    import json
-    import os
-
     os.environ["NICESTLOG_AST_METRICS"] = json.dumps(ast_metrics)
 
     lint_success = True
@@ -815,12 +814,12 @@ def _display_unified_check_analysis(
                 "check-files-analyzed",
                 file_count=len(results),
                 total_functions=sum(r.function_count for r in results),
-                _replace_msg=f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",
+                _replace_msg=f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",  # noqa: E501
             )
             log.info(
                 "check-average-functions",
                 average=sum(r.function_count for r in results) / len(results),
-                _replace_msg=f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",
+                _replace_msg=f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",  # noqa: E501
             )
             if total_ast_issues > 0:
                 log.info(
@@ -828,13 +827,13 @@ def _display_unified_check_analysis(
                     count=total_ast_issues,
                     _replace_msg=f"  • {total_ast_issues} code quality improvements identified:",
                 )
-                for insight in all_ast_insights[:5]:  # Show first 5 insights
+                for insight in all_ast_insights[:max_insights]:  # Show first max_insights insights
                     log.info("check-insight", text=insight, _replace_msg=insight)
-                if len(all_ast_insights) > 5:
+                if len(all_ast_insights) > max_insights:
                     log.info(
                         "check-more-insights",
                         more=len(all_ast_insights) - 5,
-                        _replace_msg=f"    ... and {len(all_ast_insights) - 5} more suggestions",
+                        _replace_msg=f"    ... and {len(all_ast_insights) - max_insights} more suggestions",
                     )
             else:
                 log.info(
@@ -869,13 +868,10 @@ def _display_unified_check_analysis(
 
 def _display_check_directory_analysis(
     results: list[CodeAnalysisResult],
+    *,
     show_complexity: bool,
 ):
     """Display analysis results for check command on directories."""
-    from rich.console import Console
-    from rich.table import Table
-
-    console = Console()
     console.print("Directory Analysis Summary", style="bold blue")
 
     table = Table(title="Summary Statistics")
@@ -937,7 +933,7 @@ def _has_ast_issues(ast_issues) -> bool:
 
 
 # Helper functions for AST operations
-def _analyze_single_file(assistant: AdvancedAssistant, path: Path, json_output: bool):
+def _analyze_single_file(assistant: AdvancedAssistant, path: Path, *, json_output: bool):
     """Analyze a single Python file."""
     with Progress(
         SpinnerColumn(),
@@ -949,8 +945,6 @@ def _analyze_single_file(assistant: AdvancedAssistant, path: Path, json_output: 
         progress.remove_task(task)
 
     if json_output:
-        import json
-
         console.print(json.dumps(result.to_dict(), indent=2))
     else:
         _display_analysis_result(result)
@@ -960,13 +954,11 @@ def _analyze_directory(
     assistant: AdvancedAssistant,
     path: Path,
     pattern: str,
+    *,
     json_output: bool,
 ):
     """Analyze all Python files in a directory."""
     # Use gitignore-aware file filtering and respect project structure
-    from .config import detect_project_structure
-    from .gitignore_utils import filter_python_files
-
     # Detect project structure to get source directories
     try:
         project_structure = detect_project_structure(path)
@@ -983,7 +975,7 @@ def _analyze_directory(
                     if not project_structure.should_exclude_from_logging_analysis(
                         py_file,
                     ):
-                        files.append(py_file)
+                        files.extend([py_file])
     except Exception:
         # Fallback to original behavior if project structure detection fails
         files = list(path.glob(pattern))
@@ -1006,8 +998,6 @@ def _analyze_directory(
                 progress.remove_task(task)
 
     if json_output:
-        import json
-
         console.print(json.dumps([r.to_dict() for r in results], indent=2))
     else:
         _display_directory_analysis(results)
@@ -1016,6 +1006,7 @@ def _analyze_directory(
 def _transform_single_file(
     assistant: AdvancedAssistant,
     path: Path,
+    *,
     dry_run: bool,
     interactive: bool,
 ):
@@ -1036,6 +1027,7 @@ def _transform_directory(
     assistant: AdvancedAssistant,
     path: Path,
     pattern: str,
+    *,
     dry_run: bool,
     interactive: bool,
 ):
@@ -1064,13 +1056,13 @@ def _transform_directory(
     _display_directory_transformation(results, dry_run)
 
 
-def _transform_interactive(path: Path, verbose: bool):
+def _transform_interactive(path: Path, *, verbose: bool):
     """Run interactive transformation on a file."""
     transformer = InteractiveTransformer()
     transformer.transform_file_interactive(path)
 
 
-def _display_patterns(patterns: list[ASTPattern], show_details: bool):
+def _display_patterns(patterns: list[ASTPattern], *, show_details: bool):
     """Display available transformation patterns."""
     table = Table(title="📋 Available Transformation Patterns")
     table.add_column("Name", style="cyan")
@@ -1126,7 +1118,7 @@ def _display_analysis_result(result: CodeAnalysisResult):
         console.print("✅ [green]No issues found![/green]")
 
 
-def _display_transformation_result(result: TransformationResult, dry_run: bool):
+def _display_transformation_result(result: TransformationResult, *, dry_run: bool):
     """Display transformation results for a single file."""
     mode = "Preview" if dry_run else "Applied"
     console.print(
@@ -1204,6 +1196,7 @@ def _display_directory_analysis(results: list[CodeAnalysisResult]):
 
 def _display_directory_transformation(
     results: list[TransformationResult],
+    *,
     dry_run: bool,
 ):
     """Display transformation results for multiple files."""
@@ -1220,7 +1213,7 @@ def _display_directory_transformation(
     for result in results:
         changes_count = len(result.changes)
         total_changes += changes_count
-        status = "✅ Modified" if result.changes_made else "ℹ️ No changes"
+        status = "✅ Modified" if result.changes_made else "INFO No changes"
 
         summary_table.add_row(result.file_path.name, str(changes_count), status)
 
@@ -1234,6 +1227,7 @@ def _display_directory_transformation(
 @app.command()
 def migrate(
     path: Annotated[str, typer.Argument(help="Project path to analyze/migrate")] = ".",
+    *,
     no_dry_run: Annotated[
         bool,
         typer.Option(
@@ -1282,10 +1276,6 @@ def migrate(
     if not no_dry_run:
         # Default behavior: Dry-run preview
         # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
-        import nicestlog
-
-        from .project_analyzer import analyze_project_for_agents
-
         nicestlog.init_logging(
             verbose=verbose,
             syslog_identifier="nicestlog-migrate",
@@ -1293,7 +1283,7 @@ def migrate(
         )
 
         try:
-            result = analyze_project_for_agents(path, verbose=verbose)
+            result = project_analyzer.analyze_project_for_agents(path, verbose=verbose)
 
             if json_output or (output and output.endswith(".json")):
                 # JSON output for agents or file output
@@ -1333,6 +1323,7 @@ def tools_demo(
         str | None,
         typer.Argument(help="Demo specific feature"),
     ] = None,
+    *,
     all_features: Annotated[
         bool,
         typer.Option("--all", help="Demo all features"),
@@ -1343,7 +1334,7 @@ def tools_demo(
 
 
 # Helper functions for docs display
-def _show_markdown_files(filenames: list[str], use_pager: bool = False):
+def _show_markdown_files(filenames: list[str], *, use_pager: bool = False):
     """Show markdown files with rich formatting."""
     # Determine if we're running from source or installed package
     package_root = Path(__file__).parent
@@ -1406,7 +1397,7 @@ def _show_markdown_files(filenames: list[str], use_pager: bool = False):
         console.print(full_content)
 
 
-def _show_docs_interactive(use_pager: bool = False):
+def _show_docs_interactive(*, use_pager: bool = False):
     """Show interactive documentation browser."""
     console.print("🔍 [bold blue]Interactive Documentation Browser[/bold blue]")
     console.print("Available documentation sections:")
@@ -1430,7 +1421,7 @@ def _show_docs_interactive(use_pager: bool = False):
         sys.exit(1)
 
 
-def _show_feature_docs(feature: str, use_pager: bool = False):
+def _show_feature_docs(feature: str, *, use_pager: bool = False):
     """Show documentation for a specific feature."""
     feature_docs = {
         "logging": ["user_guide/getting_started.md"],

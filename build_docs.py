@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: T201, S602, TRY300
 """Build script for nicestlog documentation."""
 
 import os
@@ -28,7 +29,7 @@ def run_command(cmd, cwd=None):
 
 
 def main():
-    """Main build function."""
+    """Build main documentation."""
     print("🚀 Building nicestlog documentation...")
 
     # Change to docs directory

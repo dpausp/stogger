@@ -14,7 +14,6 @@ Categories of false positives:
 7. Mock objects and side effects in tests
 """
 
-# ruff: noqa: F821
 # This file intentionally references undefined names for vulture whitelisting
 
 # CLI Commands (Typer framework integration)
@@ -125,7 +124,7 @@ DODOFILE_ENCODING = None
 
 # Sphinx Documentation Configuration
 project = None
-copyright = None
+doc_copyright = None
 author = None
 release = None
 extensions = None

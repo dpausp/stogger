@@ -51,7 +51,7 @@ class TestInitConfig:
             "y",  # append to file
         ]
 
-        with patch("builtins.open", create=True) as mock_open:
+        with patch("pathlib.Path.open", create=True) as mock_open:
             mock_file = MagicMock()
             mock_open.return_value.__enter__.return_value = mock_file
 

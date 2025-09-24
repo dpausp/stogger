@@ -12,6 +12,8 @@ Features:
 - Safety checks and validation
 """
 
+# ruff: noqa: FBT001, FBT002
+
 from __future__ import annotations
 
 import ast
@@ -150,6 +152,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
     """
 
     def __init__(self, file_path: Path):
+        """Initialize AST analyzer for a specific file."""
         self.file_path = file_path
         self.metrics = TransformationMetrics()
         self.node_counts: dict[str, int] = {}
@@ -279,7 +282,8 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
         log.debug(
             "function-analyzed",
-            _replace_msg="🔧 Function '{name}' analyzed: {arg_count} args, docstring: {has_docstring}, logging: {has_logging}",
+            _replace_msg="🔧 Function '{name}' analyzed: {arg_count} args, "
+            f"docstring: {has_docstring}, logging: {has_logging_calls}",
             name=node.name,
             arg_count=arg_count,
             has_docstring=has_docstring,
@@ -335,7 +339,8 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
         # Only consider it a "logging function" if it has multiple logging calls
         # or if it's primarily focused on logging (more than just incidental logging)
-        return logging_call_count >= 2
+        min_logging_calls = 2
+        return logging_call_count >= min_logging_calls
 
     def _analyze_class(self, node: ast.ClassDef) -> None:
         """Analyze class definitions - but only for logging-related analysis, not code quality."""
@@ -409,6 +414,7 @@ class AdvancedTransformer(ast.NodeTransformer):
     """
 
     def __init__(self, patterns: list[ASTPattern]):
+        """Initialize advanced transformer with patterns."""
         self.patterns = {p.name: p for p in patterns if p.enabled}
         self.metrics = TransformationMetrics()
         self.changes_made: list[str] = []
@@ -475,7 +481,7 @@ class AdvancedTransformer(ast.NodeTransformer):
                 if not pattern.transformer:
                     log.debug(
                         "pattern-matched-no-transformer",
-                        _replace_msg="ℹ️ Pattern '{pattern}' matched but has no transformer",
+                        _replace_msg="INFO Pattern '{pattern}' matched but has no transformer",
                         pattern=pattern_name,
                         line=getattr(node, "lineno", "unknown"),
                         node_type=type(node).__name__,
@@ -521,6 +527,7 @@ class AdvancedAssistant:
     """
 
     def __init__(self, verbose: bool = True):
+        """Initialize advanced assistant with verbose mode."""
         self.verbose = verbose
         self.patterns: list[ASTPattern] = []
         self.session_id = hashlib.sha256(
@@ -625,7 +632,7 @@ class AdvancedAssistant:
         self.patterns.append(pattern)
         log.debug(
             "pattern-added",
-            _replace_msg="➕ Added custom pattern: {name}",
+            _replace_msg="+ Added custom pattern: {name}",
             name=pattern.name,
             description=pattern.description,
             priority=pattern.priority,
@@ -641,32 +648,22 @@ class AdvancedAssistant:
             session_id=self.session_id,
         )
 
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            tree = ast.parse(content)
+        content = file_path.read_text(encoding="utf-8")
+        tree = ast.parse(content)
 
-            analyzer = AdvancedASTAnalyzer(file_path)
-            result = analyzer.analyze(tree)
+        analyzer = AdvancedASTAnalyzer(file_path)
+        result = analyzer.analyze(tree)
 
-            log.debug(
-                "file-analysis-completed",
-                _replace_msg="✅ Analysis completed for {file_path}",
-                file_path=str(file_path),
-                complexity_score=result.complexity_score,
-                patterns_detected=len(result.detected_patterns),
-                issues_found=len(result.potential_issues),
-            )
+        log.debug(
+            "file-analysis-completed",
+            _replace_msg="✅ Analysis completed for {file_path}",
+            file_path=str(file_path),
+            complexity_score=result.complexity_score,
+            patterns_detected=len(result.detected_patterns),
+            issues_found=len(result.potential_issues),
+        )
 
-            return result
-
-        except Exception as e:
-            log.exception(
-                "file-analysis-failed",
-                file_path=str(file_path),
-                error=str(e),
-                exception_type=type(e).__name__,
-            )
-            raise
+        return result
 
     def transform_file(
         self,
@@ -754,7 +751,7 @@ class AdvancedAssistant:
                 duration=transformer.metrics.duration,
             )
 
-            return result
+            return result  # noqa: TRY300
 
         except Exception as e:
             log.exception(
@@ -793,8 +790,8 @@ class AdvancedAssistant:
         )
 
         # Use gitignore-aware file filtering and respect project structure
-        from .config import detect_project_structure
-        from .gitignore_utils import filter_python_files
+        from .config import detect_project_structure  # noqa: PLC0415
+        from .gitignore_utils import filter_python_files  # noqa: PLC0415
 
         # Detect project structure to get source directories
         try:
@@ -808,12 +805,12 @@ class AdvancedAssistant:
                     # Filter files respecting gitignore and project structure
                     src_files = filter_python_files(src_path, respect_gitignore=True)
                     # Additional filtering to exclude test files
-                    for py_file in src_files:
-                        if not project_structure.should_exclude_from_logging_analysis(
-                            py_file,
-                        ):
-                            files.append(py_file)
-        except Exception:
+                    files.extend(
+                        py_file
+                        for py_file in src_files
+                        if not project_structure.should_exclude_from_logging_analysis(py_file)
+                    )
+        except Exception:  # noqa: BLE001
             # Fallback to original behavior if project structure detection fails
             files = list(directory.glob(pattern))
 

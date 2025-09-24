@@ -14,9 +14,6 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent / "vendor"))
 
-# Visual output helpers
-from rich.console import Console
-
 from mydevtools.task_helpers import (
     clean_artifacts,
     create_uv_commands,
@@ -42,6 +39,9 @@ from mydevtools.task_helpers import (
     validate_todo_discipline,
     validate_todo_files_only,
 )
+
+# Visual output helpers
+from rich.console import Console
 
 console = Console()
 

@@ -19,6 +19,8 @@ import unicodedata
 
 @dataclass
 class MigrationResult:
+    """Result of migration operations."""
+
     files_processed: int = 0
     files_transformed: int = 0
     diffs: dict[str, list[str]] = field(
@@ -27,10 +29,13 @@ class MigrationResult:
 
 
 class PrintToStructlogTransformer(ast.NodeTransformer):
+    """AST transformer to convert print statements to structlog calls."""
+
     SIMPLE_EVENT_RE = re.compile(r"^[a-z0-9]+(?:[-_][a-z0-9]+)*$")
 
     @staticmethod
     def slugify(text: str) -> str:
+        """Convert text to slug format."""
         # Normalize unicode, lower-case, keep alnum, convert spaces and punctuation to '-'
         text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
         text = text.lower()
@@ -53,6 +58,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
 
     @staticmethod
     def derive_event_from_literal(arg: ast.AST) -> str | None:
+        """Derive event name from AST literal."""
         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
             candidate = PrintToStructlogTransformer.slugify(arg.value)
             return candidate
@@ -60,15 +66,18 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
 
     @staticmethod
     def is_simple_event(s: str) -> bool:
+        """Check if string is a simple event name."""
         return bool(PrintToStructlogTransformer.SIMPLE_EVENT_RE.match(s))
 
     def __init__(self) -> None:
+        """Initialize transformer."""
         super().__init__()
         self.import_structlog_present = False
         self.logger_assignment_present = False
         self.changed = False
 
     def visit_Import(self, node: ast.Import) -> ast.AST:
+        """Visit import statements."""
         for alias in node.names:
             if alias.name == "structlog":
                 self.import_structlog_present = True
@@ -76,10 +85,12 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         return node
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST:
+        """Visit import from statements."""
         # Nothing to do; but keep traversal
         return node
 
     def visit_Assign(self, node: ast.Assign) -> ast.AST:
+        """Visit assignment statements."""
         # Detect pattern: log = structlog.get_logger(...)
         if (
             len(node.targets) == 1
@@ -95,6 +106,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         return node
 
     def visit_call_build_print(self, node: ast.Call) -> ast.AST:
+        """Build print call transformation."""
         self.changed = True
         new_func = ast.Attribute(
             value=ast.Name(id="log", ctx=ast.Load()),
@@ -148,12 +160,14 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
         return ast.copy_location(new_call, node)
 
     def visit_Call(self, node: ast.Call) -> ast.AST:
+        """Visit call statements."""
         # Transform print(...) -> log.info(<event>, _replace_msg="... {a0} {a1}", a0=..., a1=...)
         if isinstance(node.func, ast.Name) and node.func.id == "print":
             return self.visit_call_build_print(node)
         return self.generic_visit(node)
 
     def ensure_imports_and_logger(self, tree: ast.Module) -> ast.Module:
+        """Ensure necessary imports and logger setup."""
         prelude: list[ast.stmt] = []
         if not self.import_structlog_present:
             prelude.append(ast.Import(names=[ast.alias(name="structlog", asname=None)]))
@@ -180,6 +194,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
 
 
 def migrate_file(content: str) -> tuple[str, bool]:
+    """Migrate a single file's content."""
     tree = ast.parse(content)
     transformer = PrintToStructlogTransformer()
     tree = transformer.visit(tree)
@@ -193,6 +208,7 @@ def migrate_file(content: str) -> tuple[str, bool]:
 def migrate_directory(
     input_dir: Path,
     output_dir: Path | None,
+    *,
     dry_run: bool = True,
 ) -> MigrationResult:
     """Migrate Python files under input_dir. Writes to output_dir if provided, else in-place."""
@@ -206,7 +222,7 @@ def migrate_directory(
         raise FileNotFoundError(msg)
 
     # Use shared file filtering with gitignore support
-    from .gitignore_utils import filter_python_files
+    from .gitignore_utils import filter_python_files  # noqa: PLC0415
 
     for py in filter_python_files(input_dir, respect_gitignore=True):
         original = py.read_text(encoding="utf-8")
