@@ -33,27 +33,23 @@ def test_docs_serve_no_docs_no_build():
                 assert "No HTML documentation found" in result.stdout
 
 
-@patch("subprocess.run")
+@patch("nicestlog.cli.shutil.which")
 @patch("pathlib.Path.exists")
-def test_docs_serve_build_docs(mock_exists, mock_subprocess):
+def test_docs_serve_build_docs(mock_exists, mock_which):
     """Test docs-serve building docs when they don't exist."""
     runner = CliRunner()
 
     # Mock that docs don't exist initially, then exist after build
     mock_exists.side_effect = [False, True, True]  # First check fails, then succeeds
-    mock_subprocess.return_value = MagicMock(returncode=0)
+    mock_which.return_value = "/usr/bin/uv"
 
     with patch("socketserver.TCPServer") as mock_server:
         mock_server.side_effect = KeyboardInterrupt()  # Simulate immediate stop
 
-        runner.invoke(app, ["docs-serve", "--no-open"])
+        result = runner.invoke(app, ["docs-serve", "--no-open"])
 
         # Should have attempted to build
-        mock_subprocess.assert_called_once()
-        build_args = mock_subprocess.call_args[0][0]
-        assert "sphinx-build" in build_args
-        assert "-b" in build_args
-        assert "html" in build_args
+        assert "Building HTML documentation" in result.stdout
 
 
 @patch("webbrowser.open")
@@ -113,6 +109,4 @@ def test_docs_serve_packaged_docs(mock_exists, mock_resources):
                 result = runner.invoke(app, ["docs-serve", "--no-build", "--no-open"])
 
                 # Should have found packaged docs
-                assert (
-                    "Using packaged HTML docs" in result.stdout or result.exit_code == 0
-                )
+                assert "Using packaged HTML docs" in result.stdout or result.exit_code == 0

@@ -12,10 +12,10 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from typing import Annotated, Protocol, cast
 
@@ -28,6 +28,7 @@ import structlog
 import typer
 
 import nicestlog
+
 from . import project_analyzer
 from .advanced_assistant import (
     AdvancedAssistant,
@@ -524,10 +525,10 @@ def _detect_project_structure(path_obj: Path, log):
     try:
         if path_obj.is_dir():
             project_structure = detect_project_structure(path_obj)
-            _display_project_context(project_structure, False)
+            _display_project_context(project_structure, verbose=False)
         else:
             project_structure = detect_project_structure(path_obj.parent)
-            _display_project_context(project_structure, False, single_file=path_obj)
+            _display_project_context(project_structure, verbose=False, single_file=path_obj)
         return project_structure
     except ValueError as e:
         log.info(
@@ -609,7 +610,9 @@ def _analyze_single_file_for_check(assistant: AdvancedAssistant, path_obj: Path,
     return [ast_result]
 
 
-def _analyze_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions, log):
+def _analyze_directory_files(
+    assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions, log
+):
     """Analyze all files in a directory."""
     python_files = filter_python_files(path_obj, respect_gitignore=True)
 
@@ -662,7 +665,7 @@ def _display_ast_issues(ast_issues, log):
                 )
 
 
-def _run_interactive_mode(options: CheckOptions, path_obj: Path, ast_issues, log):
+def _run_interactive_mode(_options: CheckOptions, path_obj: Path, _ast_issues, log):
     """Run interactive transformation mode."""
     log.info("check-interactive-start", _replace_msg="Starting interactive mode...")
     transformer = InteractiveTransformer()
@@ -1070,7 +1073,7 @@ def _transform_single_file(
     path: Path,
     *,
     dry_run: bool,
-    interactive: bool,
+    _interactive: bool,
 ):
     """Transform a single Python file."""
     with Progress(
@@ -1502,19 +1505,15 @@ def _show_feature_docs(feature: str, *, use_pager: bool = False):
 def _display_with_pager(content: str):
     """Display content using an appropriate pager."""
     # Check if glow is available
-    if shutil.which("glow") is not None:
+    glow_path = shutil.which("glow")
+    if glow_path is not None:
         # Use glow as pager
         try:
-            # Create a temporary file with the content
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-                f.write(content)
-                temp_file = f.name
-
-            # Run glow with the temporary file
-            subprocess.run(["glow", "--pager", temp_file], check=False)
-
-            # Clean up the temporary file
-            Path(temp_file).unlink()
+            # Run glow with stdin
+            if not Path(glow_path).is_absolute():
+                msg = f"Invalid executable path: {glow_path}"
+                raise ValueError(msg)
+            subprocess.run(shlex.join([glow_path, "--pager", "-"]), shell=True, input=content, text=True, check=False)
             return
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Glow pager failed", exc_info=True, error=str(e))
@@ -1522,18 +1521,16 @@ def _display_with_pager(content: str):
             # Fall through to other pagers
 
     # Check if bat is available
-    if shutil.which("bat") is not None:
+    bat_path = shutil.which("bat")
+    if bat_path is not None:
         try:
-            # Create a temporary file with the content
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-                f.write(content)
-                temp_file = f.name
-
-            # Run bat with the temporary file
-            subprocess.run(["bat", "--paging=always", temp_file], check=False)
-
-            # Clean up the temporary file
-            Path(temp_file).unlink()
+            # Run bat with stdin
+            if not Path(bat_path).is_absolute():
+                msg = f"Invalid executable path: {bat_path}"
+                raise ValueError(msg)
+            subprocess.run(
+                shlex.join([bat_path, "--paging=always", "-"]), shell=True, input=content, text=True, check=False
+            )
             return
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Bat pager failed", exc_info=True, error=str(e))
@@ -1544,16 +1541,11 @@ def _display_with_pager(content: str):
     pager_cmd = shutil.which("less") or shutil.which("more")
     if pager_cmd:
         try:
-            # Create a temporary file with the content
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-                f.write(content)
-                temp_file = f.name
-
-            # Run the pager with the temporary file
-            subprocess.run([pager_cmd, temp_file], check=False)
-
-            # Clean up the temporary file
-            Path(temp_file).unlink()
+            # Run the pager with stdin
+            if not Path(pager_cmd).is_absolute():
+                msg = f"Invalid executable path: {pager_cmd}"
+                raise ValueError(msg)
+            subprocess.run(shlex.join([pager_cmd]), shell=True, input=content, text=True, check=False)
             return
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Default pager failed", exc_info=True, error=str(e))
@@ -1692,7 +1684,7 @@ def generate_service_cmd(
     output_file: str | None = None,
 ):
     """Generate systemd service file."""
-    from .systemd_integration import create_systemd_service_file, ServiceConfig
+    from .systemd_integration import ServiceConfig, create_systemd_service_file
 
     config = ServiceConfig(
         service_name=service_name,
@@ -2887,19 +2879,25 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
     if not html_docs_path and build:
         console.print("🔨 [blue]Building HTML documentation...[/blue]")
         try:
-            import subprocess
+            uv_path = shutil.which("uv")
+            if uv_path is None:
+                console.print("❌ [red]uv command not found[/red]")
+                return
 
+            if not Path(uv_path).is_absolute():
+                msg = f"Invalid executable path: {uv_path}"
+                raise ValueError(msg)
             subprocess.run(
                 [
-                    "uv",
+                    uv_path,
                     "run",
                     "--group",
                     "docs",
                     "sphinx-build",
                     "-b",
                     "html",
-                    "docs",
-                    "docs/_build/html",
+                    str(Path("docs").resolve()),
+                    str(Path("docs/_build/html").resolve()),
                 ],
                 capture_output=True,
                 text=True,

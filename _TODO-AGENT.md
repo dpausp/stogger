@@ -91,26 +91,26 @@ ______________________________________________________________________
 
 1. [x] **Fix datetime violations (DTZ series)** – proper timezone handling
 
-    - **Context**: Datetime operations without timezone awareness
+   - **Context**: Datetime operations without timezone awareness
 
-    - **Success criteria** (must be checked to finish task)
+   - **Success criteria** (must be checked to finish task)
 
-      - [x] All DTZ001, DTZ005, DTZ006 errors resolved
-      - [x] Timezone-aware datetime operations implemented
+     - [x] All DTZ001, DTZ005, DTZ006 errors resolved
+     - [x] Timezone-aware datetime operations implemented
 
-    - **Files to check/modify**
+   - **Files to check/modify**
 
-      - [x] `src/nicestlog/systemd_integration.py` (lines 303, 350, 351, 388)
-      - [x] `src/nicestlog/web_dashboard.py` (lines 40, 397)
+     - [x] `src/nicestlog/systemd_integration.py` (lines 303, 350, 351, 388)
+     - [x] `src/nicestlog/web_dashboard.py` (lines 40, 397)
 
-    - **Steps** (always action verbs, explicit order)
+   - **Steps** (always action verbs, explicit order)
 
-      - [x] Replace `datetime.now()` with `datetime.now(timezone.utc)`
-      - [x] Add timezone parameters to datetime constructors
-      - [x] Update `fromtimestamp()` calls with timezone parameter
-      - [x] Validate timezone handling consistency
+     - [x] Replace `datetime.now()` with `datetime.now(timezone.utc)`
+     - [x] Add timezone parameters to datetime constructors
+     - [x] Update `fromtimestamp()` calls with timezone parameter
+     - [x] Validate timezone handling consistency
 
-    - **Commit message hint**: "fix: add timezone awareness to datetime operations"
+   - **Commit message hint**: "fix: add timezone awareness to datetime operations"
 
 1. [ ] **Fix style and quality violations** – code quality improvements
 
