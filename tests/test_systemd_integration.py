@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from nicestlog.systemd_integration import (
+    ServiceConfig,
     SystemdJournalHandler,
     create_systemd_service_file,
     detect_systemd_environment,
@@ -87,10 +88,11 @@ class TestCreateSystemdServiceFile:
 
     def test_service_file_creation_basic(self):
         """Test basic service file creation."""
-        result = create_systemd_service_file(
+        config = ServiceConfig(
             service_name="test",
             exec_command="/usr/bin/python /app/main.py",
         )
+        result = create_systemd_service_file(config)
 
         assert isinstance(result, str)
         assert "[Unit]" in result
@@ -100,13 +102,14 @@ class TestCreateSystemdServiceFile:
 
     def test_service_file_creation_with_options(self):
         """Test service file creation with custom options."""
-        result = create_systemd_service_file(
+        config = ServiceConfig(
             service_name="test",
             exec_command="/usr/bin/python /app/main.py",
             user="testuser",
             working_directory="/app",
             environment={"LOG_LEVEL": "DEBUG", "ENV": "production"},
         )
+        result = create_systemd_service_file(config)
 
         assert "User=testuser" in result
         assert "WorkingDirectory=/app" in result
@@ -115,11 +118,12 @@ class TestCreateSystemdServiceFile:
 
     def test_service_file_creation_with_restart_policy(self):
         """Test service file creation with restart policy."""
-        result = create_systemd_service_file(
+        config = ServiceConfig(
             service_name="test",
             exec_command="/usr/bin/python /app/main.py",
             restart_policy="on-failure",
         )
+        result = create_systemd_service_file(config)
 
         assert "Restart=on-failure" in result
         assert "RestartSec=5" in result

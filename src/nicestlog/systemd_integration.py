@@ -4,6 +4,7 @@ Makes systemd logging actually usable and powerful.
 """
 
 import contextlib
+from dataclasses import dataclass
 from datetime import datetime
 import json
 import os
@@ -200,34 +201,34 @@ def setup_systemd_logging(
     return True
 
 
-def create_systemd_service_file(
-    service_name: str,
-    exec_command: str,
-    user: str | None = None,
-    working_directory: str | None = None,
-    environment: dict[str, str] | None = None,
-    restart_policy: str = "always",
-) -> str:
+@dataclass
+class ServiceConfig:
+    """Configuration for systemd service creation."""
+    
+    service_name: str
+    exec_command: str
+    user: str | None = None
+    working_directory: str | None = None
+    environment: dict[str, str] | None = None
+    restart_policy: str = "always"
+
+
+def create_systemd_service_file(config: ServiceConfig) -> str:
     """Generate a systemd service file with proper logging configuration.
 
     Args:
-        service_name: Name of the service
-        exec_command: Command to execute
-        user: User to run as (default: current user)
-        working_directory: Working directory
-        environment: Environment variables
-        restart_policy: Restart policy (always, on-failure, etc.)
+        config: Service configuration parameters
 
     Returns:
         Service file content as string
 
     """
-    user = user or os.getenv("USER", "nobody")
-    working_directory = working_directory or os.getcwd()
-    environment = environment or {}
+    user = config.user or os.getenv("USER", "nobody")
+    working_directory = config.working_directory or os.getcwd()
+    environment = config.environment or {}
 
     service_content = f"""[Unit]
-Description={service_name} - Managed by nicestlog
+Description={config.service_name} - Managed by nicestlog
 After=network.target
 Wants=network.target
 
@@ -235,14 +236,14 @@ Wants=network.target
 Type=simple
 User={user}
 WorkingDirectory={working_directory}
-ExecStart={exec_command}
-Restart={restart_policy}
+ExecStart={config.exec_command}
+Restart={config.restart_policy}
 RestartSec=5
 
 # Logging configuration
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier={service_name}
+SyslogIdentifier={config.service_name}
 
 # Security settings
 NoNewPrivileges=true
@@ -391,13 +392,14 @@ def demo_systemd_integration():
         pass
 
     # Generate service file example
-    create_systemd_service_file(
+    config = ServiceConfig(
         service_name="my-python-app",
         exec_command="/usr/bin/python3 /opt/myapp/main.py",
         user="myapp",
         working_directory="/opt/myapp",
         environment={"PYTHONPATH": "/opt/myapp", "LOG_LEVEL": "info"},
     )
+    create_systemd_service_file(config)
 
 
 

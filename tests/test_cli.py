@@ -263,12 +263,12 @@ class TestGenerateServiceCommand:
 
         generate_service_cmd("test-service", "/bin/test", None, None, None)
 
-        mock_create_service.assert_called_once_with(
-            service_name="test-service",
-            exec_command="/bin/test",
-            user=None,
-            working_directory=None,
-        )
+        # Check that ServiceConfig was created correctly
+        call_args = mock_create_service.call_args[0][0]
+        assert call_args.service_name == "test-service"
+        assert call_args.exec_command == "/bin/test"
+        assert call_args.user is None
+        assert call_args.working_directory is None
         mock_console_print.assert_called_with("[Unit]\nDescription=Test Service\n")
 
     @patch("nicestlog.systemd_integration.create_systemd_service_file")
@@ -291,12 +291,12 @@ class TestGenerateServiceCommand:
             "/tmp/test.service",
         )
 
-        mock_create_service.assert_called_once_with(
-            service_name="test-service",
-            exec_command="/bin/test",
-            user="testuser",
-            working_directory="/opt/test",
-        )
+        # Check that ServiceConfig was created correctly
+        call_args = mock_create_service.call_args[0][0]
+        assert call_args.service_name == "test-service"
+        assert call_args.exec_command == "/bin/test"
+        assert call_args.user == "testuser"
+        assert call_args.working_directory == "/opt/test"
         mock_file.assert_called_once_with("/tmp/test.service", "w")
         mock_file().write.assert_called_once_with("[Unit]\nDescription=Test Service\n")
         mock_log_info.assert_called_once_with(

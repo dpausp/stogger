@@ -31,14 +31,14 @@ ______________________________________________________________________
    - **Files to check/modify**
 
      - [x] `src/nicestlog/cli.py` (lines 416, 664, 761, 1228, 1337)
-     - [ ] `src/nicestlog/systemd_integration.py` (line 203)
+     - [x] `src/nicestlog/systemd_integration.py` (line 203)
 
    - **Steps** (always action verbs, explicit order)
 
      - [x] Identify functions with complexity violations
      - [x] Extract helper functions to reduce statement/branch count
      - [x] Use dataclasses or TypedDict for parameter grouping
-     - [ ] Validate complexity metrics after refactoring
+     - [x] Validate complexity metrics after refactoring
 
    - **Commit message hint**: "refactor: reduce function complexity per ruff PLR rules"
 

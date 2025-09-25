@@ -1690,14 +1690,15 @@ def generate_service_cmd(
     output_file: str | None = None,
 ):
     """Generate systemd service file."""
-    from .systemd_integration import create_systemd_service_file
+    from .systemd_integration import create_systemd_service_file, ServiceConfig
 
-    service_content = create_systemd_service_file(
+    config = ServiceConfig(
         service_name=service_name,
         exec_command=exec_command,
         user=user,
         working_directory=working_directory,
     )
+    service_content = create_systemd_service_file(config)
 
     if output_file:
         with open(output_file, "w") as f:
