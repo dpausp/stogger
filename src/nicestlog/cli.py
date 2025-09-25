@@ -6,6 +6,7 @@ AST functionality, previously split between cli.py and cli_advanced.py.
 
 from __future__ import annotations
 
+import dataclasses
 from importlib import resources
 import importlib.metadata
 import json
@@ -412,6 +413,31 @@ def init_config_cmd(
         os.chdir(original_cwd)
 
 
+@dataclasses.dataclass
+class CheckOptions:
+    """Configuration options for check command."""
+    path: str = "."
+    fix: bool = False
+    interactive: bool = False
+    dry_run: bool = False
+    no_ast: bool = False
+    complexity: bool = False
+    patterns: list[str] | None = None
+    verbose: bool = False
+
+
+@dataclasses.dataclass
+class MigrateOptions:
+    """Configuration options for migrate command."""
+    path: str = "."
+    output: str | None = None
+    mode: str = "logging"
+    target: str = "nicestlog"
+    interactive: bool = False
+    dry_run: bool = False
+    verbose: bool = False
+
+
 @app.command()
 def check(
     path: Annotated[str, typer.Argument(help="Path to check")] = ".",
@@ -454,25 +480,52 @@ def check(
       nicestlog check file.py --complexity       # Complexity analysis
 
     """
-    # Initialize proper logging format
+    options = CheckOptions(
+        path=path,
+        fix=fix,
+        interactive=interactive,
+        dry_run=dry_run,
+        no_ast=no_ast,
+        complexity=complexity,
+        patterns=patterns,
+        verbose=verbose,
+    )
+    _run_check_command(options)
 
-    nicestlog.init_logging(verbose=verbose)
+
+def _run_check_command(options: CheckOptions):
+    """Execute the check command with given options."""
+    nicestlog.init_logging(verbose=options.verbose)
     log = structlog.get_logger()
 
-    path_obj = Path(path)
+    path_obj = Path(options.path)
     if not path_obj.exists():
-        log.info("check-path-not-found", path=path, _replace_msg=f"Path {path} does not exist")
+        log.info("check-path-not-found", path=options.path, _replace_msg=f"Path {options.path} does not exist")
         sys.exit(1)
 
-    # Step 1: Detect and report project structure (Rule 2 requirement)
+    project_structure = _detect_project_structure(path_obj, log)
+    _display_mode_info(options, log)
+    
+    lint_success, ast_issues = _perform_analysis(options, path_obj, project_structure, log)
+    
+    if options.interactive and ast_issues:
+        _run_interactive_mode(options, path_obj, ast_issues, log)
+    elif options.fix and not options.no_ast and ast_issues:
+        _run_fix_mode(options, path_obj, project_structure, log)
+    
+    _handle_check_summary(lint_success, ast_issues, log)
+
+
+def _detect_project_structure(path_obj: Path, log):
+    """Detect and validate project structure."""
     try:
         if path_obj.is_dir():
             project_structure = detect_project_structure(path_obj)
-            _display_project_context(project_structure, verbose)
+            _display_project_context(project_structure, False)
         else:
-            # For single files, detect from parent directory
             project_structure = detect_project_structure(path_obj.parent)
-            _display_project_context(project_structure, verbose, single_file=path_obj)
+            _display_project_context(project_structure, False, single_file=path_obj)
+        return project_structure
     except ValueError as e:
         log.info(
             "check-project-structure-failed", error=str(e), _replace_msg=f"Project structure detection failed: {e}"
@@ -482,98 +535,118 @@ def check(
         )
         sys.exit(1)
 
-    # Display mode information
+
+def _display_mode_info(options: CheckOptions, log):
+    """Display mode information based on options."""
     mode_info = []
-    if fix:
-        if interactive:
+    if options.fix:
+        if options.interactive:
             mode_info.append("🎯 Interactive fixing")
-        elif dry_run:
+        elif options.dry_run:
             mode_info.append("🔍 Dry run preview")
         else:
             mode_info.append("🔧 Auto-fixing")
 
-    if not no_ast:
+    if not options.no_ast:
         mode_info.append("🔬 AST analysis")
-    if complexity:
+    if options.complexity:
         mode_info.append("📊 Complexity check")
 
     if mode_info:
         log.info("check-mode-info", modes=mode_info, _replace_msg=f"Mode: {' + '.join(mode_info)}")
 
-    # 1. Basic linting (performed only when AST is disabled)
+
+def _perform_analysis(options: CheckOptions, path_obj: Path, project_structure, log):
+    """Perform basic linting and AST analysis."""
     basic_success = True
-    if no_ast and not interactive and not patterns and not complexity:
+    if options.no_ast and not options.interactive and not options.patterns and not options.complexity:
         log.info("check-basic-linting-start", _replace_msg="Running basic linting...")
         basic_success = lint_directory(path_obj, project_structure=project_structure)
 
     lint_success = basic_success
-
-    # 2. AST Analysis (enabled by default, disabled with --no-ast)
     ast_issues = None
-    if not no_ast or interactive or patterns or complexity:
-        log.info("check-ast-analysis-start", _replace_msg="Running AST analysis...")
+    
+    if not options.no_ast or options.interactive or options.patterns or options.complexity:
+        ast_issues = _run_ast_analysis(options, path_obj, project_structure, log)
+        if ast_issues:
+            _display_ast_issues(ast_issues, log)
+    
+    return lint_success, ast_issues
 
-        assistant = AdvancedAssistant(verbose=verbose)
 
-        # Configure patterns if specified
-        if patterns:
-            for pattern_name in patterns:
-                for ast_pattern in assistant.patterns:
-                    if pattern_name.lower() in ast_pattern.name.lower():
-                        ast_pattern.enabled = True
-                    else:
-                        ast_pattern.enabled = False
+def _run_ast_analysis(options: CheckOptions, path_obj: Path, project_structure, log):
+    """Run AST analysis on files."""
+    log.info("check-ast-analysis-start", _replace_msg="Running AST analysis...")
+    
+    assistant = AdvancedAssistant(verbose=options.verbose)
+    
+    if options.patterns:
+        _configure_ast_patterns(assistant, options.patterns)
+    
+    if path_obj.is_file():
+        return _analyze_single_file_for_check(assistant, path_obj, options)
+    else:
+        return _analyze_directory_files(assistant, path_obj, project_structure, options, log)
 
-        # Perform AST analysis
-        if path_obj.is_file():
-            ast_result = assistant.analyze_file(path_obj)
-            _display_check_analysis_result(ast_result, show_complexity=complexity, verbose=verbose)
 
-            # Store issues for potential fixing
-            ast_issues = [ast_result]
-            lint_success = True
-
-        elif path_obj.is_dir():
-            # Use gitignore-aware file filtering
-            python_files = filter_python_files(path_obj, respect_gitignore=True)
-
-            if python_files:
-                log.info(
-                    "check-files-analyzed",
-                    file_count=len(python_files),
-                    _replace_msg=f"Analyzing {len(python_files)} Python files (respecting .gitignore)",
-                )
-                ast_results = []
-                with Progress(
-                    SpinnerColumn(),
-                    TextColumn("[progress.description]{task.description}"),
-                    console=console,
-                ) as progress:
-                    for py_file in python_files:
-                        task = progress.add_task(
-                            f"Analyzing {py_file.name}...",
-                            total=None,
-                        )
-                        result = assistant.analyze_file(py_file)
-                        ast_results.append(result)
-                        progress.remove_task(task)
-
-                # Display unified table with AST insights integrated
-                lint_success = _display_unified_check_analysis(
-                    ast_results,
-                    show_complexity=complexity,
-                    verbose=verbose,
-                    directory=path_obj,
-                    project_structure=project_structure,
-                )
-                ast_issues = ast_results
+def _configure_ast_patterns(assistant: AdvancedAssistant, patterns: list[str]):
+    """Configure AST patterns based on user selection."""
+    for pattern_name in patterns:
+        for ast_pattern in assistant.patterns:
+            if pattern_name.lower() in ast_pattern.name.lower():
+                ast_pattern.enabled = True
             else:
-                log.info(
-                    "check-no-files-found",
-                    _replace_msg="No Python files found in directory (after applying .gitignore)",
-                )
+                ast_pattern.enabled = False
 
-    # Display AST issues in detail if found
+
+def _analyze_single_file_for_check(assistant: AdvancedAssistant, path_obj: Path, options: CheckOptions):
+    """Analyze a single file for check command."""
+    ast_result = assistant.analyze_file(path_obj)
+    _display_check_analysis_result(ast_result, show_complexity=options.complexity, verbose=options.verbose)
+    return [ast_result]
+
+
+def _analyze_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions, log):
+    """Analyze all files in a directory."""
+    python_files = filter_python_files(path_obj, respect_gitignore=True)
+    
+    if not python_files:
+        log.info(
+            "check-no-files-found",
+            _replace_msg="No Python files found in directory (after applying .gitignore)",
+        )
+        return None
+    
+    log.info(
+        "check-files-analyzed",
+        file_count=len(python_files),
+        _replace_msg=f"Analyzing {len(python_files)} Python files (respecting .gitignore)",
+    )
+    
+    ast_results = []
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        for py_file in python_files:
+            task = progress.add_task(f"Analyzing {py_file.name}...", total=None)
+            result = assistant.analyze_file(py_file)
+            ast_results.append(result)
+            progress.remove_task(task)
+
+    _display_unified_check_analysis(
+        ast_results,
+        show_complexity=options.complexity,
+        verbose=options.verbose,
+        directory=path_obj,
+        project_structure=project_structure,
+    )
+    return ast_results
+
+
+def _display_ast_issues(ast_issues, log):
+    """Display AST issues found during analysis."""
     if ast_issues and _has_ast_issues(ast_issues):
         log.info("check-ast-issues-found", _replace_msg="AST Issues Found:")
         for result in ast_issues:
@@ -585,73 +658,63 @@ def check(
                     _replace_msg=f"  {result.file_path.name}: {', '.join(result.issues)}",
                 )
 
-    # 3. Interactive Mode
-    if interactive and ast_issues:
-        log.info("check-interactive-start", _replace_msg="Starting interactive mode...")
-        transformer = InteractiveTransformer()
 
-        if path_obj.is_file():
-            transformer.transform_file_interactive(path_obj)
-        else:
-            # For directories, process files one by one (respecting gitignore)
-            python_files = filter_python_files(path_obj, respect_gitignore=True)
-            for py_file in python_files:
-                log.info("check-processing-file", file=str(py_file), _replace_msg=f"Processing: {py_file}")
-                if typer.confirm(f"Transform {py_file.name}?"):
-                    transformer.transform_file_interactive(py_file)
+def _run_interactive_mode(options: CheckOptions, path_obj: Path, ast_issues, log):
+    """Run interactive transformation mode."""
+    log.info("check-interactive-start", _replace_msg="Starting interactive mode...")
+    transformer = InteractiveTransformer()
 
-    # 4. AST-based Fixes
-    elif fix and not no_ast and ast_issues:
-        log.info("check-fixes-start", _replace_msg="Applying AST-based fixes...")
+    if path_obj.is_file():
+        transformer.transform_file_interactive(path_obj)
+    else:
+        python_files = filter_python_files(path_obj, respect_gitignore=True)
+        for py_file in python_files:
+            log.info("check-processing-file", file=str(py_file), _replace_msg=f"Processing: {py_file}")
+            if typer.confirm(f"Transform {py_file.name}?"):
+                transformer.transform_file_interactive(py_file)
 
-        # No backup creation - users should use git for version control
 
-        assistant = AdvancedAssistant(verbose=verbose)
+def _run_fix_mode(options: CheckOptions, path_obj: Path, project_structure, log):
+    """Run automatic fix mode."""
+    log.info("check-fixes-start", _replace_msg="Applying AST-based fixes...")
+    
+    assistant = AdvancedAssistant(verbose=options.verbose)
 
-        if path_obj.is_file():
-            transform_result = assistant.transform_file(path_obj, dry_run=dry_run)
-            _display_transformation_result(transform_result, dry_run)
-        else:
-            # Use gitignore-aware file filtering and respect project structure
-            # Detect project structure to get source directories
-            project_structure = detect_project_structure(path_obj)
+    if path_obj.is_file():
+        transform_result = assistant.transform_file(path_obj, dry_run=options.dry_run)
+        _display_transformation_result(transform_result, options.dry_run)
+    else:
+        _fix_directory_files(assistant, path_obj, project_structure, options)
 
-            # Get Python files from source directories only
-            python_files = []
-            for src_dir in project_structure.source_dirs:
-                src_path = path_obj / src_dir if path_obj.is_dir() else path_obj.parent / src_dir
-                if src_path.exists():
-                    # Filter files respecting gitignore and project structure
-                    src_files = filter_python_files(src_path, respect_gitignore=True)
-                    # Additional filtering to exclude test files
-                    for py_file in src_files:
-                        if not project_structure.should_exclude_from_logging_analysis(
-                            py_file,
-                        ):
-                            python_files.append(py_file)
 
-            transform_results = []
+def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions):
+    """Fix all files in a directory."""
+    python_files = []
+    for src_dir in project_structure.source_dirs:
+        src_path = path_obj / src_dir if path_obj.is_dir() else path_obj.parent / src_dir
+        if src_path.exists():
+            src_files = filter_python_files(src_path, respect_gitignore=True)
+            for py_file in src_files:
+                if not project_structure.should_exclude_from_logging_analysis(py_file):
+                    python_files.append(py_file)
 
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                for py_file in python_files:
-                    task = progress.add_task(
-                        f"Transforming {py_file.name}...",
-                        total=None,
-                    )
-                    transform_result = assistant.transform_file(
-                        py_file,
-                        dry_run=dry_run,
-                    )
-                    transform_results.append(transform_result)
-                    progress.remove_task(task)
+    transform_results = []
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        for py_file in python_files:
+            task = progress.add_task(f"Transforming {py_file.name}...", total=None)
+            transform_result = assistant.transform_file(py_file, dry_run=options.dry_run)
+            transform_results.append(transform_result)
+            progress.remove_task(task)
 
-            _display_directory_transformation(transform_results, dry_run)
+    _display_directory_transformation(transform_results, options.dry_run)
 
-    # 5. Summary and exit code
+
+def _handle_check_summary(lint_success: bool, ast_issues, log):
+    """Handle final summary and exit code."""
     has_issues = not lint_success or (ast_issues and _has_ast_issues(ast_issues))
 
     if has_issues:
