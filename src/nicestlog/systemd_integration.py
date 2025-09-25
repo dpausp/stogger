@@ -5,7 +5,7 @@ Makes systemd logging actually usable and powerful.
 
 import contextlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 import json
 import os
 import socket
@@ -207,7 +207,7 @@ def setup_systemd_logging(
 @dataclass
 class ServiceConfig:
     """Configuration for systemd service creation."""
-    
+
     service_name: str
     exec_command: str
     user: str | None = None
@@ -304,7 +304,7 @@ def query_journal_logs(
 
         # Set time filter
         if since:
-            j.seek_realtime(datetime.now().timestamp() - parse_time_delta(since))
+            j.seek_realtime(datetime.now(UTC).timestamp() - parse_time_delta(since))
 
         # Get entries
         entries: list[dict[str, Any]] = []
@@ -352,8 +352,8 @@ def parse_time_delta(time_str: str) -> float:
         days = int(time_str.split()[0])
         return days * 24 * 3600
     elif time_str == "today":
-        now = datetime.now()
-        today_start = datetime(now.year, now.month, now.day)
+        now = datetime.now(UTC)
+        today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
         return (now - today_start).total_seconds()
     else:
         return 3600  # Default: 1 hour
@@ -386,11 +386,10 @@ def demo_systemd_integration():
             details="Test error for systemd journal",
         )
 
-
         # Query recent logs
         recent_logs = query_journal_logs(service_name="nicestlog-demo", lines=5)
         for entry in recent_logs:
-            datetime.fromtimestamp(entry["timestamp"]).strftime("%H:%M:%S")
+            datetime.fromtimestamp(entry["timestamp"], tz=UTC).strftime("%H:%M:%S")
 
     else:
         pass
@@ -404,7 +403,6 @@ def demo_systemd_integration():
         environment={"PYTHONPATH": "/opt/myapp", "LOG_LEVEL": "info"},
     )
     create_systemd_service_file(config)
-
 
 
 if __name__ == "__main__":
