@@ -93,8 +93,8 @@ class InteractiveTransformer:
 
     def __init__(
         self,
-        *,
         assistant: AdvancedAssistant | None = None,
+        *,
         context_lines: int = 3,
         enable_live_editing: bool = True,
         use_external_editor: bool = False,

@@ -32,7 +32,7 @@ import typer
 import nicestlog
 
 try:
-    from .web_dashboard import run_dashboard, FLASK_AVAILABLE
+    from .web_dashboard import FLASK_AVAILABLE, run_dashboard
 except ImportError:
     run_dashboard = None
     FLASK_AVAILABLE = False

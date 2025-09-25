@@ -99,7 +99,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call) -> None:
         """Visit function calls to detect log statements."""
         if self._is_log_call(node):
-            statement = self._parse_log_statement(node, self.prefer_dash_case)
+            statement = self._parse_log_statement(node, prefer_dash_case=self.prefer_dash_case)
             self.statements.append(statement)
 
         self.generic_visit(node)
@@ -208,7 +208,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             magic_args,
             event_id,
             event_id_format,
-            prefer_dash_case,
+            prefer_dash_case=prefer_dash_case,
         )
 
         return LogStatement(

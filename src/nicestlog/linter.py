@@ -25,6 +25,10 @@ from .log_statement_analyzer import (
 # Initialize logger
 log = structlog.get_logger(__name__)
 
+# Constants for logging wrapper detection
+SINGLE_LOGGING_CALL = 1
+MAX_BODY_STATEMENTS_FOR_PASSTHROUGH = 3
+
 
 @dataclass
 class LoggingStats:

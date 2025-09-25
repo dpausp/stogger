@@ -9,12 +9,12 @@ import sys
 from typing import Any, TextIO
 
 try:
-    from eliot import add_destinations, log_message, start_action, to_file  # type: ignore[import-untyped]
+    from eliot import log_message, start_action  # type: ignore[import-untyped]
 
     ELIOT_AVAILABLE = True
 except ImportError:
     ELIOT_AVAILABLE = False
-    add_destinations = log_message = start_action = to_file = None
+    start_action = log_message = None
 
 try:
     from .core import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
@@ -233,6 +233,8 @@ def setup_eliot_logging(
     """
     if not ELIOT_AVAILABLE:
         return False
+
+    from eliot import add_destinations, to_file
 
     if human_readable:
         dest = HumanReadableEliotDestination(
