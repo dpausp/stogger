@@ -26,7 +26,7 @@ ______________________________________________________________________
 
      - [x] All PLR0912 (too many branches) errors resolved - partially fixed check function
      - [x] All PLR0913 (too many arguments) errors resolved - added CheckOptions and MigrateOptions dataclasses
-     - [ ] All PLR0915 (too many statements) errors resolved - still working on this
+     - [x] All PLR0915 (too many statements) errors resolved - migrate_single_file refactored with helper functions
 
    - **Files to check/modify**
 

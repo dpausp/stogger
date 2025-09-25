@@ -29,6 +29,7 @@ import typer
 
 import nicestlog
 
+from . import project_analyzer
 from .advanced_assistant import (
     AdvancedAssistant,
     ASTPattern,
@@ -43,7 +44,6 @@ from .interactive_transformer import (
     InteractiveTransformer,
 )
 from .linter import lint_directory
-from . import project_analyzer
 
 
 # Type protocol for migration results to handle different result types
@@ -416,6 +416,7 @@ def init_config_cmd(
 @dataclasses.dataclass
 class CheckOptions:
     """Configuration options for check command."""
+
     path: str = "."
     fix: bool = False
     interactive: bool = False
@@ -429,6 +430,7 @@ class CheckOptions:
 @dataclasses.dataclass
 class MigrateOptions:
     """Configuration options for migrate command."""
+
     path: str = "."
     output: str | None = None
     mode: str = "logging"
@@ -505,14 +507,14 @@ def _run_check_command(options: CheckOptions):
 
     project_structure = _detect_project_structure(path_obj, log)
     _display_mode_info(options, log)
-    
+
     lint_success, ast_issues = _perform_analysis(options, path_obj, project_structure, log)
-    
+
     if options.interactive and ast_issues:
         _run_interactive_mode(options, path_obj, ast_issues, log)
     elif options.fix and not options.no_ast and ast_issues:
         _run_fix_mode(options, path_obj, project_structure, log)
-    
+
     _handle_check_summary(lint_success, ast_issues, log)
 
 
@@ -565,24 +567,24 @@ def _perform_analysis(options: CheckOptions, path_obj: Path, project_structure, 
 
     lint_success = basic_success
     ast_issues = None
-    
+
     if not options.no_ast or options.interactive or options.patterns or options.complexity:
         ast_issues = _run_ast_analysis(options, path_obj, project_structure, log)
         if ast_issues:
             _display_ast_issues(ast_issues, log)
-    
+
     return lint_success, ast_issues
 
 
 def _run_ast_analysis(options: CheckOptions, path_obj: Path, project_structure, log):
     """Run AST analysis on files."""
     log.info("check-ast-analysis-start", _replace_msg="Running AST analysis...")
-    
+
     assistant = AdvancedAssistant(verbose=options.verbose)
-    
+
     if options.patterns:
         _configure_ast_patterns(assistant, options.patterns)
-    
+
     if path_obj.is_file():
         return _analyze_single_file_for_check(assistant, path_obj, options)
     else:
@@ -609,20 +611,20 @@ def _analyze_single_file_for_check(assistant: AdvancedAssistant, path_obj: Path,
 def _analyze_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions, log):
     """Analyze all files in a directory."""
     python_files = filter_python_files(path_obj, respect_gitignore=True)
-    
+
     if not python_files:
         log.info(
             "check-no-files-found",
             _replace_msg="No Python files found in directory (after applying .gitignore)",
         )
         return None
-    
+
     log.info(
         "check-files-analyzed",
         file_count=len(python_files),
         _replace_msg=f"Analyzing {len(python_files)} Python files (respecting .gitignore)",
     )
-    
+
     ast_results = []
     with Progress(
         SpinnerColumn(),
@@ -677,7 +679,7 @@ def _run_interactive_mode(options: CheckOptions, path_obj: Path, ast_issues, log
 def _run_fix_mode(options: CheckOptions, path_obj: Path, project_structure, log):
     """Run automatic fix mode."""
     log.info("check-fixes-start", _replace_msg="Applying AST-based fixes...")
-    
+
     assistant = AdvancedAssistant(verbose=options.verbose)
 
     if path_obj.is_file():
@@ -2048,6 +2050,73 @@ def run_migrate_command(
     # 8. Exit with appropriate code
     if result.errors > 0:
         raise typer.Exit(1)
+
+
+def _handle_analysis_operation(assistant: AdvancedAssistant, source: Path) -> TransformationResult:
+    """Handle analysis operation for advanced mode."""
+    analysis_result = assistant.analyze_file(source)
+    log.debug(
+        "migrate-single-file-analysis-completed",
+        analysis_result=analysis_result.to_dict(),
+        _replace_msg=f"Analysis completed: {analysis_result}",
+    )
+
+    return TransformationResult(
+        file_path=source,
+        changes_made=False,
+        changes=[],
+        transformed_code="",
+        analysis_result=analysis_result,
+    )
+
+
+def _handle_interactive_operation(source: Path) -> TransformationResult:
+    """Handle interactive operation for advanced mode."""
+    transformer = InteractiveTransformer()
+    result = transformer.transform_file_interactive(source)
+    log.debug(
+        "migrate-single-file-interactive-completed",
+        result=result.to_dict() if result else None,
+        _replace_msg=f"Interactive transformation completed: {result}",
+    )
+    return result
+
+
+def _write_transformed_file(result: TransformationResult, target: Path, *, backup: bool) -> None:
+    """Write transformed file to target with optional backup."""
+    if not result.changes_made or not result.transformed_code:
+        return
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    if backup and target.exists():
+        backup_path = target.with_suffix(f"{target.suffix}.backup")
+        backup_counter = 1
+        while backup_path.exists():
+            backup_path = target.with_suffix(f"{target.suffix}.backup.{backup_counter}")
+            backup_counter += 1
+
+        shutil.copy2(target, backup_path)
+        log.debug("backup-created", backup_path=str(backup_path), _replace_msg=f"Backup created: {backup_path}")
+
+    with target.open("w", encoding="utf-8") as f:
+        f.write(result.transformed_code)
+
+    log.debug(
+        "migrate-single-file-written",
+        target=str(target),
+        _replace_msg=f"Transformed file written to: {target}",
+    )
+
+
+def _copy_unchanged_file(source: Path, target: Path) -> None:
+    """Copy source to target when no changes were made."""
+    if source == target:
+        return
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target)
+    log.debug("migrate-single-file-copied", source=str(source), target=str(target))
 
 
 def migrate_single_file(
