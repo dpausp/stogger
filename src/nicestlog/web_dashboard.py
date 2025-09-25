@@ -3,6 +3,7 @@
 No async bullshit, just good old Flask with HTMX for live updates.
 """
 
+import contextlib
 from datetime import UTC, datetime
 import queue
 import threading
@@ -23,15 +24,18 @@ except ImportError:
 import structlog
 
 # Simple in-memory log storage
+MAX_RECENT_LOGS = 500
+ONE_MINUTE_SECONDS = 60
 log_buffer: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=1000)
 recent_logs: list[dict[str, Any]] = []
 log_lock = threading.Lock()
 
 
 class WebLogHandler:
-    """Log handler that feeds logs to the web dashboard."""
+    """Handle logs for the web dashboard."""
 
     def __init__(self):
+        """Initialize the web log handler."""
         self.session_id = int(time.time())
 
     def __call__(self, _, __, event_dict):
@@ -47,14 +51,12 @@ class WebLogHandler:
 
         with log_lock:
             recent_logs.append(log_entry)
-            # Keep only last 500 logs
-            if len(recent_logs) > 500:
+            # Keep only last MAX_RECENT_LOGS logs
+            if len(recent_logs) > MAX_RECENT_LOGS:
                 recent_logs.pop(0)
 
-        try:
-            log_buffer.put_nowait(log_entry)
-        except queue.Full:
-            pass  # Drop logs if buffer is full
+        with contextlib.suppress(queue.Full):
+            log_buffer.put_nowait(log_entry)  # Drop logs if buffer is full
 
         return event_dict
 
@@ -308,7 +310,7 @@ def create_dashboard_app():
 
     @app.route("/")
     def dashboard():
-        """Main dashboard page."""
+        """Render the main dashboard page."""
         stats = get_log_stats()
         return render_template_string(DASHBOARD_HTML, stats=stats)
 
@@ -385,7 +387,7 @@ def get_log_stats():
         recent_logs_1min = [
             log_entry
             for log_entry in logs
-            if (datetime.now(UTC) - datetime.fromisoformat(log_entry["timestamp"])).total_seconds() < 60
+            if (datetime.now(UTC) - datetime.fromisoformat(log_entry["timestamp"])).total_seconds() < ONE_MINUTE_SECONDS
         ]
         logs_per_minute = len(recent_logs_1min)
     else:
@@ -400,7 +402,7 @@ def get_log_stats():
 
 
 def setup_web_logging():
-    """Setup web logging integration."""
+    """Set up web logging integration."""
     web_handler = WebLogHandler()
     structlog.configure(
         processors=[
@@ -416,7 +418,7 @@ def setup_web_logging():
     return web_handler
 
 
-def run_dashboard(host="127.0.0.1", port=8080, debug=False):
+def run_dashboard(host="127.0.0.1", port=8080, *, debug=False):
     """Run the web dashboard."""
     if not FLASK_AVAILABLE:
         msg = (

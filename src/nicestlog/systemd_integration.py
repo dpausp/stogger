@@ -148,7 +148,7 @@ def setup_systemd_logging(
     identifier: str | None = None,
     facility: str | None = None,
 ) -> bool:
-    """Setup systemd journal logging integration.
+    """Set up systemd journal logging integration.
 
     This function prefers the detected runtime environment to decide whether to
     enable systemd logging. If a systemd environment is detected, it will attach

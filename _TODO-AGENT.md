@@ -112,55 +112,55 @@ ______________________________________________________________________
 
    - **Commit message hint**: "fix: add timezone awareness to datetime operations"
 
-1. [ ] **Fix style and quality violations** – code quality improvements
+1. [x] **Fix style and quality violations** – code quality improvements
 
    - **Context**: Various style, argument, and quality issues
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All ARG001 (unused arguments) errors resolved
-     - [ ] All FBT001/FBT002 (boolean flags) errors resolved
-     - [ ] All RUF001 (ambiguous characters) errors resolved
-     - [ ] All TRY300 (try-else patterns) errors resolved
-     - [ ] All SIM105 (contextlib.suppress) errors resolved
-     - [ ] All PLR2004 (magic values) errors resolved
+     - [x] All ARG001 (unused arguments) errors resolved
+     - [x] All FBT001/FBT002 (boolean flags) errors resolved
+     - [x] All RUF001 (ambiguous characters) errors resolved
+     - [x] All TRY300 (try-else patterns) errors resolved
+     - [x] All SIM105 (contextlib.suppress) errors resolved
+     - [x] All PLR2004 (magic values) errors resolved
 
    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/cli.py` (multiple lines)
-     - [ ] `src/nicestlog/web_dashboard.py` (multiple lines)
-     - [ ] `src/nicestlog/systemd_integration.py` (line 226)
+     - [x] `src/nicestlog/cli.py` (multiple lines)
+     - [x] `src/nicestlog/web_dashboard.py` (multiple lines)
+     - [x] `src/nicestlog/systemd_integration.py` (line 226)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Remove unused function arguments or mark with underscore
-     - [ ] Replace boolean positional args with keyword-only
-     - [ ] Fix ambiguous Unicode characters
-     - [ ] Apply try-else pattern improvements
-     - [ ] Use contextlib.suppress where appropriate
-     - [ ] Replace magic numbers with named constants
+     - [x] Remove unused function arguments or mark with underscore
+     - [x] Replace boolean positional args with keyword-only
+     - [x] Fix ambiguous Unicode characters
+     - [x] Apply try-else pattern improvements
+     - [x] Use contextlib.suppress where appropriate
+     - [x] Replace magic numbers with named constants
 
    - **Commit message hint**: "style: fix various code quality violations"
 
-1. [ ] **Fix docstring violations (D401, D107)** – documentation standards
+1. [x] **Fix docstring violations (D401, D107)** – documentation standards
 
    - **Context**: Docstring format issues
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All D401 (imperative mood) errors resolved
-     - [ ] All D107 (missing docstrings) errors resolved
+      - [x] All D401 (imperative mood) errors resolved
+      - [x] All D107 (missing docstrings) errors resolved
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/systemd_integration.py` (line 147)
-     - [ ] `src/nicestlog/web_dashboard.py` (lines 34, 315, 414)
+      - [x] `src/nicestlog/systemd_integration.py` (line 147)
+      - [x] `src/nicestlog/web_dashboard.py` (lines 34, 315, 414)
 
-   - **Steps** (always action verbs, explicit order)
+    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Rewrite docstrings in imperative mood
-     - [ ] Add missing docstrings for `__init__` methods
-     - [ ] Validate docstring format compliance
+      - [x] Rewrite docstrings in imperative mood
+      - [x] Add missing docstrings for `__init__` methods
+      - [x] Validate docstring format compliance
 
    - **Commit message hint**: "docs: fix docstring format violations"
 
