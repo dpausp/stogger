@@ -122,7 +122,7 @@ class TestDashboardCommand:
         """Test dashboard command with default arguments."""
         result = self.runner.invoke(app, ["tools", "dashboard"])
         assert result.exit_code == 0
-        mock_dashboard.assert_called_once_with("127.0.0.1", 8080, False)
+        mock_dashboard.assert_called_once_with("127.0.0.1", 8080, debug=False)
 
     @patch("nicestlog.cli.run_dashboard_cmd")
     def test_dashboard_custom_args(self, mock_dashboard):
@@ -132,7 +132,7 @@ class TestDashboardCommand:
             ["tools", "dashboard", "--host", "0.0.0.0", "--port", "9000", "--debug"],
         )
         assert result.exit_code == 0
-        mock_dashboard.assert_called_once_with("0.0.0.0", 9000, True)
+        mock_dashboard.assert_called_once_with("0.0.0.0", 9000, debug=True)
 
     @patch("nicestlog.cli.run_dashboard")
     def test_run_dashboard_cmd_function(self, mock_run_dashboard):
@@ -154,6 +154,7 @@ class TestDashboardCommand:
         # Note: This test may pass even with Flask available due to import timing
         # but demonstrates the intended behavior
 
+    @patch("nicestlog.cli.FLASK_AVAILABLE", False)
     def test_run_dashboard_cmd_missing_flask(self):
         """Test run_dashboard_cmd function when Flask is missing."""
         import typer
@@ -163,13 +164,10 @@ class TestDashboardCommand:
 
         assert exc_info.value.exit_code == 1
 
-    @patch("nicestlog.web_dashboard.FLASK_AVAILABLE", False)
-    @patch("nicestlog.web_dashboard.run_dashboard")
-    def test_run_dashboard_cmd_flask_not_available(self, mock_run_dashboard):
+    @patch("nicestlog.cli.FLASK_AVAILABLE", False)
+    def test_run_dashboard_cmd_flask_not_available(self):
         """Test run_dashboard_cmd when Flask is not available in web_dashboard module."""
         import typer
-
-        mock_run_dashboard.side_effect = ImportError("Flask is not installed")
 
         with pytest.raises(typer.Exit) as exc_info:
             run_dashboard_cmd("localhost", 3000, debug=True)
@@ -322,7 +320,7 @@ class TestJournalCommand:
         """Test journal command with default arguments."""
         result = self.runner.invoke(app, ["tools", "journal"])
         assert result.exit_code == 0
-        mock_journal.assert_called_once_with(None, 50, False, None, None)
+        mock_journal.assert_called_once_with(None, 50, follow=False, since=None, level=None)
 
     @patch("nicestlog.cli.run_journal_viewer")
     def test_journal_custom_args(self, mock_journal):
@@ -347,9 +345,9 @@ class TestJournalCommand:
         mock_journal.assert_called_once_with(
             "nginx.service",
             100,
-            True,
-            "1 hour ago",
-            "error",
+            follow=True,
+            since="1 hour ago",
+            level="error",
         )
 
     def test_journal_invalid_level(self):

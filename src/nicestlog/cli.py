@@ -32,9 +32,10 @@ import typer
 import nicestlog
 
 try:
-    from .web_dashboard import run_dashboard
+    from .web_dashboard import run_dashboard, FLASK_AVAILABLE
 except ImportError:
     run_dashboard = None
+    FLASK_AVAILABLE = False
 
 from .journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
 from .log_reviewer import LogQualityReviewer, print_report
@@ -445,10 +446,11 @@ class MigrateOptions:
     verbose: bool = False
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(kw_only=True)
 class CheckOptions:
     """Options for the check command."""
 
+    path: str = "."
     fix: bool = False
     interactive: bool = False
     dry_run: bool = False
@@ -1593,11 +1595,7 @@ def _display_with_pager(content: str):
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, *, debug: bool = False):
     """Run the web dashboard."""
-    try:
-        from .web_dashboard import run_dashboard  # noqa: PLC0415
-
-        run_dashboard(host=host, port=port, debug=debug)
-    except ImportError:
+    if not FLASK_AVAILABLE or run_dashboard is None:
         typer.echo(
             "❌ Flask is not installed. The web dashboard requires Flask.\n"
             "Install it with:\n"
@@ -1607,6 +1605,19 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, *, debug: bool 
             err=True,
         )
         raise typer.Exit(1) from None
+    else:
+        try:
+            run_dashboard(host=host, port=port, debug=debug)
+        except ImportError:
+            typer.echo(
+                "❌ Flask is not installed. The web dashboard requires Flask.\n"
+                "Install it with:\n"
+                "  pip install 'nicestlog[web]'\n"
+                "or\n"
+                "  pip install flask>=3.0.3",
+                err=True,
+            )
+            raise typer.Exit(1) from None
 
 
 def run_journal_viewer(
