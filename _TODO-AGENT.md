@@ -25,7 +25,7 @@ ______________________________________________________________________
    - **Success criteria** (must be checked to finish task)
 
      - [ ] All PLR0912 (too many branches) errors resolved
-     - [ ] All PLR0913 (too many arguments) errors resolved  
+     - [ ] All PLR0913 (too many arguments) errors resolved
      - [ ] All PLR0915 (too many statements) errors resolved
 
    - **Files to check/modify**
@@ -42,7 +42,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "refactor: reduce function complexity per ruff PLR rules"
 
-2. [ ] **Fix exception handling violations (BLE001, B904)** – follow crash-first principle
+1. [ ] **Fix exception handling violations (BLE001, B904)** – follow crash-first principle
 
    - **Context**: Blind exception catching violates AGENTS.md Rule 6 (let it crash)
 
@@ -66,7 +66,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "fix: improve exception handling per Rule 6 crash-first"
 
-3. [ ] **Fix security and subprocess violations (S603, S607)** – secure process execution
+1. [ ] **Fix security and subprocess violations (S603, S607)** – secure process execution
 
    - **Context**: Subprocess calls with potential security issues
 
@@ -89,7 +89,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "fix: secure subprocess execution patterns"
 
-4. [ ] **Fix datetime violations (DTZ series)** – proper timezone handling
+1. [ ] **Fix datetime violations (DTZ series)** – proper timezone handling
 
    - **Context**: Datetime operations without timezone awareness
 
@@ -112,7 +112,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "fix: add timezone awareness to datetime operations"
 
-5. [ ] **Fix style and quality violations** – code quality improvements
+1. [ ] **Fix style and quality violations** – code quality improvements
 
    - **Context**: Various style, argument, and quality issues
 
@@ -142,7 +142,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "style: fix various code quality violations"
 
-6. [ ] **Fix docstring violations (D401, D107)** – documentation standards
+1. [ ] **Fix docstring violations (D401, D107)** – documentation standards
 
    - **Context**: Docstring format issues
 
@@ -164,7 +164,7 @@ ______________________________________________________________________
 
    - **Commit message hint**: "docs: fix docstring format violations"
 
-7. [ ] **Fix import and path violations** – module organization
+1. [ ] **Fix import and path violations** – module organization
 
    - **Context**: Import location and path operation issues
 
