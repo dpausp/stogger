@@ -134,10 +134,10 @@ class TestDashboardCommand:
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("0.0.0.0", 9000, True)
 
-    @patch("nicestlog.web_dashboard.run_dashboard")
+    @patch("nicestlog.cli.run_dashboard")
     def test_run_dashboard_cmd_function(self, mock_run_dashboard):
         """Test the run_dashboard_cmd function directly."""
-        run_dashboard_cmd("localhost", 3000, True)
+        run_dashboard_cmd("localhost", 3000, debug=True)
         mock_run_dashboard.assert_called_once_with(
             host="localhost",
             port=3000,
@@ -154,19 +154,14 @@ class TestDashboardCommand:
         # Note: This test may pass even with Flask available due to import timing
         # but demonstrates the intended behavior
 
-    @patch(
-        "nicestlog.web_dashboard.run_dashboard",
-        side_effect=ImportError("No module named 'flask'"),
-    )
-    def test_run_dashboard_cmd_missing_flask(self, mock_run_dashboard):
+    def test_run_dashboard_cmd_missing_flask(self):
         """Test run_dashboard_cmd function when Flask is missing."""
         import typer
 
         with pytest.raises(typer.Exit) as exc_info:
-            run_dashboard_cmd("localhost", 3000, True)
+            run_dashboard_cmd("localhost", 3000, debug=True)
 
         assert exc_info.value.exit_code == 1
-        mock_run_dashboard.assert_called_once()
 
     @patch("nicestlog.web_dashboard.FLASK_AVAILABLE", False)
     @patch("nicestlog.web_dashboard.run_dashboard")
@@ -177,7 +172,7 @@ class TestDashboardCommand:
         mock_run_dashboard.side_effect = ImportError("Flask is not installed")
 
         with pytest.raises(typer.Exit) as exc_info:
-            run_dashboard_cmd("localhost", 3000, True)
+            run_dashboard_cmd("localhost", 3000, debug=True)
 
         assert exc_info.value.exit_code == 1
 

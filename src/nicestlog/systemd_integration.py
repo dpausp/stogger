@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 import json
 import os
+from pathlib import Path
 import socket
 import subprocess
 from typing import Any
@@ -17,12 +18,16 @@ import structlog
 logger = structlog.get_logger()
 
 try:
-    from systemd import journal  # type: ignore[import-not-found]
+    from systemd import (
+        daemon,  # type: ignore[import-not-found]
+        journal,  # type: ignore[import-not-found]
+    )
 
     SYSTEMD_AVAILABLE = True
 except ImportError:
     SYSTEMD_AVAILABLE = False
     journal = None
+    daemon = None
 
 
 class SystemdJournalHandler:
@@ -131,10 +136,8 @@ def detect_systemd_environment() -> dict[str, Any]:
     info["journal_stream"] = journal_stream
 
     # Try to get unit name from systemd environment
-    if SYSTEMD_AVAILABLE:
+    if SYSTEMD_AVAILABLE and daemon is not None:
         # Use systemd library to get unit information if available
-        from systemd import daemon
-
         unit_name = daemon.booted()
         if unit_name:
             info["unit_name"] = unit_name
@@ -227,7 +230,7 @@ def create_systemd_service_file(config: ServiceConfig) -> str:
 
     """
     user = config.user or os.getenv("USER", "nobody")
-    working_directory = config.working_directory or os.getcwd()
+    working_directory = config.working_directory or Path.cwd()
     environment = config.environment or {}
 
     service_content = f"""[Unit]

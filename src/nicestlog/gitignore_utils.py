@@ -79,14 +79,14 @@ def should_ignore_path(file_path: Path, base_dir: Path, patterns: list[str]) -> 
                 if fnmatch.fnmatch(parent_str, pattern.rstrip("/*")):
                     return True
 
-        return False
-
     except ValueError:
         # File is not relative to base_dir, ignore it
         return True
+    else:
+        return False
 
 
-def filter_python_files(directory: Path, respect_gitignore: bool = True) -> list[Path]:
+def filter_python_files(directory: Path, *, respect_gitignore: bool = True) -> list[Path]:
     """Get Python files in directory, respecting .gitignore if requested."""
     # Filtering Python files
 

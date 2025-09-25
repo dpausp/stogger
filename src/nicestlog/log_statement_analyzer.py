@@ -3,10 +3,13 @@
 Analyzes log statements to detect common issues and patterns.
 """
 
+import argparse
 import ast
 from dataclasses import dataclass
 from pathlib import Path
 import re
+
+import structlog
 
 
 @dataclass
@@ -42,7 +45,7 @@ class LogAnalysisResult:
 class LogStatementAnalyzer(ast.NodeVisitor):
     """AST visitor that analyzes log statements."""
 
-    def __init__(self, prefer_dash_case: bool = True):
+    def __init__(self, *, prefer_dash_case: bool = True):
         self.statements: list[LogStatement] = []
         self.prefer_dash_case = prefer_dash_case
         self.log_methods = {
@@ -119,8 +122,9 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                 # Check for direct calls like getLogger()
                 if node.func.id in self.logger_factory_patterns:
                     return True
-            return False
         except AttributeError:
+            return False
+        else:
             return False
 
     def _is_log_call(self, node: ast.Call) -> bool:
@@ -153,14 +157,15 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                 if isinstance(node.func.value, ast.Call):
                     if self._is_logger_factory_call(node.func.value):
                         return True
-
-            return False
         except AttributeError:
+            return False
+        else:
             return False
 
     def _parse_log_statement(
         self,
         node: ast.Call,
+        *,
         prefer_dash_case: bool = True,
     ) -> LogStatement:
         """Parse a log statement node into a LogStatement object."""
@@ -250,6 +255,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         magic_args: set[str],
         event_id: str | None,
         event_id_format: str,
+        *,
         prefer_dash_case: bool = True,
     ) -> list[str]:
         """Detect common issues in log statements.
@@ -273,12 +279,18 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                 )
 
         # Check for too many elements in event ID (readability)
+        # Constants for event ID validation
+        MAX_EVENT_ID_ELEMENTS_ERROR = 7
+        MAX_EVENT_ID_ELEMENTS_WARNING = 5
+        MAX_KWARGS_WARNING = 7
+        MAX_EVENT_ID_LENGTH = 50
+
         if event_id:
             element_count = self._count_event_id_elements(event_id)
-            if element_count >= 7:
-                issues.append(f"event_id_too_many_elements ({element_count}>=7, wtf!)")
-            elif element_count >= 5:
-                issues.append(f"event_id_many_elements ({element_count}>=5, warning)")
+            if element_count >= MAX_EVENT_ID_ELEMENTS_ERROR:
+                issues.append(f"event_id_too_many_elements ({element_count}>={MAX_EVENT_ID_ELEMENTS_ERROR}, wtf!)")
+            elif element_count >= MAX_EVENT_ID_ELEMENTS_WARNING:
+                issues.append(f"event_id_many_elements ({element_count}>={MAX_EVENT_ID_ELEMENTS_WARNING}, warning)")
 
         # Check for single string argument (anti-pattern)
         if len(args) == 1 and not kwargs and not magic_args:
@@ -294,8 +306,8 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
         # Check for too many keyword arguments (complexity warning)
         non_magic_kwargs = {k: v for k, v in kwargs.items() if k not in self.magic_args}
-        if len(non_magic_kwargs) > 7:
-            issues.append(f"too_many_kwargs ({len(non_magic_kwargs)}>7)")
+        if len(non_magic_kwargs) > MAX_KWARGS_WARNING:
+            issues.append(f"too_many_kwargs ({len(non_magic_kwargs)}>{MAX_KWARGS_WARNING})")
 
         # Check for proper structured data
         if event_id and not kwargs and "_replace_msg" not in magic_args:
@@ -335,8 +347,8 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                 issues.append(f"potential_secret_leak ({kwarg_key})")
 
         # Check for very long event IDs (readability)
-        if event_id and len(event_id) > 50:
-            issues.append(f"event_id_too_long ({len(event_id)}>50)")
+        if event_id and len(event_id) > MAX_EVENT_ID_LENGTH:
+            issues.append(f"event_id_too_long ({len(event_id)}>{MAX_EVENT_ID_LENGTH})")
 
         return issues
 
@@ -357,8 +369,6 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
         # First, handle camelCase by inserting dashes before uppercase letters
         # but be careful with consecutive uppercase letters (like HTTP)
-        import re
-
         # Insert dash before uppercase letters that follow lowercase/digits
         # This handles: userLogin -> user-Login, but keeps HTTP as one unit
         normalized = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", event_id)
@@ -387,13 +397,11 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
         # Convert camelCase/PascalCase to dash-case
         # Insert hyphens before uppercase letters and convert to lowercase
-        import re
-
         result = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", event_id)
         return result.lower()
 
 
-def analyze_file(file_path: Path, prefer_dash_case: bool = True) -> LogAnalysisResult:
+def analyze_file(file_path: Path, *, prefer_dash_case: bool = True) -> LogAnalysisResult:
     """Analyze log statements in a Python file."""
     try:
         content = file_path.read_text(encoding="utf-8")
@@ -440,10 +448,8 @@ def analyze_file(file_path: Path, prefer_dash_case: bool = True) -> LogAnalysisR
         )
 
 
-def print_analysis_summary(result: LogAnalysisResult, verbose: bool = False) -> None:
+def print_analysis_summary(result: LogAnalysisResult, *, verbose: bool = False) -> None:
     """Print analysis summary for a file."""
-    import structlog
-
     log = structlog.get_logger()
 
     if result.total_statements == 0:
@@ -503,8 +509,6 @@ def print_analysis_summary(result: LogAnalysisResult, verbose: bool = False) -> 
 
 def main():
     """CLI entry point for log statement analysis."""
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="Analyze log statements in Python files",
     )

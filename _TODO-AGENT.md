@@ -148,40 +148,40 @@ ______________________________________________________________________
 
    - **Success criteria** (must be checked to finish task)
 
-      - [x] All D401 (imperative mood) errors resolved
-      - [x] All D107 (missing docstrings) errors resolved
+     - [x] All D401 (imperative mood) errors resolved
+     - [x] All D107 (missing docstrings) errors resolved
 
-    - **Files to check/modify**
+   - **Files to check/modify**
 
-      - [x] `src/nicestlog/systemd_integration.py` (line 147)
-      - [x] `src/nicestlog/web_dashboard.py` (lines 34, 315, 414)
+     - [x] `src/nicestlog/systemd_integration.py` (line 147)
+     - [x] `src/nicestlog/web_dashboard.py` (lines 34, 315, 414)
 
-    - **Steps** (always action verbs, explicit order)
+   - **Steps** (always action verbs, explicit order)
 
-      - [x] Rewrite docstrings in imperative mood
-      - [x] Add missing docstrings for `__init__` methods
-      - [x] Validate docstring format compliance
+     - [x] Rewrite docstrings in imperative mood
+     - [x] Add missing docstrings for `__init__` methods
+     - [x] Validate docstring format compliance
 
    - **Commit message hint**: "docs: fix docstring format violations"
 
-1. [ ] **Fix import and path violations** – module organization
+1. [x] **Fix import and path violations** – module organization
 
    - **Context**: Import location and path operation issues
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All PLC0415 (import location) errors resolved
-     - [ ] All PTH109 (os.getcwd usage) errors resolved
+     - [x] All PLC0415 (import location) errors resolved - moved all imports to top-level, handled conditional imports
+     - [x] All PTH109 (os.getcwd usage) errors resolved - replaced os.getcwd() with Path.cwd(), used Path.open()
 
    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/cli.py` (line 1506)
-     - [ ] `src/nicestlog/systemd_integration.py` (line 226)
+     - [x] `src/nicestlog/cli.py` (multiple lines)
+     - [x] `src/nicestlog/systemd_integration.py` (no changes needed)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Move imports to top-level where possible
-     - [ ] Replace `os.getcwd()` with `Path.cwd()`
-     - [ ] Handle conditional imports properly
+     - [x] Move imports to top-level where possible
+     - [x] Replace `os.getcwd()` with `Path.cwd()`
+     - [x] Handle conditional imports properly
 
    - **Commit message hint**: "fix: improve import organization and path operations"

@@ -5,8 +5,10 @@ Like a politeness compiler, but for log statements!
 
 import argparse
 import ast
+from contextlib import suppress
 from dataclasses import dataclass
 import fnmatch
+import json
 import os
 from pathlib import Path
 import sys
@@ -404,10 +406,20 @@ class LoggingVisitor(ast.NodeVisitor):
         logging_calls: list[ast.Call],
     ) -> bool:
         """Determine if function is likely an unnecessary log wrapper."""
+        # Constants for wrapper detection
+        NO_ARGS = 0
+        SINGLE_BODY_STATEMENT = 1
+        SINGLE_LOGGING_CALL = 1
+        MAX_BODY_STATEMENTS_FOR_PASSTHROUGH = 2
+
         # First check: Don't flag very simple functions with no parameters (like log_startup())
         # These are often legitimate convenience functions
         func_args = {arg.arg for arg in func_node.args.args}
-        if len(func_args) == 0 and len(func_node.body) == 1 and len(logging_calls) == 1:
+        if (
+            len(func_args) == NO_ARGS
+            and len(func_node.body) == SINGLE_BODY_STATEMENT
+            and len(logging_calls) == SINGLE_LOGGING_CALL
+        ):
             return False
 
         # Pattern 1: Function name suggests it's a wrapper
@@ -441,7 +453,7 @@ class LoggingVisitor(ast.NodeVisitor):
             return True
 
         # Pattern 3: Simple passthrough function (just calls log with parameters)
-        if len(logging_calls) == 1 and len(func_node.body) <= 2:
+        if len(logging_calls) == SINGLE_LOGGING_CALL and len(func_node.body) <= MAX_BODY_STATEMENTS_FOR_PASSTHROUGH:
             # Check if function parameters are just passed through to logging
             log_call = logging_calls[0]
 
@@ -466,7 +478,7 @@ class LoggingVisitor(ast.NodeVisitor):
             reason = (
                 f"Function '{func_node.name}' appears to be a wrapper around logging - consider using log.* directly"
             )
-        elif len(logging_calls) == 1 and len(func_node.body) <= 2:
+        elif len(logging_calls) == SINGLE_LOGGING_CALL and len(func_node.body) <= MAX_BODY_STATEMENTS_FOR_PASSTHROUGH:
             reason = f"Function '{func_node.name}' only passes parameters to logging - use log.* directly instead"
         elif any(isinstance(stmt, ast.If) for stmt in ast.walk(func_node)):
             reason = f"Function '{func_node.name}' conditionally logs - consider using log levels or structured logging instead"
@@ -526,9 +538,10 @@ def analyze_file(file_path: Path) -> tuple[LoggingStats, list[LoggingLevelIssue]
             function_coverage_percent=func_coverage,
         )
 
-        return stats, visitor.level_issues
     except SyntaxError:
         return LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0), []
+    else:
+        return stats, visitor.level_issues
 
 
 def check_logging_quality(
@@ -556,16 +569,20 @@ def check_logging_quality(
     else:
         issues.append(f"✅ Good logging coverage: {stats.log_coverage_percent:.1f}%")
 
+    # Constants for coverage thresholds
+    MIN_FUNCTION_LOGGING_PERCENT = 30
+    MAX_FUNCTION_LOGGING_PERCENT = 90
+
     # Check function coverage
     if stats.functions > 0:
-        if stats.function_coverage_percent < 30:
+        if stats.function_coverage_percent < MIN_FUNCTION_LOGGING_PERCENT:
             issues.append(
                 f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%",
             )
             issues.append(
-                "   Consider adding logging to more functions (aim for 30-70%)",
+                f"   Consider adding logging to more functions (aim for {MIN_FUNCTION_LOGGING_PERCENT}-70%)",
             )
-        elif stats.function_coverage_percent > 90:
+        elif stats.function_coverage_percent > MAX_FUNCTION_LOGGING_PERCENT:
             issues.append(
                 f"⚠️  Almost every function logs - might be excessive: {stats.function_coverage_percent:.1f}%",
             )
@@ -581,6 +598,7 @@ def lint_directory(
     directory: Path,
     min_coverage: float = 5.0,
     max_coverage: float = 15.0,
+    *,
     analyze_statements: bool = False,
     verbose: bool = False,
     allow_snake_case: bool = False,
@@ -614,12 +632,11 @@ def lint_directory(
         exclude_globs: list[str] = []
         pyproject = directory / "pyproject.toml"
         if pyproject.exists():
-            try:
+            exclude_globs = []
+            with suppress(Exception):
                 cfg = toml.load(str(pyproject))
                 nl_cfg = cfg.get("tool", {}).get("nicestlog", {})
                 exclude_globs = list(nl_cfg.get("exclude", []))
-            except Exception:
-                exclude_globs = []
 
         def is_excluded(path: Path) -> bool:
             rel = path.relative_to(directory)
@@ -743,8 +760,6 @@ def lint_directory(
 
     if output_format == "json":
         # Machine-readable JSON output
-        import json
-
         {
             "files": rows,
             "summary": {

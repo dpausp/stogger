@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+import json
 import os
 import subprocess
 import tempfile
+import time
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -49,7 +51,7 @@ class LiveCodeEditor:
     with syntax highlighting, validation, and comprehensive logging.
     """
 
-    def __init__(self, use_external_editor: bool = False):
+    def __init__(self, *, use_external_editor: bool = False):
         self.use_external_editor = use_external_editor
         self.edit_sessions: list[EditSession] = []
 
@@ -75,8 +77,6 @@ class LiveCodeEditor:
             - Edit session data for ML
 
         """
-        import time
-
         start_time = time.time()
 
         log.info(
@@ -306,8 +306,6 @@ class LiveCodeEditor:
 
     def save_edit_sessions(self, output_path: Path):
         """Save all edit sessions for machine learning analysis."""
-        import json
-
         sessions_data = []
         for session in self.edit_sessions:
             sessions_data.append(
@@ -374,12 +372,8 @@ class LiveCodeEditor:
         insights = {
             "total_sessions": total_sessions,
             "acceptance_rate": accepted_sessions / total_sessions,
-            "avg_edit_duration": sum(
-                s.edit_duration_seconds for s in self.edit_sessions
-            )
-            / total_sessions,
-            "avg_edits_per_session": sum(len(s.edit_steps) for s in self.edit_sessions)
-            / total_sessions,
+            "avg_edit_duration": sum(s.edit_duration_seconds for s in self.edit_sessions) / total_sessions,
+            "avg_edits_per_session": sum(len(s.edit_steps) for s in self.edit_sessions) / total_sessions,
             "pattern_statistics": pattern_stats,
             "common_edit_patterns": self._extract_common_edit_patterns(),
         }
@@ -417,7 +411,7 @@ class LiveCodeEditor:
 
 
 # Convenience functions
-def create_live_editor(use_external_editor: bool = False) -> LiveCodeEditor:
+def create_live_editor(*, use_external_editor: bool = False) -> LiveCodeEditor:
     """Create a new Live Code Editor instance."""
     return LiveCodeEditor(use_external_editor=use_external_editor)
 

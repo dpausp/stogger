@@ -7,6 +7,7 @@ AST functionality, previously split between cli.py and cli_advanced.py.
 from __future__ import annotations
 
 import dataclasses
+import difflib
 from importlib import resources
 import importlib.metadata
 import json
@@ -25,9 +26,29 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.syntax import Syntax
 from rich.table import Table
 import structlog
+import toml
 import typer
 
 import nicestlog
+
+try:
+    from .web_dashboard import run_dashboard
+except ImportError:
+    run_dashboard = None
+
+from .journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
+from .log_reviewer import LogQualityReviewer, print_report
+
+try:
+    from .config import NicestLogConfig
+except ImportError:
+    NicestLogConfig = None
+
+import http.server
+import socketserver
+import tempfile
+import threading
+import webbrowser
 
 from . import project_analyzer
 from .advanced_assistant import (
@@ -40,10 +61,12 @@ from .assistant import migrate_directory, migrate_file
 from .cli_output_transformer import migrate_cli_outputs_file
 from .config import detect_project_structure
 from .gitignore_utils import filter_python_files
+from .i18n_check import check_translations, format_report
 from .interactive_transformer import (
     InteractiveTransformer,
 )
 from .linter import lint_directory
+from .systemd_integration import ServiceConfig, create_systemd_service_file
 
 logger = structlog.get_logger()
 
@@ -172,7 +195,7 @@ def tools_journal(
         )
         raise typer.Exit(1)
 
-    run_journal_viewer(unit, lines, follow, since, level)
+    run_journal_viewer(unit, lines, follow=follow, since=since, level=level)
 
 
 # Check if Flask is available for dashboard command
@@ -196,7 +219,7 @@ if FLASK_AVAILABLE_FOR_CLI:
         debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,  # noqa: FBT002
     ):
         """🌐 Start the web dashboard."""
-        run_dashboard_cmd(host, port, debug)
+        run_dashboard_cmd(host, port, debug=debug)
 
 
 # Sub-app for i18n related commands (moved to tools)
@@ -233,8 +256,6 @@ def i18n_check(  # noqa: PLR0913
     verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
 ):
     """🌍 Check translation completeness and quality."""
-    from .i18n_check import check_translations  # noqa: PLC0415
-
     try:
         # Convert src_dir to Path and get all Python files
         src_path = Path(src_dir)
@@ -267,8 +288,6 @@ def i18n_check(  # noqa: PLR0913
 
         # Normal mode: print report if verbose or if there are issues
         if verbose or missing_keys or extra_keys:
-            from .i18n_check import format_report  # noqa: PLC0415
-
             report_text = format_report(result, include_debug=verbose)
             console.print(report_text)
 
@@ -313,7 +332,6 @@ def init_config():
     config["enable_performance_monitoring"] = input("Enable performance monitoring? [y/N]: ").lower() == "y"
 
     # Write config to pyproject.toml
-    import toml  # noqa: PLC0415
 
     try:
         with Path(pyproject_path).open() as f:
@@ -378,7 +396,7 @@ def docs_serve(
     ] = True,
 ):
     """🌐 Serve HTML documentation in browser."""
-    _serve_html_docs(port, host, open_browser, build)
+    _serve_html_docs(port, host, open_browser=open_browser, build=build)
 
 
 @app.command("init")
@@ -404,7 +422,6 @@ def init_config_cmd(
         target_path = target_path.parent
 
     # Change to target directory for init_config
-    import os  # noqa: PLC0415
 
     os.chdir(target_path)
 
@@ -413,20 +430,6 @@ def init_config_cmd(
         console.print(f"✅ [green]Configuration initialized in {target_path}[/green]")
     finally:
         os.chdir(original_cwd)
-
-
-@dataclasses.dataclass
-class CheckOptions:
-    """Configuration options for check command."""
-
-    path: str = "."
-    fix: bool = False
-    interactive: bool = False
-    dry_run: bool = False
-    no_ast: bool = False
-    complexity: bool = False
-    patterns: list[str] | None = None
-    verbose: bool = False
 
 
 @dataclasses.dataclass
@@ -439,6 +442,19 @@ class MigrateOptions:
     target: str = "nicestlog"
     interactive: bool = False
     dry_run: bool = False
+    verbose: bool = False
+
+
+@dataclasses.dataclass
+class CheckOptions:
+    """Options for the check command."""
+
+    fix: bool = False
+    interactive: bool = False
+    dry_run: bool = False
+    no_ast: bool = False
+    complexity: bool = False
+    patterns: list[str] | None = None
     verbose: bool = False
 
 
@@ -520,6 +536,19 @@ def _run_check_command(options: CheckOptions):
     _handle_check_summary(lint_success, ast_issues, log)
 
 
+def _handle_check_summary(lint_success: bool, ast_issues: list, log):
+    """Handle and display the summary of check results."""
+    if lint_success:
+        log.info("check-lint-passed", _replace_msg="✅ Linting passed")
+    else:
+        log.info("check-lint-failed", _replace_msg="❌ Linting failed")
+
+    if ast_issues:
+        log.info("check-ast-issues-found", count=len(ast_issues), _replace_msg=f"🔍 Found {len(ast_issues)} AST issues")
+    else:
+        log.info("check-ast-clean", _replace_msg="🔍 No AST issues found")
+
+
 def _detect_project_structure(path_obj: Path, log):
     """Detect and validate project structure."""
     try:
@@ -529,7 +558,6 @@ def _detect_project_structure(path_obj: Path, log):
         else:
             project_structure = detect_project_structure(path_obj.parent)
             _display_project_context(project_structure, verbose=False, single_file=path_obj)
-        return project_structure
     except ValueError as e:
         log.info(
             "check-project-structure-failed", error=str(e), _replace_msg=f"Project structure detection failed: {e}"
@@ -538,6 +566,8 @@ def _detect_project_structure(path_obj: Path, log):
             "check-configure-pyproject", _replace_msg="Please configure [tool.nicestlog] section in pyproject.toml"
         )
         sys.exit(1)
+    else:
+        return project_structure
 
 
 def _display_mode_info(options: CheckOptions, log):
@@ -665,7 +695,7 @@ def _display_ast_issues(ast_issues, log):
                 )
 
 
-def _run_interactive_mode(_options: CheckOptions, path_obj: Path, _ast_issues, log):
+def _run_interactive_mode(path_obj: Path, log):
     """Run interactive transformation mode."""
     log.info("check-interactive-start", _replace_msg="Starting interactive mode...")
     transformer = InteractiveTransformer()
@@ -719,7 +749,7 @@ def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_s
     _display_directory_transformation(transform_results, options.dry_run)
 
 
-def _handle_check_summary(lint_success: bool, ast_issues, log):
+def _handle_check_summary(*, lint_success: bool, ast_issues, log):
     """Handle final summary and exit code."""
     has_issues = not lint_success or (ast_issues and _has_ast_issues(ast_issues))
 
@@ -1094,7 +1124,7 @@ def _transform_directory(
     pattern: str,
     *,
     dry_run: bool,
-    interactive: bool,
+    _interactive: bool,
 ):
     """Transform all Python files in a directory."""
     files = list(path.glob(pattern))
@@ -1121,7 +1151,7 @@ def _transform_directory(
     _display_directory_transformation(results, dry_run)
 
 
-def _transform_interactive(path: Path, *, verbose: bool):
+def _transform_interactive(path: Path, *, _verbose: bool):
     """Run interactive transformation on a file."""
     transformer = InteractiveTransformer()
     transformer.transform_file_interactive(path)
@@ -1211,7 +1241,7 @@ def _display_transformation_result(result: TransformationResult, *, dry_run: boo
             )
             console.print(syntax)
     else:
-        console.print("ℹ️ [blue]No changes needed[/blue]")
+        console.print("i [blue]No changes needed[/blue]")
 
 
 def _display_directory_analysis(results: list[CodeAnalysisResult]):
@@ -1396,7 +1426,7 @@ def tools_demo(
     ] = False,
 ):
     """🎬 Run interactive demos."""
-    run_demos(feature, all_features)
+    run_demos(feature, all_features=all_features)
 
 
 # Helper functions for docs display
@@ -1514,11 +1544,12 @@ def _display_with_pager(content: str):
                 msg = f"Invalid executable path: {glow_path}"
                 raise ValueError(msg)
             subprocess.run(shlex.join([glow_path, "--pager", "-"]), shell=True, input=content, text=True, check=False)
-            return
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Glow pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using glow: {e}[/red]")
             # Fall through to other pagers
+        else:
+            return
 
     # Check if bat is available
     bat_path = shutil.which("bat")
@@ -1531,11 +1562,12 @@ def _display_with_pager(content: str):
             subprocess.run(
                 shlex.join([bat_path, "--paging=always", "-"]), shell=True, input=content, text=True, check=False
             )
-            return
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Bat pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using bat: {e}[/red]")
             # Fall through to default pager
+        else:
+            return
 
     # Fallback to less or more
     pager_cmd = shutil.which("less") or shutil.which("more")
@@ -1546,10 +1578,11 @@ def _display_with_pager(content: str):
                 msg = f"Invalid executable path: {pager_cmd}"
                 raise ValueError(msg)
             subprocess.run(shlex.join([pager_cmd]), shell=True, input=content, text=True, check=False)
-            return
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Default pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using pager: {e}[/red]")
+        else:
+            return
 
     # If no pager is available, just print the content
     console.print(content)
@@ -1558,15 +1591,13 @@ def _display_with_pager(content: str):
 # Implementation stubs for remaining functions
 
 
-def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = False):
+def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, *, debug: bool = False):
     """Run the web dashboard."""
     try:
-        from .web_dashboard import run_dashboard
+        from .web_dashboard import run_dashboard  # noqa: PLC0415
 
         run_dashboard(host=host, port=port, debug=debug)
     except ImportError:
-        import typer
-
         typer.echo(
             "❌ Flask is not installed. The web dashboard requires Flask.\n"
             "Install it with:\n"
@@ -1581,13 +1612,12 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = F
 def run_journal_viewer(
     unit: str | None = None,
     lines: int = 50,
+    *,
     follow: bool = False,
     since: str | None = None,
     level: str | None = None,
 ):
     """Run the journal viewer."""
-    from .journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
-
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
         console.print("[red]Error:[/red] systemd-python not available")
@@ -1615,8 +1645,6 @@ def run_journal_viewer(
 
 def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
     """Run the log reviewer."""
-    from .log_reviewer import LogQualityReviewer
-
     reviewer = LogQualityReviewer()
 
     path = Path(path_str)
@@ -1634,8 +1662,6 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
                     "analysis": "Mock analysis",
                 }
         else:
-            from .log_reviewer import print_report
-
             print_report(report, format_type)
 
         # Check if score is below minimum and exit with error code
@@ -1663,8 +1689,6 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
                             "analysis": "Mock analysis",
                         }
                 else:
-                    from .log_reviewer import print_report
-
                     print_report(report, format_type)
             else:
                 failed_files += 1
@@ -1684,8 +1708,6 @@ def generate_service_cmd(
     output_file: str | None = None,
 ):
     """Generate systemd service file."""
-    from .systemd_integration import ServiceConfig, create_systemd_service_file
-
     config = ServiceConfig(
         service_name=service_name,
         exec_command=exec_command,
@@ -1695,14 +1717,14 @@ def generate_service_cmd(
     service_content = create_systemd_service_file(config)
 
     if output_file:
-        with open(output_file, "w") as f:
+        with Path(output_file).open("w") as f:
             f.write(service_content)
         log.info("service-file-generated", service_name=service_name, output_file=output_file)
     else:
         console.print(service_content)
 
 
-def run_demos(feature: str | None = None, all_features: bool = False):
+def run_demos(feature: str | None = None, *, all_features: bool = False):
     """Run nicestlog feature demonstrations."""
     log.debug("starting-demos", feature=feature, all_features=all_features)
 
@@ -1761,7 +1783,7 @@ def run_demos(feature: str | None = None, all_features: bool = False):
             print_demo_separator()
 
 
-def print_demo_header(title: str, description: str):
+def print_demo_header(_title: str, _description: str):
     """Print a formatted demo section header."""
     time.sleep(1)
 
@@ -1826,13 +1848,11 @@ def run_i18n_demo():
     print_demo_header("Internationalization (i18n)", "Multi-language log messages")
 
     # Load config to optionally honor translation_dir and language from pyproject.toml
-    try:
-        from .config import NicestLogConfig
-
-        cfg = NicestLogConfig()
-    except ImportError:
+    if NicestLogConfig is None:
         logger.warning("Config module not available")
         cfg = None
+    else:
+        cfg = NicestLogConfig()
 
     init_kwargs = {"verbose": True, "syslog_identifier": "i18n-demo"}
     if cfg and cfg.translation_dir:
@@ -1956,6 +1976,7 @@ def run_migrate_command(
     path: str,
     output: str | None,
     migration_type: str,
+    *,
     dry_run: bool,
     interactive: bool,
     force: bool,
@@ -2015,7 +2036,7 @@ def run_migrate_command(
             source_path,
             target_path,
             migration_config,
-            dry_run,
+            _dry_run=dry_run,
         )
         show_migration_report(result, dry_run)
         return
@@ -2119,8 +2140,9 @@ def migrate_single_file(
     source: Path,
     target: Path,
     config: dict,
+    *,
     dry_run: bool,
-    force: bool,
+    _force: bool,
 ) -> MigrationResultProtocol:
     """Migrate a single file using the appropriate handler."""
     # CLI-outputs-to-Structlog migration (new functionality)
@@ -2154,8 +2176,7 @@ def migrate_single_file(
 
             # Show diff preview if dry run and changed
             if dry_run and changed:
-                import difflib
-
+                DIFF_PREVIEW_LIMIT = 20
                 diff_lines = list(
                     difflib.unified_diff(
                         original_content.splitlines(keepends=True),
@@ -2167,7 +2188,7 @@ def migrate_single_file(
                 console.print(
                     "\n[bold blue]📄 Preview of CLI output migration:[/bold blue]",
                 )
-                for line in diff_lines[:20]:  # Show first 20 lines
+                for line in diff_lines[:DIFF_PREVIEW_LIMIT]:  # Show first DIFF_PREVIEW_LIMIT lines
                     if line.startswith("+"):
                         console.print(f"[green]{line.rstrip()}[/green]")
                     elif line.startswith("-"):
@@ -2176,12 +2197,10 @@ def migrate_single_file(
                         console.print(f"[cyan]{line.rstrip()}[/cyan]")
                     else:
                         console.print(line.rstrip())
-                if len(diff_lines) > 20:
+                if len(diff_lines) > DIFF_PREVIEW_LIMIT:
                     console.print(
-                        f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]",
+                        f"[yellow]... and {len(diff_lines) - DIFF_PREVIEW_LIMIT} more lines[/yellow]",
                     )
-
-            return result
 
         except Exception as exc:
             logger.error("CLI output migration failed", exc_info=True, source=str(source), error=str(exc))
@@ -2198,6 +2217,8 @@ def migrate_single_file(
                     self.warnings = [error_msg]
 
             return CLIOutputErrorResult()
+        else:
+            return result
 
     # Print-to-Structlog migration (existing functionality)
     elif config["handler"] == "migrate_print_to_structlog":
@@ -2231,8 +2252,7 @@ def migrate_single_file(
 
             # Show diff preview if dry run and changed
             if dry_run and changed:
-                import difflib
-
+                DIFF_PREVIEW_LIMIT = 20
                 diff_lines = list(
                     difflib.unified_diff(
                         original_content.splitlines(keepends=True),
@@ -2242,7 +2262,7 @@ def migrate_single_file(
                     ),
                 )
                 console.print("\n[bold blue]📄 Preview of changes:[/bold blue]")
-                for line in diff_lines[:20]:  # Show first 20 lines
+                for line in diff_lines[:DIFF_PREVIEW_LIMIT]:  # Show first DIFF_PREVIEW_LIMIT lines
                     if line.startswith("+"):
                         console.print(f"[green]{line.rstrip()}[/green]")
                     elif line.startswith("-"):
@@ -2251,12 +2271,10 @@ def migrate_single_file(
                         console.print(f"[cyan]{line.rstrip()}[/cyan]")
                     else:
                         console.print(line.rstrip())
-                if len(diff_lines) > 20:
+                if len(diff_lines) > DIFF_PREVIEW_LIMIT:
                     console.print(
-                        f"[yellow]... and {len(diff_lines) - 20} more lines[/yellow]",
+                        f"[yellow]... and {len(diff_lines) - DIFF_PREVIEW_LIMIT} more lines[/yellow]",
                     )
-
-            return migration_result
 
         except Exception as exc:
             logger.error("Print migration failed", exc_info=True, source=str(source), error=str(exc))
@@ -2271,6 +2289,8 @@ def migrate_single_file(
                     self.warnings = [error_msg]
 
             return PrintMigrationErrorResult()
+        else:
+            return migration_result
 
     # Extended AST migrations using Advanced Assistant
     assistant = AdvancedAssistant()
@@ -2335,6 +2355,7 @@ def migrate_directory_recursive(
     source: Path,
     target: Path,
     config: dict,
+    *,
     dry_run: bool,
     force: bool,
 ) -> MigrationResultProtocol:
@@ -2353,8 +2374,6 @@ def migrate_directory_recursive(
         )
 
     # For other migrations: Process files individually
-    from .gitignore_utils import filter_python_files
-
     python_files = filter_python_files(source, respect_gitignore=True)
     if not python_files:
         console.print(f"[yellow]⚠️ No Python files found in {source}[/yellow]")
@@ -2408,9 +2427,10 @@ def migrate_directory_recursive(
 def run_interactive_migration(
     transformer: InteractiveTransformer,
     source: Path,
-    target: Path,
+    _target: Path,
     config: dict,
-    dry_run: bool,
+    *,  # _dry_run is keyword-only to avoid boolean positional arg
+    _dry_run: bool,
 ) -> MigrationResultProtocol:
     """Run interactive migration using InteractiveTransformer."""
     console.print(f"🎯 Interactive migration: {config['description']}")
@@ -2422,8 +2442,6 @@ def run_interactive_migration(
             transformer.transform_file_interactive(source)
         else:
             # For directories, process files one by one interactively
-            from .gitignore_utils import filter_python_files
-
             python_files = filter_python_files(source, respect_gitignore=True)
             for py_file in python_files:
                 console.print(f"\n📁 Processing: {py_file}")
@@ -2458,6 +2476,7 @@ def migrate_directory_with_handler(
     input_dir: Path,
     output_dir: Path | None,
     migration_handler,
+    *,
     dry_run: bool = True,
 ) -> MigrationResultProtocol:
     """Migrate Python files using a custom migration handler function."""
@@ -2478,8 +2497,6 @@ def migrate_directory_with_handler(
     if not input_dir.exists() or not input_dir.is_dir():
         msg = f"Input directory not found: {input_dir}"
         raise FileNotFoundError(msg)
-
-    from .gitignore_utils import filter_python_files
 
     for py in filter_python_files(input_dir, respect_gitignore=True):
         try:
@@ -2503,8 +2520,6 @@ def migrate_directory_with_handler(
             # If changed, record diff and count transformation
             if changed:
                 result.transformations_applied += 1
-                import difflib
-
                 diff_lines = list(
                     difflib.unified_diff(
                         original.splitlines(keepends=True),
@@ -2529,7 +2544,7 @@ def migrate_directory_with_handler(
     return result
 
 
-def show_migration_report(result: MigrationResultProtocol, dry_run: bool):
+def show_migration_report(result: MigrationResultProtocol, *, dry_run: bool):
     """Display comprehensive migration results."""
     action = "Would migrate" if dry_run else "Migrated"
 
@@ -2562,7 +2577,7 @@ def show_migration_report(result: MigrationResultProtocol, dry_run: bool):
     elif result.transformations_applied > 0:
         if dry_run:
             console.print(
-                f"\n[blue]ℹ️ Run without --dry-run to apply {result.transformations_applied} changes[/blue]",
+                f"\n[blue]i Run without --dry-run to apply {result.transformations_applied} changes[/blue]",
             )
         else:
             console.print(
@@ -2570,7 +2585,7 @@ def show_migration_report(result: MigrationResultProtocol, dry_run: bool):
             )
     else:
         console.print(
-            "\n[blue]ℹ️ No changes needed - code is already in target format[/blue]",
+            "\n[blue]i No changes needed - code is already in target format[/blue]",
         )
 
 
@@ -2641,12 +2656,11 @@ def _display_next_steps_guidance(result, path: str):
 
 def _display_project_context(
     project_structure,
+    *,
     verbose: bool,
     single_file: Path | None = None,
 ):
     """Display project context and configuration being used."""
-    import structlog
-
     log = structlog.get_logger()
     log.info("check-project-context", _replace_msg="Project Context")
 
@@ -2693,18 +2707,19 @@ def _display_project_context(
         log.info("check-code-coverage", _replace_msg="  • Code coverage: All Python files (including tests)")
 
         if verbose:
+            MAX_EXCLUDE_PATTERNS_DISPLAY = 5
             log.info("check-exclude-patterns", _replace_msg="Exclude Patterns:")
-            for pattern in project_structure.exclude_patterns[:5]:  # Show first 5
+            for pattern in project_structure.exclude_patterns[:MAX_EXCLUDE_PATTERNS_DISPLAY]:  # Show first 5
                 log.info("check-pattern", pattern=pattern, _replace_msg=f"  • {pattern}")
-            if len(project_structure.exclude_patterns) > 5:
+            if len(project_structure.exclude_patterns) > MAX_EXCLUDE_PATTERNS_DISPLAY:
                 log.info(
                     "check-more-patterns",
-                    more=len(project_structure.exclude_patterns) - 5,
-                    _replace_msg=f"  • ... and {len(project_structure.exclude_patterns) - 5} more",
+                    more=len(project_structure.exclude_patterns) - MAX_EXCLUDE_PATTERNS_DISPLAY,
+                    _replace_msg=f"  • ... and {len(project_structure.exclude_patterns) - MAX_EXCLUDE_PATTERNS_DISPLAY} more",
                 )
 
 
-def _display_project_analysis(result, verbose: bool = False):
+def _display_project_analysis(result, *, verbose: bool = False):
     """Display human-readable project analysis results."""
     console.print(
         f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]",
@@ -2837,14 +2852,8 @@ def _configure_logging_focused_patterns(
     )
 
 
-def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
+def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool):
     """Serve HTML documentation using a simple HTTP server."""
-    import http.server
-    from pathlib import Path
-    import socketserver
-    import threading
-    import webbrowser
-
     # Try to find HTML docs in different locations
     html_docs_path = None
 
@@ -2856,17 +2865,11 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
     else:
         # 2. Check packaged docs
         try:
-            from importlib import resources
-
             # Try to find the packaged HTML docs
             html_package_path = resources.files("nicestlog").joinpath("_docs_html")
             if html_package_path.is_dir():
                 # Extract to temporary directory for serving
-                import tempfile
-
                 temp_dir = Path(tempfile.mkdtemp(prefix="nicestlog_docs_"))
-                import shutil
-
                 shutil.copytree(html_package_path, temp_dir / "html")
                 html_docs_path = temp_dir / "html"
                 console.print(
@@ -2930,9 +2933,7 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
         raise typer.Exit(1)
 
     # Change to the docs directory
-    import os
-
-    original_cwd = os.getcwd()
+    original_cwd = Path.cwd()
     os.chdir(html_docs_path)
 
     try:
@@ -2953,8 +2954,6 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
                 if open_browser:
 
                     def open_browser_delayed():
-                        import time
-
                         time.sleep(1)  # Give server time to start
                         try:
                             webbrowser.open(server_url)

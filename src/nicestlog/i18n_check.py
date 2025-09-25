@@ -80,11 +80,7 @@ def scan_translation_keys(paths: Iterable[Path]) -> tuple[set[str], set[str], se
         if root.is_file() and root.suffix == ".py":
             py_files = [root]
         else:
-            py_files = [
-                p
-                for p in root.rglob("*.py")
-                if not any(part in EXCLUDE_DIRS for part in p.parts)
-            ]
+            py_files = [p for p in root.rglob("*.py") if not any(part in EXCLUDE_DIRS for part in p.parts)]
 
         for file in py_files:
             try:
@@ -216,7 +212,7 @@ def check_translations(
     }
 
 
-def format_report(report: dict[str, object], include_debug: bool = True) -> str:
+def format_report(report: dict[str, object], *, include_debug: bool = True) -> str:
     # If --list-missing is requested via env/flag, handled in CLI wrapper.
     # This function returns the pretty report.
 
@@ -253,7 +249,7 @@ def format_report(report: dict[str, object], include_debug: bool = True) -> str:
         lines.append("\n✅ No missing keys detected.")
 
     if extra:
-        lines.append("\nℹ️ Extra keys (not used in source):")
+        lines.append("\ni Extra keys (not used in source):")
         for k in extra:
             lines.append(f"  - {k}")
 
@@ -271,6 +267,7 @@ def run_i18n_check_cli(
     path: str = ".",
     translation_dir: str = "translations",
     language: str = "en",
+    *,
     strict: bool = False,
 ) -> int:
     """Run the i18n check and print a human-friendly report. Returns exit code."""

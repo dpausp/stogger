@@ -3,17 +3,18 @@
 Combines Eliot's powerful action tracking with nicestlog's beautiful output.
 """
 
+from contextlib import suppress
 from datetime import datetime
 import sys
 from typing import Any, TextIO
 
 try:
-    from eliot import log_message, start_action  # type: ignore[import-untyped]
+    from eliot import add_destinations, log_message, start_action, to_file  # type: ignore[import-untyped]
 
     ELIOT_AVAILABLE = True
 except ImportError:
     ELIOT_AVAILABLE = False
-    start_action = log_message = None
+    add_destinations = log_message = start_action = to_file = None
 
 try:
     from .core import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
@@ -50,6 +51,7 @@ class HumanReadableEliotDestination:
 
     def __init__(
         self,
+        *,
         file: TextIO | None = None,
         show_timestamps: bool = True,
         show_task_ids: bool = False,
@@ -110,10 +112,7 @@ class HumanReadableEliotDestination:
         )
 
         if params:
-            param_str = " ".join(
-                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}"
-                for k, v in params.items()
-            )
+            param_str = " ".join(f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}" for k, v in params.items())
             self.file.write(f" {param_str}")
 
         if self.show_task_ids:
@@ -134,8 +133,7 @@ class HumanReadableEliotDestination:
         result_data = {
             k: v
             for k, v in message.items()
-            if k
-            not in ["message_type", "action_type", "task_id", "task_level", "timestamp"]
+            if k not in ["message_type", "action_type", "task_id", "task_level", "timestamp"]
         }
 
         self.file.write(
@@ -143,10 +141,7 @@ class HumanReadableEliotDestination:
         )
 
         if result_data:
-            result_str = " ".join(
-                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}"
-                for k, v in result_data.items()
-            )
+            result_str = " ".join(f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}" for k, v in result_data.items())
             self.file.write(f" {result_str}")
 
         self.file.write("\n")
@@ -202,10 +197,7 @@ class HumanReadableEliotDestination:
         self.file.write(f"{timestamp}{indent}{YELLOW}•{RESET_ALL} {msg_type}")
 
         if msg_data:
-            data_str = " ".join(
-                f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}"
-                for k, v in msg_data.items()
-            )
+            data_str = " ".join(f"{CYAN}{k}{RESET_ALL}={MAGENTA}{v!r}{RESET_ALL}" for k, v in msg_data.items())
             self.file.write(f" {data_str}")
 
         self.file.write("\n")
@@ -221,6 +213,7 @@ class HumanReadableEliotDestination:
 
 
 def setup_eliot_logging(
+    *,
     destination: TextIO | None = None,
     human_readable: bool = True,
     show_timestamps: bool = True,
@@ -240,8 +233,6 @@ def setup_eliot_logging(
     """
     if not ELIOT_AVAILABLE:
         return False
-
-    from eliot import add_destinations, to_file
 
     if human_readable:
         dest = HumanReadableEliotDestination(
@@ -288,15 +279,13 @@ if ELIOT_AVAILABLE:
                         result = func(*args, **kwargs)
                         if result is not None:
                             action.add_success_fields(result=result)
-                        return result
                     except Exception as exc:
                         # Record failure fields for easier debugging and tests
-                        try:
+                        with suppress(Exception):
                             action.add_failure_fields(exception=str(exc))
-                        except Exception:
-                            # If add_failure_fields isn't available, ignore
-                            pass
                         raise
+                    else:
+                        return result
 
             return wrapper
 
@@ -310,10 +299,10 @@ else:
         def __exit__(self, exc_type, exc, tb):
             return False
 
-    def log_action(action_name: str, **kwargs):
+    def log_action(_action_name: str, **_kwargs):
         return _DummyActionContext()
 
-    def log_call(action_name: str | None = None, **action_kwargs):
+    def log_call(_action_name: str | None = None, **_action_kwargs):
         def decorator(func):
             return func
 
@@ -328,7 +317,6 @@ def demo_eliot_integration():
 
     setup_eliot_logging(human_readable=True, show_timestamps=True)
 
-
     with log_action("user_request", user_id=123, endpoint="/api/data"):
         log_message(message_type="request_received", method="GET")
 
@@ -339,7 +327,6 @@ def demo_eliot_integration():
             log_message(message_type="cache_hit", ttl=300)
 
         log_message(message_type="response_sent", status_code=200, size_bytes=1024)
-
 
 
 if __name__ == "__main__":

@@ -2,6 +2,8 @@
 
 import atexit
 import logging
+from logging.handlers import QueueHandler, QueueListener
+from queue import Queue
 from typing import Any
 
 import structlog
@@ -17,6 +19,7 @@ from .core import (
     add_pid,
     process_exc_info,
 )
+from .pii_scrubber import create_pii_processor
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -28,9 +31,7 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
         log.debug(
             "building-shared-processors",
             pii_scrubbing=config.enable_pii_scrubbing,
-            translation_dir=str(config.translation_dir)
-            if config.translation_dir
-            else None,
+            translation_dir=str(config.translation_dir) if config.translation_dir else None,
         )
 
     processors = [
@@ -50,8 +51,6 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
                 "enabling-pii-scrubbing",
                 redaction_text=config.pii_redaction_text,
             )
-        from .pii_scrubber import create_pii_processor
-
         processors.append(
             create_pii_processor(redaction_text=config.pii_redaction_text),
         )
@@ -183,9 +182,6 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: list[Any]):
 
     if config.async_logging:
         log.debug("enabling-async-logging", handler_count=len(all_handlers))
-        from logging.handlers import QueueHandler, QueueListener
-        from queue import Queue
-
         log_queue: Queue = Queue(-1)
         queue_handler = QueueHandler(log_queue)
 

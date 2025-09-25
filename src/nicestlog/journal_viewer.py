@@ -3,6 +3,7 @@
 Reads binary journal logs and displays them with nicestlog's beautiful formatting.
 """
 
+import argparse
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -95,6 +96,7 @@ class JournalViewer:
 
     def __init__(
         self,
+        *,
         show_hostname: bool = False,
         show_pid: bool = True,
         show_service: bool = True,
@@ -171,9 +173,7 @@ class JournalViewer:
                 field_name = key.replace("NICESTLOG_", "").lower()
                 # Try to parse JSON values
                 try:
-                    if isinstance(value, str) and (
-                        value.startswith(("{", "["))
-                    ):
+                    if isinstance(value, str) and (value.startswith(("{", "["))):
                         fields[field_name] = json.loads(value)
                     else:
                         fields[field_name] = value
@@ -245,6 +245,7 @@ class JournalViewer:
         until: str | None = None,
         level: str | None = None,
         lines: int | None = None,
+        *,
         follow: bool = False,
     ) -> Iterator[JournalEntry]:
         """Query systemd journal and yield formatted entries.
@@ -418,7 +419,6 @@ class JournalViewer:
             # If datetime was patched in tests, ensure we return a real datetime instance
             if not isinstance(parsed, _REAL_DATETIME):
                 parsed = _REAL_DATETIME.fromisoformat(time_str.replace("T", " "))
-            return parsed
         except Exception as e:
             log.warning(
                 "time-parse-failed",
@@ -426,6 +426,8 @@ class JournalViewer:
                 error=str(e),
                 fallback="1 hour ago",
             )
+        else:
+            return parsed
 
         # Default to 1 hour ago
         result = now - timedelta(hours=1)
@@ -442,8 +444,6 @@ def main():
         "journal-viewer-main-started",
         _replace_msg="🚀 Starting journal viewer CLI",
     )
-    import argparse
-
     parser = argparse.ArgumentParser(
         description="Beautiful systemd journal viewer - makes journalctl usable!",
         epilog="Examples:\n"

@@ -1,6 +1,8 @@
 """Configuration handling for nicestlog."""
 
 from dataclasses import dataclass
+import fnmatch
+import logging
 from pathlib import Path
 import tomllib
 from typing import Any
@@ -36,8 +38,6 @@ class ProjectStructure:
                     return True
 
             # Check exclude patterns
-            import fnmatch
-
             return any(fnmatch.fnmatch(rel_path_str, pattern) for pattern in self.exclude_patterns)
         except ValueError:
             # File is outside project root
@@ -56,8 +56,6 @@ class NicestLogConfig:
             **kwargs: Keyword arguments that can override config file settings.
 
         """
-        import logging
-
         log = logging.getLogger(__name__)
 
         config = self._load_config()
@@ -66,16 +64,12 @@ class NicestLogConfig:
         log.debug(f"config-merged-with-kwargs: {len(kwargs)} kwargs applied")
 
         self.verbose: bool = config.get("verbose", False)
-        self.logdir: Path | None = (
-            Path(config["logdir"]) if config.get("logdir") else None
-        )
+        self.logdir: Path | None = Path(config["logdir"]) if config.get("logdir") else None
         self.log_cmd_output: bool = config.get("log_cmd_output", False)
         self.log_to_console: bool = config.get("log_to_console", True)
         self.syslog_identifier: str = config.get("syslog_identifier", "nicestlog")
         self.show_caller_info: bool = config.get("show_caller_info", False)
-        self.translation_dir: Path | None = (
-            Path(config["translation_dir"]) if config.get("translation_dir") else None
-        )
+        self.translation_dir: Path | None = Path(config["translation_dir"]) if config.get("translation_dir") else None
         self.language: str = config.get("language", "en")
         self.log_format: str = config.get("log_format", "simple")
         self.async_logging: bool = config.get("async_logging", False)
@@ -97,8 +91,6 @@ class NicestLogConfig:
 
     def _load_config(self) -> dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""
-        import logging
-
         log = logging.getLogger(__name__)
 
         pyproject_path = Path.cwd() / "pyproject.toml"
@@ -116,10 +108,11 @@ class NicestLogConfig:
             log.info(
                 f"config-loaded-successfully: {pyproject_path} with {len(nicest_config)} settings",
             )
-            return nicest_config
         except (tomllib.TOMLDecodeError, Exception) as e:
             log.exception(f"config-loading-failed: {pyproject_path} - {e}")
             return {}
+        else:
+            return nicest_config
 
 
 def detect_project_structure(project_root: Path | None = None) -> ProjectStructure:
@@ -135,8 +128,6 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         ValueError: If project structure cannot be determined and user configuration is required.
 
     """
-    import logging
-
     log = logging.getLogger(__name__)
 
     if project_root is None:
@@ -157,16 +148,15 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
     try:
         structure = _detect_from_heuristics(project_root)
         log.info("project-structure-detected-from-heuristics")
-        return structure
     except Exception as e:
         log.exception(f"heuristic-detection-failed: {e}")
         msg = (
             f"Could not determine project structure for {project_root}. "
             "Please configure [tool.nicestlog] section in pyproject.toml with 'src_dir' and 'exclude' settings."
         )
-        raise ValueError(
-            msg,
-        )
+        raise ValueError(msg)
+    else:
+        return structure
 
 
 def _detect_from_pyproject(
@@ -248,9 +238,7 @@ def _detect_from_pyproject(
         if pytest_config:
             testpaths = pytest_config.get("ini_options", {}).get("testpaths", [])
             if testpaths:
-                test_dirs = [
-                    path for path in testpaths if (project_root / path).exists()
-                ]
+                test_dirs = [path for path in testpaths if (project_root / path).exists()]
                 return _create_default_structure_with_tests(
                     project_root,
                     test_dirs,
@@ -281,9 +269,7 @@ def _detect_from_heuristics(project_root: Path) -> ProjectStructure:
     if not source_dirs:
         # Check if root contains Python files (but not just setup.py)
         py_files = list(project_root.glob("*.py"))
-        if py_files and not all(
-            f.name in ["setup.py", "conftest.py"] for f in py_files
-        ):
+        if py_files and not all(f.name in ["setup.py", "conftest.py"] for f in py_files):
             source_dirs.append(".")
 
     # Common test directory patterns

@@ -3,12 +3,16 @@
 Reviews log quality, structure, and usefulness with Austrian directness.
 """
 
+import argparse
 from collections import Counter
 from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
+import sys
 from typing import Any
+
+import structlog
 
 
 @dataclass
@@ -177,9 +181,10 @@ class LogQualityReviewer:
         if line.startswith("{") and line.endswith("}"):
             try:
                 json.loads(line)
-                return True
             except json.JSONDecodeError:
                 pass
+            else:
+                return True
 
         # Key=value format
         if re.search(r"\w+=[^\s]+", line):
@@ -366,11 +371,6 @@ class LogQualityReviewer:
 
 def review_logs_cli():
     """CLI interface for log review."""
-    import argparse
-    import sys
-
-    import structlog
-
     log = structlog.get_logger()
 
     # WARNING: Log reviewer is currently unsupported

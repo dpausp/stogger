@@ -1,5 +1,6 @@
 """Core logging functionality for nicestlog."""
 
+from contextlib import suppress
 from datetime import datetime
 import io
 import json
@@ -371,7 +372,7 @@ def process_exc_info(_, __, event_dict):
     return event_dict
 
 
-def format_exc_info(logger, name, event_dict):
+def format_exc_info(_logger, _name, event_dict):
     """Renders exc_info if it's present.
     Expects the tuple format returned by sys.exc_info().
     Compared to structlog's format_exc_info(), this renders the exception
@@ -420,7 +421,7 @@ class SelectRenderedString:
         return str(event_dict)
 
 
-def log_to_stdlib(logger, name, event_dict):
+def log_to_stdlib(_logger, _name, event_dict):
     """Bridge structlog events to Python's standard logging for test capture."""
     level = event_dict.get("level", "info")
     level_map = {
@@ -441,16 +442,35 @@ def init_logging(*args, **kwargs):
 
     New signature (reference-style):
         init_logging(verbose, logdir=None, log_cmd_output=False, log_to_console=True,
-                    syslog_identifier="nicestlog", show_caller_info=False)
+                     syslog_identifier="nicestlog", show_caller_info=False)
     """
+    # Argument position constants
+    ARG_POS_LOGDIR = 1
+    ARG_POS_LOG_CMD_OUTPUT = 2
+    ARG_POS_LOG_TO_CONSOLE = 3
+    ARG_POS_SYSLOG_IDENTIFIER = 4
+    ARG_POS_SHOW_CALLER_INFO = 5
+
     # Handle positional and keyword args
     if len(args) >= 1:
         args[0]
-        logdir = args[1] if len(args) > 1 else kwargs.get("logdir")
-        log_cmd_output = args[2] if len(args) > 2 else kwargs.get("log_cmd_output", False)
-        log_to_console = args[3] if len(args) > 3 else kwargs.get("log_to_console", True)
-        syslog_identifier = args[4] if len(args) > 4 else kwargs.get("syslog_identifier", "nicestlog")
-        (args[5] if len(args) > 5 else kwargs.get("show_caller_info", False))
+        logdir = args[ARG_POS_LOGDIR] if len(args) > ARG_POS_LOGDIR else kwargs.get("logdir")
+        log_cmd_output = (
+            args[ARG_POS_LOG_CMD_OUTPUT] if len(args) > ARG_POS_LOG_CMD_OUTPUT else kwargs.get("log_cmd_output", False)
+        )
+        log_to_console = (
+            args[ARG_POS_LOG_TO_CONSOLE] if len(args) > ARG_POS_LOG_TO_CONSOLE else kwargs.get("log_to_console", True)
+        )
+        syslog_identifier = (
+            args[ARG_POS_SYSLOG_IDENTIFIER]
+            if len(args) > ARG_POS_SYSLOG_IDENTIFIER
+            else kwargs.get("syslog_identifier", "nicestlog")
+        )
+        (
+            args[ARG_POS_SHOW_CALLER_INFO]
+            if len(args) > ARG_POS_SHOW_CALLER_INFO
+            else kwargs.get("show_caller_info", False)
+        )
     else:
         # All keyword arguments for new style
         kwargs.get("verbose", False)
@@ -528,7 +548,7 @@ def init_early_logging():
     if structlog.is_configured():
         return  # Already configured
 
-    try:
+    with suppress(Exception):
         # Minimal processors for early initialization - avoid logging during setup
         processors = [
             structlog.stdlib.add_log_level,
@@ -548,18 +568,11 @@ def init_early_logging():
         )
 
         # Set up basic stdlib logging
-        import logging
-
         logging.basicConfig(
             level=logging.INFO,  # Allow info messages through
             format="%(message)s",
             force=True,
         )
-
-    except Exception:
-        # Log the error and continue with defaults
-        # Use print instead of logging to avoid recursion during early init
-        pass
 
 
 class DummyJournalLogger:
@@ -583,7 +596,7 @@ class JournalLoggerFactory:
         if journal is None:
             pass
 
-    def __call__(self, *args):
+    def __call__(self, *_args):
         if journal is None:
             return DummyJournalLogger()
         else:
@@ -625,7 +638,7 @@ class SystemdJournalRenderer:
         self.syslog_identifier = syslog_identifier
         self.syslog_facility = syslog_facility
 
-    def __call__(self, logger, method_name, event_dict):
+    def __call__(self, _logger, method_name, event_dict):
         if method_name == "trace":
             return {}
 
@@ -691,7 +704,7 @@ class SystemdJournalRenderer:
 class CmdOutputFileRenderer:
     """Renderer for command output file logging."""
 
-    def __call__(self, logger, method_name, event_dict):
+    def __call__(self, _logger, _method_name, event_dict):
         line = event_dict.pop("cmd_output_line", None)
         if line is not None:
             return {"cmd_output_file": line}
@@ -741,7 +754,7 @@ class MultiOptimisticLoggerFactory:
         self.context = context
         self.factories = factories
 
-    def __call__(self, *args):
+    def __call__(self, *_args):
         loggers = {k: f() for k, f in self.factories.items()}
         return MultiOptimisticLogger(loggers)
 

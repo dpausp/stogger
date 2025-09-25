@@ -5,6 +5,7 @@ using the new nicestlog API.
 """
 
 from pathlib import Path
+import os
 import tempfile
 
 import structlog
@@ -76,9 +77,8 @@ translation_dir = "translations"
 language = "en"
 """)
         # Temporarily change directory to where pyproject.toml is
-        import os
 
-        original_dir = os.getcwd()
+        original_dir = Path.cwd()
         # Create dummy translations dir
         (config_dir / "translations").mkdir()
         with open(config_dir / "translations" / "en.toml", "w") as f:

@@ -8,6 +8,8 @@ from typing import Any
 
 import structlog
 
+from .config import NicestLogConfig
+
 try:
     import toml  # type: ignore[import-untyped]
 except ImportError:
@@ -36,8 +38,6 @@ class NicestlogTranslator:
         """Load translation files."""
         # Prefer configured translation_dir from pyproject.toml if available
         try:
-            from .config import NicestLogConfig
-
             cfg = NicestLogConfig()
             if cfg.translation_dir:
                 translations_dir = Path(cfg.translation_dir)
@@ -231,8 +231,6 @@ def demo_translations():
 
     for lang in languages:
         NicestlogTranslator(lang)
-
-
 
 
 if __name__ == "__main__":

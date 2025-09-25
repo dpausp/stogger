@@ -8,6 +8,7 @@ logging with nicestlog, while preserving styling and formatting information.
 from __future__ import annotations
 
 import ast
+from contextlib import suppress
 from dataclasses import dataclass
 import re
 from typing import Any
@@ -54,11 +55,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
     @staticmethod
     def slugify(text: str) -> str:
         """Convert text to a valid event identifier."""
-        text = (
-            unicodedata.normalize("NFKD", text)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
+        text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
         text = text.lower()
         out = []
         prev_sep = False
@@ -100,11 +97,8 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> ast.AST:
         """Track from imports of CLI frameworks."""
-        if (
-            node.module == "rich" and any(alias.name == "print" for alias in node.names)
-        ) or (
-            node.module == "rich.console"
-            and any(alias.name == "Console" for alias in node.names)
+        if (node.module == "rich" and any(alias.name == "print" for alias in node.names)) or (
+            node.module == "rich.console" and any(alias.name == "Console" for alias in node.names)
         ):
             self.imports["rich"] = True
         return node
@@ -112,7 +106,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
     def visit_Assign(self, node: ast.Assign) -> ast.AST:
         """Track logger assignments and rich console instances."""
         # Detect pattern: log = structlog.get_logger(...)
-        try:
+        with suppress(Exception):
             if (
                 len(node.targets) == 1
                 and isinstance(node.targets[0], ast.Name)
@@ -124,8 +118,6 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
                 and node.value.func.attr == "get_logger"
             ):
                 self.logger_assignment_present = True
-        except Exception:
-            pass
 
         # Detect rich Console instances: console = Console()
         try:
@@ -182,9 +174,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
         # parser.error() (argparse)
         elif (
-            isinstance(node.func, ast.Attribute)
-            and node.func.attr == "error"
-            and isinstance(node.func.value, ast.Name)
+            isinstance(node.func, ast.Attribute) and node.func.attr == "error" and isinstance(node.func.value, ast.Name)
         ):
             return self._analyze_argparse_error(node)
 
@@ -217,11 +207,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
         # Extract styling and options from keywords
         for kw in node.keywords or []:
-            if (
-                kw.arg == "err"
-                and isinstance(kw.value, ast.Constant)
-                and kw.value.value
-            ):
+            if kw.arg == "err" and isinstance(kw.value, ast.Constant) and kw.value.value:
                 call_info.output_stream = "stderr"
             elif kw.arg == "fg":
                 if call_info.style_info is None:
@@ -255,11 +241,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
         # Extract options from keywords
         for kw in node.keywords or []:
-            if (
-                kw.arg == "err"
-                and isinstance(kw.value, ast.Constant)
-                and kw.value.value
-            ):
+            if kw.arg == "err" and isinstance(kw.value, ast.Constant) and kw.value.value:
                 call_info.output_stream = "stderr"
 
         return call_info
@@ -303,11 +285,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
         # Extract styling and options from keywords
         for kw in node.keywords or []:
-            if (
-                kw.arg == "stderr"
-                and isinstance(kw.value, ast.Constant)
-                and kw.value.value
-            ):
+            if kw.arg == "stderr" and isinstance(kw.value, ast.Constant) and kw.value.value:
                 call_info.output_stream = "stderr"
             elif kw.arg == "style":
                 if call_info.style_info is None:
@@ -336,9 +314,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         """Analyze sys.stdout.write() / sys.stderr.write() call."""
         stream = (
             "stderr"
-            if hasattr(node.func, "value")
-            and hasattr(node.func.value, "attr")
-            and node.func.value.attr == "stderr"
+            if hasattr(node.func, "value") and hasattr(node.func.value, "attr") and node.func.value.attr == "stderr"
             else "stdout"
         )
 
@@ -464,11 +440,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
                 )
 
         # Preserve original call arguments as metadata (for complex cases)
-        remaining_args = (
-            cli_call.original_call.args[1:]
-            if len(cli_call.original_call.args) > 1
-            else []
-        )
+        remaining_args = cli_call.original_call.args[1:] if len(cli_call.original_call.args) > 1 else []
         for idx, arg in enumerate(remaining_args):
             keywords.append(ast.keyword(arg=f"a{idx + 1}", value=arg))
 

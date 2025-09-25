@@ -4,6 +4,7 @@ These tests actually run the commands with real functionality.
 
 import logging
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -73,9 +74,8 @@ class TestInitConfigIntegration:
             ]
 
             # Change to the temp directory to run the command
-            import os
 
-            original_cwd = os.getcwd()
+            original_cwd = Path.cwd()
             try:
                 os.chdir(self.temp_path)
                 result = self.runner.invoke(app, ["init"])

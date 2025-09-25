@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 from dataclasses import asdict, dataclass
+from datetime import datetime
 import fnmatch
 import json
 from pathlib import Path
@@ -15,6 +16,8 @@ import re
 from typing import Any
 
 import structlog
+
+from .config import detect_project_structure
 
 log = structlog.get_logger(__name__)
 
@@ -91,7 +94,7 @@ class ProjectAnalysisResult:
 class ProjectAnalyzer:
     """Analyzes Python projects for nicestlog migration opportunities."""
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, *, verbose: bool = False):
         self.verbose = verbose
         self.log = structlog.get_logger("project_analyzer")
 
@@ -291,8 +294,6 @@ class ProjectAnalyzer:
 
         # Use project structure detection like check command does
         try:
-            from .config import detect_project_structure
-
             project_structure = detect_project_structure(project_path)
 
             # Get Python files from source directories only (like check command)
@@ -919,13 +920,12 @@ class ProjectAnalyzer:
 
     def _get_timestamp(self) -> str:
         """Get current timestamp as ISO string."""
-        from datetime import datetime
-
         return datetime.now().isoformat()
 
 
 def analyze_project_for_agents(
     project_path: str,
+    *,
     verbose: bool = False,
 ) -> ProjectAnalysisResult:
     """Convenience function for AI agents to analyze a project.

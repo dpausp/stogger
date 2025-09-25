@@ -7,9 +7,12 @@ inspired by the amber search & replace tool.
 from __future__ import annotations
 
 import ast
+import copy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+import time
+from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -21,12 +24,10 @@ import structlog
 from .advanced_assistant import (
     AdvancedAssistant,
     CodeAnalysisResult,
+    TransformationMetrics,
     TransformationResult,
 )
 from .live_editor import EditSession, LiveCodeEditor
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 log = structlog.get_logger("nicestlog.interactive_transformer")
 console = Console()
@@ -92,6 +93,7 @@ class InteractiveTransformer:
 
     def __init__(
         self,
+        *,
         assistant: AdvancedAssistant | None = None,
         context_lines: int = 3,
         enable_live_editing: bool = True,
@@ -101,11 +103,7 @@ class InteractiveTransformer:
         self.context_lines = context_lines
         self.session = InteractiveSession()
         self.enable_live_editing = enable_live_editing
-        self.live_editor = (
-            LiveCodeEditor(use_external_editor=use_external_editor)
-            if enable_live_editing
-            else None
-        )
+        self.live_editor = LiveCodeEditor(use_external_editor=use_external_editor) if enable_live_editing else None
 
         log.debug(
             "interactive-transformer-initialized",
@@ -144,7 +142,7 @@ class InteractiveTransformer:
             if not proposals:
                 log.info(
                     "no-transformations-found",
-                    _replace_msg="ℹ️ No transformations found for {file_path}",
+                    _replace_msg="i No transformations found for {file_path}",
                     file_path=str(file_path),
                 )
                 return self._create_empty_result(file_path)
@@ -183,20 +181,14 @@ class InteractiveTransformer:
                     )
                     break
 
-                elif (
-                    choice == UserChoice.EDIT
-                    and self.enable_live_editing
-                    and self.live_editor
-                ):
+                elif choice == UserChoice.EDIT and self.enable_live_editing and self.live_editor:
                     # Live edit the transformation
-                    edited_code, accepted, edit_session = (
-                        self.live_editor.edit_transformation(
-                            proposal.original_code,
-                            proposal.transformed_code,
-                            proposal.pattern_name,
-                            str(proposal.file_path),
-                            proposal.line_number,
-                        )
+                    edited_code, accepted, edit_session = self.live_editor.edit_transformation(
+                        proposal.original_code,
+                        proposal.transformed_code,
+                        proposal.pattern_name,
+                        str(proposal.file_path),
+                        proposal.line_number,
                     )
 
                     # Update proposal with edited code
@@ -364,15 +356,9 @@ class InteractiveTransformer:
             def visit(self, node):
                 # Check each enabled pattern
                 for pattern in self.transformer.assistant.patterns:
-                    if (
-                        pattern.enabled
-                        and pattern.transformer
-                        and pattern.matcher(node)
-                    ):
+                    if pattern.enabled and pattern.transformer and pattern.matcher(node):
                         try:
                             # Create a copy of the node for transformation
-                            import copy
-
                             node_copy = copy.deepcopy(node)
                             transformed_node = pattern.transformer(node_copy)
 
@@ -381,11 +367,7 @@ class InteractiveTransformer:
                                 line_num = getattr(node, "lineno", 1)
 
                                 # Get original and transformed code
-                                original_line = (
-                                    lines[line_num - 1]
-                                    if line_num <= len(lines)
-                                    else ""
-                                )
+                                original_line = lines[line_num - 1] if line_num <= len(lines) else ""
 
                                 # Create a minimal AST to get transformed code
                                 temp_module = ast.Module(
@@ -434,6 +416,7 @@ class InteractiveTransformer:
                 self,
                 lines: list[str],
                 line_num: int,
+                *,
                 before: bool,
             ) -> list[str]:
                 """Get context lines before or after the target line."""
@@ -625,9 +608,6 @@ class InteractiveTransformer:
 
         # Save edit sessions for machine learning if any were created
         if self.session.edit_sessions and self.live_editor:
-            from pathlib import Path
-            import time
-
             timestamp = int(time.time())
             edit_log_path = Path(f"nicestlog_edit_sessions_{timestamp}.json")
             self.live_editor.edit_sessions = self.session.edit_sessions
@@ -656,7 +636,7 @@ class InteractiveTransformer:
         self,
         file_path: Path,
         proposals: list[TransformationProposal],
-        original_content: str,
+        _original_content: str,
     ) -> TransformationResult:
         """Apply the accepted transformations to the file."""
         log.info(
@@ -671,16 +651,12 @@ class InteractiveTransformer:
         result = self.assistant.transform_file(file_path, dry_run=False)
 
         # Update the result with our specific changes
-        result.changes_made = [
-            f"Applied {p.pattern_name} at line {p.line_number}" for p in proposals
-        ]
+        result.changes_made = [f"Applied {p.pattern_name} at line {p.line_number}" for p in proposals]
 
         return result
 
     def _create_empty_result(self, file_path: Path) -> TransformationResult:
         """Create an empty transformation result."""
-        from .advanced_assistant import TransformationMetrics
-
         return TransformationResult(
             original_code="",
             transformed_code="",
