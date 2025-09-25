@@ -9,9 +9,12 @@ from datetime import datetime
 import json
 import os
 import socket
+import subprocess
 from typing import Any
 
 import structlog
+
+logger = structlog.get_logger()
 
 try:
     from systemd import journal  # type: ignore[import-not-found]
@@ -329,7 +332,8 @@ def query_journal_logs(
 
         return list(reversed(entries))  # Most recent first
 
-    except Exception:
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+        logger.warning("Failed to read journal entries", error=str(e))
         return []
 
 

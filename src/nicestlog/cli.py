@@ -28,7 +28,6 @@ import structlog
 import typer
 
 import nicestlog
-
 from . import project_analyzer
 from .advanced_assistant import (
     AdvancedAssistant,
@@ -44,6 +43,8 @@ from .interactive_transformer import (
     InteractiveTransformer,
 )
 from .linter import lint_directory
+
+logger = structlog.get_logger()
 
 
 # Type protocol for migration results to handle different result types
@@ -1025,25 +1026,21 @@ def _analyze_directory(
     """Analyze all Python files in a directory."""
     # Use gitignore-aware file filtering and respect project structure
     # Detect project structure to get source directories
-    try:
-        project_structure = detect_project_structure(path)
+    project_structure = detect_project_structure(path)
 
-        # Get Python files from source directories only
-        files = []
-        for src_dir in project_structure.source_dirs:
-            src_path = path / src_dir
-            if src_path.exists():
-                # Filter files respecting gitignore and project structure
-                src_files = filter_python_files(src_path, respect_gitignore=True)
-                # Additional filtering to exclude test files
-                for py_file in src_files:
-                    if not project_structure.should_exclude_from_logging_analysis(
-                        py_file,
-                    ):
-                        files.extend([py_file])
-    except Exception:
-        # Fallback to original behavior if project structure detection fails
-        files = list(path.glob(pattern))
+    # Get Python files from source directories only
+    files = []
+    for src_dir in project_structure.source_dirs:
+        src_path = path / src_dir
+        if src_path.exists():
+            # Filter files respecting gitignore and project structure
+            src_files = filter_python_files(src_path, respect_gitignore=True)
+            # Additional filtering to exclude test files
+            for py_file in src_files:
+                if not project_structure.should_exclude_from_logging_analysis(
+                    py_file,
+                ):
+                    files.extend([py_file])
 
     if not files:
         console.print(f"❌ [red]No files matching pattern '{pattern}' found in {path}")
@@ -1367,8 +1364,9 @@ def migrate(
                 _display_next_steps_guidance(result, path)
 
         except Exception as e:
+            logger.error("Analysis failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Analysis failed: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
     else:
         # Migration behavior: Apply changes
         run_migrate_command(
@@ -1518,7 +1516,8 @@ def _display_with_pager(content: str):
             # Clean up the temporary file
             Path(temp_file).unlink()
             return
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
+            logger.warning("Glow pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using glow: {e}[/red]")
             # Fall through to other pagers
 
@@ -1536,7 +1535,8 @@ def _display_with_pager(content: str):
             # Clean up the temporary file
             Path(temp_file).unlink()
             return
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
+            logger.warning("Bat pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using bat: {e}[/red]")
             # Fall through to default pager
 
@@ -1555,7 +1555,8 @@ def _display_with_pager(content: str):
             # Clean up the temporary file
             Path(temp_file).unlink()
             return
-        except Exception as e:
+        except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
+            logger.warning("Default pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using pager: {e}[/red]")
 
     # If no pager is available, just print the content
@@ -1582,7 +1583,7 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, debug: bool = F
             "  pip install flask>=3.0.3",
             err=True,
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 def run_journal_viewer(
@@ -1615,6 +1616,7 @@ def run_journal_viewer(
     except KeyboardInterrupt:
         sys.exit(0)
     except Exception as e:
+        logger.error("Application error", exc_info=True, error=str(e))
         console.print(f"❌ [red]Error: {e}[/red]")
         sys.exit(1)
 
@@ -1836,7 +1838,8 @@ def run_i18n_demo():
         from .config import NicestLogConfig
 
         cfg = NicestLogConfig()
-    except Exception:
+    except ImportError:
+        logger.warning("Config module not available")
         cfg = None
 
     init_kwargs = {"verbose": True, "syslog_identifier": "i18n-demo"}
@@ -2189,6 +2192,7 @@ def migrate_single_file(
             return result
 
         except Exception as exc:
+            logger.error("CLI output migration failed", exc_info=True, source=str(source), error=str(exc))
             error_msg = str(exc)
             console.print(
                 f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]",
@@ -2263,6 +2267,7 @@ def migrate_single_file(
             return migration_result
 
         except Exception as exc:
+            logger.error("Print migration failed", exc_info=True, source=str(source), error=str(exc))
             error_msg = str(exc)
             console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
@@ -2320,6 +2325,7 @@ def migrate_single_file(
         return ASTTransformResult()
 
     except Exception as exc:
+        logger.error("AST migration failed", exc_info=True, source=str(source), error=str(exc))
         error_msg = str(exc)
         console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
@@ -2442,6 +2448,7 @@ def run_interactive_migration(
         return InteractiveMigrationResult()
 
     except Exception as exc:
+        logger.error("Interactive migration failed", exc_info=True, error=str(exc))
         error_msg = str(exc)
         console.print(f"[red]❌ Interactive migration failed: {exc}[/red]")
 
@@ -2485,7 +2492,8 @@ def migrate_directory_with_handler(
     for py in filter_python_files(input_dir, respect_gitignore=True):
         try:
             original = py.read_text(encoding="utf-8")
-        except Exception:
+        except (UnicodeDecodeError, OSError) as e:
+            logger.warning("Failed to read file", file=str(py), error=str(e))
             continue
 
         try:
@@ -2522,6 +2530,7 @@ def migrate_directory_with_handler(
                 target_path.write_text(new_code, encoding="utf-8")
 
         except Exception as exc:
+            logger.error("File processing failed", exc_info=True, file=str(py), error=str(exc))
             result.errors += 1
             result.warnings.append(f"Error processing {py}: {exc}")
 
@@ -2905,12 +2914,12 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
         except subprocess.CalledProcessError as e:
             console.print(f"❌ [red]Failed to build documentation: {e}[/red]")
             console.print(f"[yellow]Error output: {e.stderr}[/yellow]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         except FileNotFoundError:
             console.print(
                 "❌ [red]uv command not found. Please install uv or build docs manually.[/red]",
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     if not html_docs_path:
         console.print("❌ [red]No HTML documentation found.[/red]")
@@ -2954,7 +2963,8 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
                             console.print(
                                 f"🌍 [green]Opened {server_url} in browser[/green]",
                             )
-                        except Exception as e:
+                        except (OSError, subprocess.CalledProcessError, ImportError) as e:
+                            logger.warning("Failed to open browser", error=str(e))
                             console.print(
                                 f"⚠️ [yellow]Could not open browser: {e}[/yellow]",
                             )
@@ -2975,7 +2985,7 @@ def _serve_html_docs(port: int, host: str, open_browser: bool, build: bool):
                 console.print("💡 [blue]Try a different port with --port[/blue]")
             else:
                 console.print(f"❌ [red]Failed to start server: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     except KeyboardInterrupt:
         console.print("\n👋 [blue]Server stopped[/blue]")

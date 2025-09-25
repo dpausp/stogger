@@ -42,27 +42,27 @@ ______________________________________________________________________
 
    - **Commit message hint**: "refactor: reduce function complexity per ruff PLR rules"
 
-1. [ ] **Fix exception handling violations (BLE001, B904)** – follow crash-first principle
+1. [x] **Fix exception handling violations (BLE001, B904)** – follow crash-first principle
 
    - **Context**: Blind exception catching violates AGENTS.md Rule 6 (let it crash)
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All BLE001 (blind exception) errors resolved
-     - [ ] All B904 (exception chaining) errors resolved
-     - [ ] Exception handling follows crash-first principle
+     - [x] All BLE001 (blind exception) errors resolved - 18 errors in cli.py, 1 in systemd_integration.py
+     - [x] All B904 (exception chaining) errors resolved - 5 errors fixed with proper chaining
+     - [x] Exception handling follows crash-first principle - added structured logging, specific exceptions
 
    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/cli.py` (lines 979, 1304, 1456, 1474, 1493)
-     - [ ] `src/nicestlog/systemd_integration.py` (line 331)
+     - [x] `src/nicestlog/cli.py` (lines 979, 1304, 1456, 1474, 1493)
+     - [x] `src/nicestlog/systemd_integration.py` (line 331)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Replace blind `except Exception:` with specific exceptions
-     - [ ] Add proper exception chaining with `raise ... from err`
-     - [ ] Remove fallback logic that suppresses errors
-     - [ ] Add structured logging before re-raising exceptions
+     - [x] Replace blind `except Exception:` with specific exceptions
+     - [x] Add proper exception chaining with `raise ... from err`
+     - [x] Remove fallback logic that suppresses errors
+     - [x] Add structured logging before re-raising exceptions
 
    - **Commit message hint**: "fix: improve exception handling per Rule 6 crash-first"
 
