@@ -1,187 +1,241 @@
-# Implementation TODO - Ruff Lint Error Fixes
+# Implementation TODO - Fix Remaining Ruff Lint Errors
 
-Fix remaining ruff lint errors after running `uv run doit fix`.
+Fix the 286 remaining ruff lint errors after running `uv run doit fix`.
 
 ## Description
 
-- Problem statement: After running `uv run doit fix`, 491 ruff lint errors remain across the codebase. These errors violate code quality standards and need systematic resolution.
-- Why we want to solve it: Clean code with no lint errors improves maintainability, reduces bugs, and follows project conventions. Automated fixing has been applied, manual intervention needed for complex issues.
-- Research / references: Ruff documentation, AGENTS.md Rule 6 (let it crash, no backwards compatibility), CONVENTIONS.md coding standards.
-- Constraints: Must follow AGENTS.md rules, especially Rule 6 (no legacy support, let it crash). No backwards compatibility code allowed.
+- Problem statement: After running `uv run doit fix`, 286 ruff lint errors remain across the codebase, primarily in `cli.py`, `project_analyzer.py`, `systemd_integration.py`, and `web_dashboard.py`. These errors violate code quality standards and must be systematically resolved.
+- Why we want to solve it: Clean code with zero lint errors improves maintainability, reduces bugs, follows project conventions, and ensures consistent code quality across the entire codebase.
+- Research / references: Ruff documentation for specific error codes, AGENTS.md Rule 6 (let it crash, no backwards compatibility), CONVENTIONS.md coding standards.
+- Constraints: Must follow AGENTS.md rules, especially Rule 6 (no legacy support, let it crash). No backwards compatibility code allowed. Must maintain existing functionality while improving code quality.
 
 ### Task Goal
 
-- **Outcome we want**: Zero ruff lint errors in the codebase, clean `uv run doit fix` execution.
-- **Success criteria**: `uv run ruff check src/` returns no errors, all tests pass after fixes.
+- **Outcome we want**: Zero ruff lint errors in the codebase, clean `uv run ruff check src/` execution.
+- **Success criteria**: `uv run ruff check src/` returns no errors, all tests pass after fixes, code follows project conventions.
 
 ______________________________________________________________________
 
 ## Tasks
 
-1. [x] **Fix complexity violations (PLR series)** – reduce function complexity
+1. [ ] **Fix complexity violations (PLR series)** – reduce function complexity
 
-   - **Context**: Multiple functions exceed complexity limits (PLR0912, PLR0913, PLR0915)
+   - **Context**: Multiple functions exceed complexity limits including PLR0911 (too many returns), PLR0912 (too many branches), PLR0913 (too many arguments), PLR0915 (too many statements)
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] All PLR0912 (too many branches) errors resolved - partially fixed check function
-     - [x] All PLR0913 (too many arguments) errors resolved - added CheckOptions and MigrateOptions dataclasses
-     - [x] All PLR0915 (too many statements) errors resolved - migrate_single_file refactored with helper functions
+     - [ ] All PLR0911 (too many returns) errors resolved
+     - [ ] All PLR0912 (too many branches) errors resolved
+     - [ ] All PLR0913 (too many arguments) errors resolved
+     - [ ] All PLR0915 (too many statements) errors resolved
 
    - **Files to check/modify**
 
-     - [x] `src/nicestlog/cli.py` (lines 416, 664, 761, 1228, 1337)
-     - [x] `src/nicestlog/systemd_integration.py` (line 203)
+     - [ ] `src/nicestlog/cli.py` (lines 464, 765, 862, 1325, 1435, 1657, 1738, 1986, 2150)
+     - [ ] `src/nicestlog/project_analyzer.py` (lines 791, 931)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Identify functions with complexity violations
-     - [x] Extract helper functions to reduce statement/branch count
-     - [x] Use dataclasses or TypedDict for parameter grouping
-     - [x] Validate complexity metrics after refactoring
+     - [ ] Extract helper functions from complex functions
+     - [ ] Use dataclasses for parameter grouping where applicable
+     - [ ] Split large functions into smaller, focused functions
+     - [ ] Reduce branching logic through early returns and guard clauses
+     - [ ] Validate complexity metrics after refactoring
 
    - **Commit message hint**: "refactor: reduce function complexity per ruff PLR rules"
 
-1. [x] **Fix exception handling violations (BLE001, B904)** – follow crash-first principle
+1. [ ] **Fix logging violations (G201)** – use proper logging methods
+
+   - **Context**: Multiple instances of using `.error(..., exc_info=True)` instead of `.exception(...)`
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] All G201 errors resolved by replacing with `.exception()`
+     - [ ] Consistent logging patterns across codebase
+
+   - **Files to check/modify**
+
+     - [ ] `src/nicestlog/cli.py` (lines 1402, 1652, 2217, 2291, 2351)
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Replace `logger.error(..., exc_info=True)` with `logger.exception(...)`
+     - [ ] Remove `exc_info=True` parameter from error calls
+     - [ ] Verify logging output remains consistent
+
+   - **Commit message hint**: "fix: use logger.exception() instead of error with exc_info"
+
+1. [ ] **Fix security violations (S602, S311, S106, S112)** – address security issues
+
+   - **Context**: Security issues including subprocess shell usage, hardcoded secrets, weak random generation, and exception suppression
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] All S602 (subprocess shell) errors resolved
+     - [ ] All S311 (weak random) errors resolved
+     - [ ] All S106 (hardcoded password) errors resolved
+     - [ ] All S112 (try-except-continue) errors resolved
+
+   - **Files to check/modify**
+
+     - [ ] `src/nicestlog/cli.py` (lines 1548, 1564, 1582, 1893, 1896)
+     - [ ] `src/nicestlog/web_dashboard.py` (lines 460, 461, 468, 469, 470, 473)
+     - [ ] `src/nicestlog/project_analyzer.py` (line 702)
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Replace subprocess shell=True with safer alternatives
+     - [ ] Use secrets module for cryptographic random generation
+     - [ ] Replace hardcoded passwords with placeholders or constants
+     - [ ] Add proper logging to exception handling per Rule 6
+
+   - **Commit message hint**: "fix: resolve security violations per ruff S-series rules"
+
+1. [ ] **Fix magic value violations (PLR2004)** – replace magic numbers with constants
+
+   - **Context**: Multiple magic numbers used in comparisons throughout the codebase
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] All PLR2004 errors resolved with named constants
+     - [ ] Constants defined at module level with descriptive names
+
+   - **Files to check/modify**
+
+     - [ ] `src/nicestlog/project_analyzer.py` (lines 709, 711, 778, 902, 903, 908)
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Define module-level constants for all magic numbers
+     - [ ] Replace magic values in comparisons with named constants
+     - [ ] Use descriptive constant names that explain their purpose
+
+   - **Commit message hint**: "refactor: replace magic numbers with named constants"
+
+1. [ ] **Fix performance violations (PERF401)** – optimize list operations
+
+   - **Context**: Multiple instances of inefficient list operations that can be replaced with list.extend
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] All PERF401 errors resolved with list.extend
+     - [ ] Maintain existing functionality and behavior
+
+   - **Files to check/modify**
+
+     - [ ] `src/nicestlog/cli.py` (lines 737, 2314)
+     - [ ] `src/nicestlog/project_analyzer.py` (lines 675, 769)
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Replace for loops with list.extend where applicable
+     - [ ] Use list comprehensions for filtered extends
+     - [ ] Verify performance improvements maintain correctness
+
+   - **Commit message hint**: "perf: optimize list operations with list.extend"
+
+1. [ ] **Fix style and naming violations** – code style improvements
+
+   - **Context**: Various style issues including FBT001 (boolean flags), N806 (variable naming), SIM108 (ternary operators), RUF012 (mutable class attributes)
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [ ] All FBT001 (boolean flags) errors resolved
+     - [ ] All N806 (variable naming) errors resolved
+     - [ ] All SIM108 (ternary operator) errors resolved
+     - [ ] All RUF012 (mutable class attributes) errors resolved
+
+   - **Files to check/modify**
+
+     - [ ] `src/nicestlog/cli.py` (lines 541, 2016, 2190, 2266)
+     - [ ] `src/nicestlog/systemd_integration.py` (line 37)
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [ ] Convert boolean positional arguments to keyword-only
+     - [ ] Fix variable naming to follow conventions
+     - [ ] Replace if-else blocks with ternary operators where appropriate
+     - [ ] Add ClassVar annotations to mutable class attributes
+
+   - **Commit message hint**: "style: fix naming and style violations"
+
+1. [ ] **Fix exception handling violations (BLE001)** – follow crash-first principle
 
    - **Context**: Blind exception catching violates AGENTS.md Rule 6 (let it crash)
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] All BLE001 (blind exception) errors resolved - 18 errors in cli.py, 1 in systemd_integration.py
-     - [x] All B904 (exception chaining) errors resolved - 5 errors fixed with proper chaining
-     - [x] Exception handling follows crash-first principle - added structured logging, specific exceptions
+     - [ ] All BLE001 (blind exception) errors resolved
+     - [ ] Exception handling follows crash-first principle with structured logging
 
    - **Files to check/modify**
 
-     - [x] `src/nicestlog/cli.py` (lines 979, 1304, 1456, 1474, 1493)
-     - [x] `src/nicestlog/systemd_integration.py` (line 331)
+     - [ ] `src/nicestlog/project_analyzer.py` (line 702)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Replace blind `except Exception:` with specific exceptions
-     - [x] Add proper exception chaining with `raise ... from err`
-     - [x] Remove fallback logic that suppresses errors
-     - [x] Add structured logging before re-raising exceptions
+     - [ ] Replace blind `except Exception:` with specific exceptions
+     - [ ] Add structured logging before re-raising exceptions
+     - [ ] Ensure exceptions crash properly per Rule 6
 
    - **Commit message hint**: "fix: improve exception handling per Rule 6 crash-first"
 
-1. [x] **Fix security and subprocess violations (S603, S607)** – secure process execution
-
-   - **Context**: Subprocess calls with potential security issues
-
-   - **Success criteria** (must be checked to finish task)
-
-     - [x] All S603 (subprocess execution) errors resolved - used shell=True with shlex.join for secure execution
-     - [x] All S607 (partial executable path) errors resolved - no S607 errors found
-     - [x] Secure subprocess execution patterns implemented - added absolute path validation, used shlex for quoting
-
-   - **Files to check/modify**
-
-     - [x] `src/nicestlog/cli.py` (lines 1451, 1469, 1488)
-
-   - **Steps** (always action verbs, explicit order)
-
-     - [x] Use `shutil.which()` to validate executable paths
-     - [x] Implement proper subprocess security patterns - used shell=True with shlex.join
-     - [x] Add input validation for subprocess arguments - added absolute path checks
-     - [x] Use full executable paths where possible - ensured with shutil.which and validation
-
-   - **Commit message hint**: "fix: secure subprocess execution patterns"
-
-1. [x] **Fix datetime violations (DTZ series)** – proper timezone handling
+1. [ ] **Fix datetime violations (DTZ005)** – proper timezone handling
 
    - **Context**: Datetime operations without timezone awareness
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] All DTZ001, DTZ005, DTZ006 errors resolved
-     - [x] Timezone-aware datetime operations implemented
+     - [ ] All DTZ005 errors resolved with timezone parameters
+     - [ ] Consistent timezone handling across codebase
 
    - **Files to check/modify**
 
-     - [x] `src/nicestlog/systemd_integration.py` (lines 303, 350, 351, 388)
-     - [x] `src/nicestlog/web_dashboard.py` (lines 40, 397)
+     - [ ] `src/nicestlog/project_analyzer.py` (line 923)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Replace `datetime.now()` with `datetime.now(timezone.utc)`
-     - [x] Add timezone parameters to datetime constructors
-     - [x] Update `fromtimestamp()` calls with timezone parameter
-     - [x] Validate timezone handling consistency
+     - [ ] Replace `datetime.now()` with `datetime.now(timezone.utc)`
+     - [ ] Ensure consistent timezone usage across the project
 
    - **Commit message hint**: "fix: add timezone awareness to datetime operations"
 
-1. [x] **Fix style and quality violations** – code quality improvements
+1. [ ] **Fix docstring violations (D401)** – documentation standards
 
-   - **Context**: Various style, argument, and quality issues
-
-   - **Success criteria** (must be checked to finish task)
-
-     - [x] All ARG001 (unused arguments) errors resolved
-     - [x] All FBT001/FBT002 (boolean flags) errors resolved
-     - [x] All RUF001 (ambiguous characters) errors resolved
-     - [x] All TRY300 (try-else patterns) errors resolved
-     - [x] All SIM105 (contextlib.suppress) errors resolved
-     - [x] All PLR2004 (magic values) errors resolved
-
-   - **Files to check/modify**
-
-     - [x] `src/nicestlog/cli.py` (multiple lines)
-     - [x] `src/nicestlog/web_dashboard.py` (multiple lines)
-     - [x] `src/nicestlog/systemd_integration.py` (line 226)
-
-   - **Steps** (always action verbs, explicit order)
-
-     - [x] Remove unused function arguments or mark with underscore
-     - [x] Replace boolean positional args with keyword-only
-     - [x] Fix ambiguous Unicode characters
-     - [x] Apply try-else pattern improvements
-     - [x] Use contextlib.suppress where appropriate
-     - [x] Replace magic numbers with named constants
-
-   - **Commit message hint**: "style: fix various code quality violations"
-
-1. [x] **Fix docstring violations (D401, D107)** – documentation standards
-
-   - **Context**: Docstring format issues
+   - **Context**: Docstring format issues with imperative mood
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] All D401 (imperative mood) errors resolved
-     - [x] All D107 (missing docstrings) errors resolved
+     - [ ] All D401 (imperative mood) errors resolved
+     - [ ] Docstrings follow project conventions
 
    - **Files to check/modify**
 
-     - [x] `src/nicestlog/systemd_integration.py` (line 147)
-     - [x] `src/nicestlog/web_dashboard.py` (lines 34, 315, 414)
+     - [ ] `src/nicestlog/project_analyzer.py` (line 931)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Rewrite docstrings in imperative mood
-     - [x] Add missing docstrings for `__init__` methods
-     - [x] Validate docstring format compliance
+     - [ ] Rewrite docstrings in imperative mood
+     - [ ] Validate docstring format compliance
 
    - **Commit message hint**: "docs: fix docstring format violations"
 
-1. [x] **Fix import and path violations** – module organization
+1. [ ] **Fix line length violations (E501)** – code formatting
 
-   - **Context**: Import location and path operation issues
+   - **Context**: Lines exceeding 120 character limit
 
    - **Success criteria** (must be checked to finish task)
 
-     - [x] All PLC0415 (import location) errors resolved - moved all imports to top-level, handled conditional imports
-     - [x] All PTH109 (os.getcwd usage) errors resolved - replaced os.getcwd() with Path.cwd(), used Path.open()
+     - [ ] All E501 errors resolved with proper line breaks
+     - [ ] Code remains readable and properly formatted
 
    - **Files to check/modify**
 
-     - [x] `src/nicestlog/cli.py` (multiple lines)
-     - [x] `src/nicestlog/systemd_integration.py` (no changes needed)
+     - [ ] `src/nicestlog/project_analyzer.py` (line 905)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [x] Move imports to top-level where possible
-     - [x] Replace `os.getcwd()` with `Path.cwd()`
-     - [x] Handle conditional imports properly
+     - [ ] Break long lines at appropriate points
+     - [ ] Maintain code readability and logical grouping
 
-   - **Commit message hint**: "fix: improve import organization and path operations"
+   - **Commit message hint**: "style: fix line length violations"
