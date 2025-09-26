@@ -765,12 +765,12 @@ def _handle_check_summary(*, lint_success: bool, ast_issues, log):
 def _display_check_analysis_result(result: CodeAnalysisResult, *, show_complexity: bool, verbose: bool = False):
     """Display analysis results for check command."""
     log = structlog.get_logger()
-    
+
     if verbose or show_complexity:
         _display_detailed_analysis(result, show_complexity, log)
     else:
         _display_compact_analysis(result, log)
-    
+
     _display_analysis_issues(result, verbose, log)
 
 
@@ -906,26 +906,30 @@ def _display_unified_check_analysis(
 ) -> bool:
     """Display unified analysis results combining logging quality and AST metrics."""
     log = structlog.get_logger()
-    
+
     # Extract metrics and run linter
     ast_metrics, total_ast_issues, all_ast_insights = _extract_ast_metrics(results, show_complexity, directory)
-    lint_success = _run_linter_with_metrics(ast_metrics, directory or results[0].file_path.parent, project_structure, log)
-    
+    lint_success = _run_linter_with_metrics(
+        ast_metrics, directory or results[0].file_path.parent, project_structure, log
+    )
+
     # Display insights based on mode
     if verbose:
         _display_verbose_unified_insights(results, total_ast_issues, all_ast_insights, log)
     else:
         _display_compact_unified_summary(results, total_ast_issues, log)
-    
+
     return lint_success
 
 
-def _extract_ast_metrics(results: list[CodeAnalysisResult], show_complexity: bool, directory: Path | None) -> tuple[dict, int, list[str]]:
+def _extract_ast_metrics(
+    results: list[CodeAnalysisResult], show_complexity: bool, directory: Path | None
+) -> tuple[dict, int, list[str]]:
     """Extract AST metrics from analysis results."""
     ast_metrics = {}
     total_ast_issues = 0
     all_ast_insights = []
-    
+
     directory_path = directory or results[0].file_path.parent
     for result in results:
         ast_metrics[str(result.file_path.relative_to(directory_path))] = {
@@ -938,17 +942,17 @@ def _extract_ast_metrics(results: list[CodeAnalysisResult], show_complexity: boo
             all_ast_insights.extend(
                 [f"  • {result.file_path.name}: {issue}" for issue in result.issues],
             )
-    
+
     return ast_metrics, total_ast_issues, all_ast_insights
 
 
 def _run_linter_with_metrics(ast_metrics: dict, directory_path: Path, project_structure, log) -> bool:
     """Run linter with AST metrics integration."""
     log.info("check-unified-analysis", _replace_msg="Unified Code Quality Analysis")
-    
+
     # Set environment variable to pass AST metrics to linter
     os.environ["NICESTLOG_AST_METRICS"] = json.dumps(ast_metrics)
-    
+
     lint_success = True
     try:
         lint_success = lint_directory(directory_path, project_structure=project_structure)
@@ -956,24 +960,32 @@ def _run_linter_with_metrics(ast_metrics: dict, directory_path: Path, project_st
         # Clean up environment variable
         if "NICESTLOG_AST_METRICS" in os.environ:
             del os.environ["NICESTLOG_AST_METRICS"]
-    
+
     return lint_success
 
 
-def _display_verbose_unified_insights(results: list[CodeAnalysisResult], total_ast_issues: int, all_ast_insights: list[str], log):
+def _display_verbose_unified_insights(
+    results: list[CodeAnalysisResult], total_ast_issues: int, all_ast_insights: list[str], log
+):
     """Display detailed unified analysis insights."""
     max_insights = 5
-    
+
     if all_ast_insights:
         log.info("check-ast-insights", _replace_msg="AST Analysis Insights:")
         _display_file_statistics(results, log)
-        
+
         if total_ast_issues > 0:
             _display_issue_details(total_ast_issues, all_ast_insights, max_insights, log)
         else:
-            log.info("check-no-issues-detected", _replace_msg="  • No code quality issues detected - excellent code structure!")
-        
-        log.info("check-consider-structured-logging", _replace_msg="  • Consider adding structured logging to functions without logs")
+            log.info(
+                "check-no-issues-detected",
+                _replace_msg="  • No code quality issues detected - excellent code structure!",
+            )
+
+        log.info(
+            "check-consider-structured-logging",
+            _replace_msg="  • Consider adding structured logging to functions without logs",
+        )
 
 
 def _display_file_statistics(results: list[CodeAnalysisResult], log):
@@ -1474,7 +1486,7 @@ def migrate(
                 _display_next_steps_guidance(result, path)
 
         except Exception as e:
-            logger.exception("Analysis failed", error=str(e))
+            logger.exception("Analysis failed")
             console.print(f"❌ [red]Analysis failed: {e}[/red]")
             raise typer.Exit(1) from e
     else:
@@ -1636,9 +1648,7 @@ def _display_with_pager(content: str):
             if not Path(bat_path).is_absolute():
                 msg = f"Invalid executable path: {bat_path}"
                 raise ValueError(msg)
-            subprocess.run(
-                [bat_path, "--paging=always", "-"], input=content, text=True, check=False
-            )
+            subprocess.run([bat_path, "--paging=always", "-"], input=content, text=True, check=False)
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Bat pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using bat: {e}[/red]")
@@ -2531,7 +2541,7 @@ def run_interactive_migration(
         return InteractiveMigrationResult()
 
     except Exception as exc:
-        logger.error("Interactive migration failed", exc_info=True, error=str(exc))
+        logger.exception("Interactive migration failed")
         error_msg = str(exc)
         console.print(f"[red]❌ Interactive migration failed: {exc}[/red]")
 
@@ -2610,7 +2620,7 @@ def migrate_directory_with_handler(
                 target_path.write_text(new_code, encoding="utf-8")
 
         except Exception as exc:
-            logger.error("File processing failed", exc_info=True, file=str(py), error=str(exc))
+            logger.exception("File processing failed", file=str(py))
             result.errors += 1
             result.warnings.append(f"Error processing {py}: {exc}")
 

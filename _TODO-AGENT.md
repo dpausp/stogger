@@ -44,24 +44,26 @@ ______________________________________________________________________
 
    - **Commit message hint**: "refactor: reduce function complexity per ruff PLR rules"
 
-1. [ ] **Fix logging violations (G201)** – use proper logging methods
+ 1. [x] **Fix logging violations (G201)** – use proper logging methods
 
-   - **Context**: Multiple instances of using `.error(..., exc_info=True)` instead of `.exception(...)`
+    - **Context**: Multiple instances of using `.error(..., exc_info=True)` instead of `.exception(...)` and redundant `error=` parameters in `.exception()` calls
 
-   - **Success criteria** (must be checked to finish task)
+    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All G201 errors resolved by replacing with `.exception()`
-     - [ ] Consistent logging patterns across codebase
+      - [x] All G201 errors resolved by replacing with `.exception()`
+      - [x] All redundant `error=` parameters removed from `.exception()` calls
+      - [x] Consistent logging patterns across codebase
 
-   - **Files to check/modify**
+    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/cli.py` (lines 1402, 1652, 2217, 2291, 2351)
+      - [ ] `src/nicestlog/cli.py` (lines 1477, 1727, 2279, 2353, 2413, 2534, 2613)
 
-   - **Steps** (always action verbs, explicit order)
+    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Replace `logger.error(..., exc_info=True)` with `logger.exception(...)`
-     - [ ] Remove `exc_info=True` parameter from error calls
-     - [ ] Verify logging output remains consistent
+      - [x] Replace `logger.error(..., exc_info=True)` with `logger.exception(...)`
+      - [x] Remove redundant `error=` parameters from `.exception()` calls
+      - [x] Remove `exc_info=True` parameter from error calls
+      - [x] Verify logging output remains consistent
 
    - **Commit message hint**: "fix: use logger.exception() instead of error with exc_info"
 
