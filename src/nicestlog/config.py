@@ -59,9 +59,9 @@ class NicestLogConfig:
         log = logging.getLogger(__name__)
 
         config = self._load_config()
-        log.debug(f"config-loaded-from-file: {len(config)} keys")
+        log.debug("config-loaded-from-file", key_count=len(config))
         config.update(kwargs)
-        log.debug(f"config-merged-with-kwargs: {len(kwargs)} kwargs applied")
+        log.debug("config-merged-with-kwargs", kwargs_count=len(kwargs))
 
         self.verbose: bool = config.get("verbose", False)
         self.logdir: Path | None = Path(config["logdir"]) if config.get("logdir") else None
@@ -95,21 +95,25 @@ class NicestLogConfig:
 
         pyproject_path = Path.cwd() / "pyproject.toml"
         log.debug(
-            f"searching-for-config: {pyproject_path} (exists: {pyproject_path.is_file()})",
+            "searching-for-config",
+            path=str(pyproject_path),
+            exists=pyproject_path.is_file(),
         )
 
         if not pyproject_path.is_file():
-            log.debug(f"no-pyproject-found: {pyproject_path}, using defaults")
+            log.debug("no-pyproject-found", path=str(pyproject_path))
             return {}
         try:
             with pyproject_path.open("rb") as f:
                 config = tomllib.load(f)
             nicest_config = config.get("tool", {}).get("nicestlog", {})
             log.info(
-                f"config-loaded-successfully: {pyproject_path} with {len(nicest_config)} settings",
+                "config-loaded-successfully",
+                path=str(pyproject_path),
+                settings_count=len(nicest_config),
             )
         except (tomllib.TOMLDecodeError, Exception) as e:
-            log.exception(f"config-loading-failed: {pyproject_path} - {e}")
+            log.exception("config-loading-failed", path=str(pyproject_path), error=str(e))
             return {}
         else:
             return nicest_config
@@ -139,17 +143,17 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         try:
             structure = _detect_from_pyproject(project_root, pyproject_path)
             if structure:
-                log.info(f"project-structure-detected-from-pyproject: {pyproject_path}")
+                log.info("project-structure-detected-from-pyproject", path=str(pyproject_path))
                 return structure
         except Exception as e:
-            log.warning(f"pyproject-detection-failed: {e}")
+            log.warning("pyproject-detection-failed", error=str(e))
 
     # Fall back to heuristics
     try:
         structure = _detect_from_heuristics(project_root)
         log.info("project-structure-detected-from-heuristics")
     except Exception as e:
-        log.exception(f"heuristic-detection-failed: {e}")
+        log.exception("heuristic-detection-failed", error=str(e))
         msg = (
             f"Could not determine project structure for {project_root}. "
             "Please configure [tool.nicestlog] section in pyproject.toml with 'src_dir' and 'exclude' settings."

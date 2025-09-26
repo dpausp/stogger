@@ -65,9 +65,30 @@ ______________________________________________________________________
       - [x] Remove `exc_info=True` parameter from error calls
       - [x] Verify logging output remains consistent
 
-   - **Commit message hint**: "fix: use logger.exception() instead of error with exc_info"
+    - **Commit message hint**: "fix: use logger.exception() instead of error with exc_info"
 
-1. [ ] **Fix security violations (S602, S311, S106, S112)** – address security issues
+ 1. [x] **Fix logging f-string violations (G004)** – replace f-strings in logging
+
+    - **Context**: Multiple instances of using f-strings in logging statements which can impact performance and log parsing
+
+    - **Success criteria** (must be checked to finish task)
+
+      - [x] All G004 errors resolved by replacing f-strings with proper logging
+      - [x] Consistent logging patterns across codebase
+
+    - **Files to check/modify**
+
+      - [x] `src/nicestlog/config.py` (lines 62, 64, 98, 102, 109, 112, 142, 145, 152)
+
+    - **Steps** (always action verbs, explicit order)
+
+      - [x] Replace f-string logging with structured logging or format strings
+      - [x] Ensure log parsing compatibility is maintained
+      - [x] Verify logging output remains informative
+
+    - **Commit message hint**: "fix: replace f-strings in logging statements"
+
+ 1. [ ] **Fix security violations (S602, S311, S106, S112)** – address security issues
 
    - **Context**: Security issues including subprocess shell usage, hardcoded secrets, weak random generation, and exception suppression
 
