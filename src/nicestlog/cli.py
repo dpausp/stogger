@@ -535,10 +535,10 @@ def _run_check_command(options: CheckOptions):
     elif options.fix and not options.no_ast and ast_issues:
         _run_fix_mode(options, path_obj, project_structure, log)
 
-    _handle_check_summary(lint_success, ast_issues, log)
+    _handle_check_summary(lint_success=lint_success, ast_issues=ast_issues, log=log)
 
 
-def _handle_check_summary(lint_success: bool, ast_issues: list, log):
+def _handle_check_summary(*, lint_success: bool, ast_issues: list, log):
     """Handle and display the summary of check results."""
     if lint_success:
         log.info("check-lint-passed", _replace_msg="✅ Linting passed")
@@ -1321,6 +1321,20 @@ def _display_directory_transformation(
 # Additional CLI commands
 
 
+@dataclass
+class MigrateOptions:
+    """Options for the migrate command."""
+
+    path: str = "."
+    output: str | None = None
+    dry_run: bool = False
+    no_ast: bool = False
+    pattern: str | None = None
+    interactive: bool = False
+    verbose: bool = False
+    check_imports: bool = False
+
+
 @app.command()
 def migrate(
     path: Annotated[str, typer.Argument(help="Project path to analyze/migrate")] = ".",
@@ -1399,7 +1413,7 @@ def migrate(
                 _display_next_steps_guidance(result, path)
 
         except Exception as e:
-            logger.error("Analysis failed", exc_info=True, error=str(e))
+            logger.exception("Analysis failed", error=str(e))
             console.print(f"❌ [red]Analysis failed: {e}[/red]")
             raise typer.Exit(1) from e
     else:
@@ -1649,7 +1663,7 @@ def run_journal_viewer(
     except KeyboardInterrupt:
         sys.exit(0)
     except Exception as e:
-        logger.error("Application error", exc_info=True, error=str(e))
+        logger.exception("Application error", error=str(e))
         console.print(f"❌ [red]Error: {e}[/red]")
         sys.exit(1)
 
@@ -1983,15 +1997,7 @@ MIGRATION_TYPES = {
 }
 
 
-def run_migrate_command(
-    path: str,
-    output: str | None,
-    migration_type: str,
-    *,
-    dry_run: bool,
-    interactive: bool,
-    force: bool,
-):
+def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: bool = False):
     """Execute migration command with comprehensive AST integration."""
     # 1. Validate migration type
     if migration_type not in MIGRATION_TYPES:
@@ -2005,20 +2011,15 @@ def run_migrate_command(
     migration_config = MIGRATION_TYPES[migration_type]
 
     # 2. Path validation and setup
-    source_path = Path(path)
+    source_path = Path(options.path)
     if not source_path.exists():
-        console.print(f"[red]❌ Path {path} does not exist[/red]")
+        console.print(f"[red]❌ Path {options.path} does not exist[/red]")
         raise typer.Exit(1)
 
-    if output:
-        target_root = Path(output)
+    if options.output:
+        target_root = Path(options.output)
         target_root.mkdir(parents=True, exist_ok=True)
-        if source_path.is_file():
-            # For single file, compute target file path under output directory
-            target_path = target_root / source_path.name
-        else:
-            # For directories, use the directory itself as root
-            target_path = target_root
+        target_path = target_root / source_path.name if source_path.is_file() else target_root
     else:
         target_path = source_path  # In-place migration
 
@@ -2027,7 +2028,7 @@ def run_migrate_command(
         Panel.fit(
             f"🔄 [bold blue]Code Migration[/bold blue]\n"
             f"Type: [cyan]{migration_type}[/cyan]\n"
-            f"Mode: [yellow]{'Preview' if dry_run else 'Apply'}[/yellow]\n"
+            f"Mode: [yellow]{'Preview' if options.dry_run else 'Apply'}[/yellow]\n"
             f"Source: [green]{source_path}[/green]\n"
             f"Target: [green]{target_path}[/green]",
             title="Migration Configuration",
@@ -2214,7 +2215,7 @@ def migrate_single_file(
                     )
 
         except Exception as exc:
-            logger.error("CLI output migration failed", exc_info=True, source=str(source), error=str(exc))
+            logger.exception("CLI output migration failed", source=str(source), error=str(exc))
             error_msg = str(exc)
             console.print(
                 f"[red]❌ Error migrating CLI outputs in {source}: {exc}[/red]",
@@ -2288,7 +2289,7 @@ def migrate_single_file(
                     )
 
         except Exception as exc:
-            logger.error("Print migration failed", exc_info=True, source=str(source), error=str(exc))
+            logger.exception("Print migration failed", source=str(source), error=str(exc))
             error_msg = str(exc)
             console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
@@ -2348,7 +2349,7 @@ def migrate_single_file(
         return ASTTransformResult()
 
     except Exception as exc:
-        logger.error("AST migration failed", exc_info=True, source=str(source), error=str(exc))
+        logger.exception("AST migration failed", source=str(source), error=str(exc))
         error_msg = str(exc)
         console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
