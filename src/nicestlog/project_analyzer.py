@@ -699,7 +699,8 @@ class ProjectAnalyzer:
                     # Skip files with syntax errors
                     pass
 
-            except Exception:
+            except Exception as e:
+                logger.warning("Failed to analyze complexity for file", file=str(file), error=str(e))
                 continue
 
         avg_complexity = sum(complexities) / len(complexities) if complexities else 0

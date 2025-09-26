@@ -437,7 +437,7 @@ def run_dashboard(host="127.0.0.1", port=8080, *, debug=False):
 
 if __name__ == "__main__":
     # Demo mode
-    import random
+    import secrets
     import threading
     import time
 
@@ -457,20 +457,17 @@ if __name__ == "__main__":
         ]
 
         while True:
-            action = random.choice(actions)
-            level = random.choices(
-                ["debug", "info", "warning", "error"],
-                weights=[20, 60, 15, 5],
-            )[0]
+            action = secrets.choice(actions)
+            level = secrets.choice(["debug", "info", "warning", "error"])
 
             getattr(log, level)(
                 action,
-                user_id=random.randint(1, 1000),
-                duration_ms=random.randint(10, 500),
-                status_code=random.choice([200, 201, 400, 404, 500]),
+                user_id=secrets.randbelow(1000) + 1,
+                duration_ms=secrets.randbelow(490) + 10,
+                status_code=secrets.choice([200, 201, 400, 404, 500]),
             )
 
-            time.sleep(random.uniform(0.5, 3.0))
+            time.sleep(secrets.randbelow(250) / 100 + 0.5)
 
     # Start demo log generation in background
     demo_thread = threading.Thread(target=generate_demo_logs, daemon=True)

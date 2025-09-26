@@ -1321,7 +1321,7 @@ def _display_directory_transformation(
 # Additional CLI commands
 
 
-@dataclass
+@dataclasses.dataclass
 class MigrateOptions:
     """Options for the migrate command."""
 
@@ -1559,7 +1559,7 @@ def _display_with_pager(content: str):
             if not Path(glow_path).is_absolute():
                 msg = f"Invalid executable path: {glow_path}"
                 raise ValueError(msg)
-            subprocess.run(shlex.join([glow_path, "--pager", "-"]), shell=True, input=content, text=True, check=False)
+            subprocess.run([glow_path, "--pager", "-"], input=content, text=True, check=False)
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Glow pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using glow: {e}[/red]")
@@ -1576,7 +1576,7 @@ def _display_with_pager(content: str):
                 msg = f"Invalid executable path: {bat_path}"
                 raise ValueError(msg)
             subprocess.run(
-                shlex.join([bat_path, "--paging=always", "-"]), shell=True, input=content, text=True, check=False
+                [bat_path, "--paging=always", "-"], input=content, text=True, check=False
             )
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Bat pager failed", exc_info=True, error=str(e))
@@ -1593,7 +1593,7 @@ def _display_with_pager(content: str):
             if not Path(pager_cmd).is_absolute():
                 msg = f"Invalid executable path: {pager_cmd}"
                 raise ValueError(msg)
-            subprocess.run(shlex.join([pager_cmd]), shell=True, input=content, text=True, check=False)
+            subprocess.run([pager_cmd], input=content, text=True, check=False)
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Default pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using pager: {e}[/red]")
@@ -1904,10 +1904,10 @@ def run_pii_demo():
     log.info(
         "user-data",
         email="user@example.com",
-        password="secret123",
+        password="DEMO_PASSWORD_123",
         ssn="123-45-6789",
     )
-    log.debug("api-call", token="Bearer abc123def456", api_key="sk_live_abc123")
+    log.debug("api-call", token="Bearer DEMO_TOKEN_456", api_key="sk_demo_abc123")
 
 
 def run_eliot_demo():
@@ -2038,7 +2038,7 @@ def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: 
     # No backup creation - users should use git for version control
 
     # 5. Interactive mode
-    if interactive:
+    if options.interactive:
         console.print(
             "🎯 [bold magenta]Starting interactive migration...[/bold magenta]",
         )
@@ -2048,9 +2048,9 @@ def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: 
             source_path,
             target_path,
             migration_config,
-            _dry_run=dry_run,
+            _dry_run=options.dry_run,
         )
-        show_migration_report(result, dry_run)
+        show_migration_report(result, options.dry_run)
         return
 
     # 6. Automatic migration
@@ -2061,7 +2061,7 @@ def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: 
             source_path,
             target_path,
             migration_config,
-            dry_run,
+            options.dry_run,
             force,
         )
     else:
@@ -2069,12 +2069,12 @@ def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: 
             source_path,
             target_path,
             migration_config,
-            dry_run,
+            options.dry_run,
             force,
         )
 
     # 7. Show results
-    show_migration_report(result, dry_run)
+    show_migration_report(result, options.dry_run)
 
     # 8. Exit with appropriate code
     if result.errors > 0:
