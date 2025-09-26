@@ -13,7 +13,6 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
-import shlex
 import shutil
 import subprocess
 import sys

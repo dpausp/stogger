@@ -17,6 +17,16 @@ from typing import Any
 
 import structlog
 
+# Project complexity thresholds
+MIN_FILES_SIMPLE = 5
+MIN_LINES_SIMPLE = 500
+MIN_FILES_MEDIUM = 20
+MIN_LINES_MEDIUM = 2000
+MIN_CONFLICTING_FRAMEWORKS = 2
+MIN_HIGH_PRIORITY = 8
+MAX_HIGH_PRIORITY_PATTERNS = 50
+MAX_COMPLEXITY_THRESHOLD = 20
+
 from .config import detect_project_structure
 
 log = structlog.get_logger(__name__)
@@ -699,17 +709,17 @@ class ProjectAnalyzer:
                     # Skip files with syntax errors
                     pass
 
-            except Exception as e:
-                logger.warning("Failed to analyze complexity for file", file=str(file), error=str(e))
+            except Exception:
+                # Skip files that cannot be analyzed for complexity
                 continue
 
         avg_complexity = sum(complexities) / len(complexities) if complexities else 0
         max_complexity = max(complexities) if complexities else 0
 
         # Categorize complexity
-        if len(python_files) < 5 and total_lines < 500:
+        if len(python_files) < MIN_FILES_SIMPLE and total_lines < MIN_LINES_SIMPLE:
             category = "simple"
-        elif len(python_files) < 20 and total_lines < 2000:
+        elif len(python_files) < MIN_FILES_MEDIUM and total_lines < MIN_LINES_MEDIUM:
             category = "medium"
         else:
             category = "complex"
@@ -776,7 +786,7 @@ class ProjectAnalyzer:
 
         # Detect potential conflicts
 
-        if len(other_logging) > 2:
+        if len(other_logging) > MIN_CONFLICTING_FRAMEWORKS:
             conflicts.append(
                 f"Multiple logging frameworks detected: {', '.join(other_logging)}",
             )
@@ -900,13 +910,13 @@ class ProjectAnalyzer:
         if complexity.complexity_category == "complex":
             warnings.append("Complex project - consider phased migration approach")
 
-        high_priority_patterns = [p for p in patterns if p.migration_priority >= 8]
-        if len(high_priority_patterns) > 50:
+        high_priority_patterns = [p for p in patterns if p.migration_priority >= MIN_HIGH_PRIORITY]
+        if len(high_priority_patterns) > MAX_HIGH_PRIORITY_PATTERNS:
             warnings.append(
                 f"Large number of high-priority patterns ({len(high_priority_patterns)}) - migration may be time-consuming",
             )
 
-        if complexity.max_complexity > 20:
+        if complexity.max_complexity > MAX_COMPLEXITY_THRESHOLD:
             warnings.append("High complexity functions detected - review manually")
 
         # Check for log wrapper anti-patterns
