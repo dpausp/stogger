@@ -139,6 +139,33 @@ def tools_generate_service(
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
 
+# Add check-advanced command to tools
+@tools_app.command("check-advanced")
+def tools_check_advanced(
+    path: Annotated[str, typer.Argument(help="Path to check")] = ".",
+    *,
+    fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive mode")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be fixed")] = False,
+    no_ast: Annotated[bool, typer.Option("--no-ast", help="Disable AST-based analysis")] = False,
+    complexity: Annotated[bool, typer.Option("--complexity", help="Check code complexity")] = False,
+    patterns: Annotated[list[str] | None, typer.Option("--pattern", help="Specific AST patterns to check")] = None,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
+):
+    """🔬 Advanced check with all options for complexity analysis and AST patterns."""
+    options = CheckOptions(
+        path=path,
+        fix=fix,
+        interactive=interactive,
+        dry_run=dry_run,
+        no_ast=no_ast,
+        complexity=complexity,
+        patterns=patterns,
+        verbose=verbose,
+    )
+    _run_check_command(options)
+
+
 # Add review command to tools
 @tools_app.command("review")
 def tools_review(
@@ -464,51 +491,25 @@ def check(
     path: Annotated[str, typer.Argument(help="Path to check")] = ".",
     *,
     fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
-    interactive: Annotated[
-        bool,
-        typer.Option("--interactive", "-i", help="Interactive mode"),
-    ] = False,
-    dry_run: Annotated[
-        bool,
-        typer.Option("--dry-run", help="Show what would be fixed"),
-    ] = False,
-    no_ast: Annotated[
-        bool,
-        typer.Option("--no-ast", help="Disable AST-based analysis"),
-    ] = False,
-    complexity: Annotated[
-        bool,
-        typer.Option("--complexity", help="Check code complexity"),
-    ] = False,
-    patterns: Annotated[
-        list[str] | None,
-        typer.Option("--pattern", help="Specific AST patterns to check"),
-    ] = None,
-    verbose: Annotated[
-        bool,
-        typer.Option("--verbose", "-v", help="Enable verbose output"),
-    ] = False,
+    interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive mode")] = False,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be fixed")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
 ):
     """🔍 Check code for logging best practices with AST analysis by default.
 
     Examples:
       nicestlog check file.py                    # Basic linting + AST analysis
-      nicestlog check file.py --no-ast           # Basic linting only
       nicestlog check file.py --fix              # Fix with AST transforms
-      nicestlog check file.py --fix              # Fix issues automatically
       nicestlog check file.py --interactive      # Interactive mode
       nicestlog check file.py --dry-run --fix    # Preview fixes
-      nicestlog check file.py --complexity       # Complexity analysis
 
+    For advanced options, use: nicestlog tools check-advanced
     """
     options = CheckOptions(
         path=path,
         fix=fix,
         interactive=interactive,
         dry_run=dry_run,
-        no_ast=no_ast,
-        complexity=complexity,
-        patterns=patterns,
         verbose=verbose,
     )
     _run_check_command(options)
@@ -764,98 +765,135 @@ def _handle_check_summary(*, lint_success: bool, ast_issues, log):
 def _display_check_analysis_result(result: CodeAnalysisResult, *, show_complexity: bool, verbose: bool = False):
     """Display analysis results for check command."""
     log = structlog.get_logger()
+    
     if verbose or show_complexity:
-        log.info(
-            "check-analysis-results",
-            file=result.file_path.name,
-            _replace_msg=f"Analysis Results for {result.file_path.name}",
-        )
-
-        # Basic metrics - show in verbose mode or when complexity is requested
-        log.info(
-            "check-metrics",
-            lines=result.lines_of_code,
-            functions=result.function_count,
-            classes=result.class_count,
-            complexity=result.complexity_score if show_complexity else None,
-            _replace_msg=f"Lines of Code: {result.lines_of_code}",
-        )
-        log.info("check-functions", count=result.function_count, _replace_msg=f"Functions: {result.function_count}")
-        log.info("check-classes", count=result.class_count, _replace_msg=f"Classes: {result.class_count}")
-
-        if show_complexity:
-            log.info(
-                "check-complexity",
-                score=result.complexity_score,
-                _replace_msg=f"Complexity Score: {result.complexity_score:.2f}",
-            )
+        _display_detailed_analysis(result, show_complexity, log)
     else:
-        # Compact mode: Just show filename and issue count
-        issue_count = len(result.issues) if result.issues else 0
-        status = "❌" if issue_count > 0 else "✅"
+        _display_compact_analysis(result, log)
+    
+    _display_analysis_issues(result, verbose, log)
+
+
+def _display_detailed_analysis(result: CodeAnalysisResult, show_complexity: bool, log):
+    """Display detailed analysis metrics."""
+    log.info(
+        "check-analysis-results",
+        file=result.file_path.name,
+        _replace_msg=f"Analysis Results for {result.file_path.name}",
+    )
+
+    log.info(
+        "check-metrics",
+        lines=result.lines_of_code,
+        functions=result.function_count,
+        classes=result.class_count,
+        complexity=result.complexity_score if show_complexity else None,
+        _replace_msg=f"Lines of Code: {result.lines_of_code}",
+    )
+    log.info("check-functions", count=result.function_count, _replace_msg=f"Functions: {result.function_count}")
+    log.info("check-classes", count=result.class_count, _replace_msg=f"Classes: {result.class_count}")
+
+    if show_complexity:
         log.info(
-            "check-file-status",
-            file=result.file_path.name,
-            issues=issue_count,
-            _replace_msg=f"{status} {result.file_path.name} ({issue_count} issues)",
+            "check-complexity",
+            score=result.complexity_score,
+            _replace_msg=f"Complexity Score: {result.complexity_score:.2f}",
         )
 
-    # Issues found - show differently based on verbose mode
-    if result.issues:
+
+def _display_compact_analysis(result: CodeAnalysisResult, log):
+    """Display compact analysis summary."""
+    issue_count = len(result.issues) if result.issues else 0
+    status = "❌" if issue_count > 0 else "✅"
+    log.info(
+        "check-file-status",
+        file=result.file_path.name,
+        issues=issue_count,
+        _replace_msg=f"{status} {result.file_path.name} ({issue_count} issues)",
+    )
+
+
+def _display_analysis_issues(result: CodeAnalysisResult, verbose: bool, log):
+    """Display issues found during analysis."""
+    if not result.issues:
         if verbose:
-            # Verbose mode: Show detailed tables
-            # Separate logging issues from general issues
-            logging_issues = []
-            general_issues = []
+            log.info("check-no-issues", _replace_msg="No AST issues found!")
+        return
 
-            for issue in result.issues:
-                if any(keyword in issue.lower() for keyword in ["print", "log", "logging"]):
-                    logging_issues.append(issue)
-                else:
-                    general_issues.append(issue)
+    if verbose:
+        _display_verbose_issues(result.issues, log)
+    else:
+        _display_compact_issues(result.issues, log)
 
-            if logging_issues:
-                log.info("Logging Improvement Opportunities:")
-                for _i, issue in enumerate(logging_issues, 1):
-                    priority = "High" if "print" in issue.lower() else "Medium"
-                    log.info("logging-issue", priority=priority, issue=issue, _replace_msg=f"  {priority}: {issue}")
 
-            if general_issues:
-                log.info("Code Quality Issues:")
-                for issue in general_issues:
-                    log.info("code-quality-issue", issue=issue, _replace_msg=f"  Complexity: {issue}")
+def _display_verbose_issues(issues: list[str], log):
+    """Display detailed issue breakdown."""
+    logging_issues, general_issues = _categorize_issues(issues)
 
-            # Add summary with actionable suggestions
-            if logging_issues:
-                log.info("check-logging-improvements", _replace_msg="Logging Improvements:")
-                log.info(
-                    "check-fix-suggestion", _replace_msg="  • Run with --fix to automatically convert print statements"
-                )
-                log.info(
-                    "check-structured-logging-suggestion",
-                    _replace_msg="  • Consider adding structured logging to functions without logs",
-                )
+    if logging_issues:
+        log.info("Logging Improvement Opportunities:")
+        for _i, issue in enumerate(logging_issues, 1):
+            priority = "High" if "print" in issue.lower() else "Medium"
+            log.info("logging-issue", priority=priority, issue=issue, _replace_msg=f"  {priority}: {issue}")
+
+    if general_issues:
+        log.info("Code Quality Issues:")
+        for issue in general_issues:
+            log.info("code-quality-issue", issue=issue, _replace_msg=f"  Complexity: {issue}")
+
+    if logging_issues:
+        _display_improvement_suggestions(log)
+
+
+def _display_compact_issues(issues: list[str], log):
+    """Display compact issue summary."""
+    logging_count, general_count = _count_issue_types(issues)
+
+    if logging_count > 0:
+        log.info(
+            "check-logging-issues-count",
+            count=logging_count,
+            _replace_msg=f"  🔍 {logging_count} logging issues",
+        )
+    if general_count > 0:
+        log.info(
+            "check-general-issues-count",
+            count=general_count,
+            _replace_msg=f"  ⚠️  {general_count} code quality issues",
+        )
+
+
+def _categorize_issues(issues: list[str]) -> tuple[list[str], list[str]]:
+    """Categorize issues into logging and general categories."""
+    logging_issues = []
+    general_issues = []
+
+    for issue in issues:
+        if any(keyword in issue.lower() for keyword in ["print", "log", "logging"]):
+            logging_issues.append(issue)
         else:
-            # Compact mode: Just show issue summary
-            logging_count = sum(
-                1 for issue in result.issues if any(keyword in issue.lower() for keyword in ["print", "log", "logging"])
-            )
-            general_count = len(result.issues) - logging_count
+            general_issues.append(issue)
 
-            if logging_count > 0:
-                log.info(
-                    "check-logging-issues-count",
-                    count=logging_count,
-                    _replace_msg=f"  🔍 {logging_count} logging issues",
-                )
-            if general_count > 0:
-                log.info(
-                    "check-general-issues-count",
-                    count=general_count,
-                    _replace_msg=f"  ⚠️  {general_count} code quality issues",
-                )
-    elif verbose:
-        log.info("check-no-issues", _replace_msg="No AST issues found!")
+    return logging_issues, general_issues
+
+
+def _count_issue_types(issues: list[str]) -> tuple[int, int]:
+    """Count logging and general issues."""
+    logging_count = sum(
+        1 for issue in issues if any(keyword in issue.lower() for keyword in ["print", "log", "logging"])
+    )
+    general_count = len(issues) - logging_count
+    return logging_count, general_count
+
+
+def _display_improvement_suggestions(log):
+    """Display actionable improvement suggestions."""
+    log.info("check-logging-improvements", _replace_msg="Logging Improvements:")
+    log.info("check-fix-suggestion", _replace_msg="  • Run with --fix to automatically convert print statements")
+    log.info(
+        "check-structured-logging-suggestion",
+        _replace_msg="  • Consider adding structured logging to functions without logs",
+    )
 
 
 def _display_unified_check_analysis(
@@ -867,14 +905,27 @@ def _display_unified_check_analysis(
     project_structure=None,
 ) -> bool:
     """Display unified analysis results combining logging quality and AST metrics."""
-    max_insights = 5
     log = structlog.get_logger()
+    
+    # Extract metrics and run linter
+    ast_metrics, total_ast_issues, all_ast_insights = _extract_ast_metrics(results, show_complexity, directory)
+    lint_success = _run_linter_with_metrics(ast_metrics, directory or results[0].file_path.parent, project_structure, log)
+    
+    # Display insights based on mode
+    if verbose:
+        _display_verbose_unified_insights(results, total_ast_issues, all_ast_insights, log)
+    else:
+        _display_compact_unified_summary(results, total_ast_issues, log)
+    
+    return lint_success
 
-    # Extract AST metrics for integration with linter output
+
+def _extract_ast_metrics(results: list[CodeAnalysisResult], show_complexity: bool, directory: Path | None) -> tuple[dict, int, list[str]]:
+    """Extract AST metrics from analysis results."""
     ast_metrics = {}
     total_ast_issues = 0
     all_ast_insights = []
-
+    
     directory_path = directory or results[0].file_path.parent
     for result in results:
         ast_metrics[str(result.file_path.relative_to(directory_path))] = {
@@ -887,83 +938,94 @@ def _display_unified_check_analysis(
             all_ast_insights.extend(
                 [f"  • {result.file_path.name}: {issue}" for issue in result.issues],
             )
+    
+    return ast_metrics, total_ast_issues, all_ast_insights
 
-    # Run the enhanced linter with AST metrics
+
+def _run_linter_with_metrics(ast_metrics: dict, directory_path: Path, project_structure, log) -> bool:
+    """Run linter with AST metrics integration."""
     log.info("check-unified-analysis", _replace_msg="Unified Code Quality Analysis")
-
+    
     # Set environment variable to pass AST metrics to linter
     os.environ["NICESTLOG_AST_METRICS"] = json.dumps(ast_metrics)
-
+    
     lint_success = True
     try:
-        # Get the directory path
-        if results:
-            lint_success = lint_directory(directory_path, project_structure=project_structure)
-        # Note: lint_success used for return
+        lint_success = lint_directory(directory_path, project_structure=project_structure)
     finally:
         # Clean up environment variable
         if "NICESTLOG_AST_METRICS" in os.environ:
             del os.environ["NICESTLOG_AST_METRICS"]
-
-    # Display AST insights based on verbose mode
-    if verbose:
-        # Verbose mode: Show detailed insights
-        if all_ast_insights:
-            log.info("check-ast-insights", _replace_msg="AST Analysis Insights:")
-            log.info(
-                "check-files-analyzed",
-                file_count=len(results),
-                total_functions=sum(r.function_count for r in results),
-                _replace_msg=f"  • {len(results)} files analyzed with {sum(r.function_count for r in results)} total functions",  # noqa: E501
-            )
-            log.info(
-                "check-average-functions",
-                average=sum(r.function_count for r in results) / len(results),
-                _replace_msg=f"  • Average {sum(r.function_count for r in results) / len(results):.1f} functions per file suggests good code organization",  # noqa: E501
-            )
-            if total_ast_issues > 0:
-                log.info(
-                    "check-improvements-identified",
-                    count=total_ast_issues,
-                    _replace_msg=f"  • {total_ast_issues} code quality improvements identified:",
-                )
-                for insight in all_ast_insights[:max_insights]:  # Show first max_insights insights
-                    log.info("check-insight", text=insight, _replace_msg=insight)
-                if len(all_ast_insights) > max_insights:
-                    log.info(
-                        "check-more-insights",
-                        more=len(all_ast_insights) - 5,
-                        _replace_msg=f"    ... and {len(all_ast_insights) - max_insights} more suggestions",
-                    )
-            else:
-                log.info(
-                    "check-no-issues-detected",
-                    _replace_msg="  • No code quality issues detected - excellent code structure!",
-                )
-            log.info(
-                "check-consider-structured-logging",
-                _replace_msg="  • Consider adding structured logging to functions without logs",
-            )
-    else:
-        # Compact mode: Just show summary
-        total_files = len(results)
-        total_issues = total_ast_issues
-        if total_issues > 0:
-            log.info(
-                "check-issues-summary",
-                files=total_files,
-                issues=total_issues,
-                _replace_msg=f"{total_files} files checked, {total_issues} issues found",
-            )
-            log.info("check-use-verbose", _replace_msg="Use --verbose for detailed analysis")
-        else:
-            log.info(
-                "check-no-issues-found",
-                files=total_files,
-                _replace_msg=f"{total_files} files checked - no issues found!",
-            )
-
+    
     return lint_success
+
+
+def _display_verbose_unified_insights(results: list[CodeAnalysisResult], total_ast_issues: int, all_ast_insights: list[str], log):
+    """Display detailed unified analysis insights."""
+    max_insights = 5
+    
+    if all_ast_insights:
+        log.info("check-ast-insights", _replace_msg="AST Analysis Insights:")
+        _display_file_statistics(results, log)
+        
+        if total_ast_issues > 0:
+            _display_issue_details(total_ast_issues, all_ast_insights, max_insights, log)
+        else:
+            log.info("check-no-issues-detected", _replace_msg="  • No code quality issues detected - excellent code structure!")
+        
+        log.info("check-consider-structured-logging", _replace_msg="  • Consider adding structured logging to functions without logs")
+
+
+def _display_file_statistics(results: list[CodeAnalysisResult], log):
+    """Display file analysis statistics."""
+    total_functions = sum(r.function_count for r in results)
+    log.info(
+        "check-files-analyzed",
+        file_count=len(results),
+        total_functions=total_functions,
+        _replace_msg=f"  • {len(results)} files analyzed with {total_functions} total functions",
+    )
+    log.info(
+        "check-average-functions",
+        average=total_functions / len(results),
+        _replace_msg=f"  • Average {total_functions / len(results):.1f} functions per file suggests good code organization",
+    )
+
+
+def _display_issue_details(total_ast_issues: int, all_ast_insights: list[str], max_insights: int, log):
+    """Display detailed issue information."""
+    log.info(
+        "check-improvements-identified",
+        count=total_ast_issues,
+        _replace_msg=f"  • {total_ast_issues} code quality improvements identified:",
+    )
+    for insight in all_ast_insights[:max_insights]:
+        log.info("check-insight", text=insight, _replace_msg=insight)
+    if len(all_ast_insights) > max_insights:
+        log.info(
+            "check-more-insights",
+            more=len(all_ast_insights) - max_insights,
+            _replace_msg=f"    ... and {len(all_ast_insights) - max_insights} more suggestions",
+        )
+
+
+def _display_compact_unified_summary(results: list[CodeAnalysisResult], total_ast_issues: int, log):
+    """Display compact unified analysis summary."""
+    total_files = len(results)
+    if total_ast_issues > 0:
+        log.info(
+            "check-issues-summary",
+            files=total_files,
+            issues=total_ast_issues,
+            _replace_msg=f"{total_files} files checked, {total_ast_issues} issues found",
+        )
+        log.info("check-use-verbose", _replace_msg="Use --verbose for detailed analysis")
+    else:
+        log.info(
+            "check-no-issues-found",
+            files=total_files,
+            _replace_msg=f"{total_files} files checked - no issues found!",
+        )
 
 
 def _display_check_directory_analysis(

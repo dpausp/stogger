@@ -3,6 +3,6 @@
   "agent-coding-checkpoint": false,
   "agent-coding-end": false,
   "agent-pre-commit": false,
-  "agent-post-commit": true,
+  "agent-post-commit": false,
   "session_started": true
 }
