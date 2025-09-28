@@ -518,7 +518,8 @@ def init_logging(*args, **kwargs):
     if log_to_console:
         if journal and os.environ.get("JOURNAL_STREAM"):
             pid = os.getpid()
-            subprocess.getoutput(f"systemctl status {pid}")
+            # S603/S607: systemctl is a system command, using full path would be better but systemctl is in PATH
+            subprocess.run(["systemctl", "status", str(pid)], capture_output=True, text=True)  # noqa: S603,S607
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 

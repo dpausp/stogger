@@ -14,6 +14,12 @@ from typing import Any
 
 import structlog
 
+# Constants for log quality scoring
+MIN_FIELDS_FOR_STRUCTURED = 2
+MIN_LEVELS_FOR_GOOD_COVERAGE = 3
+MIN_EVENTS_FOR_DIVERSITY = 5
+MIN_FIELDS_FOR_USAGE = 10
+
 
 @dataclass
 class LogQualityReport:
@@ -60,7 +66,7 @@ class LogQualityReviewer:
             lines = content.splitlines()
 
             return self._analyze_log_lines(lines, str(file_path))
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             return LogQualityReport(
                 overall_score=0,
                 overall_verdict="arsch",
@@ -192,7 +198,7 @@ class LogQualityReviewer:
 
         # Has multiple structured fields
         field_count = len(re.findall(r"\w+[:=][^\s]+", line))
-        return field_count >= 2
+        return field_count >= MIN_FIELDS_FOR_STRUCTURED
 
     def _extract_fields(self, line: str) -> list[str]:
         """Extract field names from structured log."""
@@ -246,7 +252,7 @@ class LogQualityReviewer:
             score += timestamp_ratio * 20
 
         # Log level usage (15 points)
-        if len(stats["levels_found"]) >= 3:
+        if len(stats["levels_found"]) >= MIN_LEVELS_FOR_GOOD_COVERAGE:
             score += 15
         elif len(stats["levels_found"]) >= 2:
             score += 10
@@ -254,7 +260,7 @@ class LogQualityReviewer:
             score += 5
 
         # Event diversity (10 points)
-        if len(stats["events_found"]) >= 5:
+        if len(stats["events_found"]) >= MIN_EVENTS_FOR_DIVERSITY:
             score += 10
         elif len(stats["events_found"]) >= 3:
             score += 7
@@ -262,7 +268,7 @@ class LogQualityReviewer:
             score += 3
 
         # Field usage (10 points)
-        if len(stats["fields_found"]) >= 10:
+        if len(stats["fields_found"]) >= MIN_FIELDS_FOR_USAGE:
             score += 10
         elif len(stats["fields_found"]) >= 5:
             score += 7

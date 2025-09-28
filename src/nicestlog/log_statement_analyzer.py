@@ -13,6 +13,19 @@ import structlog
 
 
 @dataclass
+class LogStatementOptions:
+    """Options for log statement analysis."""
+
+    method: str
+    args: list[str]
+    kwargs: dict[str, str]
+    magic_args: set[str]
+    event_id: str | None
+    event_id_format: str
+    prefer_dash_case: bool = True
+
+
+@dataclass
 class LogStatement:
     """Represents a parsed log statement."""
 
@@ -202,13 +215,15 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
         # Detect issues
         issues = self._detect_issues(
-            method,
-            args,
-            kwargs,
-            magic_args,
-            event_id,
-            event_id_format,
-            prefer_dash_case=prefer_dash_case,
+            LogStatementOptions(
+                method=method,
+                args=args,
+                kwargs=kwargs,
+                magic_args=magic_args,
+                event_id=event_id,
+                event_id_format=event_id_format,
+                prefer_dash_case=prefer_dash_case,
+            )
         )
 
         return LogStatement(
@@ -247,17 +262,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
         return "invalid"
 
-    def _detect_issues(
-        self,
-        method: str,
-        args: list[str],
-        kwargs: dict[str, str],
-        magic_args: set[str],
-        event_id: str | None,
-        event_id_format: str,
-        *,
-        prefer_dash_case: bool = True,
-    ) -> list[str]:
+    def _detect_issues(self, options: LogStatementOptions) -> list[str]:
         """Detect common issues in log statements.
 
         This includes validation for overly long event IDs with too many elements.
@@ -266,16 +271,16 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         issues = []
 
         # Check for missing event ID
-        if not event_id:
+        if not options.event_id:
             issues.append("missing_event_id")
 
         # Check event ID format (configurable preference for dash-case)
-        if event_id and event_id_format not in ["dash-case"]:
+        if options.event_id and options.event_id_format not in ["dash-case"]:
             # Only report if not allowing snake_case or if it's not snake_case
-            if not (event_id_format == "snake_case" and not prefer_dash_case):
-                suggested_event_id = self._convert_to_dash_case(event_id)
+            if not (options.event_id_format == "snake_case" and not options.prefer_dash_case):
+                suggested_event_id = self._convert_to_dash_case(options.event_id)
                 issues.append(
-                    f"event_id_not_dash_case (found: {event_id_format}, suggested: {suggested_event_id})",
+                    f"event_id_not_dash_case (found: {options.event_id_format}, suggested: {suggested_event_id})",
                 )
 
         # Check for too many elements in event ID (readability)
@@ -285,46 +290,46 @@ class LogStatementAnalyzer(ast.NodeVisitor):
         MAX_KWARGS_WARNING = 7
         MAX_EVENT_ID_LENGTH = 50
 
-        if event_id:
-            element_count = self._count_event_id_elements(event_id)
+        if options.event_id:
+            element_count = self._count_event_id_elements(options.event_id)
             if element_count >= MAX_EVENT_ID_ELEMENTS_ERROR:
                 issues.append(f"event_id_too_many_elements ({element_count}>={MAX_EVENT_ID_ELEMENTS_ERROR}, wtf!)")
             elif element_count >= MAX_EVENT_ID_ELEMENTS_WARNING:
                 issues.append(f"event_id_many_elements ({element_count}>={MAX_EVENT_ID_ELEMENTS_WARNING}, warning)")
 
         # Check for single string argument (anti-pattern)
-        if len(args) == 1 and not kwargs and not magic_args:
+        if len(options.args) == 1 and not options.kwargs and not options.magic_args:
             issues.append("single_string_argument")
 
         # Check for f-string in event ID (anti-pattern)
-        if event_id and ("{" in event_id or "}" in event_id):
+        if options.event_id and ("{" in options.event_id or "}" in options.event_id):
             issues.append("fstring_in_event_id")
 
         # Check for debug with _replace_msg (usually not needed)
-        if method == "debug" and "_replace_msg" in magic_args:
+        if options.method == "debug" and "_replace_msg" in options.magic_args:
             issues.append("debug_with_replace_msg")
 
         # Check for too many keyword arguments (complexity warning)
-        non_magic_kwargs = {k: v for k, v in kwargs.items() if k not in self.magic_args}
+        non_magic_kwargs = {k: v for k, v in options.kwargs.items() if k not in self.magic_args}
         if len(non_magic_kwargs) > MAX_KWARGS_WARNING:
             issues.append(f"too_many_kwargs ({len(non_magic_kwargs)}>{MAX_KWARGS_WARNING})")
 
         # Check for proper structured data
-        if event_id and not kwargs and "_replace_msg" not in magic_args:
+        if options.event_id and not options.kwargs and "_replace_msg" not in options.magic_args:
             issues.append("no_structured_data")
 
         # Check for inconsistent log levels with event severity
         if (
-            method == "debug"
-            and event_id
-            and any(word in event_id.lower() for word in ["error", "fail", "critical", "fatal"])
+            options.method == "debug"
+            and options.event_id
+            and any(word in options.event_id.lower() for word in ["error", "fail", "critical", "fatal"])
         ):
             issues.append("debug_for_error_event")
 
         if (
-            method in ["error", "critical"]
-            and event_id
-            and any(word in event_id.lower() for word in ["debug", "trace", "info"])
+            options.method in ["error", "critical"]
+            and options.event_id
+            and any(word in options.event_id.lower() for word in ["debug", "trace", "info"])
         ):
             issues.append("error_level_for_info_event")
 
@@ -434,7 +439,7 @@ def analyze_file(file_path: Path, *, prefer_dash_case: bool = True) -> LogAnalys
             magic_args_usage=magic_usage,
         )
 
-    except Exception:
+    except (OSError, ValueError, SyntaxError):
         # Return empty result on error
         return LogAnalysisResult(
             file_path=file_path,

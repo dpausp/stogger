@@ -246,7 +246,7 @@ class ProjectAnalyzer:
                         else:
                             ignore_patterns.add(line)
                             ignore_patterns.add(f"{line}/*")
-            except Exception as e:
+            except (OSError, UnicodeDecodeError) as e:
                 self.log.warning(
                     "gitignore-load-failed",
                     _replace_msg="Failed to load .gitignore: {error}",
@@ -262,7 +262,7 @@ class ProjectAnalyzer:
                     line = line.strip()
                     if line and not line.startswith("#"):
                         ignore_patterns.add(line)
-            except Exception as e:
+            except (OSError, UnicodeDecodeError) as e:
                 self.log.warning(
                     "nicestlogignore-load-failed",
                     _replace_msg="Failed to load .nicestlogignore: {error}",
@@ -315,11 +315,13 @@ class ProjectAnalyzer:
                             # Additional filtering to exclude test files (like check command)
                             if not project_structure.should_exclude_from_logging_analysis(py_file):
                                 python_files.append(py_file)
-        except Exception:
+        except (AttributeError, ValueError):
             # Fallback to original behavior if project structure detection fails
-            for py_file in project_path.rglob("*.py"):
-                if not self._should_ignore_file(py_file, project_path, ignore_patterns):
-                    python_files.append(py_file)
+            python_files.extend(
+                py_file
+                for py_file in project_path.rglob("*.py")
+                if not self._should_ignore_file(py_file, project_path, ignore_patterns)
+            )
 
         if self.verbose:
             total_py_files = len(list(project_path.rglob("*.py")))
@@ -350,7 +352,7 @@ class ProjectAnalyzer:
                 content = py_file.read_text(encoding="utf-8")
                 file_patterns = self._analyze_file_patterns(py_file, content)
                 patterns.extend(file_patterns)
-            except Exception as e:
+            except (OSError, UnicodeDecodeError, SyntaxError) as e:
                 self.log.warning(
                     "file-analysis-failed",
                     _replace_msg="Failed to analyze file {file}: {error}",
@@ -644,46 +646,46 @@ class ProjectAnalyzer:
 
             # Check for print statements (but skip if CLI pattern already found)
             if not cli_pattern_found:
-                for pattern in self.print_patterns:
-                    if re.search(pattern, line):
-                        patterns.append(
-                            LoggingPattern(
-                                pattern_type="print",
-                                file_path=str(file_path),
-                                line_number=line_num,
-                                code_snippet=line,
-                                severity="high",
-                                migration_priority=9,
-                            ),
-                        )
+                patterns.extend(
+                    LoggingPattern(
+                        pattern_type="print",
+                        file_path=str(file_path),
+                        line_number=line_num,
+                        code_snippet=line,
+                        severity="high",
+                        migration_priority=9,
+                    )
+                    for pattern in self.print_patterns
+                    if re.search(pattern, line)
+                )
 
             # Check for standard logging
-            for pattern in self.logging_patterns:
-                if re.search(pattern, line) and "structlog" not in line:
-                    patterns.append(
-                        LoggingPattern(
-                            pattern_type="logging",
-                            file_path=str(file_path),
-                            line_number=line_num,
-                            code_snippet=line,
-                            severity="medium",
-                            migration_priority=6,
-                        ),
-                    )
+            patterns.extend(
+                LoggingPattern(
+                    pattern_type="logging",
+                    file_path=str(file_path),
+                    line_number=line_num,
+                    code_snippet=line,
+                    severity="medium",
+                    migration_priority=6,
+                )
+                for pattern in self.logging_patterns
+                if re.search(pattern, line) and "structlog" not in line
+            )
 
             # Check for structlog (already good!)
-            for pattern in self.structlog_patterns:
-                if re.search(pattern, line):
-                    patterns.append(
-                        LoggingPattern(
-                            pattern_type="structlog",
-                            file_path=str(file_path),
-                            line_number=line_num,
-                            code_snippet=line,
-                            severity="low",
-                            migration_priority=1,
-                        ),
-                    )
+            patterns.extend(
+                LoggingPattern(
+                    pattern_type="structlog",
+                    file_path=str(file_path),
+                    line_number=line_num,
+                    code_snippet=line,
+                    severity="low",
+                    migration_priority=1,
+                )
+                for pattern in self.structlog_patterns
+                if re.search(pattern, line)
+            )
 
         return patterns
 
@@ -709,7 +711,7 @@ class ProjectAnalyzer:
                     # Skip files with syntax errors
                     pass
 
-            except Exception:
+            except (OSError, UnicodeDecodeError, SyntaxError, ValueError):
                 # Skip files that cannot be analyzed for complexity
                 continue
 
@@ -775,9 +777,7 @@ class ProjectAnalyzer:
                     has_structlog = True
 
                 # Check for other logging libraries
-                for lib in self.logging_libraries:
-                    if lib in content:
-                        other_logging.append(lib)
+                other_logging.extend(lib for lib in self.logging_libraries if lib in content)
 
                 break
 

@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, cast
 
 try:
     import toml
-except Exception:  # pragma: no cover - handled by CLI messaging
+except ImportError:  # pragma: no cover - handled by CLI messaging
     toml = None  # type: ignore
 
 
@@ -85,7 +85,7 @@ def scan_translation_keys(paths: Iterable[Path]) -> tuple[set[str], set[str], se
         for file in py_files:
             try:
                 text = file.read_text(encoding="utf-8")
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 continue
 
             # Event names where _replace_msg is present in the same call
@@ -154,7 +154,7 @@ def check_translations(
     if translation_file.is_file():
         try:
             translation_keys = load_translation_keys(translation_file)
-        except Exception as e:
+        except (OSError, ValueError, KeyError) as e:
             return {
                 "error": f"Failed to load translation file: {e}",
                 "translation_file": str(translation_file),

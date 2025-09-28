@@ -43,40 +43,25 @@ class NicestlogTranslator:
                 translations_dir = Path(cfg.translation_dir)
             else:
                 translations_dir = Path(__file__).parent.parent.parent / "translations"
-        except Exception:
+        except (AttributeError, FileNotFoundError, ValueError):
             translations_dir = Path(__file__).parent.parent.parent / "translations"
 
         # Load fallback (English)
         fallback_file = translations_dir / "en.toml"
         if fallback_file.exists() and toml:
-            try:
-                self.fallback_translations = toml.load(fallback_file)
-                log.debug("loaded-fallback-translations", file=str(fallback_file))
-            except Exception as e:
-                log.warning(
-                    "failed-to-load-fallback",
-                    file=str(fallback_file),
-                    error=str(e),
-                )
+            self.fallback_translations = toml.load(fallback_file)
+            log.debug("loaded-fallback-translations", file=str(fallback_file))
 
         # Load requested language
         lang_file = translations_dir / f"{self.language}.toml"
         if lang_file.exists() and toml:
-            try:
-                self.translations = toml.load(lang_file)
-                log.debug(
-                    "loaded-translations",
-                    language=self.language,
-                    file=str(lang_file),
-                    keys_loaded=len(self.translations),
-                )
-            except Exception as e:
-                log.exception(
-                    "failed-to-load-translations",
-                    language=self.language,
-                    file=str(lang_file),
-                    error=str(e),
-                )
+            self.translations = toml.load(lang_file)
+            log.debug(
+                "loaded-translations",
+                language=self.language,
+                file=str(lang_file),
+                keys_loaded=len(self.translations),
+            )
         else:
             log.warning(
                 "translation-file-not-found",

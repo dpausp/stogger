@@ -18,6 +18,19 @@ from rich.console import Console
 import structlog
 import toml
 
+
+@dataclass
+class LintOptions:
+    """Options for linting operations."""
+
+    min_coverage: float = 5.0
+    max_coverage: float = 15.0
+    analyze_statements: bool = False
+    verbose: bool = False
+    allow_snake_case: bool = False
+    project_structure = None
+
+
 from .log_statement_analyzer import (
     analyze_file as analyze_log_statements,
 )
@@ -598,39 +611,32 @@ def check_logging_quality(
     return issues
 
 
-def lint_directory(
-    directory: Path,
-    min_coverage: float = 5.0,
-    max_coverage: float = 15.0,
-    *,
-    analyze_statements: bool = False,
-    verbose: bool = False,
-    allow_snake_case: bool = False,
-    project_structure=None,
-) -> bool:
+def lint_directory(directory: Path, options: LintOptions) -> bool:
     """Lint all Python files in a directory and its subdirectories.
 
     Uses smart project structure detection to exclude tests from logging analysis.
     """
     console = Console()
     # Use project structure detection if provided, otherwise fall back to legacy method
-    if project_structure:
+    if options.project_structure:
         # Smart filtering: only analyze source files for logging coverage
         python_files = []
-        for source_dir in project_structure.source_dirs:
+        for source_dir in options.project_structure.source_dirs:
             source_path = directory / source_dir
             if source_path.exists():
                 for py_file in source_path.rglob("*.py"):
-                    if not project_structure.should_exclude_from_logging_analysis(
+                    if not options.project_structure.should_exclude_from_logging_analysis(
                         py_file,
                     ):
                         python_files.append(py_file)
 
-        if verbose:
+        if options.verbose:
             excluded_files = []
-            for py_file in directory.rglob("*.py"):
-                if project_structure.should_exclude_from_logging_analysis(py_file):
-                    excluded_files.append(py_file)
+            excluded_files = [
+                py_file
+                for py_file in directory.rglob("*.py")
+                if options.project_structure.should_exclude_from_logging_analysis(py_file)
+            ]
     else:
         # Load exclusion globs from pyproject.toml [tool.nicestlog]
         exclude_globs: list[str] = []
@@ -687,7 +693,7 @@ def lint_directory(
             continue
 
         stats, level_issues = analyze_file(file_path)
-        issues = check_logging_quality(stats, min_coverage, max_coverage)
+        issues = check_logging_quality(stats, options.min_coverage, options.max_coverage)
 
         # Accumulate totals
         total_stats.total_lines += stats.total_lines
@@ -698,10 +704,10 @@ def lint_directory(
 
         # Analyze log statements if requested
         log_analysis = None
-        if analyze_statements:
+        if options.analyze_statements:
             log_analysis = analyze_log_statements(
                 file_path,
-                prefer_dash_case=not allow_snake_case,
+                prefer_dash_case=not options.allow_snake_case,
             )
 
         # Determine primary issue label (text only, no emojis)
@@ -726,8 +732,7 @@ def lint_directory(
         warning_count += len(level_issues)
 
         # Store level issues for detailed display
-        for issue in level_issues:
-            all_level_issues.append((file_path.relative_to(directory), issue))
+        all_level_issues.extend((file_path.relative_to(directory), issue) for issue in level_issues)
 
         # Add log statement issues
         statement_issues = 0
@@ -806,7 +811,7 @@ def lint_directory(
             ast_data = os.getenv("NICESTLOG_AST_METRICS")
             if ast_data:
                 ast_metrics = json.loads(ast_data)
-        except Exception as e:
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
             # Log the error and continue with empty metrics
             log.warning(
                 "ast-metrics-parse-error",
@@ -1064,11 +1069,13 @@ def main():
     else:
         success = lint_directory(
             path,
-            args.min_coverage,
-            args.max_coverage,
-            args.analyze_statements,
-            args.verbose,
-            args.allow_snake_case,
+            LintOptions(
+                min_coverage=args.min_coverage,
+                max_coverage=args.max_coverage,
+                analyze_statements=args.analyze_statements,
+                verbose=args.verbose,
+                allow_snake_case=args.allow_snake_case,
+            ),
         )
 
     sys.exit(0 if success else 1)

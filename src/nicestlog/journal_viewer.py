@@ -20,6 +20,19 @@ log = structlog.get_logger(__name__)
 # Keep a reference to the real datetime class for type checks when tests patch the module symbol
 _REAL_DATETIME = datetime
 
+
+@dataclass
+class JournalQueryOptions:
+    """Options for journal queries."""
+
+    service: str | None = None
+    since: str | None = None
+    until: str | None = None
+    level: str | None = None
+    lines: int | None = None
+    follow: bool = False
+
+
 try:
     from systemd import journal  # type: ignore[import-not-found]
 
@@ -238,16 +251,7 @@ class JournalViewer:
 
         return " ".join(parts)
 
-    def query_journal(
-        self,
-        service: str | None = None,
-        since: str | None = None,
-        until: str | None = None,
-        level: str | None = None,
-        lines: int | None = None,
-        *,
-        follow: bool = False,
-    ) -> Iterator[JournalEntry]:
+    def query_journal(self, options: JournalQueryOptions) -> Iterator[JournalEntry]:
         """Query systemd journal and yield formatted entries.
 
         Args:
@@ -261,12 +265,12 @@ class JournalViewer:
         """
         log.debug(
             "starting-journal-query",
-            service=service,
-            since=since,
-            until=until,
-            level=level,
-            lines=lines,
-            follow=follow,
+            service=options.service,
+            since=options.since,
+            until=options.until,
+            level=options.level,
+            lines=options.lines,
+            follow=options.follow,
         )
 
         if not SYSTEMD_AVAILABLE:
@@ -281,12 +285,12 @@ class JournalViewer:
             j = journal.Reader()
 
             # Add filters
-            if service:
-                log.debug("adding-service-filter", service=service)
-                j.add_match(SYSLOG_IDENTIFIER=service)
+            if options.service:
+                log.debug("adding-service-filter", service=options.service)
+                j.add_match(SYSLOG_IDENTIFIER=options.service)
 
-            if level:
-                log.debug("adding-level-filter", level=level)
+            if options.level:
+                log.debug("adding-level-filter", level=options.level)
                 # Filter by priority level
                 level_priorities = {
                     "critical": [0, 1, 2],
@@ -296,49 +300,49 @@ class JournalViewer:
                     "debug": [0, 1, 2, 3, 4, 5, 6, 7],
                 }
                 priorities = level_priorities.get(
-                    level.lower(),
+                    options.level.lower(),
                     [0, 1, 2, 3, 4, 5, 6, 7],
                 )
                 log.debug(
                     "mapped-level-to-priorities",
-                    level=level,
+                    level=options.level,
                     priorities=priorities,
                 )
                 for priority in priorities:
                     j.add_match(("PRIORITY", priority))
 
             # Set time range
-            if since:
-                since_time = self.parse_time_string(since)
-                log.debug("setting-since-time", since=since, parsed_time=since_time)
+            if options.since:
+                since_time = self.parse_time_string(options.since)
+                log.debug("setting-since-time", since=options.since, parsed_time=since_time)
                 j.seek_realtime(since_time)
 
-            if until:
-                until_time = self.parse_time_string(until)
+            if options.until:
+                until_time = self.parse_time_string(options.until)
                 # Note: systemd journal doesn't have direct "until" support
                 # We'll filter manually
 
             # Position cursor
-            if not follow:
-                if lines:
+            if not options.follow:
+                if options.lines:
                     # Get last N entries
                     j.seek_tail()
-                    j.get_previous(lines)
+                    j.get_previous(options.lines)
                 else:
                     j.seek_head()
             else:
                 j.seek_tail()
 
             count = 0
-            log.debug("starting-journal-iteration", follow=follow, lines=lines)
+            log.debug("starting-journal-iteration", follow=options.follow, lines=options.lines)
 
             for entry in j:
-                if lines and count >= lines and not follow:
-                    log.debug("reached-line-limit", count=count, lines=lines)
+                if options.lines and count >= options.lines and not options.follow:
+                    log.debug("reached-line-limit", count=count, lines=options.lines)
                     break
 
                 # Manual until filtering
-                if until:
+                if options.until:
                     entry_time = entry.get("__REALTIME_TIMESTAMP")
                     if entry_time and entry_time.timestamp() > until_time.timestamp():
                         log.debug(
@@ -419,7 +423,7 @@ class JournalViewer:
             # If datetime was patched in tests, ensure we return a real datetime instance
             if not isinstance(parsed, _REAL_DATETIME):
                 parsed = _REAL_DATETIME.fromisoformat(time_str.replace("T", " "))
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             log.warning(
                 "time-parse-failed",
                 time_str=time_str,
@@ -552,12 +556,14 @@ def main():
 
         entry_count = 0
         for _entry in viewer.query_journal(
-            service=args.service,
-            since=args.since,
-            until=args.until,
-            level=args.level,
-            lines=args.lines,
-            follow=args.follow,
+            JournalQueryOptions(
+                service=args.service,
+                since=args.since,
+                until=args.until,
+                level=args.level,
+                lines=args.lines,
+                follow=args.follow,
+            )
         ):
             if args.json:
                 # Output raw JSON

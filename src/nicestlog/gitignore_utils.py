@@ -27,10 +27,9 @@ def load_gitignore_patterns(directory: Path) -> list[str]:
                 count=len(patterns),
                 gitignore_path=str(gitignore_path),
             )
-        except Exception as e:
+        except (OSError, UnicodeDecodeError):
             log.warning(
                 "gitignore-load-failed",
-                error=str(e),
                 gitignore_path=str(gitignore_path),
             )
 

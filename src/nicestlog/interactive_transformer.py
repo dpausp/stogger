@@ -357,58 +357,49 @@ class InteractiveTransformer:
                 # Check each enabled pattern
                 for pattern in self.transformer.assistant.patterns:
                     if pattern.enabled and pattern.transformer and pattern.matcher(node):
-                        try:
-                            # Create a copy of the node for transformation
-                            node_copy = copy.deepcopy(node)
-                            transformed_node = pattern.transformer(node_copy)
+                        # Create a copy of the node for transformation
+                        node_copy = copy.deepcopy(node)
+                        transformed_node = pattern.transformer(node_copy)
 
-                            if transformed_node != node:
-                                # Extract line information
-                                line_num = getattr(node, "lineno", 1)
+                        if transformed_node != node:
+                            # Extract line information
+                            line_num = getattr(node, "lineno", 1)
 
-                                # Get original and transformed code
-                                original_line = lines[line_num - 1] if line_num <= len(lines) else ""
+                            # Get original and transformed code
+                            original_line = lines[line_num - 1] if line_num <= len(lines) else ""
 
-                                # Create a minimal AST to get transformed code
-                                temp_module = ast.Module(
-                                    body=[transformed_node],
-                                    type_ignores=[],
-                                )
-                                transformed_code = ast.unparse(temp_module).strip()
-
-                                # Get context lines
-                                context_before = self._get_context_lines(
-                                    lines,
-                                    line_num,
-                                    before=True,
-                                )
-                                context_after = self._get_context_lines(
-                                    lines,
-                                    line_num,
-                                    before=False,
-                                )
-
-                                proposal = TransformationProposal(
-                                    file_path=file_path,
-                                    line_number=line_num,
-                                    original_code=original_line.strip(),
-                                    transformed_code=transformed_code,
-                                    pattern_name=pattern.name,
-                                    pattern_description=pattern.description,
-                                    context_before=context_before,
-                                    context_after=context_after,
-                                    node_type=type(node).__name__,
-                                )
-
-                                self.proposals.append(proposal)
-
-                        except Exception as e:
-                            log.warning(
-                                "proposal-generation-error",
-                                _replace_msg="⚠️ Error generating proposal for pattern {pattern}: {error}",
-                                pattern=pattern.name,
-                                error=str(e),
+                            # Create a minimal AST to get transformed code
+                            temp_module = ast.Module(
+                                body=[transformed_node],
+                                type_ignores=[],
                             )
+                            transformed_code = ast.unparse(temp_module).strip()
+
+                            # Get context lines
+                            context_before = self._get_context_lines(
+                                lines,
+                                line_num,
+                                before=True,
+                            )
+                            context_after = self._get_context_lines(
+                                lines,
+                                line_num,
+                                before=False,
+                            )
+
+                            proposal = TransformationProposal(
+                                file_path=file_path,
+                                line_number=line_num,
+                                original_code=original_line.strip(),
+                                transformed_code=transformed_code,
+                                pattern_name=pattern.name,
+                                pattern_description=pattern.description,
+                                context_before=context_before,
+                                context_after=context_after,
+                                node_type=type(node).__name__,
+                            )
+
+                            self.proposals.append(proposal)
 
                 self.generic_visit(node)
 

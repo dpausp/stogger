@@ -36,7 +36,7 @@ except ImportError:
     run_dashboard = None
     FLASK_AVAILABLE = False
 
-from .journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
+from .journal_viewer import SYSTEMD_AVAILABLE, JournalQueryOptions, JournalViewer
 from .log_reviewer import LogQualityReviewer, print_report
 
 try:
@@ -141,28 +141,9 @@ def tools_generate_service(
 
 # Add check-advanced command to tools
 @tools_app.command("check-advanced")
-def tools_check_advanced(
-    path: Annotated[str, typer.Argument(help="Path to check")] = ".",
-    *,
-    fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
-    interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive mode")] = False,
-    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be fixed")] = False,
-    no_ast: Annotated[bool, typer.Option("--no-ast", help="Disable AST-based analysis")] = False,
-    complexity: Annotated[bool, typer.Option("--complexity", help="Check code complexity")] = False,
-    patterns: Annotated[list[str] | None, typer.Option("--pattern", help="Specific AST patterns to check")] = None,
-    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
-):
+def tools_check_advanced(**kwargs):
     """🔬 Advanced check with all options for complexity analysis and AST patterns."""
-    options = CheckOptions(
-        path=path,
-        fix=fix,
-        interactive=interactive,
-        dry_run=dry_run,
-        no_ast=no_ast,
-        complexity=complexity,
-        patterns=patterns,
-        verbose=verbose,
-    )
+    options = CheckOptions(**kwargs)
     _run_check_command(options)
 
 
@@ -459,19 +440,6 @@ def init_config_cmd(
         os.chdir(original_cwd)
 
 
-@dataclasses.dataclass
-class MigrateOptions:
-    """Configuration options for migrate command."""
-
-    path: str = "."
-    output: str | None = None
-    mode: str = "logging"
-    target: str = "nicestlog"
-    interactive: bool = False
-    dry_run: bool = False
-    verbose: bool = False
-
-
 @dataclasses.dataclass(kw_only=True)
 class CheckOptions:
     """Options for the check command."""
@@ -484,6 +452,20 @@ class CheckOptions:
     complexity: bool = False
     patterns: list[str] | None = None
     verbose: bool = False
+
+
+@dataclasses.dataclass(kw_only=True)
+class MigrateOptions:
+    """Options for the migrate command."""
+
+    path: str = "."
+    no_dry_run: bool = False
+    migration_type: str = "print-to-structlog"
+    json_output: bool = False
+    output: str | None = None
+    verbose: bool = False
+    interactive: bool = False
+    force: bool = False
 
 
 @app.command()
@@ -597,7 +579,7 @@ def _perform_analysis(options: CheckOptions, path_obj: Path, project_structure, 
     basic_success = True
     if options.no_ast and not options.interactive and not options.patterns and not options.complexity:
         log.info("check-basic-linting-start", _replace_msg="Running basic linting...")
-        basic_success = lint_directory(path_obj, project_structure=project_structure)
+        basic_success = lint_directory(path_obj, LintOptions(project_structure=project_structure))
 
     lint_success = basic_success
     ast_issues = None
@@ -732,9 +714,9 @@ def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_s
         src_path = path_obj / src_dir if path_obj.is_dir() else path_obj.parent / src_dir
         if src_path.exists():
             src_files = filter_python_files(src_path, respect_gitignore=True)
-            for py_file in src_files:
-                if not project_structure.should_exclude_from_logging_analysis(py_file):
-                    python_files.append(py_file)
+            python_files.extend(
+                py_file for py_file in src_files if not project_structure.should_exclude_from_logging_analysis(py_file)
+            )
 
     transform_results = []
     with Progress(
@@ -955,7 +937,7 @@ def _run_linter_with_metrics(ast_metrics: dict, directory_path: Path, project_st
 
     lint_success = True
     try:
-        lint_success = lint_directory(directory_path, project_structure=project_structure)
+        lint_success = lint_directory(directory_path, LintOptions(project_structure=project_structure))
     finally:
         # Clean up environment variable
         if "NICESTLOG_AST_METRICS" in os.environ:
@@ -1409,41 +1391,7 @@ class MigrateOptions:
 
 
 @app.command()
-def migrate(
-    path: Annotated[str, typer.Argument(help="Project path to analyze/migrate")] = ".",
-    *,
-    no_dry_run: Annotated[
-        bool,
-        typer.Option(
-            "--no-dry-run",
-            help="Actually apply changes (default: dry-run preview)",
-        ),
-    ] = False,
-    migration_type: Annotated[
-        str,
-        typer.Option("--type", "-t", help="Migration type"),
-    ] = "print-to-structlog",
-    json_output: Annotated[
-        bool,
-        typer.Option("--json", help="JSON output for agents"),
-    ] = False,
-    output: Annotated[
-        str | None,
-        typer.Option("--output", "-o", help="Output JSON file or directory"),
-    ] = None,
-    verbose: Annotated[
-        bool,
-        typer.Option("--verbose", "-v", help="Verbose output"),
-    ] = False,
-    interactive: Annotated[
-        bool,
-        typer.Option("--interactive", "-i", help="Interactive migration"),
-    ] = False,
-    force: Annotated[
-        bool,
-        typer.Option("--force", help="Overwrite existing files"),
-    ] = False,
-):
+def migrate(**kwargs):
     """🔄 Analyze project and migrate code.
 
     Default behavior: Dry-run preview (safe, shows what would change)
@@ -1457,33 +1405,47 @@ def migrate(
       nicestlog migrate . --no-dry-run --interactive      # Interactive migration
 
     """
-    if not no_dry_run:
+    options = MigrateOptions(**kwargs)
+    """🔄 Analyze project and migrate code.
+
+    Default behavior: Dry-run preview (safe, shows what would change)
+
+    Examples:
+      nicestlog migrate                                   # Dry-run preview of current project
+      nicestlog migrate /path/to/project                  # Dry-run preview of specific project
+      nicestlog migrate . --json                          # Agent analysis output
+      nicestlog migrate . --no-dry-run                    # Actually apply changes
+      nicestlog migrate . --no-dry-run --type logging-to-structlog  # Specific migration
+      nicestlog migrate . --no-dry-run --interactive      # Interactive migration
+
+    """
+    if not options.no_dry_run:
         # Default behavior: Dry-run preview
         # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
         nicestlog.init_logging(
-            verbose=verbose,
+            verbose=options.verbose,
             syslog_identifier="nicestlog-migrate",
             log_format="console",
         )
 
         try:
-            result = project_analyzer.analyze_project_for_agents(path, verbose=verbose)
+            result = project_analyzer.analyze_project_for_agents(options.path, verbose=options.verbose)
 
-            if json_output or (output and output.endswith(".json")):
+            if options.json_output or (options.output and options.output.endswith(".json")):
                 # JSON output for agents or file output
                 json_content = result.to_json()
 
-                if output:
-                    Path(output).write_text(json_content)
-                    console.print(f"✅ [green]Analysis saved to {output}[/green]")
+                if options.output:
+                    Path(options.output).write_text(json_content)
+                    console.print(f"✅ [green]Analysis saved to {options.output}[/green]")
                 else:
                     pass
             else:
                 # Human-readable output
-                _display_project_analysis(result, verbose=verbose)
+                _display_project_analysis(result, verbose=options.verbose)
 
                 # Enhanced user guidance based on analysis
-                _display_next_steps_guidance(result, path)
+                _display_next_steps_guidance(result, options.path)
 
         except Exception as e:
             logger.exception("Analysis failed")
@@ -1492,12 +1454,12 @@ def migrate(
     else:
         # Migration behavior: Apply changes
         run_migrate_command(
-            path,
-            output,
-            migration_type,
+            options.path,
+            options.output,
+            options.migration_type,
             dry_run=False,
-            interactive=interactive,
-            force=force,
+            interactive=options.interactive,
+            force=options.force,
         )
 
 
@@ -1632,7 +1594,8 @@ def _display_with_pager(content: str):
             if not Path(glow_path).is_absolute():
                 msg = f"Invalid executable path: {glow_path}"
                 raise ValueError(msg)
-            subprocess.run([glow_path, "--pager", "-"], input=content, text=True, check=False)
+            # S603: glow_path is from shutil.which, so it's trusted
+            subprocess.run([glow_path, "--pager", "-"], input=content, text=True, check=False)  # noqa: S603
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Glow pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using glow: {e}[/red]")
@@ -1648,7 +1611,8 @@ def _display_with_pager(content: str):
             if not Path(bat_path).is_absolute():
                 msg = f"Invalid executable path: {bat_path}"
                 raise ValueError(msg)
-            subprocess.run([bat_path, "--paging=always", "-"], input=content, text=True, check=False)
+            # S603: bat_path is from shutil.which, so it's trusted
+            subprocess.run([bat_path, "--paging=always", "-"], input=content, text=True, check=False)  # noqa: S603
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Bat pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using bat: {e}[/red]")
@@ -1664,7 +1628,8 @@ def _display_with_pager(content: str):
             if not Path(pager_cmd).is_absolute():
                 msg = f"Invalid executable path: {pager_cmd}"
                 raise ValueError(msg)
-            subprocess.run([pager_cmd], input=content, text=True, check=False)
+            # S603: pager_cmd is from shutil.which, so it's trusted
+            subprocess.run([pager_cmd], input=content, text=True, check=False)  # noqa: S603
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Default pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using pager: {e}[/red]")
@@ -1724,11 +1689,13 @@ def run_journal_viewer(
     # Query and display entries
     try:
         for _entry in viewer.query_journal(
-            service=unit,
-            since=since,
-            level=level,
-            lines=lines,
-            follow=follow,
+            JournalQueryOptions(
+                service=unit,
+                since=since,
+                level=level,
+                lines=lines,
+                follow=follow,
+            )
         ):
             pass
     except KeyboardInterrupt:
@@ -1975,10 +1942,12 @@ def run_pii_demo():
     log.info(
         "user-data",
         email="user@example.com",
-        password="DEMO_PASSWORD_123",
+        password=os.environ.get("DEMO_PASSWORD", "not-a-real-password"),
         ssn="123-45-6789",
     )
-    log.debug("api-call", token="Bearer DEMO_TOKEN_456", api_key="sk_demo_abc123")
+    log.debug(
+        "api-call", token=f"Bearer {os.environ.get('DEMO_TOKEN', 'not-a-real-token')}", api_key="sk_demo_placeholder"
+    )
 
 
 def run_eliot_demo():
@@ -2379,11 +2348,12 @@ def migrate_single_file(
     assistant = AdvancedAssistant()
 
     # Get patterns for this migration type
-    patterns = []
-    for pattern_name in config["patterns"]:
-        for ast_pattern in assistant.patterns:
-            if pattern_name.lower() in ast_pattern.name.lower():
-                patterns.append(ast_pattern)
+    patterns = [
+        ast_pattern
+        for pattern_name in config["patterns"]
+        for ast_pattern in assistant.patterns
+        if pattern_name.lower() in ast_pattern.name.lower()
+    ]
 
     if not patterns:
         console.print(
@@ -2973,7 +2943,8 @@ def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool):
             if not Path(uv_path).is_absolute():
                 msg = f"Invalid executable path: {uv_path}"
                 raise ValueError(msg)
-            subprocess.run(
+            # S603: uv_path is from shutil.which, so it's trusted
+            subprocess.run(  # noqa: S603
                 [
                     uv_path,
                     "run",

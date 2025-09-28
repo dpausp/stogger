@@ -120,17 +120,14 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
                 self.logger_assignment_present = True
 
         # Detect rich Console instances: console = Console()
-        try:
-            if (
-                len(node.targets) == 1
-                and isinstance(node.targets[0], ast.Name)
-                and isinstance(node.value, ast.Call)
-                and isinstance(node.value.func, ast.Name)
-                and node.value.func.id == "Console"
-            ):
-                self.rich_console_vars.add(node.targets[0].id)
-        except Exception:
-            pass
+        if (
+            len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Name)
+            and node.value.func.id == "Console"
+        ):
+            self.rich_console_vars.add(node.targets[0].id)
 
         return node
 
@@ -520,7 +517,7 @@ def migrate_cli_outputs_file(content: str) -> tuple[str, bool]:
 
     try:
         new_code = ast.unparse(tree)
-    except Exception:
+    except (ValueError, TypeError):
         # Fallback to original content if unparse fails
         return content, False
 

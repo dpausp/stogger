@@ -145,22 +145,21 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
             if structure:
                 log.info("project-structure-detected-from-pyproject", path=str(pyproject_path))
                 return structure
-        except Exception as e:
-            log.warning("pyproject-detection-failed", error=str(e))
+        except (OSError, ValueError, FileNotFoundError):
+            pass
 
     # Fall back to heuristics
     try:
         structure = _detect_from_heuristics(project_root)
         log.info("project-structure-detected-from-heuristics")
-    except Exception as e:
+        return structure
+    except (OSError, ValueError, FileNotFoundError) as e:
         log.exception("heuristic-detection-failed", error=str(e))
         msg = (
             f"Could not determine project structure for {project_root}. "
             "Please configure [tool.nicestlog] section in pyproject.toml with 'src_dir' and 'exclude' settings."
         )
         raise ValueError(msg)
-    else:
-        return structure
 
 
 def _detect_from_pyproject(
@@ -168,89 +167,85 @@ def _detect_from_pyproject(
     pyproject_path: Path,
 ) -> ProjectStructure | None:
     """Detect project structure from pyproject.toml configuration."""
-    try:
-        with pyproject_path.open("rb") as f:
-            config = tomllib.load(f)
+    with pyproject_path.open("rb") as f:
+        config = tomllib.load(f)
 
-        # Check nicestlog configuration
-        nicest_config = config.get("tool", {}).get("nicestlog", {})
-        if nicest_config:
-            src_dir = nicest_config.get("src_dir", "src")
-            exclude_patterns = nicest_config.get("exclude", [])
+    # Check nicestlog configuration
+    nicest_config = config.get("tool", {}).get("nicestlog", {})
+    if nicest_config:
+        src_dir = nicest_config.get("src_dir", "src")
+        exclude_patterns = nicest_config.get("exclude", [])
 
-            # Detect source directories
-            source_dirs = [src_dir] if (project_root / src_dir).exists() else []
+        # Detect source directories
+        source_dirs = [src_dir] if (project_root / src_dir).exists() else []
 
-            # Detect test directories from exclude patterns and common locations
-            test_dirs = []
-            for pattern in exclude_patterns:
-                if pattern.startswith("tests"):
-                    test_dir = pattern.split("/")[0]
-                    if (project_root / test_dir).exists():
-                        test_dirs.append(test_dir)
-
-            # Add common test directories if they exist
-            for test_dir in ["tests", "test"]:
-                if (project_root / test_dir).exists() and test_dir not in test_dirs:
+        # Detect test directories from exclude patterns and common locations
+        test_dirs = []
+        for pattern in exclude_patterns:
+            if pattern.startswith("tests"):
+                test_dir = pattern.split("/")[0]
+                if (project_root / test_dir).exists():
                     test_dirs.append(test_dir)
 
-            # Default exclude patterns
-            default_excludes = [
-                "docs/**",
-                "examples/**",
-                ".venv/**",
-                "venv/**",
-                "build/**",
-                "dist/**",
-                "*.egg-info/**",
-                "__pycache__/**",
-                ".git/**",
-            ]
+        # Add common test directories if they exist
+        for test_dir in ["tests", "test"]:
+            if (project_root / test_dir).exists() and test_dir not in test_dirs:
+                test_dirs.append(test_dir)
 
-            # Merge configured excludes with defaults
-            all_excludes = list(set(exclude_patterns + default_excludes))
+        # Default exclude patterns
+        default_excludes = [
+            "docs/**",
+            "examples/**",
+            ".venv/**",
+            "venv/**",
+            "build/**",
+            "dist/**",
+            "*.egg-info/**",
+            "__pycache__/**",
+            ".git/**",
+        ]
 
-            return ProjectStructure(
-                source_dirs=source_dirs,
-                test_dirs=test_dirs,
-                exclude_patterns=all_excludes,
-                detection_source="pyproject.toml",
-                project_root=project_root,
+        # Merge configured excludes with defaults
+        all_excludes = list(set(exclude_patterns + default_excludes))
+
+        return ProjectStructure(
+            source_dirs=source_dirs,
+            test_dirs=test_dirs,
+            exclude_patterns=all_excludes,
+            detection_source="pyproject.toml",
+            project_root=project_root,
+        )
+
+    # Check hatch configuration for source directory
+    hatch_config = config.get("tool", {}).get("hatch", {})
+    if hatch_config:
+        build_config = hatch_config.get("build", {})
+        wheel_config = build_config.get("targets", {}).get("wheel", {})
+        packages = wheel_config.get("packages", [])
+
+        if packages:
+            # Extract source directory from packages
+            for package in packages:
+                if "/" in package:
+                    src_dir = package.split("/")[0]
+                    if (project_root / src_dir).exists():
+                        return _create_default_structure_with_src(
+                            project_root,
+                            src_dir,
+                            "pyproject.toml",
+                        )
+
+    # Check pytest configuration for test directories
+    pytest_config = config.get("tool", {}).get("pytest", {})
+    if pytest_config:
+        testpaths = pytest_config.get("ini_options", {}).get("testpaths", [])
+        if testpaths:
+            test_dirs = [path for path in testpaths if (project_root / path).exists()]
+            return _create_default_structure_with_tests(
+                project_root,
+                test_dirs,
+                "pyproject.toml",
             )
-
-        # Check hatch configuration for source directory
-        hatch_config = config.get("tool", {}).get("hatch", {})
-        if hatch_config:
-            build_config = hatch_config.get("build", {})
-            wheel_config = build_config.get("targets", {}).get("wheel", {})
-            packages = wheel_config.get("packages", [])
-
-            if packages:
-                # Extract source directory from packages
-                for package in packages:
-                    if "/" in package:
-                        src_dir = package.split("/")[0]
-                        if (project_root / src_dir).exists():
-                            return _create_default_structure_with_src(
-                                project_root,
-                                src_dir,
-                                "pyproject.toml",
-                            )
-
-        # Check pytest configuration for test directories
-        pytest_config = config.get("tool", {}).get("pytest", {})
-        if pytest_config:
-            testpaths = pytest_config.get("ini_options", {}).get("testpaths", [])
-            if testpaths:
-                test_dirs = [path for path in testpaths if (project_root / path).exists()]
-                return _create_default_structure_with_tests(
-                    project_root,
-                    test_dirs,
-                    "pyproject.toml",
-                )
-
-    except Exception:
-        pass
 
     return None
 
@@ -308,8 +303,7 @@ def _detect_from_heuristics(project_root: Path) -> ProjectStructure:
     ]
 
     # Add test directories to exclude patterns
-    for test_dir in test_dirs:
-        exclude_patterns.append(f"{test_dir}/**")
+    exclude_patterns.extend(f"{test_dir}/**" for test_dir in test_dirs)
 
     if not source_dirs:
         msg = "No source directories detected"
@@ -330,10 +324,7 @@ def _create_default_structure_with_src(
     source: str,
 ) -> ProjectStructure:
     """Create default structure with specified source directory."""
-    test_dirs = []
-    for test_candidate in ["tests", "test"]:
-        if (project_root / test_candidate).exists():
-            test_dirs.append(test_candidate)
+    test_dirs = [test_candidate for test_candidate in ["tests", "test"] if (project_root / test_candidate).exists()]
 
     exclude_patterns = [
         "docs/**",
@@ -348,8 +339,7 @@ def _create_default_structure_with_src(
     ]
 
     # Add test directories to exclude patterns
-    for test_dir in test_dirs:
-        exclude_patterns.append(f"{test_dir}/**")
+    exclude_patterns.extend(f"{test_dir}/**" for test_dir in test_dirs)
 
     return ProjectStructure(
         source_dirs=[src_dir],
@@ -389,8 +379,7 @@ def _create_default_structure_with_tests(
     ]
 
     # Add test directories to exclude patterns
-    for test_dir in test_dirs:
-        exclude_patterns.append(f"{test_dir}/**")
+    exclude_patterns.extend(f"{test_dir}/**" for test_dir in test_dirs)
 
     return ProjectStructure(
         source_dirs=source_dirs,

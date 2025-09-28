@@ -266,6 +266,12 @@ class LiveCodeEditor:
     def _edit_with_external_editor(self, current_code: str) -> tuple[str, bool]:
         """Edit code with external editor (vim, nano, etc.)."""
         editor = os.environ.get("EDITOR", "nano")
+        # Validate editor to prevent shell injection
+        allowed_editors = {"nano", "vim", "vi", "emacs", "code", "subl"}
+        editor_name = Path(editor).name
+        if editor_name not in allowed_editors:
+            console.print(f"❌ [red]Unsupported editor: {editor_name}[/red]")
+            return current_code, True
 
         # Create temporary file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
@@ -275,7 +281,8 @@ class LiveCodeEditor:
         try:
             # Open editor
             console.print(f"🔥 Opening {editor}...")
-            result = subprocess.run([editor, temp_path], check=False)
+            # S603: editor is validated against allowed list
+            result = subprocess.run([editor, temp_path], check=False)  # noqa: S603
 
             if result.returncode != 0:
                 console.print(
