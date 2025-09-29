@@ -5,7 +5,7 @@ from io import StringIO
 from unittest.mock import Mock, patch
 
 from src.nicestlog.core import init_logging
-from src.nicestlog.journal_viewer import JournalEntry, JournalViewer
+from src.nicestlog.journal_viewer import JournalEntry, JournalQueryOptions, JournalViewer
 
 
 class TestJournalEntry:
@@ -599,12 +599,14 @@ class TestMainFunction:
 
                     mock_viewer_class.assert_called_once()
                     mock_viewer.query_journal.assert_called_once_with(
-                        service="myservice",
-                        since=None,
-                        until=None,
-                        level=None,
-                        lines=10,
-                        follow=False,
+                        JournalQueryOptions(
+                            service="myservice",
+                            since=None,
+                            until=None,
+                            level=None,
+                            lines=10,
+                            follow=False,
+                        )
                     )
 
     def test_main_json_output(self):

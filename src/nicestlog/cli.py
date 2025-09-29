@@ -29,6 +29,10 @@ import toml
 import typer
 
 import nicestlog
+from .core import init_early_logging
+
+# Initialize early logging to ensure structlog is configured before logger creation
+init_early_logging()
 
 try:
     from .web_dashboard import FLASK_AVAILABLE, run_dashboard
@@ -37,7 +41,10 @@ except ImportError:
     FLASK_AVAILABLE = False
 
 from .journal_viewer import SYSTEMD_AVAILABLE, JournalQueryOptions, JournalViewer
+from .linter import LintOptions
 from .log_reviewer import LogQualityReviewer, print_report
+from .project_analyzer import analyze_project_for_agents
+from .systemd_integration import create_systemd_service_file
 
 try:
     from .config import NicestLogConfig
@@ -454,20 +461,6 @@ class CheckOptions:
     verbose: bool = False
 
 
-@dataclasses.dataclass(kw_only=True)
-class MigrateOptions:
-    """Options for the migrate command."""
-
-    path: str = "."
-    no_dry_run: bool = False
-    migration_type: str = "print-to-structlog"
-    json_output: bool = False
-    output: str | None = None
-    verbose: bool = False
-    interactive: bool = False
-    force: bool = False
-
-
 @app.command()
 def check(
     path: Annotated[str, typer.Argument(help="Path to check")] = ".",
@@ -486,6 +479,7 @@ def check(
       nicestlog check file.py --dry-run --fix    # Preview fixes
 
     For advanced options, use: nicestlog tools check-advanced
+
     """
     options = CheckOptions(
         path=path,
@@ -1383,42 +1377,56 @@ class MigrateOptions:
     path: str = "."
     output: str | None = None
     dry_run: bool = False
+    no_dry_run: bool = False
+    type: str = "print-to-structlog"
     no_ast: bool = False
     pattern: str | None = None
     interactive: bool = False
     verbose: bool = False
     check_imports: bool = False
+    force: bool = False
 
 
-@app.command()
-def migrate(**kwargs):
+def migrate(
+    path: Annotated[str, typer.Argument(help="Path to migrate")] = ".",
+    *,
+    output: Annotated[str | None, typer.Option("--output", "-o", help="Output file or directory")] = None,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be changed")] = False,
+    no_dry_run: Annotated[bool, typer.Option("--no-dry-run", help="Actually apply changes")] = False,
+    type: Annotated[str, typer.Option("--type", help="Migration type")] = "print-to-structlog",
+    no_ast: Annotated[bool, typer.Option("--no-ast", help="Skip AST analysis")] = False,
+    pattern: Annotated[str | None, typer.Option("--pattern", help="Pattern to match")] = None,
+    interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive mode")] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
+    check_imports: Annotated[bool, typer.Option("--check-imports", help="Check import statements")] = False,
+    force: Annotated[bool, typer.Option("--force", help="Force migration even if issues are found")] = False,
+):
     """🔄 Analyze project and migrate code.
 
     Default behavior: Dry-run preview (safe, shows what would change)
 
     Examples:
-      nicestlog migrate                                   # Dry-run preview of current project
-      nicestlog migrate /path/to/project                  # Dry-run preview of specific project
-      nicestlog migrate . --json                          # Agent analysis output
-      nicestlog migrate . --no-dry-run                    # Actually apply changes
-      nicestlog migrate . --no-dry-run --type logging-to-structlog  # Specific migration
-      nicestlog migrate . --no-dry-run --interactive      # Interactive migration
+       nicestlog migrate                                   # Dry-run preview of current project
+       nicestlog migrate /path/to/project                  # Dry-run preview of specific project
+       nicestlog migrate . --json                          # Agent analysis output
+       nicestlog migrate . --no-dry-run                    # Actually apply changes
+       nicestlog migrate . --no-dry-run --type logging-to-structlog  # Specific migration
+       nicestlog migrate . --no-dry-run --interactive      # Interactive migration
 
     """
-    options = MigrateOptions(**kwargs)
-    """🔄 Analyze project and migrate code.
-
-    Default behavior: Dry-run preview (safe, shows what would change)
-
-    Examples:
-      nicestlog migrate                                   # Dry-run preview of current project
-      nicestlog migrate /path/to/project                  # Dry-run preview of specific project
-      nicestlog migrate . --json                          # Agent analysis output
-      nicestlog migrate . --no-dry-run                    # Actually apply changes
-      nicestlog migrate . --no-dry-run --type logging-to-structlog  # Specific migration
-      nicestlog migrate . --no-dry-run --interactive      # Interactive migration
-
-    """
+    options = MigrateOptions(
+        path=path,
+        output=output,
+        dry_run=dry_run,
+        no_dry_run=no_dry_run,
+        type=type,
+        no_ast=no_ast,
+        pattern=pattern,
+        interactive=interactive,
+        verbose=verbose,
+        check_imports=check_imports,
+        force=force,
+    )
     if not options.no_dry_run:
         # Default behavior: Dry-run preview
         # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
@@ -1429,7 +1437,7 @@ def migrate(**kwargs):
         )
 
         try:
-            result = project_analyzer.analyze_project_for_agents(options.path, verbose=options.verbose)
+            result = analyze_project_for_agents(options.path, verbose=options.verbose)
 
             if options.json_output or (options.output and options.output.endswith(".json")):
                 # JSON output for agents or file output
@@ -1454,11 +1462,8 @@ def migrate(**kwargs):
     else:
         # Migration behavior: Apply changes
         run_migrate_command(
-            options.path,
-            options.output,
-            options.migration_type,
-            dry_run=False,
-            interactive=options.interactive,
+            options,
+            migration_type=options.type,
             force=options.force,
         )
 
@@ -3042,6 +3047,10 @@ def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool):
         console.print("\n👋 [blue]Server stopped[/blue]")
     finally:
         os.chdir(original_cwd)
+
+
+# Manually register the migrate command
+app.command("migrate")(migrate)
 
 
 def main():

@@ -44,75 +44,75 @@ ______________________________________________________________________
 
    - **Commit message hint**: "refactor: reduce function complexity per ruff PLR rules"
 
- 1. [x] **Fix logging violations (G201)** – use proper logging methods
+1. [x] **Fix logging violations (G201)** – use proper logging methods
 
-    - **Context**: Multiple instances of using `.error(..., exc_info=True)` instead of `.exception(...)` and redundant `error=` parameters in `.exception()` calls
-
-    - **Success criteria** (must be checked to finish task)
-
-      - [x] All G201 errors resolved by replacing with `.exception()`
-      - [x] All redundant `error=` parameters removed from `.exception()` calls
-      - [x] Consistent logging patterns across codebase
-
-    - **Files to check/modify**
-
-      - [ ] `src/nicestlog/cli.py` (lines 1477, 1727, 2279, 2353, 2413, 2534, 2613)
-
-    - **Steps** (always action verbs, explicit order)
-
-      - [x] Replace `logger.error(..., exc_info=True)` with `logger.exception(...)`
-      - [x] Remove redundant `error=` parameters from `.exception()` calls
-      - [x] Remove `exc_info=True` parameter from error calls
-      - [x] Verify logging output remains consistent
-
-    - **Commit message hint**: "fix: use logger.exception() instead of error with exc_info"
-
- 1. [x] **Fix logging f-string violations (G004)** – replace f-strings in logging
-
-    - **Context**: Multiple instances of using f-strings in logging statements which can impact performance and log parsing
-
-    - **Success criteria** (must be checked to finish task)
-
-      - [x] All G004 errors resolved by replacing f-strings with proper logging
-      - [x] Consistent logging patterns across codebase
-
-    - **Files to check/modify**
-
-      - [x] `src/nicestlog/config.py` (lines 62, 64, 98, 102, 109, 112, 142, 145, 152)
-
-    - **Steps** (always action verbs, explicit order)
-
-      - [x] Replace f-string logging with structured logging or format strings
-      - [x] Ensure log parsing compatibility is maintained
-      - [x] Verify logging output remains informative
-
-    - **Commit message hint**: "fix: replace f-strings in logging statements"
-
- 1. [ ] **Fix security violations (S602, S311, S106, S112)** – address security issues
-
-   - **Context**: Security issues including subprocess shell usage, hardcoded secrets, weak random generation, and exception suppression
+   - **Context**: Multiple instances of using `.error(..., exc_info=True)` instead of `.exception(...)` and redundant `error=` parameters in `.exception()` calls
 
    - **Success criteria** (must be checked to finish task)
 
-     - [ ] All S602 (subprocess shell) errors resolved
-     - [ ] All S311 (weak random) errors resolved
-     - [ ] All S106 (hardcoded password) errors resolved
-     - [ ] All S112 (try-except-continue) errors resolved
+     - [x] All G201 errors resolved by replacing with `.exception()`
+     - [x] All redundant `error=` parameters removed from `.exception()` calls
+     - [x] Consistent logging patterns across codebase
 
    - **Files to check/modify**
 
-     - [ ] `src/nicestlog/cli.py` (lines 1548, 1564, 1582, 1893, 1896)
-     - [ ] `src/nicestlog/web_dashboard.py` (lines 460, 461, 468, 469, 470, 473)
-     - [ ] `src/nicestlog/project_analyzer.py` (line 702)
+     - [ ] `src/nicestlog/cli.py` (lines 1477, 1727, 2279, 2353, 2413, 2534, 2613)
 
    - **Steps** (always action verbs, explicit order)
 
-     - [ ] Replace subprocess shell=True with safer alternatives
-     - [ ] Use secrets module for cryptographic random generation
-     - [ ] Replace hardcoded passwords with placeholders or constants
-     - [ ] Add proper logging to exception handling per Rule 6
+     - [x] Replace `logger.error(..., exc_info=True)` with `logger.exception(...)`
+     - [x] Remove redundant `error=` parameters from `.exception()` calls
+     - [x] Remove `exc_info=True` parameter from error calls
+     - [x] Verify logging output remains consistent
 
-   - **Commit message hint**: "fix: resolve security violations per ruff S-series rules"
+   - **Commit message hint**: "fix: use logger.exception() instead of error with exc_info"
+
+1. [x] **Fix logging f-string violations (G004)** – replace f-strings in logging
+
+   - **Context**: Multiple instances of using f-strings in logging statements which can impact performance and log parsing
+
+   - **Success criteria** (must be checked to finish task)
+
+     - [x] All G004 errors resolved by replacing f-strings with proper logging
+     - [x] Consistent logging patterns across codebase
+
+   - **Files to check/modify**
+
+     - [x] `src/nicestlog/config.py` (lines 62, 64, 98, 102, 109, 112, 142, 145, 152)
+
+   - **Steps** (always action verbs, explicit order)
+
+     - [x] Replace f-string logging with structured logging or format strings
+     - [x] Ensure log parsing compatibility is maintained
+     - [x] Verify logging output remains informative
+
+   - **Commit message hint**: "fix: replace f-strings in logging statements"
+
+1. [ ] **Fix security violations (S602, S311, S106, S112)** – address security issues
+
+- **Context**: Security issues including subprocess shell usage, hardcoded secrets, weak random generation, and exception suppression
+
+- **Success criteria** (must be checked to finish task)
+
+  - [ ] All S602 (subprocess shell) errors resolved
+  - [ ] All S311 (weak random) errors resolved
+  - [ ] All S106 (hardcoded password) errors resolved
+  - [ ] All S112 (try-except-continue) errors resolved
+
+- **Files to check/modify**
+
+  - [ ] `src/nicestlog/cli.py` (lines 1548, 1564, 1582, 1893, 1896)
+  - [ ] `src/nicestlog/web_dashboard.py` (lines 460, 461, 468, 469, 470, 473)
+  - [ ] `src/nicestlog/project_analyzer.py` (line 702)
+
+- **Steps** (always action verbs, explicit order)
+
+  - [ ] Replace subprocess shell=True with safer alternatives
+  - [ ] Use secrets module for cryptographic random generation
+  - [ ] Replace hardcoded passwords with placeholders or constants
+  - [ ] Add proper logging to exception handling per Rule 6
+
+- **Commit message hint**: "fix: resolve security violations per ruff S-series rules"
 
 1. [ ] **Fix magic value violations (PLR2004)** – replace magic numbers with constants
 

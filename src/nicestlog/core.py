@@ -423,7 +423,10 @@ class SelectRenderedString:
 
 def log_to_stdlib(_logger, _name, event_dict):
     """Bridge structlog events to Python's standard logging for test capture."""
-    level = event_dict.get("level", "info")
+    # Create a copy of event_dict to avoid modifying the original
+    event_dict_copy = event_dict.copy()
+
+    level = event_dict_copy.get("level", "info")
     level_map = {
         "debug": logging.DEBUG,
         "info": logging.INFO,
@@ -432,8 +435,22 @@ def log_to_stdlib(_logger, _name, event_dict):
         "critical": logging.CRITICAL,
     }
     logging_level = level_map.get(level, logging.INFO)
-    msg = event_dict.get("_replace_msg", event_dict.get("event", ""))
-    logging.log(logging_level, msg)
+    msg = event_dict_copy.get("_replace_msg", event_dict_copy.get("event", ""))
+
+    # Extract standard logging parameters
+    exc_info = event_dict_copy.get("exc_info")
+
+    # Remove non-standard parameters that might cause issues
+    for key in list(event_dict_copy.keys()):
+        if key not in {"level", "_replace_msg", "event", "exc_info"}:
+            event_dict_copy.pop(key, None)
+
+    # Log to standard logging - only pass standard parameters
+    if exc_info:
+        logging.log(logging_level, msg, exc_info=exc_info)
+    else:
+        logging.log(logging_level, msg)
+
     return event_dict
 
 
@@ -519,7 +536,7 @@ def init_logging(*args, **kwargs):
         if journal and os.environ.get("JOURNAL_STREAM"):
             pid = os.getpid()
             # S603/S607: systemctl is a system command, using full path would be better but systemctl is in PATH
-            subprocess.run(["systemctl", "status", str(pid)], capture_output=True, text=True)  # noqa: S603,S607
+            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603,S607
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 

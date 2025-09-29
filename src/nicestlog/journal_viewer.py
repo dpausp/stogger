@@ -251,7 +251,7 @@ class JournalViewer:
 
         return " ".join(parts)
 
-    def query_journal(self, options: JournalQueryOptions) -> Iterator[JournalEntry]:
+    def query_journal(self, options_or_service=None, **kwargs) -> Iterator[JournalEntry]:
         """Query systemd journal and yield formatted entries.
 
         Args:
@@ -263,6 +263,21 @@ class JournalViewer:
             follow: Follow new entries (like tail -f)
 
         """
+        # Handle backward compatibility: if first arg is not JournalQueryOptions, treat as old signature
+        if not isinstance(options_or_service, JournalQueryOptions):
+            # Old signature: query_journal(service, since=None, until=None, level=None, lines=10, follow=False)
+            # Also handle keyword arguments for backward compatibility
+            service = options_or_service if options_or_service is not None else kwargs.get("service")
+            options = JournalQueryOptions(
+                service=service,
+                since=kwargs.get("since"),
+                until=kwargs.get("until"),
+                level=kwargs.get("level"),
+                lines=kwargs.get("lines"),
+                follow=kwargs.get("follow", False),
+            )
+        else:
+            options = options_or_service
         log.debug(
             "starting-journal-query",
             service=options.service,
@@ -359,7 +374,7 @@ class JournalViewer:
                 if count % 100 == 0:  # Log progress every 100 entries
                     log.debug("processed-entries", count=count)
 
-                if follow:
+                if options.follow:
                     # In follow mode, wait for new entries
                     log.debug("waiting-for-new-entries")
                     j.wait()

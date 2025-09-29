@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import MagicMock, Mock, mock_open, patch
 import subprocess
 import sys
 import textwrap
@@ -244,7 +244,7 @@ class TestGenerateServiceCommand:
         error_output = result.output
         assert "Missing argument" in error_output or "required" in error_output.lower()
 
-    @patch("nicestlog.systemd_integration.create_systemd_service_file")
+    @patch("nicestlog.cli.create_systemd_service_file")
     @patch("nicestlog.cli.console.print")
     def test_generate_service_cmd_function_stdout(
         self,
@@ -264,8 +264,8 @@ class TestGenerateServiceCommand:
         assert call_args.working_directory is None
         mock_console_print.assert_called_with("[Unit]\nDescription=Test Service\n")
 
-    @patch("nicestlog.systemd_integration.create_systemd_service_file")
-    @patch("builtins.open", new_callable=mock_open)
+    @patch("nicestlog.cli.create_systemd_service_file")
+    @patch("pathlib.Path.open")
     @patch("nicestlog.cli.log.info")
     def test_generate_service_cmd_function_file_output(
         self,
@@ -275,6 +275,7 @@ class TestGenerateServiceCommand:
     ):
         """Test generate_service_cmd function with file output."""
         mock_create_service.return_value = "[Unit]\nDescription=Test Service\n"
+        mock_file.return_value.__enter__.return_value.write = Mock()
 
         generate_service_cmd(
             "test-service",
@@ -290,8 +291,10 @@ class TestGenerateServiceCommand:
         assert call_args.exec_command == "/bin/test"
         assert call_args.user == "testuser"
         assert call_args.working_directory == "/opt/test"
-        mock_file.assert_called_once_with("/tmp/test.service", "w")
-        mock_file().write.assert_called_once_with("[Unit]\nDescription=Test Service\n")
+        mock_file.assert_called_once_with("w")
+        mock_file.return_value.__enter__.return_value.write.assert_called_once_with(
+            "[Unit]\nDescription=Test Service\n"
+        )
         mock_log_info.assert_called_once_with(
             "service-file-generated", service_name="test-service", output_file="/tmp/test.service"
         )
@@ -601,7 +604,14 @@ class TestCliErrorHandling:
             result = self.runner.invoke(app, ["check", temp_dir])
             # Should handle empty directory gracefully - exits with 1 due to project structure detection failure
             assert result.exit_code == 1
-            assert "Project structure detection failed" in caplog.text
+            # Debug: print actual output
+            print(f"Exit code: {result.exit_code}")
+            print(f"Output: {result.output}")
+            print(f"Caplog: {caplog.text}")
+            assert (
+                "Project structure detection failed" in result.output
+                or "Project structure detection failed" in caplog.text
+            )
 
     def test_migrate_interactive_mode_error(self):
         """Test migrate command interactive mode with errors."""

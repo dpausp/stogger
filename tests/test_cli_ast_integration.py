@@ -318,7 +318,7 @@ def hello():
 """)
 
         with patch(
-            "nicestlog.project_analyzer.analyze_project_for_agents",
+            "nicestlog.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             # Create a more complete mock that matches ProjectAnalysisResult structure
             mock_result = MagicMock()
@@ -377,7 +377,7 @@ print("Test migration")
         # Note: --dry-run is not a valid flag for migrate command in new structure
         # The default behavior is analysis only (safe), so we test that
         with patch(
-            "nicestlog.project_analyzer.analyze_project_for_agents",
+            "nicestlog.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -437,7 +437,7 @@ print("Interactive migration test")
         mock_transformer_class.return_value = mock_transformer
 
         with patch(
-            "nicestlog.project_analyzer.analyze_project_for_agents",
+            "nicestlog.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -498,7 +498,7 @@ print("Interactive migration test")
         (test_dir / "file2.py").write_text('print("File 2")')
 
         with patch(
-            "nicestlog.project_analyzer.analyze_project_for_agents",
+            "nicestlog.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_dir)
@@ -538,8 +538,13 @@ print("Interactive migration test")
             mock_result.warnings = []
 
             mock_analyzer.return_value = mock_result
+            mock_analyzer.side_effect = (
+                lambda *args, **kwargs: print(f"Mock called with: {args}, {kwargs}") or mock_result
+            )
 
+            print(f"Invoking app with: {app}, args: {['migrate', str(test_dir)]}")
             result = self.runner.invoke(app, ["migrate", str(test_dir)])
+            print(f"Result: {result}, exit_code: {result.exit_code}")
 
             assert result.exit_code == 0
             assert "Project Analysis" in result.stdout
@@ -553,7 +558,7 @@ print("Interactive migration test")
         test_file.write_text('print("Source file")')
 
         with patch(
-            "nicestlog.project_analyzer.analyze_project_for_agents",
+            "nicestlog.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -612,7 +617,7 @@ logging.info("Test message")
 """)
 
         with patch(
-            "nicestlog.project_analyzer.analyze_project_for_agents",
+            "nicestlog.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -682,7 +687,7 @@ def main():
 """)
 
         with patch(
-            "nicestlog.project_analyzer.analyze_project_for_agents",
+            "nicestlog.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)

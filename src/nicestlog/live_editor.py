@@ -10,19 +10,16 @@ import ast
 from dataclasses import dataclass
 import json
 import os
+from pathlib import Path
 import subprocess
 import tempfile
 import time
-from typing import TYPE_CHECKING
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.syntax import Syntax
 import structlog
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 log = structlog.get_logger("nicestlog.live_editor")
 console = Console()

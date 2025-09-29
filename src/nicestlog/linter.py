@@ -28,7 +28,7 @@ class LintOptions:
     analyze_statements: bool = False
     verbose: bool = False
     allow_snake_case: bool = False
-    project_structure = None
+    project_structure: Any = None
 
 
 from .log_statement_analyzer import (
@@ -611,12 +611,26 @@ def check_logging_quality(
     return issues
 
 
-def lint_directory(directory: Path, options: LintOptions) -> bool:
+def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> bool:
     """Lint all Python files in a directory and its subdirectories.
 
     Uses smart project structure detection to exclude tests from logging analysis.
     """
     console = Console()
+
+    # Handle backward compatibility
+    if isinstance(options_or_min_coverage, LintOptions):
+        options = options_or_min_coverage
+    else:
+        # Old signature: lint_directory(directory, min_coverage=5.0, max_coverage=15.0, ...)
+        min_coverage = options_or_min_coverage or 5.0
+        max_coverage = kwargs.get("max_coverage", 15.0)
+        options = LintOptions(
+            min_coverage=min_coverage,
+            max_coverage=max_coverage,
+            project_structure=kwargs.get("project_structure"),
+        )
+
     # Use project structure detection if provided, otherwise fall back to legacy method
     if options.project_structure:
         # Smart filtering: only analyze source files for logging coverage
@@ -631,8 +645,7 @@ def lint_directory(directory: Path, options: LintOptions) -> bool:
                         python_files.append(py_file)
 
         if options.verbose:
-            excluded_files = []
-            excluded_files = [
+            [
                 py_file
                 for py_file in directory.rglob("*.py")
                 if options.project_structure.should_exclude_from_logging_analysis(py_file)
