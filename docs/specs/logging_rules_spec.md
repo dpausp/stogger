@@ -40,14 +40,14 @@ src/nicestlog/cli.py:45:level Library initialization should be debug level to av
 
 **Example Output**:
 ```
-src/nicestlog/core.py:120:except_logging Inside except: prefer log.exception(...) or pass exc_info=True to include traceback
+src/nicestlog/core.py:120:except_logging Inside except: prefer log.exception(...) with automatic exception formatting
    |
 118 |     except Exception as e:
 119 |         # Handle error
 120 |         log.error("failed", error=str(e))
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
-   = help: Use log.exception("failed") or log.error("failed", exc_info=True)
+   = help: Use log.exception("failed")
 ```
 
 ### 3. Logging Coverage (`coverage`)
