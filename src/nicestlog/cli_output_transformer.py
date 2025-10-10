@@ -5,7 +5,7 @@ output functions (typer.echo, click.echo, rich.print, etc.) to structured
 logging with nicestlog, while preserving styling and formatting information.
 """
 
-from __future__ import annotations
+
 
 import ast
 from contextlib import suppress

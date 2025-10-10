@@ -4,7 +4,7 @@ This module provides the complete CLI interface including both basic and advance
 AST functionality, previously split between cli.py and cli_advanced.py.
 """
 
-from __future__ import annotations
+
 
 import dataclasses
 import difflib
@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import Annotated, Protocol, cast
+from typing import Protocol, cast
 
 from rich.console import Console
 from rich.panel import Panel

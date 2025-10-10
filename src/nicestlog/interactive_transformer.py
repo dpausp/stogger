@@ -4,7 +4,7 @@ Provides interactive, user-guided code transformations with preview and confirma
 inspired by the amber search & replace tool.
 """
 
-from __future__ import annotations
+
 
 import ast
 import copy

@@ -4,7 +4,7 @@ from contextlib import suppress
 from datetime import datetime
 import io
 import json
-import logging
+import structlog
 import os
 import string
 import subprocess

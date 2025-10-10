@@ -2,10 +2,11 @@
 
 from dataclasses import dataclass
 import fnmatch
-import logging
+import structlog
 from pathlib import Path
 import tomllib
 from typing import Any
+
 
 
 @dataclass

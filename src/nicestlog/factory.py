@@ -1,9 +1,10 @@
 """Factory functions for building nicestlog components."""
 
 import atexit
-import logging
+import structlog
 from queue import Queue
 from typing import Any
+
 
 import structlog
 import toml

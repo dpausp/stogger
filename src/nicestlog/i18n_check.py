@@ -5,7 +5,7 @@ within structlog logger calls and verifies that the translation file contains
 entries for all detected message keys.
 """
 
-from __future__ import annotations
+
 
 from pathlib import Path
 from typing import TYPE_CHECKING, cast

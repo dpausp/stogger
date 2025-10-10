@@ -4,7 +4,7 @@ Automatically detects and redacts sensitive information from log messages.
 """
 
 import re
-from typing import Any
+
 
 
 class PIIScrubber:

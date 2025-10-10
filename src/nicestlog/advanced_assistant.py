@@ -14,7 +14,7 @@ Features:
 
 # ruff: noqa: FBT001, FBT002
 
-from __future__ import annotations
+
 
 import ast
 from dataclasses import dataclass, field
