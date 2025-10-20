@@ -4,7 +4,7 @@ This module provides the complete CLI interface including both basic and advance
 AST functionality, previously split between cli.py and cli_advanced.py.
 """
 
-
+from __future__ import annotations
 
 import dataclasses
 import difflib
@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import Protocol, cast
+from typing import Annotated, Protocol, cast
 
 from rich.console import Console
 from rich.panel import Panel
@@ -468,6 +468,9 @@ def check(
     fix: Annotated[bool, typer.Option("--fix", help="Auto-fix issues")] = False,
     interactive: Annotated[bool, typer.Option("--interactive", "-i", help="Interactive mode")] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be fixed")] = False,
+    no_ast: Annotated[bool, typer.Option("--no-ast", help="Disable AST analysis")] = False,
+    complexity: Annotated[bool, typer.Option("--complexity", help="Enable complexity analysis")] = False,
+    patterns: Annotated[list[str] | None, typer.Option("--pattern", "-p", help="Specific AST patterns to check")] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
 ):
     """🔍 Check code for logging best practices with AST analysis by default.
@@ -486,6 +489,9 @@ def check(
         fix=fix,
         interactive=interactive,
         dry_run=dry_run,
+        no_ast=no_ast,
+        complexity=complexity,
+        patterns=patterns,
         verbose=verbose,
     )
     _run_check_command(options)
@@ -673,7 +679,7 @@ def _display_ast_issues(ast_issues, log):
                 )
 
 
-def _run_interactive_mode(path_obj: Path, log):
+def _run_interactive_mode(options: CheckOptions, path_obj: Path, ast_issues: list, log):
     """Run interactive transformation mode."""
     log.info("check-interactive-start", _replace_msg="Starting interactive mode...")
     transformer = InteractiveTransformer()
@@ -1385,6 +1391,7 @@ class MigrateOptions:
     verbose: bool = False
     check_imports: bool = False
     force: bool = False
+    json_output: bool = False
 
 
 def migrate(
@@ -1400,6 +1407,7 @@ def migrate(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
     check_imports: Annotated[bool, typer.Option("--check-imports", help="Check import statements")] = False,
     force: Annotated[bool, typer.Option("--force", help="Force migration even if issues are found")] = False,
+    json: Annotated[bool, typer.Option("--json", help="Output in JSON format")] = False,
 ):
     """🔄 Analyze project and migrate code.
 
@@ -1426,6 +1434,7 @@ def migrate(
         verbose=verbose,
         check_imports=check_imports,
         force=force,
+        json_output=json,
     )
     if not options.no_dry_run:
         # Default behavior: Dry-run preview

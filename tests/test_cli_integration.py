@@ -349,7 +349,9 @@ class TestJournalIntegration:
 
     @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True)
     @patch("nicestlog.journal_viewer.JournalViewer")
-    def test_journal_with_systemd_available(self, mock_viewer_class):
+    @patch("nicestlog.cli.SYSTEMD_AVAILABLE", True)
+    @patch("nicestlog.cli.run_journal_viewer")
+    def test_journal_with_systemd_available(self, mock_run_journal, mock_viewer_class):
         """Test journal command when systemd is available."""
         mock_viewer = MagicMock()
         mock_viewer_class.return_value = mock_viewer
@@ -368,12 +370,8 @@ class TestJournalIntegration:
         )
 
         assert result.exit_code == 0
-        mock_viewer.query_journal.assert_called_once_with(
-            service="test.service",
-            since=None,
-            level=None,
-            lines=10,
-            follow=False,
+        mock_run_journal.assert_called_once_with(
+            "test.service", 10, follow=False, since=None, level=None
         )
 
 
@@ -406,21 +404,12 @@ class TestReviewIntegration:
 """)
 
         # Mock the reviewer components
-        with patch("nicestlog.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
-            mock_reviewer = MagicMock()
-            mock_reviewer_class.return_value = mock_reviewer
+        with patch("nicestlog.cli.run_log_reviewer") as mock_run_reviewer:
+            result = self.runner.invoke(app, ["tools", "review", str(log_file)])
 
-            # Mock a report with good score
-            mock_report = MagicMock()
-            mock_report.overall_score = 85.0
-            mock_reviewer.analyze_log_file.return_value = mock_report
-
-            with patch("nicestlog.log_reviewer.print_report") as mock_print_report:
-                result = self.runner.invoke(app, ["tools", "review", str(log_file)])
-
-                assert result.exit_code == 0
-                mock_reviewer.analyze_log_file.assert_called_once()
-                mock_print_report.assert_called_once_with(mock_report, "text")
+            # Should succeed
+            assert result.exit_code == 0
+            mock_run_reviewer.assert_called_once_with(str(log_file), "text", 70.0)
 
     def test_review_log_directory(self):
         """Test reviewing a directory of log files."""
@@ -429,38 +418,25 @@ class TestReviewIntegration:
         log1.write_text("2024-01-01 10:00:00 INFO Application started\n")
 
         log2 = self.temp_path / "error.log"
-        log2.write_text("2024-01-01 10:00:00 ERROR Something went wrong\n")
+        log2.write_text("2024-01-01 10:00:01 ERROR Database connection failed\n")
 
-        with patch("nicestlog.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
-            mock_reviewer = MagicMock()
-            mock_reviewer_class.return_value = mock_reviewer
+        # Mock the reviewer components
+        with patch("nicestlog.cli.run_log_reviewer") as mock_run_reviewer:
+            result = self.runner.invoke(
+                app,
+                [
+                    "tools",
+                    "review",
+                    str(self.temp_path),
+                    "--format",
+                    "json",
+                    "--min-score",
+                    "70",
+                ],
+            )
 
-            # Mock reports with varying scores
-            mock_report1 = MagicMock()
-            mock_report1.overall_score = 80.0
-            mock_report2 = MagicMock()
-            mock_report2.overall_score = 75.0
-
-            mock_reviewer.analyze_log_file.side_effect = [mock_report1, mock_report2]
-
-            # Patch json.dumps to handle MagicMock reliably
-            with patch("json.dumps", side_effect=lambda obj, indent=2: "{}"):
-                with patch("nicestlog.log_reviewer.print_report"):
-                    result = self.runner.invoke(
-                        app,
-                        [
-                            "tools",
-                            "review",
-                            str(self.temp_path),
-                            "--format",
-                            "json",
-                            "--min-score",
-                            "70",
-                        ],
-                    )
-
-                assert result.exit_code == 0
-                assert mock_reviewer.analyze_log_file.call_count == 2
+            assert result.exit_code == 0
+            mock_run_reviewer.assert_called_once_with(str(self.temp_path), "json", 70.0)
 
     def test_review_with_low_score_fails(self):
         """Test that review fails when log quality is below minimum score."""

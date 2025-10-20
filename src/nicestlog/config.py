@@ -1,5 +1,7 @@
 """Configuration handling for nicestlog."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 import fnmatch
 import structlog
@@ -57,12 +59,12 @@ class NicestLogConfig:
             **kwargs: Keyword arguments that can override config file settings.
 
         """
-        log = logging.getLogger(__name__)
+        log = structlog.get_logger(__name__)
 
         config = self._load_config()
-        log.debug("config-loaded-from-file: key_count=%d", len(config))
+        log.debug("config-loaded-from-file", key_count=len(config))
         config.update(kwargs)
-        log.debug("config-merged-with-kwargs: kwargs_count=%d", len(kwargs))
+        log.debug("config-merged-with-kwargs", kwargs_count=len(kwargs))
 
         self.verbose: bool = config.get("verbose", False)
         self.logdir: Path | None = Path(config["logdir"]) if config.get("logdir") else None
@@ -92,29 +94,29 @@ class NicestLogConfig:
 
     def _load_config(self) -> dict[str, Any]:
         """Loads nicestlog config from pyproject.toml."""
-        log = logging.getLogger(__name__)
+        log = structlog.get_logger(__name__)
 
         pyproject_path = Path.cwd() / "pyproject.toml"
         log.debug(
-            "searching-for-config: path=%s, exists=%s",
-            str(pyproject_path),
-            pyproject_path.is_file(),
+            "searching-for-config",
+            path=str(pyproject_path),
+            exists=pyproject_path.is_file(),
         )
 
         if not pyproject_path.is_file():
-            log.debug("no-pyproject-found: path=%s", str(pyproject_path))
+            log.debug("no-pyproject-found", path=str(pyproject_path))
             return {}
         try:
             with pyproject_path.open("rb") as f:
                 config = tomllib.load(f)
             nicest_config = config.get("tool", {}).get("nicestlog", {})
             log.info(
-                "config-loaded-successfully: path=%s, settings_count=%d",
-                str(pyproject_path),
-                len(nicest_config),
+                "config-loaded-successfully",
+                path=str(pyproject_path),
+                settings_count=len(nicest_config),
             )
         except (tomllib.TOMLDecodeError, Exception) as e:
-            log.exception("config-loading-failed: path=%s, error=%s", str(pyproject_path), str(e))
+            log.exception("config-loading-failed", path=str(pyproject_path), error=str(e))
             return {}
         else:
             return nicest_config
@@ -133,7 +135,7 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         ValueError: If project structure cannot be determined and user configuration is required.
 
     """
-    log = logging.getLogger(__name__)
+    log = structlog.get_logger(__name__)
 
     if project_root is None:
         project_root = Path.cwd()
@@ -155,7 +157,7 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         log.info("project-structure-detected-from-heuristics")
         return structure
     except (OSError, ValueError, FileNotFoundError) as e:
-        log.exception("heuristic-detection-failed: error=%s", str(e))
+        log.exception("heuristic-detection-failed", error=str(e))
         msg = (
             f"Could not determine project structure for {project_root}. "
             "Please configure [tool.nicestlog] section in pyproject.toml with 'src_dir' and 'exclude' settings."
