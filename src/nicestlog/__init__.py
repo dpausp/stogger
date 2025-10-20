@@ -1,5 +1,7 @@
 """Advanced structured logging for Python applications.
 
+from __future__ import annotations
+
 This package provides advanced logging capabilities with structured data,
 multiple output formats, and integrations for various logging backends.
 
@@ -30,7 +32,7 @@ Functions:
     drop_cmd_output_logfile: Remove command output log file
 """
 
-__version__ = "2.1.0"
+__version__ = "0.3.4"
 
 __all__ = [
     "JournalLogger",
