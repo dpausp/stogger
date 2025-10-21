@@ -5,9 +5,10 @@ within structlog logger calls and verifies that the translation file contains
 entries for all detected message keys.
 """
 
-
+from __future__ import annotations
 
 from pathlib import Path
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, cast
 
 try:
@@ -30,7 +31,7 @@ from ._regexes import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    pass
 
 # Excluded directories when scanning for Python files
 EXCLUDE_DIRS = {

@@ -14,20 +14,20 @@ Features:
 
 # ruff: noqa: FBT001, FBT002
 
-
+from __future__ import annotations
 
 import ast
 from dataclasses import dataclass, field
 from enum import Enum
 import hashlib
 import time
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable
 
 import structlog
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from pathlib import Path
+    pass
 
 # Initialize our logger for the assistant itself
 log = structlog.get_logger("nicestlog.advanced_assistant")
