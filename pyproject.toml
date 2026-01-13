@@ -4,7 +4,7 @@ version = "0.3.5"
 description = "A sophisticated multi-target structured logging system built on structlog"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [ "structlog>=23.0.0", "eliot>=1.0.0", "requests>=2.32.4", "typer>=0.16.1", "rich>=13.0", "toml>=0.10.2", "click<8.2", "colorama>=0.4.6", "pexpect>=4.9.0", "pytest>=8.3.0",]
+dependencies = [ "structlog>=25.4.0", "eliot>=1.0.0", "requests>=2.32.4", "typer>=0.16.1", "rich>=13.0", "toml>=0.10.2", "click>=8.1.0", "colorama>=0.4.6", "pexpect>=4.9.0", "pytest>=9.0.0",]
 
 [build-system]
 requires = [ "hatchling",]
@@ -16,8 +16,8 @@ docs = [ "sphinx>=7.0.0", "furo>=2024.1.29", "myst-parser>=2.0.0", "sphinx-copyb
 ipython = [ "ipython>=9.4.0",]
 ruff = [ "ruff>=0.12.7",]
 test = [
- "pytest>=7.0.0",
- "pytest-cov>=4.0.0",
+ "pytest>=9.0.0",
+ "pytest-cov>=7.0.0",
  "pytest-timeout>=2.4.0",
 ]
 
