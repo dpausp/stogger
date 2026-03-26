@@ -55,9 +55,9 @@ if __name__ == "__main__":
     # Create utils.py with logging module
     utils_py = project_dir / "utils.py"
     utils_py.write_text('''"""Utility functions with standard logging."""
-import logging
+import nicestlog
 
-logger = logging.getLogger(__name__)
+logger = nicestlog.get_logger(__name__)
 
 def validate_input(data):
     logger.info(f"Validating input data: {data}")

@@ -56,15 +56,12 @@ if __name__ == "__main__":
     logging_example = '''#!/usr/bin/env python3
 """Example with standard logging - BEFORE migration."""
 
-import logging
+import nicestlog
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure nicestlog
+nicestlog.configure()
 
-logger = logging.getLogger(__name__)
+logger = nicestlog.get_logger(__name__)
 
 class OrderProcessor:
     def __init__(self):
@@ -155,8 +152,8 @@ import sys
 from datetime import datetime
 
 # Mix of logging configurations
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger(__name__)
+nicestlog.configure()
+logger = nicestlog.get_logger(__name__)
 
 class DataSyncService:
     def __init__(self, source_url, target_url):
