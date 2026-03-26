@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -848,21 +848,22 @@ name = "nicestlog"
 version = "0.3.5"
 source = { editable = "." }
 dependencies = [
-    { name = "click" },
-    { name = "colorama" },
-    { name = "eliot" },
-    { name = "pexpect" },
-    { name = "pytest" },
-    { name = "requests" },
-    { name = "rich" },
     { name = "structlog" },
-    { name = "toml" },
-    { name = "typer" },
 ]
 
 [package.optional-dependencies]
-color = [
+cli = [
+    { name = "click" },
     { name = "colorama" },
+    { name = "rich" },
+    { name = "toml" },
+    { name = "typer" },
+]
+eliot = [
+    { name = "eliot" },
+]
+http = [
+    { name = "requests" },
 ]
 web = [
     { name = "flask" },
@@ -875,7 +876,7 @@ dev = [
     { name = "doit" },
     { name = "hatch" },
     { name = "mdformat" },
-    { name = "nicestlog", extra = ["web"] },
+    { name = "nicestlog", extra = ["cli"] },
     { name = "pre-commit" },
     { name = "pylint" },
     { name = "radon" },
@@ -911,20 +912,17 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "colorama", specifier = ">=0.4.6" },
-    { name = "colorama", marker = "extra == 'color'", specifier = ">=0.4.0" },
-    { name = "eliot", specifier = ">=1.0.0" },
+    { name = "click", marker = "extra == 'cli'", specifier = ">=8.1.0" },
+    { name = "colorama", marker = "extra == 'cli'", specifier = ">=0.4.6" },
+    { name = "eliot", marker = "extra == 'eliot'", specifier = ">=1.0.0" },
     { name = "flask", marker = "extra == 'web'", specifier = ">=3.0.3" },
-    { name = "pexpect", specifier = ">=4.9.0" },
-    { name = "pytest", specifier = ">=9.0.0" },
-    { name = "requests", specifier = ">=2.32.4" },
-    { name = "rich", specifier = ">=13.0" },
+    { name = "requests", marker = "extra == 'http'", specifier = ">=2.32.4" },
+    { name = "rich", marker = "extra == 'cli'", specifier = ">=13.0" },
     { name = "structlog", specifier = ">=25.4.0" },
-    { name = "toml", specifier = ">=0.10.2" },
-    { name = "typer", specifier = ">=0.16.1" },
+    { name = "toml", marker = "extra == 'cli'", specifier = ">=0.10.2" },
+    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.16.1" },
 ]
-provides-extras = ["color", "web"]
+provides-extras = ["cli", "web", "http", "eliot"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -933,7 +931,7 @@ dev = [
     { name = "doit", specifier = ">=0.36.0" },
     { name = "hatch", specifier = ">=1.14.1" },
     { name = "mdformat", specifier = ">=0.7.22" },
-    { name = "nicestlog", extras = ["web"], editable = "." },
+    { name = "nicestlog", extras = ["cli"], editable = "." },
     { name = "pre-commit", specifier = ">=3.5.0" },
     { name = "pylint", specifier = ">=3.3.8" },
     { name = "radon", specifier = ">=6.0.1" },
