@@ -21,6 +21,13 @@ htmlcov/
 # direnv
 .direnv
 
+# Environment / secrets
+.env
+.env.*
+
+# Ad-hoc test scripts
+test_*.py
+
 # Nix
 result
 
