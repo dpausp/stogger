@@ -4,7 +4,7 @@ This module provides automated analysis of existing Python projects to determine
 the best nicestlog migration strategy and identify potential issues.
 """
 
-
+from __future__ import annotations
 
 import ast
 from dataclasses import asdict, dataclass

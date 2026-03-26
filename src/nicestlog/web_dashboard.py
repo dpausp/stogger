@@ -3,6 +3,8 @@
 No async bullshit, just good old Flask with HTMX for live updates.
 """
 
+from __future__ import annotations
+
 import contextlib
 from datetime import UTC, datetime
 import queue

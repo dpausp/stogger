@@ -3,6 +3,8 @@
 Reads binary journal logs and displays them with nicestlog's beautiful formatting.
 """
 
+from __future__ import annotations
+
 import argparse
 from collections.abc import Iterator
 from dataclasses import dataclass

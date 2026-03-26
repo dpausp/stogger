@@ -3,6 +3,8 @@
 Combines Eliot's powerful action tracking with nicestlog's beautiful output.
 """
 
+from __future__ import annotations
+
 from contextlib import suppress
 from datetime import datetime
 import sys

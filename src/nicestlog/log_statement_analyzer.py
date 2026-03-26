@@ -3,6 +3,8 @@
 Analyzes log statements to detect common issues and patterns.
 """
 
+from __future__ import annotations
+
 import argparse
 import ast
 from dataclasses import dataclass

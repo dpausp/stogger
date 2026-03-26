@@ -3,6 +3,8 @@
 Supports Austrian, Swiss German, and other dialects because why not!
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

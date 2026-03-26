@@ -3,6 +3,8 @@
 Like a politeness compiler, but for log statements!
 """
 
+from __future__ import annotations
+
 import argparse
 import ast
 from contextlib import suppress

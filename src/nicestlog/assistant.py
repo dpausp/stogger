@@ -7,7 +7,7 @@ This is a minimal, safe transformer that:
 It intentionally avoids complex logging-module rewrites for safety.
 """
 
-
+from __future__ import annotations
 
 import ast
 from dataclasses import dataclass, field

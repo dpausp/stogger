@@ -4,7 +4,7 @@ Provides in-terminal code editing with syntax highlighting and validation.
 Records all user edits for machine learning and pattern improvement.
 """
 
-
+from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
