@@ -3,11 +3,9 @@
 Combines Eliot's powerful action tracking with nicestlog's beautiful output.
 """
 
-from __future__ import annotations
-
-from contextlib import suppress
-from datetime import datetime
 import sys
+from contextlib import suppress
+from datetime import UTC, datetime
 from typing import Any, TextIO
 
 try:
@@ -210,7 +208,7 @@ class HumanReadableEliotDestination:
         if not self.show_timestamps or timestamp is None:
             return ""
 
-        dt = datetime.fromtimestamp(timestamp)
+        dt = datetime.fromtimestamp(timestamp, tz=UTC)
         return f"{DIM}{dt.strftime('%H:%M:%S.%f')[:-3]}{RESET_ALL} "
 
 

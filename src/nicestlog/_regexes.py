@@ -1,5 +1,3 @@
-
-
 import re
 
 # Shared regexes for scanning source code

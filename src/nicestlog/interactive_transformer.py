@@ -4,22 +4,20 @@ Provides interactive, user-guided code transformations with preview and confirma
 inspired by the amber search & replace tool.
 """
 
-from __future__ import annotations
-
 import ast
 import copy
+import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-import time
 from typing import Any
 
+import structlog
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.syntax import Syntax
 from rich.table import Table
-import structlog
 
 from .advanced_assistant import (
     AdvancedAssistant,
@@ -107,7 +105,9 @@ class InteractiveTransformer:
 
         log.debug(
             "interactive-transformer-initialized",
-            _replace_msg="🎯 Interactive Transformer initialized with {patterns} patterns (live editing: {live_editing})",
+            _replace_msg=(
+                "🎯 Interactive Transformer initialized with {patterns} patterns (live editing: {live_editing})"
+            ),
             patterns=len([p for p in self.assistant.patterns if p.enabled]),
             context_lines=context_lines,
             session_id=self.assistant.session_id,
@@ -458,7 +458,11 @@ class InteractiveTransformer:
         # Get user choice
         while True:
             choice_str = Prompt.ask(
-                "Replace? [bold green][Y][/bold green]es/[bold red][n][/bold red]o/[bold yellow][a][/bold yellow]ll/[bold blue][p][/bold blue]review/[bold cyan][s][/bold cyan]kip file/[bold magenta][q][/bold magenta]uit",
+                (
+                    "Replace? [bold green][Y][/bold green]es/[bold red][n][/bold red]o"
+                    "/[bold yellow][a][/bold yellow]ll/[bold blue][p][/bold blue]review"
+                    "/[bold cyan][s][/bold cyan]kip file/[bold magenta][q][/bold magenta]uit"
+                ),
                 default="y",
                 show_default=False,
             ).lower()

@@ -192,19 +192,15 @@ log.info('after-full-init', message='Should show full format')
 
         # Find the early message line
         early_lines = [line for line in lines if "early-message" in line]
-        assert len(early_lines) == 1, (
-            f"Expected exactly 1 early message, got: {early_lines}"
-        )
+        assert len(early_lines) == 1, f"Expected exactly 1 early message, got: {early_lines}"
 
         early_line = early_lines[0]
         assert "Should show early format" in early_line
-        assert "2025-" in early_line  # Date format
+        assert "2026-" in early_line  # Date format
 
         # Find the full init message line
         full_init_lines = [line for line in lines if "after-full-init" in line and "Should show full format" in line]
-        assert len(full_init_lines) == 1, (
-            f"Expected exactly 1 full init message, got: {full_init_lines}"
-        )
+        assert len(full_init_lines) == 1, f"Expected exactly 1 full init message, got: {full_init_lines}"
 
         full_init_line = full_init_lines[0]
         assert "Should show full format" in full_init_line

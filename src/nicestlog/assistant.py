@@ -7,14 +7,12 @@ This is a minimal, safe transformer that:
 It intentionally avoids complex logging-module rewrites for safety.
 """
 
-from __future__ import annotations
-
 import ast
-from dataclasses import dataclass, field
 import difflib
-from pathlib import Path
 import re
 import unicodedata
+from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
@@ -222,7 +220,7 @@ def migrate_directory(
         raise FileNotFoundError(msg)
 
     # Use shared file filtering with gitignore support
-    from .gitignore_utils import filter_python_files  # noqa: PLC0415
+    from .gitignore_utils import filter_python_files
 
     for py in filter_python_files(input_dir, respect_gitignore=True):
         original = py.read_text(encoding="utf-8")

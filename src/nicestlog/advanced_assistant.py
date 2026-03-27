@@ -12,22 +12,16 @@ Features:
 - Safety checks and validation
 """
 
-# ruff: noqa: FBT001, FBT002
-
-from __future__ import annotations
-
 import ast
-from dataclasses import dataclass, field
-from enum import Enum
 import hashlib
 import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import Any
 
 import structlog
-
-if TYPE_CHECKING:
-    pass
 
 # Initialize our logger for the assistant itself
 log = structlog.get_logger("nicestlog.advanced_assistant")
@@ -751,7 +745,7 @@ class AdvancedAssistant:
                 duration=transformer.metrics.duration,
             )
 
-            return result  # noqa: TRY300
+            return result
 
         except Exception as e:
             log.exception(
@@ -790,8 +784,8 @@ class AdvancedAssistant:
         )
 
         # Use gitignore-aware file filtering and respect project structure
-        from .config import detect_project_structure  # noqa: PLC0415
-        from .gitignore_utils import filter_python_files  # noqa: PLC0415
+        from .config import detect_project_structure
+        from .gitignore_utils import filter_python_files
 
         # Detect project structure to get source directories
         try:
@@ -810,7 +804,7 @@ class AdvancedAssistant:
                         for py_file in src_files
                         if not project_structure.should_exclude_from_logging_analysis(py_file)
                     )
-        except Exception:  # noqa: BLE001
+        except Exception:
             # Fallback to original behavior if project structure detection fails
             files = list(directory.glob(pattern))
 

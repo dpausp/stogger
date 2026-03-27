@@ -1,14 +1,12 @@
 """Configuration handling for nicestlog."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass
 import fnmatch
-import structlog
-from pathlib import Path
 import tomllib
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
+import structlog
 
 
 @dataclass
@@ -162,7 +160,7 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
             f"Could not determine project structure for {project_root}. "
             "Please configure [tool.nicestlog] section in pyproject.toml with 'src_dir' and 'exclude' settings."
         )
-        raise ValueError(msg)
+        raise ValueError(msg) from e
 
 
 def _detect_from_pyproject(
@@ -261,11 +259,9 @@ def _detect_from_heuristics(project_root: Path) -> ProjectStructure:
     # Common source directory patterns
     for src_candidate in ["src", "lib", project_root.name]:
         src_path = project_root / src_candidate
-        if src_path.exists() and src_path.is_dir():
-            # Check if it contains Python packages
-            if any(src_path.rglob("*.py")):
-                source_dirs.append(src_candidate)
-                break
+        if src_path.exists() and src_path.is_dir() and any(src_path.rglob("*.py")):
+            source_dirs.append(src_candidate)
+            break
 
     # If no src directory found, assume root is source
     if not source_dirs:

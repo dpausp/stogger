@@ -4,15 +4,13 @@ This module provides automated analysis of existing Python projects to determine
 the best nicestlog migration strategy and identify potential issues.
 """
 
-from __future__ import annotations
-
 import ast
-from dataclasses import asdict, dataclass
-from datetime import datetime
 import fnmatch
 import json
-from pathlib import Path
 import re
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import structlog
@@ -310,11 +308,12 @@ class ProjectAnalyzer:
             for src_dir in project_structure.source_dirs:
                 src_path = project_path / src_dir
                 if src_path.exists():
-                    for py_file in src_path.rglob("*.py"):
-                        if not self._should_ignore_file(py_file, project_path, ignore_patterns):
-                            # Additional filtering to exclude test files (like check command)
-                            if not project_structure.should_exclude_from_logging_analysis(py_file):
-                                python_files.append(py_file)
+                    python_files.extend(
+                        py_file
+                        for py_file in src_path.rglob("*.py")
+                        if not self._should_ignore_file(py_file, project_path, ignore_patterns)
+                        and not project_structure.should_exclude_from_logging_analysis(py_file)
+                    )
         except (AttributeError, ValueError):
             # Fallback to original behavior if project structure detection fails
             python_files.extend(
@@ -913,7 +912,8 @@ class ProjectAnalyzer:
         high_priority_patterns = [p for p in patterns if p.migration_priority >= MIN_HIGH_PRIORITY]
         if len(high_priority_patterns) > MAX_HIGH_PRIORITY_PATTERNS:
             warnings.append(
-                f"Large number of high-priority patterns ({len(high_priority_patterns)}) - migration may be time-consuming",
+                "Large number of high-priority patterns"
+                f" ({len(high_priority_patterns)}) - migration may be time-consuming",
             )
 
         if complexity.max_complexity > MAX_COMPLEXITY_THRESHOLD:
@@ -931,7 +931,7 @@ class ProjectAnalyzer:
 
     def _get_timestamp(self) -> str:
         """Get current timestamp as ISO string."""
-        return datetime.now().isoformat()
+        return datetime.now(tz=UTC).isoformat()
 
 
 def analyze_project_for_agents(

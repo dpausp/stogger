@@ -5,14 +5,12 @@ output functions (typer.echo, click.echo, rich.print, etc.) to structured
 logging with nicestlog, while preserving styling and formatting information.
 """
 
-from __future__ import annotations
-
 import ast
+import re
+import unicodedata
 from contextlib import suppress
 from dataclasses import dataclass
-import re
 from typing import Any
-import unicodedata
 
 
 @dataclass
@@ -133,7 +131,6 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
 
     def detect_cli_output_call(self, node: ast.Call) -> CLIOutputCall | None:
         """Detect and classify CLI output function calls."""
-        # typer.echo()
         if (
             isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Name)
@@ -142,7 +139,6 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         ):
             return self._analyze_typer_echo(node)
 
-        # click.echo()
         elif (
             isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Name)
@@ -169,13 +165,11 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         ):
             return self._analyze_rich_console_print(node)
 
-        # parser.error() (argparse)
         elif (
             isinstance(node.func, ast.Attribute) and node.func.attr == "error" and isinstance(node.func.value, ast.Name)
         ):
             return self._analyze_argparse_error(node)
 
-        # sys.stdout.write() / sys.stderr.write()
         elif (
             isinstance(node.func, ast.Attribute)
             and isinstance(node.func.value, ast.Attribute)
@@ -214,11 +208,14 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
                 if call_info.style_info is None:
                     call_info.style_info = {}
                 call_info.style_info["bg_color"] = self._extract_color_value(kw.value)
-            elif kw.arg in ["bold", "italic", "underline", "dim"]:
-                if isinstance(kw.value, ast.Constant) and kw.value.value:
-                    if call_info.style_info is None:
-                        call_info.style_info = {}
-                    call_info.style_info[kw.arg] = True
+            elif kw.arg in ["bold", "italic", "underline", "dim"] and (
+                isinstance(kw.value, ast.Constant)
+                and kw.value.value
+                and (call_info.style_info is None or kw.arg not in call_info.style_info)
+            ):
+                if call_info.style_info is None:
+                    call_info.style_info = {}
+                call_info.style_info[kw.arg] = True
 
         return call_info
 
@@ -333,15 +330,13 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         """Extract color value from AST node."""
         if isinstance(node, ast.Constant):
             return str(node.value)
-        elif isinstance(node, ast.Attribute):
-            # Handle typer.colors.RED, etc.
-            if (
-                isinstance(node.value, ast.Attribute)
-                and isinstance(node.value.value, ast.Name)
-                and node.value.value.id == "typer"
-                and node.value.attr == "colors"
-            ):
-                return node.attr.lower()
+        elif isinstance(node, ast.Attribute) and (
+            isinstance(node.value, ast.Attribute)
+            and isinstance(node.value.value, ast.Name)
+            and node.value.value.id == "typer"
+            and node.value.attr == "colors"
+        ):
+            return node.attr.lower()
         return None
 
     def _extract_string_value(self, node: ast.AST) -> str | None:

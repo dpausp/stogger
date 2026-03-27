@@ -3,19 +3,13 @@
 Supports Austrian, Swiss German, and other dialects because why not!
 """
 
-from __future__ import annotations
-
+import tomllib
 from pathlib import Path
 from typing import Any
 
 import structlog
 
 from .config import NicestLogConfig
-
-try:
-    import toml  # type: ignore[import-untyped]
-except ImportError:
-    toml = None  # type: ignore[assignment]
 
 # Get logger for this module
 log = structlog.get_logger(__name__)
@@ -50,14 +44,16 @@ class NicestlogTranslator:
 
         # Load fallback (English)
         fallback_file = translations_dir / "en.toml"
-        if fallback_file.exists() and toml:
-            self.fallback_translations = toml.load(fallback_file)
+        if fallback_file.exists():
+            with fallback_file.open("rb") as f:
+                self.fallback_translations = tomllib.load(f)
             log.debug("loaded-fallback-translations", file=str(fallback_file))
 
         # Load requested language
         lang_file = translations_dir / f"{self.language}.toml"
-        if lang_file.exists() and toml:
-            self.translations = toml.load(lang_file)
+        if lang_file.exists():
+            with lang_file.open("rb") as f:
+                self.translations = tomllib.load(f)
             log.debug(
                 "loaded-translations",
                 language=self.language,

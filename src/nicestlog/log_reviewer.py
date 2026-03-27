@@ -3,18 +3,12 @@
 Reviews log quality, structure, and usefulness with Austrian directness.
 """
 
-from __future__ import annotations
-
-import argparse
+import json
+import re
 from collections import Counter
 from dataclasses import dataclass
-import json
 from pathlib import Path
-import re
-import sys
 from typing import Any
-
-import structlog
 
 # Constants for log quality scoring
 MIN_FIELDS_FOR_STRUCTURED = 2
@@ -146,7 +140,7 @@ class LogQualityReviewer:
 
         # Calculate scores and generate feedback
         score = self._calculate_quality_score(stats)
-        verdict, verdict_msg = self._get_verdict(score)
+        verdict, _verdict_msg = self._get_verdict(score)
 
         # Generate specific feedback
         issues.extend(self._find_issues(stats))
@@ -215,8 +209,7 @@ class LogQualityReviewer:
                 pass
 
         # Key=value format
-        for match in re.finditer(r"(\w+)[:=]", line):
-            fields.append(match.group(1))
+        fields.extend(match.group(1) for match in re.finditer(r"(\w+)[:=]", line))
 
         return fields
 
@@ -377,71 +370,10 @@ class LogQualityReviewer:
         return suggestions
 
 
-def review_logs_cli():
-    """CLI interface for log review."""
-    log = structlog.get_logger()
-
-    # WARNING: Log reviewer is currently unsupported
-    log.warning("log-reviewer-unsupported", _replace_msg="Log reviewer is currently unsupported. Use at your own risk.")
-
-    parser = argparse.ArgumentParser(
-        description="Log Quality Reviewer - tells you if your logs are 'arsch' or not",
-        epilog="Austrian honesty included! 🇦🇹",
-    )
-    parser.add_argument("path", help="Log file or directory to review")
-    parser.add_argument(
-        "--format",
-        choices=["text", "json"],
-        default="text",
-        help="Output format",
-    )
-    parser.add_argument(
-        "--min-score",
-        type=float,
-        default=70,
-        help="Minimum acceptable score (default: 70)",
-    )
-
-    args = parser.parse_args()
-
-    reviewer = LogQualityReviewer()
-    path = Path(args.path)
-
-    if path.is_file():
-        report = reviewer.analyze_log_file(path)
-        print_report(report, args.format)
-
-        if report.overall_score < args.min_score:
-            sys.exit(1)
-
-    elif path.is_dir():
-        log_files = list(path.glob("*.log")) + list(path.glob("*.txt"))
-        if not log_files:
-            log.error("no-log-files-found", _replace_msg="Keine Log-Dateien gefunden")
-            sys.exit(1)
-
-        total_score = 0
-        for log_file in log_files:
-            report = reviewer.analyze_log_file(log_file)
-            print_report(report, args.format)
-            total_score += report.overall_score
-
-        avg_score = total_score / len(log_files)
-
-        if avg_score < args.min_score:
-            sys.exit(1)
-
-    else:
-        log.error("path-not-found", _replace_msg="Pfad nicht gefunden")
-        sys.exit(1)
-
-
 def print_report(report: LogQualityReport, format_type: str = "text"):
     """Print the quality report."""
     if format_type == "json":
         return
-
-    # Text format with Austrian flair
 
     if report.issues:
         for _issue in report.issues:
@@ -458,7 +390,3 @@ def print_report(report: LogQualityReport, format_type: str = "text"):
     if report.stats:
         for _key, _value in report.stats.items():
             pass
-
-
-if __name__ == "__main__":
-    review_logs_cli()

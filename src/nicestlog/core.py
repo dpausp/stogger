@@ -1,16 +1,17 @@
 """Core logging functionality for nicestlog."""
 
-from contextlib import suppress
-from datetime import datetime
 import io
 import json
 import logging
-import structlog
 import os
 import string
 import subprocess
 import sys
 import syslog
+from contextlib import suppress
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import ClassVar
 
 import structlog
 
@@ -121,7 +122,7 @@ class ConsoleFileRenderer:
     specific knowledge about fc.agent structures.
     """
 
-    LEVELS = [
+    LEVELS: ClassVar[list[str]] = [
         "alert",
         "critical",
         "error",
@@ -185,7 +186,7 @@ class ConsoleFileRenderer:
         for key in self._level_to_color:
             self._level_to_color[key] += BRIGHT
         self._longest_level = len(
-            max(self._level_to_color.keys(), key=lambda e: len(e)),
+            max(self._level_to_color.keys(), key=len),
         )
 
     def __call__(self, _, method_name, event_dict):
@@ -522,7 +523,7 @@ def init_logging(*args, **kwargs):
     if logdir is not None:
         try:
             main_log_file_name = logdir / f"{syslog_identifier}.log"
-            main_log_file = open(main_log_file_name, "a")
+            main_log_file = main_log_file_name.open("a")
         except PermissionError:
             pass
         else:
@@ -537,7 +538,7 @@ def init_logging(*args, **kwargs):
         if journal and os.environ.get("JOURNAL_STREAM"):
             pid = os.getpid()
             # S603/S607: systemctl is a system command, using full path would be better but systemctl is in PATH
-            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603,S607
+            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
@@ -840,12 +841,12 @@ def init_command_logging(log, logdir=None):
     # from a systemd unit.
     invocation_id = os.environ.get("INVOCATION_ID")
     if invocation_id:
-        formatted_dt = datetime.now().strftime("%Y-%m-%dT%H_%m_%S")
+        formatted_dt = datetime.now(UTC).strftime("%Y-%m-%dT%H_%m_%S")
         cmd_log_file_name = logdir / f"fc-agent/{formatted_dt}_build-output_{invocation_id}.log"
     else:
         cmd_log_file_name = logdir / "fc-agent/build-output.log"
 
-    cmd_log_file = open(cmd_log_file_name, "w")
+    cmd_log_file = cmd_log_file_name.open("w")
 
     log.info(
         "logging-cmd-output",
@@ -890,7 +891,7 @@ def drop_cmd_output_logfile(log):
     )
 
     cmd_log_file.close()
-    os.unlink(cmd_log_file.name)
+    Path(cmd_log_file.name).unlink()
 
 
 def logging_initialized():

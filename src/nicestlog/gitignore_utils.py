@@ -1,7 +1,5 @@
 """Utilities for respecting .gitignore patterns in file analysis."""
 
-from __future__ import annotations
-
 import fnmatch
 from pathlib import Path
 

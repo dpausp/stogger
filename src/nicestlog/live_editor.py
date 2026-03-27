@@ -4,22 +4,20 @@ Provides in-terminal code editing with syntax highlighting and validation.
 Records all user edits for machine learning and pattern improvement.
 """
 
-from __future__ import annotations
-
 import ast
-from dataclasses import dataclass
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
 import time
+from dataclasses import dataclass
+from pathlib import Path
 
+import structlog
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.syntax import Syntax
-import structlog
 
 log = structlog.get_logger("nicestlog.live_editor")
 console = Console()
@@ -213,7 +211,10 @@ class LiveCodeEditor:
         """Get user's choice for what to do next."""
         while True:
             choice = Prompt.ask(
-                "🔥 [bold yellow][e][/bold yellow]dit/[bold green][a][/bold green]ccept/[bold red][r][/bold red]eject/[bold blue]reset[/bold blue]",
+                (
+                    "🔥 [bold yellow][e][/bold yellow]dit/[bold green][a][/bold green]ccept"
+                    "/[bold red][r][/bold red]eject/[bold blue]reset[/bold blue]"
+                ),
                 default="e",
                 show_default=False,
             ).lower()
@@ -224,7 +225,7 @@ class LiveCodeEditor:
                 return "accept"
             elif choice in ["r", "reject"]:
                 return "reject"
-            elif choice in ["reset"]:
+            elif choice == "reset":
                 return "reset"
             else:
                 console.print("[red]Invalid choice. Use e/a/r/reset[/red]")
@@ -279,7 +280,7 @@ class LiveCodeEditor:
             # Open editor
             console.print(f"🔥 Opening {editor}...")
             # S603: editor is validated against allowed list
-            result = subprocess.run([editor, temp_path], check=False)  # noqa: S603
+            result = subprocess.run([editor, temp_path], check=False)
 
             if result.returncode != 0:
                 console.print(
@@ -288,7 +289,7 @@ class LiveCodeEditor:
                 return current_code, True
 
             # Read edited content
-            with open(temp_path) as f:
+            with Path(temp_path).open() as f:
                 new_code = f.read().strip()
 
             # Validate syntax
@@ -306,26 +307,25 @@ class LiveCodeEditor:
 
         finally:
             # Cleanup
-            os.unlink(temp_path)
+            Path(temp_path).unlink()
 
     def save_edit_sessions(self, output_path: Path):
         """Save all edit sessions for machine learning analysis."""
-        sessions_data = []
-        for session in self.edit_sessions:
-            sessions_data.append(
-                {
-                    "original_code": session.original_code,
-                    "ai_suggestion": session.ai_suggestion,
-                    "user_final_code": session.user_final_code,
-                    "edit_steps": session.edit_steps,
-                    "pattern_name": session.pattern_name,
-                    "file_path": session.file_path,
-                    "line_number": session.line_number,
-                    "accepted": session.accepted,
-                    "edit_duration_seconds": session.edit_duration_seconds,
-                    "syntax_errors_encountered": session.syntax_errors_encountered,
-                },
-            )
+        sessions_data = [
+            {
+                "original_code": session.original_code,
+                "ai_suggestion": session.ai_suggestion,
+                "user_final_code": session.user_final_code,
+                "edit_steps": session.edit_steps,
+                "pattern_name": session.pattern_name,
+                "file_path": session.file_path,
+                "line_number": session.line_number,
+                "accepted": session.accepted,
+                "edit_duration_seconds": session.edit_duration_seconds,
+                "syntax_errors_encountered": session.syntax_errors_encountered,
+            }
+            for session in self.edit_sessions
+        ]
 
         output_path.write_text(json.dumps(sessions_data, indent=2))
 

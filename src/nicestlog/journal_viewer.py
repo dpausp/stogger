@@ -3,16 +3,14 @@
 Reads binary journal logs and displays them with nicestlog's beautiful formatting.
 """
 
-from __future__ import annotations
-
 import argparse
-from collections.abc import Iterator
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 import json
 import re
 import sys
-from typing import Any
+from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from typing import Any, ClassVar
 
 import structlog
 
@@ -90,7 +88,7 @@ class JournalViewer:
     with the same beautiful styling as nicestlog console output.
     """
 
-    PRIORITY_TO_LEVEL = {
+    PRIORITY_TO_LEVEL: ClassVar[dict[int, str]] = {
         0: "critical",  # LOG_EMERG
         1: "critical",  # LOG_ALERT
         2: "critical",  # LOG_CRIT
@@ -101,7 +99,7 @@ class JournalViewer:
         7: "debug",  # LOG_DEBUG
     }
 
-    LEVEL_COLORS = {
+    LEVEL_COLORS: ClassVar[dict[str, str]] = {
         "critical": RED,
         "error": RED,
         "warning": YELLOW,
@@ -161,13 +159,13 @@ class JournalViewer:
         # Extract timestamp
         timestamp = entry.get("__REALTIME_TIMESTAMP")
         if timestamp:
-            timestamp = datetime.fromtimestamp(timestamp.timestamp())
+            timestamp = datetime.fromtimestamp(timestamp.timestamp(), tz=UTC)
         else:
             log.warning(
                 "missing-timestamp-in-entry",
                 _replace_msg="⚠️  Journal entry missing timestamp, using current time",
             )
-            timestamp = datetime.now()
+            timestamp = datetime.now(tz=UTC)
 
         # Extract basic fields
         hostname = entry.get("_HOSTNAME", "unknown")
@@ -400,7 +398,7 @@ class JournalViewer:
         log.debug("parsing-time-string", time_str=time_str)
         time_str = time_str.strip().lower()
         # Support monkeypatching datetime in tests by keeping it as module attribute
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
 
         # Relative times
         if "ago" in time_str:
@@ -537,13 +535,6 @@ def main():
         return
 
     try:
-        # Create viewer
-        log.debug(
-            "creating-journal-viewer-instance",
-            show_hostname=args.show_hostname,
-            show_pid=args.show_pid,
-            show_service=not args.no_service,
-        )
         viewer = JournalViewer(
             show_hostname=args.show_hostname,
             show_pid=args.show_pid,
@@ -564,7 +555,6 @@ def main():
         return
 
     try:
-        # Query and display entries
         log.info(
             "starting-journal-display",
             _replace_msg="📖 Starting journal display",
@@ -583,10 +573,8 @@ def main():
             )
         ):
             if args.json:
-                # Output raw JSON
                 pass
             else:
-                # Beautiful formatted output
                 pass
 
             entry_count += 1

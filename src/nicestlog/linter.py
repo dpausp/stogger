@@ -3,23 +3,18 @@
 Like a politeness compiler, but for log statements!
 """
 
-from __future__ import annotations
-
-import argparse
 import ast
-from contextlib import suppress
-from dataclasses import dataclass
 import fnmatch
 import json
 import os
+import tomllib
+from contextlib import suppress
+from dataclasses import dataclass
 from pathlib import Path
-import sys
 from typing import Any
 
-
-from rich.console import Console
 import structlog
-import toml
+from rich.console import Console
 
 
 @dataclass
@@ -185,7 +180,10 @@ class LoggingVisitor(ast.NodeVisitor):
                         current_level="exception",
                         suggested_level="exception",
                         event_name=self._extract_event_name(node) or "",
-                        reason="Inside except: log.exception() already includes the exception and traceback; remove redundant error=str(e)",
+                        reason=(
+                            "Inside except: log.exception() already includes"
+                            " the exception and traceback; remove redundant error=str(e)"
+                        ),
                         severity="warning",
                         category="except_logging",
                     )
@@ -394,10 +392,8 @@ class LoggingVisitor(ast.NodeVisitor):
                 has_other_logic = True
 
         # Detect wrapper anti-patterns
-        if has_logging_call and not has_other_logic:
-            # Function only does logging - likely a wrapper
-            if self._is_likely_wrapper(node, logging_calls):
-                self._report_wrapper_issue(node, logging_calls)
+        if has_logging_call and not has_other_logic and self._is_likely_wrapper(node, logging_calls):
+            self._report_wrapper_issue(node, logging_calls)
 
     def _is_trivial_call(self, call: ast.Call) -> bool:
         """Check if a call is trivial (not significant business logic)."""
@@ -501,7 +497,10 @@ class LoggingVisitor(ast.NodeVisitor):
         elif len(logging_calls) == SINGLE_LOGGING_CALL and len(func_node.body) <= MAX_BODY_STATEMENTS_FOR_PASSTHROUGH:
             reason = f"Function '{func_node.name}' only passes parameters to logging - use log.* directly instead"
         elif any(isinstance(stmt, ast.If) for stmt in ast.walk(func_node)):
-            reason = f"Function '{func_node.name}' conditionally logs - consider using log levels or structured logging instead"
+            reason = (
+                f"Function '{func_node.name}' conditionally logs"
+                " - consider using log levels or structured logging instead"
+            )
 
         issue = LoggingLevelIssue(
             line_no=func_node.lineno,
@@ -641,11 +640,11 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
         for source_dir in options.project_structure.source_dirs:
             source_path = directory / source_dir
             if source_path.exists():
-                for py_file in source_path.rglob("*.py"):
-                    if not options.project_structure.should_exclude_from_logging_analysis(
-                        py_file,
-                    ):
-                        python_files.append(py_file)
+                python_files.extend(
+                    py_file
+                    for py_file in source_path.rglob("*.py")
+                    if not options.project_structure.should_exclude_from_logging_analysis(py_file)
+                )
 
         if options.verbose:
             [
@@ -660,7 +659,8 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
         if pyproject.exists():
             exclude_globs = []
             with suppress(Exception):
-                cfg = toml.load(str(pyproject))
+                with pyproject.open("rb") as f:
+                    cfg = tomllib.load(f)
                 nl_cfg = cfg.get("tool", {}).get("nicestlog", {})
                 exclude_globs = list(nl_cfg.get("exclude", []))
 
@@ -836,7 +836,6 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
             )
 
         # Human-friendly table output with subtle colors
-        # colorama_init(autoreset=True)  # Disabled to avoid conflict with Rich console
 
         # Add AST metrics to rows if available
         for r in rows:
@@ -1004,98 +1003,3 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
                 _replace_msg=f"❌ {total_issues} files have logging issues",
             )
         return False
-
-
-def main():
-    """Main CLI entry point."""
-    parser = argparse.ArgumentParser(
-        description="Logging Linter - Ensures your code has appropriate logging coverage",
-        epilog="Like a politeness compiler, but for log statements! 🚽📝",
-    )
-    parser.add_argument(
-        "path",
-        nargs="?",
-        default=".",
-        help="Path to analyze (default: current directory)",
-    )
-    parser.add_argument(
-        "--min-coverage",
-        type=float,
-        default=5.0,
-        help="Minimum logging coverage percentage (default: 5.0)",
-    )
-    parser.add_argument(
-        "--max-coverage",
-        type=float,
-        default=15.0,
-        help="Maximum logging coverage percentage (default: 15.0)",
-    )
-    parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="Use stricter coverage requirements (3-10%)",
-    )
-    parser.add_argument(
-        "--analyze-statements",
-        action="store_true",
-        help="Analyze individual log statements for common issues",
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Show detailed statement breakdown when analyzing statements",
-    )
-    parser.add_argument(
-        "--allow-snake-case",
-        action="store_true",
-        help="Allow snake_case event IDs (default: prefer dash-case)",
-    )
-
-    args = parser.parse_args()
-
-    if args.strict:
-        args.min_coverage = 3.0
-        args.max_coverage = 10.0
-
-    path = Path(args.path)
-    if not path.exists():
-        sys.exit(1)
-
-    if path.is_file():
-        stats, level_issues = analyze_file(path)
-        issues = check_logging_quality(stats, args.min_coverage, args.max_coverage)
-        for _issue in issues:
-            pass
-
-        # Analyze statements for single file if requested
-        if args.analyze_statements:
-            log_analysis = analyze_log_statements(
-                path,
-                prefer_dash_case=not args.allow_snake_case,
-            )
-            if log_analysis.total_statements > 0:
-                sum(len(s.issues) for s in log_analysis.statements)
-                if args.verbose:
-                    for stmt in log_analysis.statements:
-                        if stmt.issues:
-                            ", ".join(stmt.issues)
-
-        success = not any("❌" in issue for issue in issues)
-    else:
-        success = lint_directory(
-            path,
-            LintOptions(
-                min_coverage=args.min_coverage,
-                max_coverage=args.max_coverage,
-                analyze_statements=args.analyze_statements,
-                verbose=args.verbose,
-                allow_snake_case=args.allow_snake_case,
-            ),
-        )
-
-    sys.exit(0 if success else 1)
-
-
-if __name__ == "__main__":
-    main()

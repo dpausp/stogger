@@ -3,13 +3,10 @@
 Analyzes log statements to detect common issues and patterns.
 """
 
-from __future__ import annotations
-
-import argparse
 import ast
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 
 import structlog
 
@@ -169,9 +166,8 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                         return True
 
                 # Check for chained calls like structlog.get_logger().info()
-                if isinstance(node.func.value, ast.Call):
-                    if self._is_logger_factory_call(node.func.value):
-                        return True
+                if isinstance(node.func.value, ast.Call) and self._is_logger_factory_call(node.func.value):
+                    return True
         except AttributeError:
             return False
         else:
@@ -277,7 +273,6 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             # New signature: _detect_issues(LogStatementOptions)
             options = options_or_method
         elif options_or_method is not None and not isinstance(options_or_method, str):
-            # Old signature with positional args: _detect_issues(method, args, kwargs, magic_args, event_id, event_id_format, prefer_dash_case)
             method = options_or_method
             args_list = args[0] if args else []
             kwargs_dict = args[1] if len(args) > 1 else {}
@@ -324,13 +319,15 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             issues.append("missing_event_id")
 
         # Check event ID format (configurable preference for dash-case)
-        if options.event_id and options.event_id_format not in ["dash-case"]:
-            # Only report if not allowing snake_case or if it's not snake_case
-            if not (options.event_id_format == "snake_case" and not options.prefer_dash_case):
-                suggested_event_id = self._convert_to_dash_case(options.event_id)
-                issues.append(
-                    f"event_id_not_dash_case (found: {options.event_id_format}, suggested: {suggested_event_id})",
-                )
+        if (
+            options.event_id
+            and options.event_id_format != "dash-case"
+            and not (options.event_id_format == "snake_case" and not options.prefer_dash_case)
+        ):
+            suggested_event_id = self._convert_to_dash_case(options.event_id)
+            issues.append(
+                f"event_id_not_dash_case (found: {options.event_id_format}, suggested: {suggested_event_id})",
+            )
 
         # Check for too many elements in event ID (readability)
         # Constants for event ID validation
@@ -396,9 +393,11 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             "private_key",
             "session_key",
         }
-        for kwarg_key in options.kwargs:
-            if kwarg_key.lower() in sensitive_patterns:
-                issues.append(f"potential_secret_leak ({kwarg_key})")
+        issues.extend(
+            f"potential_secret_leak ({kwarg_key})"
+            for kwarg_key in options.kwargs
+            if kwarg_key.lower() in sensitive_patterns
+        )
 
         # Check for very long event IDs (readability)
         if options.event_id and len(options.event_id) > MAX_EVENT_ID_LENGTH:
@@ -559,69 +558,3 @@ def print_analysis_summary(result: LogAnalysisResult, *, verbose: bool = False) 
                 magic=magic,
                 _replace_msg=f"L{stmt.line_number}: {stmt.method}({args_str}){status}{magic}",
             )
-
-
-def main():
-    """CLI entry point for log statement analysis."""
-    parser = argparse.ArgumentParser(
-        description="Analyze log statements in Python files",
-    )
-    parser.add_argument("path", help="File or directory to analyze")
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Show detailed statement breakdown",
-    )
-    parser.add_argument(
-        "--allow-snake-case",
-        action="store_true",
-        help="Allow snake_case event IDs (default: prefer dash-case)",
-    )
-
-    args = parser.parse_args()
-
-    path = Path(args.path)
-
-    if path.is_file():
-        if path.suffix == ".py":
-            result = analyze_file(path, prefer_dash_case=not args.allow_snake_case)
-            print_analysis_summary(result, args.verbose)
-    else:
-        EXCLUDE_DIRS = {
-            ".venv",
-            "venv",
-            "__pycache__",
-            ".git",
-            ".tox",
-            ".nox",
-            ".mypy_cache",
-            ".pytest_cache",
-            ".ruff_cache",
-            ".direnv",
-            "node_modules",
-            "build",
-            "dist",
-            ".eggs",
-        }
-        python_files = [p for p in path.rglob("*.py") if not any(part in EXCLUDE_DIRS for part in p.parts)]
-        total_files = 0
-        total_statements = 0
-        total_issues = 0
-
-        for file_path in python_files:
-            if "__pycache__" in str(file_path):
-                continue
-
-            result = analyze_file(file_path, prefer_dash_case=not args.allow_snake_case)
-            if result.total_statements > 0:
-                total_files += 1
-                total_statements += result.total_statements
-                file_issues = sum(len(s.issues) for s in result.statements)
-                total_issues += file_issues
-
-                print_analysis_summary(result, args.verbose)
-
-
-if __name__ == "__main__":
-    main()

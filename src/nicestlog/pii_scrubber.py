@@ -3,11 +3,8 @@
 Automatically detects and redacts sensitive information from log messages.
 """
 
-from __future__ import annotations
-
 import re
 from typing import Any
-
 
 
 class PIIScrubber:
@@ -47,10 +44,7 @@ class PIIScrubber:
             self.patterns.update(custom_patterns)
 
         # Compile patterns for performance
-        self.compiled_patterns = {
-            name: re.compile(pattern, re.IGNORECASE)
-            for name, pattern in self.patterns.items()
-        }
+        self.compiled_patterns = {name: re.compile(pattern, re.IGNORECASE) for name, pattern in self.patterns.items()}
 
         # Sensitive field names (case-insensitive)
         self.sensitive_fields = {
@@ -192,7 +186,6 @@ def demo_pii_scrubbing():
     """Demonstrate PII scrubbing capabilities."""
     scrubber = PIIScrubber()
 
-
     # Test data with various PII
     test_cases = [
         {
@@ -246,7 +239,6 @@ def demo_pii_scrubbing():
     }
 
     scrubber.scrub_dict(test_dict)
-
 
 
 if __name__ == "__main__":

@@ -3,17 +3,15 @@
 Makes systemd logging actually usable and powerful.
 """
 
-from __future__ import annotations
-
 import contextlib
-from dataclasses import dataclass
-from datetime import UTC, datetime
 import json
 import os
-from pathlib import Path
 import socket
 import subprocess
-from typing import Any
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, ClassVar
 
 import structlog
 
@@ -36,7 +34,7 @@ class SystemdJournalHandler:
     """Advanced systemd journal handler with proper field mapping and priorities."""
 
     # Map Python log levels to systemd priorities
-    PRIORITY_MAP = {
+    PRIORITY_MAP: ClassVar[dict[str, int]] = {
         "critical": journal.LOG_CRIT if SYSTEMD_AVAILABLE else 2,
         "error": journal.LOG_ERR if SYSTEMD_AVAILABLE else 3,
         "warning": journal.LOG_WARNING if SYSTEMD_AVAILABLE else 4,

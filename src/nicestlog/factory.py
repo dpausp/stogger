@@ -1,15 +1,12 @@
 """Factory functions for building nicestlog components."""
 
-from __future__ import annotations
-
 import atexit
 import logging
-import structlog
+import tomllib
 from queue import Queue
 from typing import Any
 
 import structlog
-import toml
 
 from .config import NicestLogConfig
 from .core import (
@@ -66,8 +63,8 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
                     file=str(translation_file),
                     language=config.language,
                 )
-            with open(translation_file) as f:
-                translations = toml.load(f)
+            with translation_file.open("rb") as f:
+                translations = tomllib.load(f)
             if config.verbose:
                 log.debug(
                     "translations-loaded",
@@ -75,7 +72,7 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
                     language=config.language,
                 )
             processors.append(TranslationProcessor(translations))
-        except (OSError, toml.TomlDecodeError) as e:
+        except (OSError, tomllib.TOMLDecodeError) as e:
             log.warning(
                 "translation-load-failed",
                 file=str(translation_file),

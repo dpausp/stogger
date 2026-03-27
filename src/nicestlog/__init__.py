@@ -1,7 +1,5 @@
 """Advanced structured logging for Python applications.
 
-from __future__ import annotations
-
 This package provides advanced logging capabilities with structured data,
 multiple output formats, and integrations for various logging backends.
 
@@ -32,7 +30,7 @@ Functions:
     drop_cmd_output_logfile: Remove command output log file
 """
 
-__version__ = "0.3.4"
+__version__ = "0.3.5"
 
 __all__ = [
     "JournalLogger",
@@ -59,13 +57,10 @@ __all__ = [
     "init_i18n",
     "init_logging",
     "leiwand",
-    "linter_main",
-    "log_statement_analyzer_main",
     "logging_initialized",
     "main",
     "migrate_directory",
     "oida",
-    "review_logs_cli",
     "run_dashboard",
     "setup_eliot_logging",
     "setup_systemd_logging",
@@ -130,10 +125,7 @@ from .interactive_transformer import (
     transform_directory_interactive,
     transform_file_interactive,
 )
-from .linter import main as linter_main
 from .live_editor import create_live_editor, edit_code_live
-from .log_reviewer import review_logs_cli
-from .log_statement_analyzer import main as log_statement_analyzer_main
 from .pii_scrubber import create_pii_processor, demo_pii_scrubbing
 from .systemd_integration import (
     create_systemd_service_file,

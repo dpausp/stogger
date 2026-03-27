@@ -4,31 +4,31 @@ This module provides the complete CLI interface including both basic and advance
 AST functionality, previously split between cli.py and cli_advanced.py.
 """
 
-from __future__ import annotations
-
 import dataclasses
 import difflib
-from importlib import resources
 import importlib.metadata
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import time
+import tomllib
+from importlib import resources
+from pathlib import Path
 from typing import Annotated, Protocol, cast
 
+import structlog
+import toml
+import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.syntax import Syntax
 from rich.table import Table
-import structlog
-import toml
-import typer
 
 import nicestlog
+
 from .core import init_early_logging
 
 # Initialize early logging to ensure structlog is configured before logger creation
@@ -57,7 +57,6 @@ import tempfile
 import threading
 import webbrowser
 
-from . import project_analyzer
 from .advanced_assistant import (
     AdvancedAssistant,
     ASTPattern,
@@ -73,7 +72,7 @@ from .interactive_transformer import (
     InteractiveTransformer,
 )
 from .linter import lint_directory
-from .systemd_integration import ServiceConfig, create_systemd_service_file
+from .systemd_integration import ServiceConfig
 
 logger = structlog.get_logger()
 
@@ -132,15 +131,14 @@ app.add_typer(tools_app, name="tools")
 # Add generate-service command to tools
 @tools_app.command("generate-service")
 def tools_generate_service(
-    service_name: str = typer.Argument(..., help="Name of the service"),
-    exec_command: str = typer.Argument(..., help="Command to execute"),
-    user: str | None = typer.Option(None, "--user", help="User to run service as"),
-    working_dir: str | None = typer.Option(
-        None,
-        "--working-dir",
-        help="Working directory",
-    ),
-    output: str | None = typer.Option(None, "--output", help="Output file path"),
+    service_name: Annotated[str, typer.Argument(help="Name of the service")],
+    exec_command: Annotated[str, typer.Argument(help="Command to execute")],
+    user: Annotated[str | None, typer.Option("--user", help="User to run service as")] = None,
+    working_dir: Annotated[
+        str | None,
+        typer.Option("--working-dir", help="Working directory"),
+    ] = None,
+    output: Annotated[str | None, typer.Option("--output", help="Output file path")] = None,
 ):
     """🔧 Generate systemd service file."""
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
@@ -214,12 +212,9 @@ def tools_journal(
 
 
 # Check if Flask is available for dashboard command
-try:
-    import flask  # noqa: F401
+import importlib.util
 
-    FLASK_AVAILABLE_FOR_CLI = True
-except ImportError:
-    FLASK_AVAILABLE_FOR_CLI = False
+FLASK_AVAILABLE_FOR_CLI = importlib.util.find_spec("flask") is not None
 
 # Add dashboard command to tools (only if Flask is available)
 if FLASK_AVAILABLE_FOR_CLI:
@@ -231,7 +226,7 @@ if FLASK_AVAILABLE_FOR_CLI:
             typer.Option("--host", help="Host to bind to"),
         ] = "127.0.0.1",
         port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
-        debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,  # noqa: FBT002
+        debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
     ):
         """🌐 Start the web dashboard."""
         run_dashboard_cmd(host, port, debug=debug)
@@ -244,7 +239,7 @@ tools_app.add_typer(i18n_app, name="i18n")
 
 # Add i18n check command
 @i18n_app.command("check")
-def i18n_check(  # noqa: PLR0913
+def i18n_check(
     src_dir: str = typer.Argument(..., help="Source directory to check"),
     translation_dir: str | None = typer.Option(
         None,
@@ -349,9 +344,9 @@ def init_config():
     # Write config to pyproject.toml
 
     try:
-        with Path(pyproject_path).open() as f:
-            pyproject = toml.load(f)
-    except Exception:  # noqa: BLE001
+        with Path(pyproject_path).open("rb") as f:
+            pyproject = tomllib.load(f)
+    except Exception:
         pyproject = {}
 
     if "tool" not in pyproject:
@@ -417,12 +412,12 @@ def docs_serve(
 @app.command("init")
 def init_config_cmd(
     path: str = typer.Argument(".", help="Project path to initialize"),
-    template: str | None = typer.Option(  # noqa: ARG001
+    template: str | None = typer.Option(
         None,
         "--template",
         help="Configuration template",
     ),
-    force: bool = typer.Option(False, "--force", help="Overwrite existing config"),  # noqa: ARG001,FBT001,FBT003
+    force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
 ):
     """🔧 Initialize nicestlog configuration."""
     # Enhanced init command that works with any project path
@@ -470,7 +465,9 @@ def check(
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Show what would be fixed")] = False,
     no_ast: Annotated[bool, typer.Option("--no-ast", help="Disable AST analysis")] = False,
     complexity: Annotated[bool, typer.Option("--complexity", help="Enable complexity analysis")] = False,
-    patterns: Annotated[list[str] | None, typer.Option("--pattern", "-p", help="Specific AST patterns to check")] = None,
+    patterns: Annotated[
+        list[str] | None, typer.Option("--pattern", "-p", help="Specific AST patterns to check")
+    ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
 ):
     """🔍 Check code for logging best practices with AST analysis by default.
@@ -982,7 +979,9 @@ def _display_file_statistics(results: list[CodeAnalysisResult], log):
     log.info(
         "check-average-functions",
         average=total_functions / len(results),
-        _replace_msg=f"  • Average {total_functions / len(results):.1f} functions per file suggests good code organization",
+        _replace_msg=(
+            f"  • Average {total_functions / len(results):.1f} functions per file suggests good code organization"
+        ),
     )
 
 
@@ -1609,7 +1608,7 @@ def _display_with_pager(content: str):
                 msg = f"Invalid executable path: {glow_path}"
                 raise ValueError(msg)
             # S603: glow_path is from shutil.which, so it's trusted
-            subprocess.run([glow_path, "--pager", "-"], input=content, text=True, check=False)  # noqa: S603
+            subprocess.run([glow_path, "--pager", "-"], input=content, text=True, check=False)
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Glow pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using glow: {e}[/red]")
@@ -1626,7 +1625,7 @@ def _display_with_pager(content: str):
                 msg = f"Invalid executable path: {bat_path}"
                 raise ValueError(msg)
             # S603: bat_path is from shutil.which, so it's trusted
-            subprocess.run([bat_path, "--paging=always", "-"], input=content, text=True, check=False)  # noqa: S603
+            subprocess.run([bat_path, "--paging=always", "-"], input=content, text=True, check=False)
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Bat pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using bat: {e}[/red]")
@@ -1643,7 +1642,7 @@ def _display_with_pager(content: str):
                 msg = f"Invalid executable path: {pager_cmd}"
                 raise ValueError(msg)
             # S603: pager_cmd is from shutil.which, so it's trusted
-            subprocess.run([pager_cmd], input=content, text=True, check=False)  # noqa: S603
+            subprocess.run([pager_cmd], input=content, text=True, check=False)
         except (subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
             logger.warning("Default pager failed", exc_info=True, error=str(e))
             console.print(f"❌ [red]Error using pager: {e}[/red]")
@@ -2676,7 +2675,8 @@ def _display_next_steps_guidance(result, path: str):
     if rec.strategy == "cli-outputs-to-structlog":
         console.print("🔄 [blue]CLI Output Migration:[/blue]")
         console.print(
-            f"   1. Run interactive migration: [cyan]nicestlog migrate {path} --type cli-outputs-to-structlog --interactive[/cyan]",
+            "   1. Run interactive migration:"
+            f" [cyan]nicestlog migrate {path} --type cli-outputs-to-structlog --interactive[/cyan]",
         )
         console.print(f"   2. Validate results: [cyan]nicestlog check {path}[/cyan]")
     elif rec.strategy == "print-to-structlog":
@@ -2743,13 +2743,17 @@ def _display_project_context(
         "check-source-dirs",
         dirs=project_structure.source_dirs,
         source=project_structure.detection_source,
-        _replace_msg=f"Source Directories: {', '.join(project_structure.source_dirs)} ({project_structure.detection_source})",
+        _replace_msg=(
+            f"Source Directories: {', '.join(project_structure.source_dirs)} ({project_structure.detection_source})"
+        ),
     )
     log.info(
         "check-test-dirs",
         dirs=project_structure.test_dirs,
         source=project_structure.detection_source,
-        _replace_msg=f"Test Directories: {', '.join(project_structure.test_dirs)} ({project_structure.detection_source})",
+        _replace_msg=(
+            f"Test Directories: {', '.join(project_structure.test_dirs)} ({project_structure.detection_source})"
+        ),
     )
 
     # Show scope information
@@ -2782,7 +2786,9 @@ def _display_project_context(
                 log.info(
                     "check-more-patterns",
                     more=len(project_structure.exclude_patterns) - MAX_EXCLUDE_PATTERNS_DISPLAY,
-                    _replace_msg=f"  • ... and {len(project_structure.exclude_patterns) - MAX_EXCLUDE_PATTERNS_DISPLAY} more",
+                    _replace_msg=(
+                        f"  • ... and {len(project_structure.exclude_patterns) - MAX_EXCLUDE_PATTERNS_DISPLAY} more"
+                    ),
                 )
 
 
@@ -2901,7 +2907,7 @@ def _configure_logging_focused_patterns(
 
     # Disable general complexity patterns that aren't logging-related
     for pattern in assistant.patterns:
-        if pattern.name in ["add_missing_docstrings"]:
+        if pattern.name == "add_missing_docstrings":
             # Keep docstring patterns disabled by default
             pattern.enabled = False
         elif "print" in pattern.name.lower() or "log" in pattern.name.lower():
@@ -2958,7 +2964,7 @@ def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool):
                 msg = f"Invalid executable path: {uv_path}"
                 raise ValueError(msg)
             # S603: uv_path is from shutil.which, so it's trusted
-            subprocess.run(  # noqa: S603
+            subprocess.run(
                 [
                     uv_path,
                     "run",

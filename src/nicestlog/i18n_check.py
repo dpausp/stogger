@@ -5,17 +5,10 @@ within structlog logger calls and verifies that the translation file contains
 entries for all detected message keys.
 """
 
-from __future__ import annotations
-
-from pathlib import Path
+import tomllib
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, cast
-
-try:
-    import toml
-except ImportError:  # pragma: no cover - handled by CLI messaging
-    toml = None  # type: ignore
-
+from pathlib import Path
+from typing import cast
 
 from ._regexes import (
     DEBUG_WITH_REPLACE as _DEBUG_WITH_REPLACE,
@@ -29,9 +22,6 @@ from ._regexes import (
 from ._regexes import (
     MSG_KEY as _MSG_KEY,
 )
-
-if TYPE_CHECKING:
-    pass
 
 # Excluded directories when scanning for Python files
 EXCLUDE_DIRS = {
@@ -114,13 +104,8 @@ def load_translation_keys(translation_file: Path) -> set[str]:
     TranslationProcessor expects a flat dict keyed by event/msg_key.
     Any top-level keys that map to non-dict values are considered message entries.
     """
-    if toml is None:
-        msg = "toml package not available; install 'toml' to use i18n check"
-        raise RuntimeError(
-            msg,
-        )
-
-    data = toml.load(translation_file)
+    with translation_file.open("rb") as f:
+        data = tomllib.load(f)
     keys: set[str] = set()
     if isinstance(data, dict):
         for k, v in data.items():
@@ -244,22 +229,19 @@ def format_report(report: dict[str, object], *, include_debug: bool = True) -> s
             if not keys:
                 continue
             lines.append(f"  {level}:")
-            for k in keys:
-                lines.append(f"    - {k}")
+            lines.extend(f"    - {k}" for k in keys)
     else:
         lines.append("\n✅ No missing keys detected.")
 
     if extra:
         lines.append("\ni Extra keys (not used in source):")
-        for k in extra:
-            lines.append(f"  - {k}")
+        lines.extend(f"  - {k}" for k in extra)
 
     if include_debug:
         dbg = cast("list[str]", report.get("debug_with_replace_events", []))
         if dbg:
             lines.append("\n⚠️ Debug events using _replace_msg (ignored for coverage):")
-            for k in dbg:
-                lines.append(f"  - {k}")
+            lines.extend(f"  - {k}" for k in dbg)
 
     return "\n".join(lines)
 
