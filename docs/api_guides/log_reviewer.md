@@ -20,38 +20,62 @@ Log reviewer helps you:
 
 ```python
 from pathlib import Path
-from nicestlog.log_reviewer import review_file
+from nicestlog.log_reviewer import LogQualityReviewer, print_report
 
-# Review a single file
-report = review_file(Path("my_module.py"))
-print(f"Score: {report.score}")
-print(f"Issues: {report.issues}")
+reviewer = LogQualityReviewer()
+
+# Analyze a single log file
+report = reviewer.analyze_log_file(Path("logs/app.log"))
+print(f"Score: {report.overall_score}/100")
+print(f"Verdict: {report.overall_verdict}")
+print_report(report)
 ```
 
 ## Main Functions
 
-### review_file
+### LogQualityReviewer
 
-Analyze a Python file for log quality issues.
+Create a reviewer instance and analyze log files or raw log content.
 
 ```python
-from nicestlog.log_reviewer import review_file
 from pathlib import Path
+from nicestlog.log_reviewer import LogQualityReviewer
 
-report = review_file(Path("module.py"))
+reviewer = LogQualityReviewer()
+
+# Analyze a log file on disk
+report = reviewer.analyze_log_file(Path("logs/app.log"))
+
+# Analyze log content directly (e.g. from a string)
+report = reviewer.analyze_log_content("""2025-01-15 10:30:00 INFO user_login user_id=42 session_id=abc
+2025-01-15 10:30:01 ERROR db_query_failed query="SELECT *" duration_ms=500""")
 ```
 
-### review_directory
+### LogQualityReport
 
-Analyze all Python files in a directory.
+The dataclass returned by every analysis method.
 
 ```python
-from nicestlog.log_reviewer import review_directory
-from pathlib import Path
+from nicestlog.log_reviewer import LogQualityReport
 
-reports = review_directory(Path("src/"))
-for report in reports:
-    print(f"{report.file_path}: {report.score}")
+report: LogQualityReport = reviewer.analyze_log_file(Path("logs/app.log"))
+report.overall_score      # 0-100 float
+report.overall_verdict    # "arsch" | "mäßig" | "schlecht" | "verziehbar" | "leiwand"
+report.issues             # list of issue descriptions
+report.good_practices     # list of good-practice descriptions
+report.suggestions        # list of improvement suggestions
+report.stats              # dict with structured/unstructured line counts, levels, etc.
+```
+
+### print_report
+
+Pretty-print a `LogQualityReport` to stdout.
+
+```python
+from nicestlog.log_reviewer import print_report
+
+print_report(report)       # text format (default)
+print_report(report, format_type="json")
 ```
 
 ## Quality Checks
@@ -80,19 +104,27 @@ The reviewer checks for:
 
 ```python
 from pathlib import Path
-from nicestlog.log_reviewer import review_directory
+from nicestlog.log_reviewer import LogQualityReviewer
 
-reports = review_directory(Path("src/"))
+reviewer = LogQualityReviewer()
+report = reviewer.analyze_log_file(Path("logs/app.log"))
 
-for report in reports:
-    print(f"\n{report.file_path}:")
-    print(f"  Score: {report.score}/100")
-    print(f"  Log statements: {report.log_statement_count}")
-    
-    for issue in report.issues:
-        print(f"  Issue: {issue.message}")
-        print(f"    Line: {issue.line_number}")
-        print(f"    Severity: {issue.severity}")
+print(f"\nVerdict: {report.overall_verdict}")
+print(f"  Score: {report.overall_score}/100")
+
+print("\nIssues:")
+for issue in report.issues:
+    print(f"  - {issue}")
+
+print("\nGood practices:")
+for practice in report.good_practices:
+    print(f"  - {practice}")
+
+print("\nSuggestions:")
+for suggestion in report.suggestions:
+    print(f"  - {suggestion}")
+
+print(f"\nStats: {report.stats}")
 ```
 
 ## API Reference

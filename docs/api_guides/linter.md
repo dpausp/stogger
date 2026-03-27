@@ -12,12 +12,11 @@ The `nicestlog.linter` module provides linting capabilities for log statements.
 
 ```python
 from pathlib import Path
-from nicestlog.linter import lint_file
+from nicestlog.linter import LintOptions, lint_directory
 
-# Lint a single file
-issues = lint_file(Path("my_module.py"))
-for issue in issues:
-    print(f"{issue.line}: {issue.message}")
+# Lint all Python files in a project directory
+options = LintOptions(min_coverage=5.0, max_coverage=15.0, verbose=True)
+passed = lint_directory(Path("src"), options)
 ```
 
 ## Lint Checks
