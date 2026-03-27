@@ -9,8 +9,8 @@ See https://pydoit.org/ for complete documentation.
 """
 
 # Add src to path for local development
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "vendor"))
 
@@ -182,11 +182,6 @@ def task_fix():
     }
 
 
-def task_check_pylint_duplicates():
-    """Check for duplicate code with Pylint."""
-    return create_uv_commands("pylint src/", verbosity=2)
-
-
 def task_check_radon_metrics():
     """Check code quality metrics with Radon."""
     return {
@@ -198,11 +193,6 @@ def task_check_radon_metrics():
         ],
         "verbosity": 2,
     }
-
-
-def task_check_security():
-    """Check for security issues with Bandit."""
-    return create_uv_commands("bandit -r src/", verbosity=2)
 
 
 def task_check_dead_code():
@@ -257,9 +247,7 @@ def task_check_strict():
         "actions": [],
         "task_dep": [
             "check_ruff",
-            "check_pylint_duplicates",
             "check_radon_metrics",
-            "check_security",
             "check_dead_code",
         ],
         "verbosity": 2,

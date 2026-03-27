@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# ruff: noqa: T201, S602, TRY300
+# ruff: noqa: T201, S602
 """Build script for nicestlog documentation."""
 
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 
 def run_command(cmd, cwd=None):
