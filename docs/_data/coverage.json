@@ -1,0 +1,146 @@
+{
+  "tier1_full": [
+    {
+      "module": "__main__",
+      "file": "src/nicestlog/__main__.py",
+      "coverage": 100.0,
+      "missing_lines": 0
+    },
+    {
+      "module": "_regexes",
+      "file": "src/nicestlog/_regexes.py",
+      "coverage": 100.0,
+      "missing_lines": 0
+    },
+    {
+      "module": "log_reviewer",
+      "file": "src/nicestlog/log_reviewer.py",
+      "coverage": 98.0,
+      "missing_lines": 5
+    },
+    {
+      "module": "config",
+      "file": "src/nicestlog/config.py",
+      "coverage": 93.44262295081967,
+      "missing_lines": 4
+    },
+    {
+      "module": "journal_viewer",
+      "file": "src/nicestlog/journal_viewer.py",
+      "coverage": 86.23853211009174,
+      "missing_lines": 30
+    },
+    {
+      "module": "advanced_assistant",
+      "file": "src/nicestlog/advanced_assistant.py",
+      "coverage": 84.93589743589743,
+      "missing_lines": 47
+    },
+    {
+      "module": "i18n",
+      "file": "src/nicestlog/i18n.py",
+      "coverage": 84.25925925925925,
+      "missing_lines": 17
+    },
+    {
+      "module": "factory",
+      "file": "src/nicestlog/factory.py",
+      "coverage": 82.6923076923077,
+      "missing_lines": 18
+    },
+    {
+      "module": "core",
+      "file": "src/nicestlog/core.py",
+      "coverage": 82.6797385620915,
+      "missing_lines": 53
+    },
+    {
+      "module": "eliot_integration",
+      "file": "src/nicestlog/eliot_integration.py",
+      "coverage": 80.54054054054055,
+      "missing_lines": 36
+    }
+  ],
+  "tier2_basic": [
+    {
+      "module": "linter",
+      "file": "src/nicestlog/linter.py",
+      "coverage": 73.65269461077844,
+      "missing_lines": 132
+    },
+    {
+      "module": "pii_scrubber",
+      "file": "src/nicestlog/pii_scrubber.py",
+      "coverage": 70.45454545454545,
+      "missing_lines": 26
+    },
+    {
+      "module": "assistant",
+      "file": "src/nicestlog/assistant.py",
+      "coverage": 67.11409395973155,
+      "missing_lines": 49
+    },
+    {
+      "module": "interactive_transformer",
+      "file": "src/nicestlog/interactive_transformer.py",
+      "coverage": 67.04545454545455,
+      "missing_lines": 87
+    },
+    {
+      "module": "gitignore_utils",
+      "file": "src/nicestlog/gitignore_utils.py",
+      "coverage": 66.0377358490566,
+      "missing_lines": 18
+    },
+    {
+      "module": "project_analyzer",
+      "file": "src/nicestlog/project_analyzer.py",
+      "coverage": 55.29801324503311,
+      "missing_lines": 135
+    },
+    {
+      "module": "i18n_check",
+      "file": "src/nicestlog/i18n_check.py",
+      "coverage": 54.86725663716814,
+      "missing_lines": 51
+    },
+    {
+      "module": "cli",
+      "file": "src/nicestlog/cli.py",
+      "coverage": 51.95143104943625,
+      "missing_lines": 554
+    },
+    {
+      "module": "systemd_integration",
+      "file": "src/nicestlog/systemd_integration.py",
+      "coverage": 42.391304347826086,
+      "missing_lines": 106
+    }
+  ],
+  "tier3_minimal": [
+    {
+      "module": "live_editor",
+      "file": "src/nicestlog/live_editor.py",
+      "coverage": 24.15730337078652,
+      "missing_lines": 135
+    },
+    {
+      "module": "web_dashboard",
+      "file": "src/nicestlog/web_dashboard.py",
+      "coverage": 21.782178217821784,
+      "missing_lines": 79
+    },
+    {
+      "module": "log_statement_analyzer",
+      "file": "src/nicestlog/log_statement_analyzer.py",
+      "coverage": 18.067226890756302,
+      "missing_lines": 195
+    },
+    {
+      "module": "cli_output_transformer",
+      "file": "src/nicestlog/cli_output_transformer.py",
+      "coverage": 17.647058823529413,
+      "missing_lines": 196
+    }
+  ]
+}

@@ -6,38 +6,83 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import sys
+from pathlib import Path
+
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
 project = "nicestlog"
 copyright = "2024, nicestlog contributors"
 author = "nicestlog contributors"
-release = "0.1.x"
+release = "0.3.5"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    # Markdown support
     "myst_parser",
-    "sphinx.ext.autodoc",
+    # Automatic API documentation (static analysis)
+    "autoapi.extension",
+    # Source code viewing
     "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
+    # Type hints in documentation
+    "sphinx_autodoc_typehints",
+    # AI-friendly output (llms.txt)
+    "sphinx_llm.txt",
+    # UX enhancements
     "sphinx_copybutton",
+    "sphinx_design",
+    # Additional
     "sphinx.ext.intersphinx",
-    "sphinx.ext.autosummary",
+    "notfound.extension",
 ]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
-# -- Options for HTML output ------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+# -- autoapi configuration ---------------------------------------------------
+autoapi_type = "python"
+autoapi_dirs = ["../src/nicestlog"]
+autoapi_file_patterns = ["*.py"]
+autoapi_generate_api_docs = True
+autoapi_add_toctree_entry = False
+autoapi_root = "api"
 
-html_theme = "furo"
-html_static_path = ["_static"]
-
-# Custom CSS
-html_css_files = [
-    "custom.css",
-    "logo.css",
+autoapi_options = [
+    "members",
+    "undoc-members",
+    "show-inheritance",
+    "show-module-summary",
+    "imported-members",
 ]
+
+# Keep generated files for debugging
+autoapi_keep_files = True
+
+
+# Skip private members and test files
+def autoapi_skip_member(app, what, name, obj, skip, options):
+    if name.startswith("_") and not name.startswith("__"):
+        return True
+    if "Test" in name or "test_" in name:
+        return True
+    return skip
+
+
+def setup(app):
+    app.connect("autoapi-skip-member", autoapi_skip_member)
+
+
+# -- Type hints presentation -------------------------------------------------
+autodoc_typehints = "description"
+autodoc_typehints_format = "short"
+
+# -- sphinx-llm configuration ------------------------------------------------
+llms_txt_build_parallel = True
+llms_txt_full_build = True
+llms_txt_description = "nicestlog - A sophisticated multi-target structured logging system built on structlog"
 
 # -- MyST Parser configuration ----------------------------------------------
 myst_enable_extensions = [
@@ -54,10 +99,16 @@ myst_enable_extensions = [
     "substitution",
     "tasklist",
 ]
+myst_heading_anchors = 3
 
 # -- Furo theme configuration -----------------------------------------------
+html_theme = "furo"
+html_title = "nicestlog Documentation"
+html_static_path = ["_static"]
+
 html_theme_options = {
     "sidebar_hide_name": False,
+    "navigation_with_keys": True,
     "light_css_variables": {
         "color-brand-primary": "#2563eb",
         "color-brand-content": "#2563eb",
@@ -72,6 +123,12 @@ html_theme_options = {
     "source_directory": "docs/",
 }
 
+# Custom CSS
+html_css_files = [
+    "custom.css",
+    "logo.css",
+]
+
 # -- Copy button configuration ----------------------------------------------
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
 copybutton_prompt_is_regexp = True
@@ -84,27 +141,36 @@ intersphinx_mapping = {
     "structlog": ("https://www.structlog.org/en/stable/", None),
 }
 
-# -- Autodoc configuration --------------------------------------------------
-autodoc_default_options = {
-    "members": True,
-    "member-order": "bysource",
-    "special-members": "__init__",
-    "undoc-members": True,
-    "exclude-members": "__weakref__",
+# -- Coverage-based documentation tiers --------------------------------------
+# Modules organized by test coverage for documentation prioritization
+COVERAGE_TIERS = {
+    "tier1_full": [  # ≥80% coverage - comprehensive documentation
+        "__main__",
+        "_regexes",
+        "log_reviewer",
+        "config",
+        "journal_viewer",
+        "advanced_assistant",
+        "i18n",
+        "factory",
+        "core",
+        "eliot_integration",
+    ],
+    "tier2_basic": [  # 40-80% coverage - basic documentation
+        "linter",
+        "pii_scrubber",
+        "assistant",
+        "interactive_transformer",
+        "gitignore_utils",
+        "project_analyzer",
+        "i18n_check",
+        "cli",
+        "systemd_integration",
+    ],
+    "tier3_minimal": [  # <40% coverage - minimal docs + warnings
+        "live_editor",
+        "web_dashboard",
+        "log_statement_analyzer",
+        "cli_output_transformer",
+    ],
 }
-
-# -- Napoleon configuration -------------------------------------------------
-napoleon_google_docstring = True
-napoleon_numpy_docstring = True
-napoleon_include_init_with_doc = False
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
-napoleon_preprocess_types = False
-napoleon_type_aliases = None
-napoleon_attr_annotations = True
