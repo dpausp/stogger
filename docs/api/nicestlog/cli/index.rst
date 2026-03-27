@@ -137,7 +137,7 @@ Module Contents
 
 .. py:data:: tools_app
 
-.. py:function:: tools_generate_service(service_name = typer.Argument(..., help='Name of the service'), exec_command = typer.Argument(..., help='Command to execute'), user = typer.Option(None, '--user', help='User to run service as'), working_dir = typer.Option(None, '--working-dir', help='Working directory'), output = typer.Option(None, '--output', help='Output file path'))
+.. py:function:: tools_generate_service(service_name, exec_command, user = None, working_dir = None, output = None)
 
    🔧 Generate systemd service file.
 

@@ -70,7 +70,7 @@ api/index
 
 ## Coverage-Based API Guides
 
-Documentation prioritized by test coverage:
+Documentation prioritized by test coverage. Well-tested modules get comprehensive guides; untested modules get minimal docs with warnings.
 
 ```{toctree}
 :maxdepth: 2
@@ -81,16 +81,34 @@ api_guides/factory
 api_guides/config
 api_guides/advanced_assistant
 api_guides/log_reviewer
+api_guides/journal_viewer
+api_guides/i18n
+api_guides/eliot_integration
 ```
 
 ```{toctree}
-:maxdepth: 1
+:maxdepth: 2
 :caption: Medium Coverage Modules (40-80%)
 
 api_guides/assistant
 api_guides/cli
 api_guides/linter
 api_guides/pii_scrubber
+api_guides/interactive_transformer
+api_guides/gitignore_utils
+api_guides/project_analyzer
+api_guides/i18n_check
+api_guides/systemd_integration
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: Low Coverage Modules (<40%)
+
+api_guides/live_editor
+api_guides/web_dashboard
+api_guides/log_statement_analyzer
+api_guides/cli_output_transformer
 ```
 
 ## Development

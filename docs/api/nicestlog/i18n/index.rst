@@ -16,7 +16,6 @@ Attributes
 
 .. autoapisummary::
 
-   nicestlog.i18n.toml
    nicestlog.i18n.log
 
 
@@ -45,10 +44,6 @@ Functions
 
 Module Contents
 ---------------
-
-.. py:data:: toml
-   :value: None
-
 
 .. py:data:: log
 
