@@ -54,7 +54,7 @@ goodbye = "Tschüss dann, woll! Hwyl fawr!"
 
 [special]
 woll_intensifier = "woll bach neu!"
-kölsch_greeting = "Alaaf un joot Daach!"
+"kölsch_greeting" = "Alaaf un joot Daach!"
 welsh_blessing = "Bendith Duw arnoch chi!"
 mixed_confusion = "Woll, wat soll dat dann, bach?"
 ultimate_wollgesisch = "Alaaf woll bach neu, oder wat?"
