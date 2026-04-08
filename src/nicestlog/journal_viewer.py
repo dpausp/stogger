@@ -114,7 +114,7 @@ class JournalViewer:
         show_pid: bool = True,
         show_service: bool = True,
         max_width: int = 120,
-    ):
+    ) -> None:
         """Initialize journal viewer.
 
         Args:
@@ -367,8 +367,7 @@ class JournalViewer:
                         )
                         continue
 
-                parsed_entry = self.parse_journal_entry(entry)
-                yield parsed_entry
+                yield self.parse_journal_entry(entry)
                 count += 1
 
                 if count % 100 == 0:  # Log progress every 100 entries
@@ -425,7 +424,7 @@ class JournalViewer:
             if not isinstance(today, _REAL_DATETIME):
                 today = _REAL_DATETIME.fromtimestamp(today.timestamp())
             return today
-        elif time_str == "yesterday":
+        if time_str == "yesterday":
             yesterday = now - timedelta(days=1)
             y0 = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
             if not isinstance(y0, _REAL_DATETIME):
@@ -457,7 +456,7 @@ class JournalViewer:
         return result
 
 
-def main():
+def main() -> None:
     """CLI interface for journal viewer."""
     log.info(
         "journal-viewer-main-started",
@@ -570,11 +569,9 @@ def main():
                 level=args.level,
                 lines=args.lines,
                 follow=args.follow,
-            )
+            ),
         ):
             if args.json:
-                pass
-            else:
                 pass
 
             entry_count += 1

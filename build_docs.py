@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd, cwd=None):
+def run_command(cmd, cwd=None) -> bool | None:
     """Run a command and return success status."""
     try:
         subprocess.run(
@@ -28,7 +28,7 @@ def run_command(cmd, cwd=None):
         return False
 
 
-def main():
+def main() -> int:
     """Build main documentation."""
     print("🚀 Building nicestlog documentation...")
 

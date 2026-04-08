@@ -56,7 +56,7 @@ class HumanReadableEliotDestination:
         show_timestamps: bool = True,
         show_task_ids: bool = False,
         max_width: int = 120,
-    ):
+    ) -> None:
         self.file = file or sys.stdout
         self.show_timestamps = show_timestamps
         self.show_task_ids = show_task_ids
@@ -83,7 +83,7 @@ class HumanReadableEliotDestination:
         else:
             self._handle_regular_message(message, task_uuid)
 
-    def _handle_action_start(self, message: dict[str, Any], task_id: str):
+    def _handle_action_start(self, message: dict[str, Any], task_id: str) -> None:
         """Handle the start of an action."""
         action_type = message.get("action_type", "unknown")
         self._action_names[task_id] = action_type
@@ -121,7 +121,7 @@ class HumanReadableEliotDestination:
         self.file.write("\n")
         self.file.flush()
 
-    def _handle_action_result(self, message: dict[str, Any], task_id: str):
+    def _handle_action_result(self, message: dict[str, Any], task_id: str) -> None:
         """Handle successful action completion."""
         action_name = self._action_names.get(task_id, "unknown")
         depth = self._action_stack.get(task_id, 0)
@@ -133,7 +133,7 @@ class HumanReadableEliotDestination:
         result_data = {
             k: v
             for k, v in message.items()
-            if k not in ["message_type", "action_type", "task_id", "task_level", "timestamp"]
+            if k not in {"message_type", "action_type", "task_id", "task_level", "timestamp"}
         }
 
         self.file.write(
@@ -151,7 +151,7 @@ class HumanReadableEliotDestination:
         self._action_stack.pop(task_id, None)
         self._action_names.pop(task_id, None)
 
-    def _handle_action_failure(self, message: dict[str, Any], task_id: str):
+    def _handle_action_failure(self, message: dict[str, Any], task_id: str) -> None:
         """Handle failed action."""
         action_name = self._action_names.get(task_id, "unknown")
         depth = self._action_stack.get(task_id, 0)
@@ -177,7 +177,7 @@ class HumanReadableEliotDestination:
         self._action_stack.pop(task_id, None)
         self._action_names.pop(task_id, None)
 
-    def _handle_regular_message(self, message: dict[str, Any], task_id: str):
+    def _handle_regular_message(self, message: dict[str, Any], task_id: str) -> None:
         """Handle regular log messages within actions."""
         # Try to find the current action depth
         task_level = message.get("task_level", [])
@@ -254,7 +254,7 @@ def setup_eliot_logging(
 if ELIOT_AVAILABLE:
 
     class _ActionContext:
-        def __init__(self, action_name: str, **kwargs):
+        def __init__(self, action_name: str, **kwargs) -> None:
             self._cm = start_action(action_type=action_name, **kwargs)
 
         def __enter__(self):
@@ -312,7 +312,7 @@ else:
 
 
 # Example usage functions
-def demo_eliot_integration():
+def demo_eliot_integration() -> None:
     """Demonstrate Eliot integration with beautiful output."""
     if not ELIOT_AVAILABLE:
         return

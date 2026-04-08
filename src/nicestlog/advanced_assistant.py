@@ -145,7 +145,7 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
     complexity, and potential transformation opportunities.
     """
 
-    def __init__(self, file_path: Path):
+    def __init__(self, file_path: Path) -> None:
         """Initialize AST analyzer for a specific file."""
         self.file_path = file_path
         self.metrics = TransformationMetrics()
@@ -303,28 +303,28 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
                 if isinstance(child.func, ast.Attribute):
                     if (
                         isinstance(child.func.value, ast.Name)
-                        and child.func.value.id in ["log", "logger"]
+                        and child.func.value.id in {"log", "logger"}
                         and child.func.attr
-                        in [
+                        in {
                             "debug",
                             "info",
                             "warning",
                             "error",
                             "exception",
                             "critical",
-                        ]
+                        }
                     ) or (
                         hasattr(child.func.value, "id")
                         and child.func.value.id == "logging"
                         and child.func.attr
-                        in [
+                        in {
                             "debug",
                             "info",
                             "warning",
                             "error",
                             "exception",
                             "critical",
-                        ]
+                        }
                     ):
                         logging_call_count += 1
                 # Check for print statements (also considered logging-related)
@@ -371,12 +371,12 @@ class AdvancedASTAnalyzer(ast.NodeVisitor):
 
         elif isinstance(node.func, ast.Attribute):
             # Detect logging calls
-            if hasattr(node.func, "attr") and node.func.attr in [
+            if hasattr(node.func, "attr") and node.func.attr in {
                 "info",
                 "debug",
                 "warning",
                 "error",
-            ]:
+            }:
                 self.detected_patterns.append("logging_call")
                 log.debug(
                     "logging-call-detected",
@@ -407,7 +407,7 @@ class AdvancedTransformer(ast.NodeTransformer):
     with comprehensive logging and rollback capabilities.
     """
 
-    def __init__(self, patterns: list[ASTPattern]):
+    def __init__(self, patterns: list[ASTPattern]) -> None:
         """Initialize advanced transformer with patterns."""
         self.patterns = {p.name: p for p in patterns if p.enabled}
         self.metrics = TransformationMetrics()
@@ -520,7 +520,7 @@ class AdvancedAssistant:
     with comprehensive logging of every operation.
     """
 
-    def __init__(self, verbose: bool = True):
+    def __init__(self, verbose: bool = True) -> None:
         """Initialize advanced assistant with verbose mode."""
         self.verbose = verbose
         self.patterns: list[ASTPattern] = []
@@ -727,7 +727,7 @@ class AdvancedAssistant:
                     _replace_msg="✍️ Writing transformed content to {file_path}",
                     file_path=str(file_path),
                 )
-                file_path.write_text(transformed_content)
+                file_path.write_text(transformed_content, encoding="utf-8")
 
                 log.debug(
                     "file-transformed",

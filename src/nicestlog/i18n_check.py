@@ -80,20 +80,16 @@ def scan_translation_keys(paths: Iterable[Path]) -> tuple[set[str], set[str], se
                 continue
 
             # Event names where _replace_msg is present in the same call
-            for m in _EVENT_WITH_REPLACE.finditer(text):
-                event_keys.add(m.group("event"))
+            event_keys.update(m.group("event") for m in _EVENT_WITH_REPLACE.finditer(text))
 
             # Also include .info("event") calls even without _replace_msg
-            for m in _INFO_EVENT.finditer(text):
-                event_keys.add(m.group("event"))
+            event_keys.update(m.group("event") for m in _INFO_EVENT.finditer(text))
 
             # Explicit _msg_key assignments (potentially separate)
-            for m in _MSG_KEY.finditer(text):
-                msg_keys.add(m.group("key"))
+            msg_keys.update(m.group("key") for m in _MSG_KEY.finditer(text))
 
             # Debug events that use _replace_msg (should be excluded from requirements)
-            for m in _DEBUG_WITH_REPLACE.finditer(text):
-                debug_events.add(m.group("event"))
+            debug_events.update(m.group("event") for m in _DEBUG_WITH_REPLACE.finditer(text))
 
     return event_keys, msg_keys, debug_events
 
@@ -215,10 +211,7 @@ def format_report(report: dict[str, object], *, include_debug: bool = True) -> s
     present_cnt = len(report.get("translation_keys", []))  # type: ignore[arg-type]
 
     lines = []
-    lines.append("🌐 nicestlog i18n check")
-    lines.append(f"   Translation file: {report['translation_file']}")
-    lines.append(f"   Required keys: {required_cnt}")
-    lines.append(f"   Present keys:  {present_cnt}")
+    lines.extend(("🌐 nicestlog i18n check", f"   Translation file: {report['translation_file']}", f"   Required keys: {required_cnt}", f"   Present keys:  {present_cnt}"))
 
     if missing:
         lines.append("\n❗ Missing keys:")

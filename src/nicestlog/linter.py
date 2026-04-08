@@ -70,7 +70,7 @@ class LoggingLevelIssue:
 class LoggingVisitor(ast.NodeVisitor):
     """AST visitor to analyze logging patterns."""
 
-    def __init__(self, source_lines: list[str] | None = None):
+    def __init__(self, source_lines: list[str] | None = None) -> None:
         self.log_statements = 0
         self.functions = 0
         self.functions_with_logging = 0
@@ -97,7 +97,7 @@ class LoggingVisitor(ast.NodeVisitor):
         self._function_definitions: dict[str, ast.FunctionDef] = {}
         self._current_function: str | None = None
 
-    def visit_FunctionDef(self, node):
+    def visit_FunctionDef(self, node) -> None:
         """Visit function definitions."""
         self.functions += 1
         old_has_logs = self.current_function_has_logs
@@ -121,7 +121,7 @@ class LoggingVisitor(ast.NodeVisitor):
         self._current_function = old_function
 
     # Track try/except context to suggest log.exception usage
-    def visit_Try(self, node: ast.Try):
+    def visit_Try(self, node: ast.Try) -> None:
         # Handle try/except blocks and push except names on stack
         for handler in node.handlers:
             name = handler.name if isinstance(handler.name, str) else None
@@ -138,7 +138,7 @@ class LoggingVisitor(ast.NodeVisitor):
         for stmt in getattr(node, "finalbody", []):
             self.visit(stmt)
 
-    def visit_Call(self, node):
+    def visit_Call(self, node) -> None:
         """Visit function calls to detect logging."""
         call_str = ast.unparse(node)
 
@@ -218,7 +218,7 @@ class LoggingVisitor(ast.NodeVisitor):
             raise
         return None
 
-    def _analyze_logging_level(self, node: ast.Call):
+    def _analyze_logging_level(self, node: ast.Call) -> None:
         """Analyze if the logging level is appropriate."""
         # Extract logging level and event name
         level_info = self._extract_logging_info(node)
@@ -330,16 +330,15 @@ class LoggingVisitor(ast.NodeVisitor):
 
         if "initializ" in event_lower:
             return "Library initialization should be debug level to avoid user spam"
-        elif "configur" in event_lower:
+        if "configur" in event_lower:
             return "Internal configuration should be debug level"
-        elif "enabling" in event_lower or "building" in event_lower:
+        if "enabling" in event_lower or "building" in event_lower:
             return "Internal setup operations should be debug level"
-        elif "complete" in event_lower or "finished" in event_lower:
+        if "complete" in event_lower or "finished" in event_lower:
             return "Completion messages for internal operations should be debug level"
-        elif "renderer" in event_lower:
+        if "renderer" in event_lower:
             return "Renderer creation is internal library setup"
-        else:
-            return "Internal library operation should be debug level to avoid spamming users"
+        return "Internal library operation should be debug level to avoid spamming users"
 
     def _analyze_log_wrapper(self, node: ast.FunctionDef) -> None:
         """Analyze if a function is a problematic log wrapper."""
@@ -576,15 +575,9 @@ def check_logging_quality(
 
     # Check overall logging coverage
     if stats.log_coverage_percent < min_coverage:
-        issues.append(
-            f"❌ Too little logging! {stats.log_coverage_percent:.1f}% coverage (minimum: {min_coverage}%)",
-        )
-        issues.append("   Add more log.info(), log.debug(), or log.error() statements")
+        issues.extend((f"❌ Too little logging! {stats.log_coverage_percent:.1f}% coverage (minimum: {min_coverage}%)", "   Add more log.info(), log.debug(), or log.error() statements"))
     elif stats.log_coverage_percent > max_coverage:
-        issues.append(
-            f"⚠️  Possibly too much logging! {stats.log_coverage_percent:.1f}% coverage (maximum: {max_coverage}%)",
-        )
-        issues.append("   Consider reducing log verbosity or using higher log levels")
+        issues.extend((f"⚠️  Possibly too much logging! {stats.log_coverage_percent:.1f}% coverage (maximum: {max_coverage}%)", "   Consider reducing log verbosity or using higher log levels"))
     else:
         issues.append(f"✅ Good logging coverage: {stats.log_coverage_percent:.1f}%")
 
@@ -595,12 +588,7 @@ def check_logging_quality(
     # Check function coverage
     if stats.functions > 0:
         if stats.function_coverage_percent < MIN_FUNCTION_LOGGING_PERCENT:
-            issues.append(
-                f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%",
-            )
-            issues.append(
-                f"   Consider adding logging to more functions (aim for {MIN_FUNCTION_LOGGING_PERCENT}-70%)",
-            )
+            issues.extend((f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%", f"   Consider adding logging to more functions (aim for {MIN_FUNCTION_LOGGING_PERCENT}-70%)"))
         elif stats.function_coverage_percent > MAX_FUNCTION_LOGGING_PERCENT:
             issues.append(
                 f"⚠️  Almost every function logs - might be excessive: {stats.function_coverage_percent:.1f}%",
@@ -684,10 +672,6 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
             fmt = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
             if fmt == "json":
                 pass
-            else:
-                pass
-        else:
-            pass
         return True
 
     total_issues = 0
@@ -995,11 +979,10 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
                 _replace_msg=f"✅ {len(python_files)} files checked - no issues found!",
             )
         return True
-    else:
-        if output_format not in {"json", "toml"}:
-            log.info(
-                "linter-issues-found",
-                total_issues=total_issues,
-                _replace_msg=f"❌ {total_issues} files have logging issues",
-            )
-        return False
+    if output_format not in {"json", "toml"}:
+        log.info(
+            "linter-issues-found",
+            total_issues=total_issues,
+            _replace_msg=f"❌ {total_issues} files have logging issues",
+        )
+    return False

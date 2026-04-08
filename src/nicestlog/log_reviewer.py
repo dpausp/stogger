@@ -36,7 +36,7 @@ class LogQualityReviewer:
     Gives honest feedback about whether your logs are "arsch" or not.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.event_patterns = []
         self.field_patterns = []
         self.bad_patterns = [
@@ -96,7 +96,7 @@ class LogQualityReviewer:
         }
 
         # Analyze each line
-        for _line_num, line in enumerate(lines, 1):
+        for line in lines:
             line = line.strip()
 
             if not line:
@@ -370,7 +370,7 @@ class LogQualityReviewer:
         return suggestions
 
 
-def print_report(report: LogQualityReport, format_type: str = "text"):
+def print_report(report: LogQualityReport, format_type: str = "text") -> None:
     """Print the quality report."""
     if format_type == "json":
         return

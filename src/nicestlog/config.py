@@ -50,7 +50,7 @@ class NicestLogConfig:
     with keyword arguments.
     """
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         """Initializes the configuration.
 
         Args:
@@ -267,7 +267,7 @@ def _detect_from_heuristics(project_root: Path) -> ProjectStructure:
     if not source_dirs:
         # Check if root contains Python files (but not just setup.py)
         py_files = list(project_root.glob("*.py"))
-        if py_files and not all(f.name in ["setup.py", "conftest.py"] for f in py_files):
+        if py_files and not all(f.name in {"setup.py", "conftest.py"} for f in py_files):
             source_dirs.append(".")
 
     # Common test directory patterns

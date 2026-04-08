@@ -51,7 +51,7 @@ else:
 
 
 class PartialFormatter(string.Formatter):
-    def __init__(self, missing="<missing>", bad_format="<bad format>"):
+    def __init__(self, missing="<missing>", bad_format="<bad format>") -> None:
         # Don't log during initialization to avoid recursion
         self.missing = missing
         self.bad_format = bad_format
@@ -75,7 +75,7 @@ class PartialFormatter(string.Formatter):
 
 
 class TranslationProcessor:
-    def __init__(self, translations):
+    def __init__(self, translations) -> None:
         log.debug(
             "initializing-translation-processor",
             translation_count=len(translations),
@@ -139,7 +139,7 @@ class ConsoleFileRenderer:
         settings=_default_simple_format_settings,
         min_level=None,
         show_caller_info=None,
-    ):
+    ) -> None:
         """Initialize the ConsoleFileRenderer with settings.
 
         Args:
@@ -192,7 +192,7 @@ class ConsoleFileRenderer:
     def __call__(self, _, method_name, event_dict):
         log_settings = event_dict.pop("_log_settings", {})
         if log_settings.get("console_ignore", False):
-            return
+            return None
 
         # Determine level name for filtering; fall back to event_dict['level'] when method_name is provided
         level_name = None
@@ -214,7 +214,7 @@ class ConsoleFileRenderer:
         console_io = io.StringIO()
         log_io = io.StringIO()
 
-        def write(line):
+        def write(line) -> None:
             console_io.write(line)
             if RESET_ALL:
                 for SYMB in [
@@ -331,14 +331,13 @@ class ConsoleFileRenderer:
             except ValueError:
                 pass
 
-        message = {"console": console_io.getvalue(), "file": log_io.getvalue()}
-        return message
+        return {"console": console_io.getvalue(), "file": log_io.getvalue()}
 
 
 class JSONRenderer:
     """JSON renderer for structured logging output."""
 
-    def __init__(self, min_level="info"):
+    def __init__(self, min_level="info") -> None:
         log.debug("initializing-json-renderer", min_level=min_level)
         self.min_level_idx = ConsoleFileRenderer.LEVELS.index(min_level.lower())
 
@@ -398,7 +397,7 @@ class SelectRenderedString:
     as required, avoiding RuntimeWarnings.
     """
 
-    def __init__(self, key: str = "console"):
+    def __init__(self, key: str = "console") -> None:
         """Initialize the selector.
 
         Args:
@@ -456,7 +455,7 @@ def log_to_stdlib(_logger, _name, event_dict):
     return event_dict
 
 
-def init_logging(*args, **kwargs):
+def init_logging(*args, **kwargs) -> None:
     """Initialize logging with the new reference-style signature.
 
     New signature (reference-style):
@@ -558,7 +557,7 @@ def init_logging(*args, **kwargs):
         init_command_logging(log, logdir)
 
 
-def init_early_logging():
+def init_early_logging() -> None:
     """Initialize minimal logging format early to reduce uninitialized structlog messages.
 
     This sets up a basic structlog configuration with minimal dependencies
@@ -598,29 +597,28 @@ def init_early_logging():
 class DummyJournalLogger:
     """Dummy journal logger when systemd is not available."""
 
-    def msg(self, message):
+    def msg(self, message) -> None:
         pass
 
 
 class JournalLogger:
     """Logger that sends messages to systemd journal."""
 
-    def msg(self, message):
+    def msg(self, message) -> None:
         journal.send(**message)
 
 
 class JournalLoggerFactory:
     """Factory for creating journal loggers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         if journal is None:
             pass
 
     def __call__(self, *_args):
         if journal is None:
             return DummyJournalLogger()
-        else:
-            return JournalLogger()
+        return JournalLogger()
 
 
 JOURNAL_LEVELS = {
@@ -654,7 +652,7 @@ KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
 class SystemdJournalRenderer:
     """Renderer for systemd journal output."""
 
-    def __init__(self, syslog_identifier, syslog_facility=syslog.LOG_LOCAL0):
+    def __init__(self, syslog_identifier, syslog_facility=syslog.LOG_LOCAL0) -> None:
         self.syslog_identifier = syslog_identifier
         self.syslog_facility = syslog_facility
 
@@ -715,10 +713,9 @@ class SystemdJournalRenderer:
         """
         if isinstance(obj, str):
             return obj
-        elif isinstance(obj, datetime):
+        if isinstance(obj, datetime):
             return datetime.isoformat(obj)
-        else:
-            return json.dumps(obj, default=self.handle_json_fallback)
+        return json.dumps(obj, default=self.handle_json_fallback)
 
 
 class CmdOutputFileRenderer:
@@ -728,8 +725,7 @@ class CmdOutputFileRenderer:
         line = event_dict.pop("cmd_output_line", None)
         if line is not None:
             return {"cmd_output_file": line}
-        else:
-            return {}
+        return {}
 
 
 class MultiRenderer:
@@ -741,10 +737,10 @@ class MultiRenderer:
     Errors in renderers are ignored silently.
     """
 
-    def __init__(self, **renderers):
+    def __init__(self, **renderers) -> None:
         self.renderers = renderers
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<MultiRenderer {[repr(logger) for logger in self.renderers]}>"
 
     def __call__(self, logger, method_name, event_dict):
@@ -770,7 +766,7 @@ class MultiOptimisticLoggerFactory:
     Stores context and sub-logger factories.
     """
 
-    def __init__(self, context, factories):
+    def __init__(self, context, factories) -> None:
         self.context = context
         self.factories = factories
 
@@ -787,13 +783,13 @@ class MultiOptimisticLogger:
     Errors in sub loggers are ignored silently.
     """
 
-    def __init__(self, loggers):
+    def __init__(self, loggers) -> None:
         self.loggers = loggers
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<MultiOptimisticLogger {[repr(logger) for logger in self.loggers]}>"
 
-    def msg(self, **messages):
+    def msg(self, **messages) -> None:
         for name, logger in self.loggers.items():
             try:
                 line = messages.get(name)
@@ -813,7 +809,7 @@ class MultiOptimisticLogger:
         return self.msg
 
 
-def init_command_logging(log, logdir=None):
+def init_command_logging(log, logdir=None) -> None:
     """Adds a cmd_output_file logger factory to an already configured
     MultiOptimisticLoggerFactory, used for logging Nix command output to a
     separate file.
@@ -859,7 +855,7 @@ def init_command_logging(log, logdir=None):
     )
 
 
-def drop_cmd_output_logfile(log):
+def drop_cmd_output_logfile(log) -> None:
     """Deletes the log file used by the cmd_output_file logger.
     Used to throw away the command log file if nothing interesting has
     happened.

@@ -34,7 +34,7 @@ log_lock = threading.Lock()
 class WebLogHandler:
     """Handle logs for the web dashboard."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the web log handler."""
         self.session_id = int(time.time())
 
@@ -45,7 +45,7 @@ class WebLogHandler:
             "level": event_dict.get("level", "info"),
             "event": event_dict.get("event", ""),
             "logger": event_dict.get("logger", "root"),
-            "data": {k: v for k, v in event_dict.items() if k not in ["timestamp", "level", "event", "logger"]},
+            "data": {k: v for k, v in event_dict.items() if k not in {"timestamp", "level", "event", "logger"}},
             "session_id": self.session_id,
         }
 
@@ -360,7 +360,7 @@ def create_dashboard_app():
         )
 
     @app.route("/api/clear", methods=["POST"])
-    def clear_logs():
+    def clear_logs() -> str:
         """Clear all logs."""
         with log_lock:
             recent_logs.clear()
@@ -376,7 +376,7 @@ def get_log_stats():
 
     total_logs = len(logs)
     error_count = len(
-        [log_entry for log_entry in logs if log_entry["level"] in ["error", "critical"]],
+        [log_entry for log_entry in logs if log_entry["level"] in {"error", "critical"}],
     )
     warning_count = len(
         [log_entry for log_entry in logs if log_entry["level"] == "warning"],
@@ -418,7 +418,7 @@ def setup_web_logging():
     return web_handler
 
 
-def run_dashboard(host="127.0.0.1", port=8080, *, debug=False):
+def run_dashboard(host="127.0.0.1", port=8080, *, debug=False) -> None:
     """Run the web dashboard."""
     if not FLASK_AVAILABLE:
         msg = (
@@ -441,7 +441,7 @@ if __name__ == "__main__":
     import threading
     import time
 
-    def generate_demo_logs():
+    def generate_demo_logs() -> None:
         """Generate demo logs for testing."""
         setup_web_logging()
         log = structlog.get_logger("demo")

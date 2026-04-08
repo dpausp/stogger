@@ -28,7 +28,7 @@ def run_coverage() -> tuple[int, str, str]:
 
 def analyze_coverage(coverage_file: str = "coverage.json") -> dict:
     """Parse coverage JSON and categorize modules."""
-    with Path(coverage_file).open() as f:
+    with Path(coverage_file).open(encoding="utf-8") as f:
         data = json.load(f)
 
     tiers = {"tier1_full": [], "tier2_basic": [], "tier3_minimal": []}
@@ -63,7 +63,7 @@ def analyze_coverage(coverage_file: str = "coverage.json") -> dict:
     return tiers
 
 
-def print_report(tiers: dict):
+def print_report(tiers: dict) -> None:
     """Print coverage report for documentation planning."""
     console.print("=" * 70, style="bold")
     console.print("COVERAGE-BASED DOCUMENTATION PRIORITIZATION", style="bold")
@@ -104,12 +104,12 @@ def print_report(tiers: dict):
     console.print("=" * 70)
 
 
-def generate_coverage_json_for_docs(tiers: dict, output_path: str = "docs/_data/coverage.json"):
+def generate_coverage_json_for_docs(tiers: dict, output_path: str = "docs/_data/coverage.json") -> None:
     """Generate coverage data for documentation use."""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    with output.open("w") as f:
+    with output.open("w", encoding="utf-8") as f:
         json.dump(tiers, f, indent=2)
 
     console.print(f"\n📄 Coverage data written to {output_path}")
@@ -121,7 +121,7 @@ def main():
     if not Path("coverage.json").exists():
         console.print("Running pytest with coverage...")
         returncode, _stdout, stderr = run_coverage()
-        if returncode not in (0, 1):  # pytest returns 1 for test failures, which is ok
+        if returncode not in {0, 1}:  # pytest returns 1 for test failures, which is ok
             console.print(f"Warning: pytest exited with {returncode}")
             if stderr:
                 console.print(f"stderr: {stderr}")

@@ -57,7 +57,7 @@ class LogAnalysisResult:
 class LogStatementAnalyzer(ast.NodeVisitor):
     """AST visitor that analyzes log statements."""
 
-    def __init__(self, *, prefer_dash_case: bool = True):
+    def __init__(self, *, prefer_dash_case: bool = True) -> None:
         self.statements: list[LogStatement] = []
         self.prefer_dash_case = prefer_dash_case
         self.log_methods = {
@@ -221,7 +221,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
                 event_id=event_id,
                 event_id_format=event_id_format,
                 prefer_dash_case=prefer_dash_case,
-            )
+            ),
         )
 
         return LogStatement(
@@ -373,7 +373,7 @@ class LogStatementAnalyzer(ast.NodeVisitor):
             issues.append("debug_for_error_event")
 
         if (
-            options.method in ["error", "critical"]
+            options.method in {"error", "critical"}
             and options.event_id
             and any(word in options.event_id.lower() for word in ["debug", "trace", "info"])
         ):

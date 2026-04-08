@@ -46,7 +46,7 @@ class LiveCodeEditor:
     with syntax highlighting, validation, and comprehensive logging.
     """
 
-    def __init__(self, *, use_external_editor: bool = False):
+    def __init__(self, *, use_external_editor: bool = False) -> None:
         self.use_external_editor = use_external_editor
         self.edit_sessions: list[EditSession] = []
 
@@ -182,7 +182,7 @@ class LiveCodeEditor:
         original_code: str,
         current_code: str,
         pattern_name: str,
-    ):
+    ) -> None:
         """Show the editing interface with before/after comparison."""
         console.print("\n" + "=" * 80)
         console.print(
@@ -219,23 +219,21 @@ class LiveCodeEditor:
                 show_default=False,
             ).lower()
 
-            if choice in ["e", "edit"]:
+            if choice in {"e", "edit"}:
                 return "edit"
-            elif choice in ["a", "accept"]:
+            if choice in {"a", "accept"}:
                 return "accept"
-            elif choice in ["r", "reject"]:
+            if choice in {"r", "reject"}:
                 return "reject"
-            elif choice == "reset":
+            if choice == "reset":
                 return "reset"
-            else:
-                console.print("[red]Invalid choice. Use e/a/r/reset[/red]")
+            console.print("[red]Invalid choice. Use e/a/r/reset[/red]")
 
     def _edit_code_interactive(self, current_code: str) -> tuple[str, bool]:
         """Edit code interactively in the terminal."""
         if self.use_external_editor:
             return self._edit_with_external_editor(current_code)
-        else:
-            return self._edit_with_inline_editor(current_code)
+        return self._edit_with_inline_editor(current_code)
 
     def _edit_with_inline_editor(self, current_code: str) -> tuple[str, bool]:
         """Simple inline editor for quick edits."""
@@ -272,7 +270,7 @@ class LiveCodeEditor:
             return current_code, True
 
         # Create temporary file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+        with tempfile.NamedTemporaryFile(encoding="utf-8", mode="w", suffix=".py", delete=False) as f:
             f.write(current_code)
             temp_path = f.name
 
@@ -289,7 +287,7 @@ class LiveCodeEditor:
                 return current_code, True
 
             # Read edited content
-            with Path(temp_path).open() as f:
+            with Path(temp_path).open(encoding="utf-8") as f:
                 new_code = f.read().strip()
 
             # Validate syntax
@@ -309,7 +307,7 @@ class LiveCodeEditor:
             # Cleanup
             Path(temp_path).unlink()
 
-    def save_edit_sessions(self, output_path: Path):
+    def save_edit_sessions(self, output_path: Path) -> None:
         """Save all edit sessions for machine learning analysis."""
         sessions_data = [
             {
@@ -327,7 +325,7 @@ class LiveCodeEditor:
             for session in self.edit_sessions
         ]
 
-        output_path.write_text(json.dumps(sessions_data, indent=2))
+        output_path.write_text(json.dumps(sessions_data, indent=2), encoding="utf-8")
 
         log.info(
             "edit-sessions-saved",

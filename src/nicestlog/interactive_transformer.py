@@ -96,7 +96,7 @@ class InteractiveTransformer:
         context_lines: int = 3,
         enable_live_editing: bool = True,
         use_external_editor: bool = False,
-    ):
+    ) -> None:
         self.assistant = assistant or AdvancedAssistant(verbose=True)
         self.context_lines = context_lines
         self.session = InteractiveSession()
@@ -257,8 +257,7 @@ class InteractiveTransformer:
                     accepted_proposals,
                     original_content,
                 )
-            else:
-                return self._create_empty_result(file_path)
+            return self._create_empty_result(file_path)
 
         except Exception as e:
             log.exception(
@@ -349,11 +348,11 @@ class InteractiveTransformer:
 
         # Create a custom node visitor to find transformation opportunities
         class ProposalFinder(ast.NodeVisitor):
-            def __init__(self, transformer_self):
+            def __init__(self, transformer_self) -> None:
                 self.transformer = transformer_self
                 self.proposals = []
 
-            def visit(self, node):
+            def visit(self, node) -> None:
                 # Check each enabled pattern
                 for pattern in self.transformer.assistant.patterns:
                     if pattern.enabled and pattern.transformer and pattern.matcher(node):
@@ -415,10 +414,9 @@ class InteractiveTransformer:
                     start = max(0, line_num - self.transformer.context_lines - 1)
                     end = line_num - 1
                     return lines[start:end]
-                else:
-                    start = line_num
-                    end = min(len(lines), line_num + self.transformer.context_lines)
-                    return lines[start:end]
+                start = line_num
+                end = min(len(lines), line_num + self.transformer.context_lines)
+                return lines[start:end]
 
         finder = ProposalFinder(self)
         finder.visit(tree)
@@ -467,23 +465,22 @@ class InteractiveTransformer:
                 show_default=False,
             ).lower()
 
-            if choice_str in ["y", "yes", ""]:
+            if choice_str in {"y", "yes", ""}:
                 return UserChoice.YES
-            elif choice_str in ["n", "no"]:
+            if choice_str in {"n", "no"}:
                 return UserChoice.NO
-            elif choice_str in ["a", "all"]:
+            if choice_str in {"a", "all"}:
                 return UserChoice.ALL
-            elif choice_str in ["p", "preview"]:
+            if choice_str in {"p", "preview"}:
                 self._show_detailed_preview(proposal)
                 continue  # Ask again
-            elif choice_str in ["s", "skip"]:
+            if choice_str in {"s", "skip"}:
                 return UserChoice.SKIP_FILE
-            elif choice_str in ["q", "quit"]:
+            if choice_str in {"q", "quit"}:
                 return UserChoice.QUIT
-            else:
-                console.print("[red]Invalid choice. Please use y/n/a/p/s/q[/red]")
+            console.print("[red]Invalid choice. Please use y/n/a/p/s/q[/red]")
 
-    def _show_transformation_preview(self, proposal: TransformationProposal):
+    def _show_transformation_preview(self, proposal: TransformationProposal) -> None:
         """Show a preview of the transformation."""
         # Create a table for the transformation
         table = Table(show_header=False, box=None, padding=(0, 1))
@@ -504,7 +501,7 @@ class InteractiveTransformer:
 
         console.print(table)
 
-    def _show_detailed_preview(self, proposal: TransformationProposal):
+    def _show_detailed_preview(self, proposal: TransformationProposal) -> None:
         """Show a detailed preview with syntax highlighting."""
         console.print("\n[bold]Detailed Preview:[/bold]")
 
@@ -541,12 +538,12 @@ class InteractiveTransformer:
             ),
         )
 
-    def _show_file_header(self, file_path: Path, proposal_count: int):
+    def _show_file_header(self, file_path: Path, proposal_count: int) -> None:
         """Show header for file transformation."""
         console.print(f"\n[bold cyan]📄 {file_path}[/bold cyan]")
         console.print(f"[dim]Found {proposal_count} potential transformation(s)[/dim]")
 
-    def _show_session_header(self, files: list[Path]):
+    def _show_session_header(self, files: list[Path]) -> None:
         """Show header for transformation session."""
         console.print(
             Panel.fit(
@@ -557,7 +554,7 @@ class InteractiveTransformer:
             ),
         )
 
-    def _show_session_summary(self, results: list[TransformationResult]):
+    def _show_session_summary(self, results: list[TransformationResult]) -> None:
         """Show summary of the transformation session."""
         successful = sum(1 for r in results if r.success)
         total_changes = sum(len(r.changes_made) for r in results)

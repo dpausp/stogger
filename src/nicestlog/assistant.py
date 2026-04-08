@@ -58,8 +58,7 @@ class PrintToStructlogTransformer(ast.NodeTransformer):
     def derive_event_from_literal(arg: ast.AST) -> str | None:
         """Derive event name from AST literal."""
         if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-            candidate = PrintToStructlogTransformer.slugify(arg.value)
-            return candidate
+            return PrintToStructlogTransformer.slugify(arg.value)
         return None
 
     @staticmethod

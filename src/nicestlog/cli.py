@@ -93,7 +93,7 @@ console = Console()
 
 
 # Version callback function
-def version_callback(*, value: bool):
+def version_callback(*, value: bool) -> None:
     """Show version and exit."""
     if value:
         try:
@@ -101,7 +101,7 @@ def version_callback(*, value: bool):
             console.print(f"nicestlog version {version}")
         except importlib.metadata.PackageNotFoundError:
             console.print("nicestlog version unknown (development)")
-        raise typer.Exit()
+        raise typer.Exit
 
 
 # Main app with version option
@@ -119,7 +119,7 @@ def main_callback(
             help="Show version and exit",
         ),
     ] = None,
-):
+) -> None:
     """Nicestlog utility."""
 
 
@@ -139,14 +139,14 @@ def tools_generate_service(
         typer.Option("--working-dir", help="Working directory"),
     ] = None,
     output: Annotated[str | None, typer.Option("--output", help="Output file path")] = None,
-):
+) -> None:
     """🔧 Generate systemd service file."""
     generate_service_cmd(service_name, exec_command, user, working_dir, output)
 
 
 # Add check-advanced command to tools
 @tools_app.command("check-advanced")
-def tools_check_advanced(**kwargs):
+def tools_check_advanced(**kwargs) -> None:
     """🔬 Advanced check with all options for complexity analysis and AST patterns."""
     options = CheckOptions(**kwargs)
     _run_check_command(options)
@@ -164,7 +164,7 @@ def tools_review(
         float,
         typer.Option("--min-score", help="Minimum score"),
     ] = 70.0,
-):
+) -> None:
     """📝 Review log quality and provide suggestions."""
     valid_formats = ["text", "json", "html"]
     if format_type not in valid_formats:
@@ -200,9 +200,9 @@ def tools_journal(
         str | None,
         typer.Option("--level", help="Log level filter"),
     ] = None,
-):
+) -> None:
     """📖 Beautiful systemd journal viewer."""
-    if level and level not in ["debug", "info", "warning", "error", "critical"]:
+    if level and level not in {"debug", "info", "warning", "error", "critical"}:
         console.print(
             f"❌ [red]Invalid level '{level}'. Valid levels: debug, info, warning, error, critical[/red]",
         )
@@ -227,7 +227,7 @@ if FLASK_AVAILABLE_FOR_CLI:
         ] = "127.0.0.1",
         port: Annotated[int, typer.Option("--port", help="Port to bind to")] = 8080,
         debug: Annotated[bool, typer.Option("--debug", help="Debug mode")] = False,
-    ):
+    ) -> None:
         """🌐 Start the web dashboard."""
         run_dashboard_cmd(host, port, debug=debug)
 
@@ -264,7 +264,7 @@ def i18n_check(
         typer.Option("--strict", help="Strict mode - fail on any missing translations"),
     ] = False,
     verbose: Annotated[bool, typer.Option("--verbose", help="Verbose output")] = False,
-):
+) -> None:
     """🌍 Check translation completeness and quality."""
     try:
         # Convert src_dir to Path and get all Python files
@@ -311,7 +311,7 @@ def i18n_check(
         sys.exit(2)
 
 
-def init_config():
+def init_config() -> None:
     """Interactive wizard to create a [tool.nicestlog] section in pyproject.toml."""
     log.debug("starting-config-wizard")
 
@@ -353,7 +353,7 @@ def init_config():
         pyproject["tool"] = {}
     pyproject["tool"]["nicestlog"] = config
 
-    with Path(pyproject_path).open("w") as f:
+    with Path(pyproject_path).open("w", encoding="utf-8") as f:
         toml.dump(pyproject, f)
 
     log.debug("config-wizard-completed", config=config)
@@ -374,7 +374,7 @@ def docs(
         bool,
         typer.Option("--pager", "-p", help="Use pager for displaying docs"),
     ] = False,
-):
+) -> None:
     """📚 Show documentation and examples."""
     if interactive:
         _show_docs_interactive(use_pager=pager)
@@ -404,7 +404,7 @@ def docs_serve(
         bool,
         typer.Option("--build/--no-build", help="Build docs before serving"),
     ] = True,
-):
+) -> None:
     """🌐 Serve HTML documentation in browser."""
     _serve_html_docs(port, host, open_browser=open_browser, build=build)
 
@@ -418,7 +418,7 @@ def init_config_cmd(
         help="Configuration template",
     ),
     force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
-):
+) -> None:
     """🔧 Initialize nicestlog configuration."""
     # Enhanced init command that works with any project path
     original_cwd = Path.cwd()
@@ -466,10 +466,10 @@ def check(
     no_ast: Annotated[bool, typer.Option("--no-ast", help="Disable AST analysis")] = False,
     complexity: Annotated[bool, typer.Option("--complexity", help="Enable complexity analysis")] = False,
     patterns: Annotated[
-        list[str] | None, typer.Option("--pattern", "-p", help="Specific AST patterns to check")
+        list[str] | None, typer.Option("--pattern", "-p", help="Specific AST patterns to check"),
     ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
-):
+) -> None:
     """🔍 Check code for logging best practices with AST analysis by default.
 
     Examples:
@@ -494,7 +494,7 @@ def check(
     _run_check_command(options)
 
 
-def _run_check_command(options: CheckOptions):
+def _run_check_command(options: CheckOptions) -> None:
     """Execute the check command with given options."""
     nicestlog.init_logging(verbose=options.verbose)
     log = structlog.get_logger()
@@ -517,7 +517,7 @@ def _run_check_command(options: CheckOptions):
     _handle_check_summary(lint_success=lint_success, ast_issues=ast_issues, log=log)
 
 
-def _handle_check_summary(*, lint_success: bool, ast_issues: list, log):
+def _handle_check_summary(*, lint_success: bool, ast_issues: list, log) -> None:
     """Handle and display the summary of check results."""
     if lint_success:
         log.info("check-lint-passed", _replace_msg="✅ Linting passed")
@@ -541,17 +541,17 @@ def _detect_project_structure(path_obj: Path, log):
             _display_project_context(project_structure, verbose=False, single_file=path_obj)
     except ValueError as e:
         log.info(
-            "check-project-structure-failed", error=str(e), _replace_msg=f"Project structure detection failed: {e}"
+            "check-project-structure-failed", error=str(e), _replace_msg=f"Project structure detection failed: {e}",
         )
         log.info(
-            "check-configure-pyproject", _replace_msg="Please configure [tool.nicestlog] section in pyproject.toml"
+            "check-configure-pyproject", _replace_msg="Please configure [tool.nicestlog] section in pyproject.toml",
         )
         sys.exit(1)
     else:
         return project_structure
 
 
-def _display_mode_info(options: CheckOptions, log):
+def _display_mode_info(options: CheckOptions, log) -> None:
     """Display mode information based on options."""
     mode_info = []
     if options.fix:
@@ -600,11 +600,10 @@ def _run_ast_analysis(options: CheckOptions, path_obj: Path, project_structure, 
 
     if path_obj.is_file():
         return _analyze_single_file_for_check(assistant, path_obj, options)
-    else:
-        return _analyze_directory_files(assistant, path_obj, project_structure, options, log)
+    return _analyze_directory_files(assistant, path_obj, project_structure, options, log)
 
 
-def _configure_ast_patterns(assistant: AdvancedAssistant, patterns: list[str]):
+def _configure_ast_patterns(assistant: AdvancedAssistant, patterns: list[str]) -> None:
     """Configure AST patterns based on user selection."""
     for pattern_name in patterns:
         for ast_pattern in assistant.patterns:
@@ -622,7 +621,7 @@ def _analyze_single_file_for_check(assistant: AdvancedAssistant, path_obj: Path,
 
 
 def _analyze_directory_files(
-    assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions, log
+    assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions, log,
 ):
     """Analyze all files in a directory."""
     python_files = filter_python_files(path_obj, respect_gitignore=True)
@@ -662,7 +661,7 @@ def _analyze_directory_files(
     return ast_results
 
 
-def _display_ast_issues(ast_issues, log):
+def _display_ast_issues(ast_issues, log) -> None:
     """Display AST issues found during analysis."""
     if ast_issues and _has_ast_issues(ast_issues):
         log.info("check-ast-issues-found", _replace_msg="AST Issues Found:")
@@ -676,7 +675,7 @@ def _display_ast_issues(ast_issues, log):
                 )
 
 
-def _run_interactive_mode(options: CheckOptions, path_obj: Path, ast_issues: list, log):
+def _run_interactive_mode(options: CheckOptions, path_obj: Path, ast_issues: list, log) -> None:
     """Run interactive transformation mode."""
     log.info("check-interactive-start", _replace_msg="Starting interactive mode...")
     transformer = InteractiveTransformer()
@@ -691,7 +690,7 @@ def _run_interactive_mode(options: CheckOptions, path_obj: Path, ast_issues: lis
                 transformer.transform_file_interactive(py_file)
 
 
-def _run_fix_mode(options: CheckOptions, path_obj: Path, project_structure, log):
+def _run_fix_mode(options: CheckOptions, path_obj: Path, project_structure, log) -> None:
     """Run automatic fix mode."""
     log.info("check-fixes-start", _replace_msg="Applying AST-based fixes...")
 
@@ -704,7 +703,7 @@ def _run_fix_mode(options: CheckOptions, path_obj: Path, project_structure, log)
         _fix_directory_files(assistant, path_obj, project_structure, options)
 
 
-def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions):
+def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions) -> None:
     """Fix all files in a directory."""
     python_files = []
     for src_dir in project_structure.source_dirs:
@@ -730,7 +729,7 @@ def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_s
     _display_directory_transformation(transform_results, options.dry_run)
 
 
-def _handle_check_summary(*, lint_success: bool, ast_issues, log):
+def _handle_check_summary(*, lint_success: bool, ast_issues, log) -> None:
     """Handle final summary and exit code."""
     has_issues = not lint_success or (ast_issues and _has_ast_issues(ast_issues))
 
@@ -741,7 +740,7 @@ def _handle_check_summary(*, lint_success: bool, ast_issues, log):
         log.info("check-all-passed", _replace_msg="All checks passed!")
 
 
-def _display_check_analysis_result(result: CodeAnalysisResult, *, show_complexity: bool, verbose: bool = False):
+def _display_check_analysis_result(result: CodeAnalysisResult, *, show_complexity: bool, verbose: bool = False) -> None:
     """Display analysis results for check command."""
     log = structlog.get_logger()
 
@@ -753,7 +752,7 @@ def _display_check_analysis_result(result: CodeAnalysisResult, *, show_complexit
     _display_analysis_issues(result, verbose, log)
 
 
-def _display_detailed_analysis(result: CodeAnalysisResult, show_complexity: bool, log):
+def _display_detailed_analysis(result: CodeAnalysisResult, show_complexity: bool, log) -> None:
     """Display detailed analysis metrics."""
     log.info(
         "check-analysis-results",
@@ -780,7 +779,7 @@ def _display_detailed_analysis(result: CodeAnalysisResult, show_complexity: bool
         )
 
 
-def _display_compact_analysis(result: CodeAnalysisResult, log):
+def _display_compact_analysis(result: CodeAnalysisResult, log) -> None:
     """Display compact analysis summary."""
     issue_count = len(result.issues) if result.issues else 0
     status = "❌" if issue_count > 0 else "✅"
@@ -792,7 +791,7 @@ def _display_compact_analysis(result: CodeAnalysisResult, log):
     )
 
 
-def _display_analysis_issues(result: CodeAnalysisResult, verbose: bool, log):
+def _display_analysis_issues(result: CodeAnalysisResult, verbose: bool, log) -> None:
     """Display issues found during analysis."""
     if not result.issues:
         if verbose:
@@ -805,13 +804,13 @@ def _display_analysis_issues(result: CodeAnalysisResult, verbose: bool, log):
         _display_compact_issues(result.issues, log)
 
 
-def _display_verbose_issues(issues: list[str], log):
+def _display_verbose_issues(issues: list[str], log) -> None:
     """Display detailed issue breakdown."""
     logging_issues, general_issues = _categorize_issues(issues)
 
     if logging_issues:
         log.info("Logging Improvement Opportunities:")
-        for _i, issue in enumerate(logging_issues, 1):
+        for issue in logging_issues:
             priority = "High" if "print" in issue.lower() else "Medium"
             log.info("logging-issue", priority=priority, issue=issue, _replace_msg=f"  {priority}: {issue}")
 
@@ -824,7 +823,7 @@ def _display_verbose_issues(issues: list[str], log):
         _display_improvement_suggestions(log)
 
 
-def _display_compact_issues(issues: list[str], log):
+def _display_compact_issues(issues: list[str], log) -> None:
     """Display compact issue summary."""
     logging_count, general_count = _count_issue_types(issues)
 
@@ -865,7 +864,7 @@ def _count_issue_types(issues: list[str]) -> tuple[int, int]:
     return logging_count, general_count
 
 
-def _display_improvement_suggestions(log):
+def _display_improvement_suggestions(log) -> None:
     """Display actionable improvement suggestions."""
     log.info("check-logging-improvements", _replace_msg="Logging Improvements:")
     log.info("check-fix-suggestion", _replace_msg="  • Run with --fix to automatically convert print statements")
@@ -889,7 +888,7 @@ def _display_unified_check_analysis(
     # Extract metrics and run linter
     ast_metrics, total_ast_issues, all_ast_insights = _extract_ast_metrics(results, show_complexity, directory)
     lint_success = _run_linter_with_metrics(
-        ast_metrics, directory or results[0].file_path.parent, project_structure, log
+        ast_metrics, directory or results[0].file_path.parent, project_structure, log,
     )
 
     # Display insights based on mode
@@ -902,7 +901,7 @@ def _display_unified_check_analysis(
 
 
 def _extract_ast_metrics(
-    results: list[CodeAnalysisResult], show_complexity: bool, directory: Path | None
+    results: list[CodeAnalysisResult], show_complexity: bool, directory: Path | None,
 ) -> tuple[dict, int, list[str]]:
     """Extract AST metrics from analysis results."""
     ast_metrics = {}
@@ -944,8 +943,8 @@ def _run_linter_with_metrics(ast_metrics: dict, directory_path: Path, project_st
 
 
 def _display_verbose_unified_insights(
-    results: list[CodeAnalysisResult], total_ast_issues: int, all_ast_insights: list[str], log
-):
+    results: list[CodeAnalysisResult], total_ast_issues: int, all_ast_insights: list[str], log,
+) -> None:
     """Display detailed unified analysis insights."""
     max_insights = 5
 
@@ -967,7 +966,7 @@ def _display_verbose_unified_insights(
         )
 
 
-def _display_file_statistics(results: list[CodeAnalysisResult], log):
+def _display_file_statistics(results: list[CodeAnalysisResult], log) -> None:
     """Display file analysis statistics."""
     total_functions = sum(r.function_count for r in results)
     log.info(
@@ -985,7 +984,7 @@ def _display_file_statistics(results: list[CodeAnalysisResult], log):
     )
 
 
-def _display_issue_details(total_ast_issues: int, all_ast_insights: list[str], max_insights: int, log):
+def _display_issue_details(total_ast_issues: int, all_ast_insights: list[str], max_insights: int, log) -> None:
     """Display detailed issue information."""
     log.info(
         "check-improvements-identified",
@@ -1002,7 +1001,7 @@ def _display_issue_details(total_ast_issues: int, all_ast_insights: list[str], m
         )
 
 
-def _display_compact_unified_summary(results: list[CodeAnalysisResult], total_ast_issues: int, log):
+def _display_compact_unified_summary(results: list[CodeAnalysisResult], total_ast_issues: int, log) -> None:
     """Display compact unified analysis summary."""
     total_files = len(results)
     if total_ast_issues > 0:
@@ -1025,7 +1024,7 @@ def _display_check_directory_analysis(
     results: list[CodeAnalysisResult],
     *,
     show_complexity: bool,
-):
+) -> None:
     """Display analysis results for check command on directories."""
     console.print("Directory Analysis Summary", style="bold blue")
 
@@ -1083,12 +1082,11 @@ def _has_ast_issues(ast_issues) -> bool:
     """Check if AST analysis found any issues."""
     if isinstance(ast_issues, list):
         return any(len(result.issues) > 0 for result in ast_issues)
-    else:
-        return len(ast_issues.issues) > 0
+    return len(ast_issues.issues) > 0
 
 
 # Helper functions for AST operations
-def _analyze_single_file(assistant: AdvancedAssistant, path: Path, *, json_output: bool):
+def _analyze_single_file(assistant: AdvancedAssistant, path: Path, *, json_output: bool) -> None:
     """Analyze a single Python file."""
     with Progress(
         SpinnerColumn(),
@@ -1111,7 +1109,7 @@ def _analyze_directory(
     pattern: str,
     *,
     json_output: bool,
-):
+) -> None:
     """Analyze all Python files in a directory."""
     # Use gitignore-aware file filtering and respect project structure
     # Detect project structure to get source directories
@@ -1160,7 +1158,7 @@ def _transform_single_file(
     *,
     dry_run: bool,
     _interactive: bool,
-):
+) -> None:
     """Transform a single Python file."""
     with Progress(
         SpinnerColumn(),
@@ -1181,7 +1179,7 @@ def _transform_directory(
     *,
     dry_run: bool,
     _interactive: bool,
-):
+) -> None:
     """Transform all Python files in a directory."""
     files = list(path.glob(pattern))
     if not files:
@@ -1207,13 +1205,13 @@ def _transform_directory(
     _display_directory_transformation(results, dry_run)
 
 
-def _transform_interactive(path: Path, *, _verbose: bool):
+def _transform_interactive(path: Path, *, _verbose: bool) -> None:
     """Run interactive transformation on a file."""
     transformer = InteractiveTransformer()
     transformer.transform_file_interactive(path)
 
 
-def _display_patterns(patterns: list[ASTPattern], *, show_details: bool):
+def _display_patterns(patterns: list[ASTPattern], *, show_details: bool) -> None:
     """Display available transformation patterns."""
     table = Table(title="📋 Available Transformation Patterns")
     table.add_column("Name", style="cyan")
@@ -1236,7 +1234,7 @@ def _display_patterns(patterns: list[ASTPattern], *, show_details: bool):
     console.print(table)
 
 
-def _display_analysis_result(result: CodeAnalysisResult):
+def _display_analysis_result(result: CodeAnalysisResult) -> None:
     """Display analysis results for a single file."""
     console.print(
         f"\n📊 [bold blue]Analysis Results for {result.file_path}[/bold blue]",
@@ -1269,7 +1267,7 @@ def _display_analysis_result(result: CodeAnalysisResult):
         console.print("✅ [green]No issues found![/green]")
 
 
-def _display_transformation_result(result: TransformationResult, *, dry_run: bool):
+def _display_transformation_result(result: TransformationResult, *, dry_run: bool) -> None:
     """Display transformation results for a single file."""
     mode = "Preview" if dry_run else "Applied"
     console.print(
@@ -1300,7 +1298,7 @@ def _display_transformation_result(result: TransformationResult, *, dry_run: boo
         console.print("i [blue]No changes needed[/blue]")
 
 
-def _display_directory_analysis(results: list[CodeAnalysisResult]):
+def _display_directory_analysis(results: list[CodeAnalysisResult]) -> None:
     """Display analysis results for multiple files."""
     console.print("\n📊 [bold blue]Directory Analysis Summary[/bold blue]")
 
@@ -1349,7 +1347,7 @@ def _display_directory_transformation(
     results: list[TransformationResult],
     *,
     dry_run: bool,
-):
+) -> None:
     """Display transformation results for multiple files."""
     mode = "Preview" if dry_run else "Applied"
     console.print(f"\n🔄 [bold green]Directory Transformation {mode}[/bold green]")
@@ -1407,7 +1405,7 @@ def migrate(
     check_imports: Annotated[bool, typer.Option("--check-imports", help="Check import statements")] = False,
     force: Annotated[bool, typer.Option("--force", help="Force migration even if issues are found")] = False,
     json: Annotated[bool, typer.Option("--json", help="Output in JSON format")] = False,
-):
+) -> None:
     """🔄 Analyze project and migrate code.
 
     Default behavior: Dry-run preview (safe, shows what would change)
@@ -1452,10 +1450,8 @@ def migrate(
                 json_content = result.to_json()
 
                 if options.output:
-                    Path(options.output).write_text(json_content)
+                    Path(options.output).write_text(json_content, encoding="utf-8")
                     console.print(f"✅ [green]Analysis saved to {options.output}[/green]")
-                else:
-                    pass
             else:
                 # Human-readable output
                 _display_project_analysis(result, verbose=options.verbose)
@@ -1488,13 +1484,13 @@ def tools_demo(
         bool,
         typer.Option("--all", help="Demo all features"),
     ] = False,
-):
+) -> None:
     """🎬 Run interactive demos."""
     run_demos(feature, all_features=all_features)
 
 
 # Helper functions for docs display
-def _show_markdown_files(filenames: list[str], *, use_pager: bool = False):
+def _show_markdown_files(filenames: list[str], *, use_pager: bool = False) -> None:
     """Show markdown files with rich formatting."""
     # Determine if we're running from source or installed package
     package_root = Path(__file__).parent
@@ -1532,7 +1528,7 @@ def _show_markdown_files(filenames: list[str], *, use_pager: bool = False):
                     try:
                         path = Path(filename)
                         if path.exists():
-                            content = path.read_text()
+                            content = path.read_text(encoding="utf-8")
                         else:
                             # Try with _docs prefix for relative paths
                             docs_path = Path("_docs") / filename
@@ -1557,7 +1553,7 @@ def _show_markdown_files(filenames: list[str], *, use_pager: bool = False):
         console.print(full_content)
 
 
-def _show_docs_interactive(*, use_pager: bool = False):
+def _show_docs_interactive(*, use_pager: bool = False) -> None:
     """Show interactive documentation browser."""
     console.print("🔍 [bold blue]Interactive Documentation Browser[/bold blue]")
     console.print("Available documentation sections:")
@@ -1581,7 +1577,7 @@ def _show_docs_interactive(*, use_pager: bool = False):
         sys.exit(1)
 
 
-def _show_feature_docs(feature: str, *, use_pager: bool = False):
+def _show_feature_docs(feature: str, *, use_pager: bool = False) -> None:
     """Show documentation for a specific feature."""
     feature_docs = {
         "logging": ["user_guide/getting_started.md"],
@@ -1596,7 +1592,7 @@ def _show_feature_docs(feature: str, *, use_pager: bool = False):
         console.print(f"❌ [red]No documentation found for feature: {feature}[/red]")
 
 
-def _display_with_pager(content: str):
+def _display_with_pager(content: str) -> None:
     """Display content using an appropriate pager."""
     # Check if glow is available
     glow_path = shutil.which("glow")
@@ -1656,7 +1652,7 @@ def _display_with_pager(content: str):
 # Implementation stubs for remaining functions
 
 
-def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, *, debug: bool = False):
+def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, *, debug: bool = False) -> None:
     """Run the web dashboard."""
     if not FLASK_AVAILABLE or run_dashboard is None:
         typer.echo(
@@ -1668,19 +1664,18 @@ def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, *, debug: bool 
             err=True,
         )
         raise typer.Exit(1) from None
-    else:
-        try:
-            run_dashboard(host=host, port=port, debug=debug)
-        except ImportError:
-            typer.echo(
-                "❌ Flask is not installed. The web dashboard requires Flask.\n"
-                "Install it with:\n"
-                "  pip install 'nicestlog[web]'\n"
-                "or\n"
-                "  pip install flask>=3.0.3",
-                err=True,
-            )
-            raise typer.Exit(1) from None
+    try:
+        run_dashboard(host=host, port=port, debug=debug)
+    except ImportError:
+        typer.echo(
+            "❌ Flask is not installed. The web dashboard requires Flask.\n"
+            "Install it with:\n"
+            "  pip install 'nicestlog[web]'\n"
+            "or\n"
+            "  pip install flask>=3.0.3",
+            err=True,
+        )
+        raise typer.Exit(1) from None
 
 
 def run_journal_viewer(
@@ -1690,7 +1685,7 @@ def run_journal_viewer(
     follow: bool = False,
     since: str | None = None,
     level: str | None = None,
-):
+) -> None:
     """Run the journal viewer."""
     # Check if systemd is available
     if not SYSTEMD_AVAILABLE:
@@ -1708,7 +1703,7 @@ def run_journal_viewer(
                 level=level,
                 lines=lines,
                 follow=follow,
-            )
+            ),
         ):
             pass
     except KeyboardInterrupt:
@@ -1719,7 +1714,7 @@ def run_journal_viewer(
         sys.exit(1)
 
 
-def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0):
+def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float = 70.0) -> None:
     """Run the log reviewer."""
     reviewer = LogQualityReviewer()
 
@@ -1782,7 +1777,7 @@ def generate_service_cmd(
     user: str | None = None,
     working_directory: str | None = None,
     output_file: str | None = None,
-):
+) -> None:
     """Generate systemd service file."""
     config = ServiceConfig(
         service_name=service_name,
@@ -1793,14 +1788,13 @@ def generate_service_cmd(
     service_content = create_systemd_service_file(config)
 
     if output_file:
-        with Path(output_file).open("w") as f:
-            f.write(service_content)
+        Path(output_file).write_text(service_content, encoding="utf-8")
         log.info("service-file-generated", service_name=service_name, output_file=output_file)
     else:
         console.print(service_content)
 
 
-def run_demos(feature: str | None = None, *, all_features: bool = False):
+def run_demos(feature: str | None = None, *, all_features: bool = False) -> None:
     """Run nicestlog feature demonstrations."""
     log.debug("starting-demos", feature=feature, all_features=all_features)
 
@@ -1815,7 +1809,7 @@ def run_demos(feature: str | None = None, *, all_features: bool = False):
         "lint": "Lint demo with two bad modules triggering all checks",
     }
 
-    def print_demo_separator():
+    def print_demo_separator() -> None:
         time.sleep(0.5)
 
     if not feature and not all_features:
@@ -1859,12 +1853,12 @@ def run_demos(feature: str | None = None, *, all_features: bool = False):
             print_demo_separator()
 
 
-def print_demo_header(_title: str, _description: str):
+def print_demo_header(_title: str, _description: str) -> None:
     """Print a formatted demo section header."""
     time.sleep(1)
 
 
-def run_basic_demo():
+def run_basic_demo() -> None:
     """Demonstrate basic nicestlog features."""
     print_demo_header(
         "Basic Structured Logging",
@@ -1919,7 +1913,7 @@ def run_basic_demo():
     )
 
 
-def run_i18n_demo():
+def run_i18n_demo() -> None:
     """Demonstrate internationalization features."""
     print_demo_header("Internationalization (i18n)", "Multi-language log messages")
 
@@ -1945,7 +1939,7 @@ def run_i18n_demo():
     log.error("database-error", error_code="DB001", table="users")
 
 
-def run_pii_demo():
+def run_pii_demo() -> None:
     """Demonstrate PII scrubbing features."""
     print_demo_header("PII Scrubbing", "Automatic removal of sensitive data")
 
@@ -1959,21 +1953,21 @@ def run_pii_demo():
         ssn="123-45-6789",
     )
     log.debug(
-        "api-call", token=f"Bearer {os.environ.get('DEMO_TOKEN', 'not-a-real-token')}", api_key="sk_demo_placeholder"
+        "api-call", token=f"Bearer {os.environ.get('DEMO_TOKEN', 'not-a-real-token')}", api_key="sk_demo_placeholder",
     )
 
 
-def run_eliot_demo():
+def run_eliot_demo() -> None:
     """Demonstrate Eliot integration."""
     print_demo_header("Eliot Integration", "Action tracing and structured logging")
 
 
-def run_systemd_demo():
+def run_systemd_demo() -> None:
     """Demonstrate systemd integration."""
     print_demo_header("Systemd Integration", "Journal logging and service integration")
 
 
-def run_async_demo():
+def run_async_demo() -> None:
     """Demonstrate async logging."""
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="async-demo")
@@ -1995,7 +1989,7 @@ def run_async_demo():
     sync_duration / async_duration if async_duration > 0 else 1.0
 
 
-def run_complete_demo():
+def run_complete_demo() -> None:
     """Demonstrate complete application example."""
     # Initialize logging
     nicestlog.init_logging(verbose=True, syslog_identifier="complete-demo")
@@ -2020,7 +2014,7 @@ def run_complete_demo():
     log.debug("request-completed", status_code=200, response_time_ms=156)
 
 
-def run_lint_demo():
+def run_lint_demo() -> None:
     """Demonstrate linting functionality."""
     print_demo_header("Linting Demo", "Code quality analysis and suggestions")
 
@@ -2050,7 +2044,7 @@ MIGRATION_TYPES = {
 }
 
 
-def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: bool = False):
+def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: bool = False) -> None:
     """Execute migration command with comprehensive AST integration."""
     # 1. Validate migration type
     if migration_type not in MIGRATION_TYPES:
@@ -2221,7 +2215,7 @@ def migrate_single_file(
 
             # Create result object compatible with our interface
             class CLIOutputMigrationResult:
-                def __init__(self):
+                def __init__(self) -> None:
                     self.files_processed = 1
                     self.transformations_applied = 1 if changed else 0
                     self.errors = 0
@@ -2275,7 +2269,7 @@ def migrate_single_file(
             )
 
             class CLIOutputErrorResult:
-                def __init__(self):
+                def __init__(self) -> None:
                     self.files_processed = 1
                     self.transformations_applied = 0
                     self.errors = 1
@@ -2297,7 +2291,7 @@ def migrate_single_file(
             # Create result object compatible with our interface
             # Note: MigrationResult from assistant.py has different fields
             class PrintMigrationResult:
-                def __init__(self):
+                def __init__(self) -> None:
                     self.files_processed = 1
                     self.transformations_applied = 1 if changed else 0
                     self.errors = 0
@@ -2347,7 +2341,7 @@ def migrate_single_file(
             console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
             class PrintMigrationErrorResult:
-                def __init__(self):
+                def __init__(self) -> None:
                     self.files_processed = 1
                     self.transformations_applied = 0
                     self.errors = 1
@@ -2376,7 +2370,7 @@ def migrate_single_file(
         assistant.analyze_file(source)
 
         class ASTPatternResult:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.files_processed = 1
                 self.transformations_applied = 0
                 self.errors = 0
@@ -2391,10 +2385,10 @@ def migrate_single_file(
         if not dry_run and transform_result.changes_made and target != source:
             # Copy transformed content to target
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(transform_result.transformed_code)
+            target.write_text(transform_result.transformed_code, encoding="utf-8")
 
         class ASTTransformResult:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.files_processed = 1
                 self.transformations_applied = len(transform_result.changes)
                 self.errors = 0
@@ -2408,7 +2402,7 @@ def migrate_single_file(
         console.print(f"[red]❌ Error migrating {source}: {exc}[/red]")
 
         class ASTTransformErrorResult:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.files_processed = 1
                 self.transformations_applied = 0
                 self.errors = 1
@@ -2431,7 +2425,7 @@ def migrate_directory_recursive(
         return migrate_directory(source, target, dry_run)  # type: ignore[return-value]
 
     # For CLI outputs migration, use custom directory migration
-    elif config["handler"] == "migrate_cli_outputs_to_structlog":
+    if config["handler"] == "migrate_cli_outputs_to_structlog":
         return migrate_directory_with_handler(
             source,
             target,
@@ -2445,7 +2439,7 @@ def migrate_directory_recursive(
         console.print(f"[yellow]⚠️ No Python files found in {source}[/yellow]")
 
         class DirectoryMigrationResult:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.files_processed = 0
                 self.transformations_applied = 0
                 self.errors = 0
@@ -2481,7 +2475,7 @@ def migrate_directory_recursive(
             progress.remove_task(task)
 
     class DirectoryRecursiveResult:
-        def __init__(self):
+        def __init__(self) -> None:
             self.files_processed = total_files
             self.transformations_applied = total_transformations
             self.errors = total_errors
@@ -2515,7 +2509,7 @@ def run_interactive_migration(
 
         # Return success result (InteractiveTransformer handles its own reporting)
         class InteractiveMigrationResult:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.files_processed = 1 if source.is_file() else len(list(source.rglob("*.py")))
                 self.transformations_applied = 0  # Interactive mode handles its own counting
                 self.errors = 0
@@ -2529,7 +2523,7 @@ def run_interactive_migration(
         console.print(f"[red]❌ Interactive migration failed: {exc}[/red]")
 
         class InteractiveMigrationErrorResult:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.files_processed = 0
                 self.transformations_applied = 0
                 self.errors = 1
@@ -2548,7 +2542,7 @@ def migrate_directory_with_handler(
     """Migrate Python files using a custom migration handler function."""
 
     class HandlerMigrationResult:
-        def __init__(self):
+        def __init__(self) -> None:
             self.files_processed = 0
             self.transformations_applied = 0
             self.errors = 0
@@ -2610,7 +2604,7 @@ def migrate_directory_with_handler(
     return result
 
 
-def show_migration_report(result: MigrationResultProtocol, *, dry_run: bool):
+def show_migration_report(result: MigrationResultProtocol, *, dry_run: bool) -> None:
     """Display comprehensive migration results."""
     action = "Would migrate" if dry_run else "Migrated"
 
@@ -2655,7 +2649,7 @@ def show_migration_report(result: MigrationResultProtocol, *, dry_run: bool):
         )
 
 
-def _display_next_steps_guidance(result, path: str):
+def _display_next_steps_guidance(result, path: str) -> None:
     """Display helpful next-step guidance based on analysis results."""
     console.print("\n🎯 [bold green]Next Steps & Guidance[/bold green]")
 
@@ -2726,7 +2720,7 @@ def _display_project_context(
     *,
     verbose: bool,
     single_file: Path | None = None,
-):
+) -> None:
     """Display project context and configuration being used."""
     log = structlog.get_logger()
     log.info("check-project-context", _replace_msg="Project Context")
@@ -2792,7 +2786,7 @@ def _display_project_context(
                 )
 
 
-def _display_project_analysis(result, *, verbose: bool = False):
+def _display_project_analysis(result, *, verbose: bool = False) -> None:
     """Display human-readable project analysis results."""
     console.print(
         f"\n🔍 [bold blue]Project Analysis: {result.project_path}[/bold blue]",
@@ -2813,7 +2807,7 @@ def _display_project_analysis(result, *, verbose: bool = False):
         if verbose:
             # Detailed view: Show all matches with file:line
             console.print(
-                f"\n🔍 [bold blue]Detailed Logging Patterns ({len(result.logging_patterns)} total):[/bold blue]"
+                f"\n🔍 [bold blue]Detailed Logging Patterns ({len(result.logging_patterns)} total):[/bold blue]",
             )
 
             # Group by type for better organization
@@ -2844,7 +2838,7 @@ def _display_project_analysis(result, *, verbose: bool = False):
 
             console.print(patterns_table)
             console.print(
-                f"\n[dim]💡 Use --verbose to see all {len(result.logging_patterns)} matches with file locations[/dim]"
+                f"\n[dim]💡 Use --verbose to see all {len(result.logging_patterns)} matches with file locations[/dim]",
             )
 
     # Dependencies
@@ -2899,7 +2893,7 @@ def _display_project_analysis(result, *, verbose: bool = False):
 def _configure_logging_focused_patterns(
     assistant: AdvancedAssistant,
     user_patterns: list[str] | None = None,
-):
+) -> None:
     """Configure AST patterns to focus on logging-related issues only."""
     if user_patterns:
         # User specified patterns, don't override
@@ -2925,7 +2919,7 @@ def _configure_logging_focused_patterns(
     )
 
 
-def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool):
+def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool) -> None:
     """Serve HTML documentation using a simple HTTP server."""
     # Try to find HTML docs in different locations
     html_docs_path = None
@@ -3027,7 +3021,7 @@ def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool):
                 # Open browser if requested
                 if open_browser:
 
-                    def open_browser_delayed():
+                    def open_browser_delayed() -> None:
                         time.sleep(1)  # Give server time to start
                         try:
                             webbrowser.open(server_url)
@@ -3068,7 +3062,7 @@ def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool):
 app.command("migrate")(migrate)
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     app()
 

@@ -47,7 +47,7 @@ class SystemdJournalHandler:
         self,
         identifier: str | None = None,
         facility: str | None = None,
-    ):
+    ) -> None:
         """Initialize systemd journal handler.
 
         Args:
@@ -92,7 +92,7 @@ class SystemdJournalHandler:
 
         # Add custom fields from event_dict
         for key, value in event_dict.items():
-            if key in ["event", "level", "logger", "timestamp"]:
+            if key in {"event", "level", "logger", "timestamp"}:
                 continue
 
             # Convert to systemd field format (uppercase, prefix with app name)
@@ -348,21 +348,20 @@ def parse_time_delta(time_str: str) -> float:
     if "hour" in time_str:
         hours = int(time_str.split()[0])
         return hours * 3600
-    elif "minute" in time_str:
+    if "minute" in time_str:
         minutes = int(time_str.split()[0])
         return minutes * 60
-    elif "day" in time_str:
+    if "day" in time_str:
         days = int(time_str.split()[0])
         return days * 24 * 3600
-    elif time_str == "today":
+    if time_str == "today":
         now = datetime.now(UTC)
         today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
         return (now - today_start).total_seconds()
-    else:
-        return 3600  # Default: 1 hour
+    return 3600  # Default: 1 hour
 
 
-def demo_systemd_integration():
+def demo_systemd_integration() -> None:
     """Demonstrate systemd integration features."""
     # Check environment
     detect_systemd_environment()
@@ -393,9 +392,6 @@ def demo_systemd_integration():
         recent_logs = query_journal_logs(service_name="nicestlog-demo", lines=5)
         for entry in recent_logs:
             datetime.fromtimestamp(entry["timestamp"], tz=UTC).strftime("%H:%M:%S")
-
-    else:
-        pass
 
     # Generate service file example
     config = ServiceConfig(

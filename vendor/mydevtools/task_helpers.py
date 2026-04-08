@@ -119,20 +119,20 @@ All functions are designed to work standalone without dodo context.
 import contextlib
 import functools
 import json
-from logging import WARNING
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess  # nosec B404
 import sys
+from logging import WARNING
+from pathlib import Path
 from typing import Any
 
+import structlog
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-import structlog
 
 logger = structlog.get_logger(__name__)
 structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(WARNING))
@@ -204,7 +204,7 @@ def _read_file_cached(file_path: str, mtime: float) -> str:
 
 
 @contextlib.contextmanager
-def subprocess_output_control(quiet: bool = True):  # noqa: FBT001,FBT002
+def subprocess_output_control(quiet: bool = True):
     """Context manager for controlling subprocess output display.
 
     This context manager provides a clean way to control when subprocess
@@ -224,10 +224,10 @@ def subprocess_output_control(quiet: bool = True):  # noqa: FBT001,FBT002
 
     """
 
-    def show_output(result: subprocess.CompletedProcess[str], show_on_error: bool = True) -> None:  # noqa: FBT001,FBT002
+    def show_output(result: subprocess.CompletedProcess[str], show_on_error: bool = True) -> None:
         """Display subprocess output based on context settings."""
         env_verbose = os.environ.get("MYDEVTOOLS_VERBOSE", "").lower()
-        force_verbose = env_verbose in ("1", "true", "yes")
+        force_verbose = env_verbose in {"1", "true", "yes"}
 
         should_show = not quiet or force_verbose or (show_on_error and result.returncode != 0)
 
@@ -244,7 +244,7 @@ def subprocess_output_control(quiet: bool = True):  # noqa: FBT001,FBT002
         pass
 
 
-def should_show_message(level: str, verbose: bool | None = None) -> bool:  # noqa: FBT001
+def should_show_message(level: str, verbose: bool | None = None) -> bool:
     """Determine if a message should be displayed based on its level and verbosity.
 
     Args:
@@ -258,7 +258,7 @@ def should_show_message(level: str, verbose: bool | None = None) -> bool:  # noq
     if verbose is None:
         # Auto-detect verbose mode from environment
         env_verbose = os.environ.get("MYDEVTOOLS_VERBOSE", "").lower()
-        verbose = env_verbose in ("1", "true", "yes")
+        verbose = env_verbose in {"1", "true", "yes"}
 
     logger.debug(
         "checking-message-visibility",
@@ -272,7 +272,7 @@ def should_show_message(level: str, verbose: bool | None = None) -> bool:  # noq
         return True
 
     # In non-verbose mode, only show CRITICAL and WARNING messages
-    result = level in [MSG_CRITICAL, MSG_WARNING]
+    result = level in {MSG_CRITICAL, MSG_WARNING}
     logger.debug(
         "message-visibility-determined",
         level=level,
@@ -376,7 +376,7 @@ def run_subprocess(
     """
     # Check environment variable for verbose override
     env_verbose = os.environ.get("MYDEVTOOLS_VERBOSE", "").lower()
-    force_verbose = env_verbose in ("1", "true", "yes")
+    force_verbose = env_verbose in {"1", "true", "yes"}
 
     # Determine if we should show output
     show_output = not quiet or force_verbose
@@ -403,7 +403,7 @@ def run_subprocess(
 
     try:
         check_value = default_kwargs.pop("check", False)
-        result = subprocess.run(cmd, check=check_value, **default_kwargs)  # noqa: S603  # nosec B603
+        result = subprocess.run(cmd, check=check_value, **default_kwargs)  # nosec B603
 
         # Log the result
         logger.debug(
@@ -430,7 +430,7 @@ def run_subprocess(
                 result.stderr,
             )
 
-        return result  # noqa: TRY300
+        return result
 
     except subprocess.TimeoutExpired as e:
         logger.exception(
@@ -559,7 +559,7 @@ def check_tool_available(
             stderr_len=stderr_len,
         )
 
-        return result  # noqa: TRY300
+        return result
 
     except subprocess.TimeoutExpired:
         logger.exception(
@@ -611,20 +611,19 @@ def get_current_phase() -> str:
 
     try:
         if PHASE_FILE.exists():
-            phase_content = PHASE_FILE.read_text().strip().upper()
+            phase_content = PHASE_FILE.read_text(encoding="utf-8").strip().upper()
             logger.debug("phase-file-content", content=phase_content)
 
-            if phase_content in [PHASE_TODO, PHASE_IMPL, PHASE_DISCUSS]:
+            if phase_content in {PHASE_TODO, PHASE_IMPL, PHASE_DISCUSS}:
                 logger.debug("valid-phase-found", phase=phase_content)
                 return phase_content
-            else:
-                logger.warning(
-                    "invalid-phase-content",
-                    _replace_msg="Invalid phase content '{content}' in {file}, defaulting to {default}",
-                    phase_content=phase_content,
-                    phase_file=PHASE_FILE,
-                    default_phase=PHASE_TODO,
-                )
+            logger.warning(
+                "invalid-phase-content",
+                _replace_msg="Invalid phase content '{content}' in {file}, defaulting to {default}",
+                phase_content=phase_content,
+                phase_file=PHASE_FILE,
+                default_phase=PHASE_TODO,
+            )
         else:
             logger.debug(
                 "phase-file-not-found",
@@ -669,7 +668,7 @@ def set_phase(phase: str) -> None:
         Error: Invalid phase: INVALID. Must be TODO or IMPL
 
     """
-    if phase not in [PHASE_TODO, PHASE_IMPL]:
+    if phase not in {PHASE_TODO, PHASE_IMPL}:
         msg = f"Invalid phase: {phase}. Must be {PHASE_TODO} or {PHASE_IMPL}"
         raise ValueError(
             msg,
@@ -678,7 +677,7 @@ def set_phase(phase: str) -> None:
     logger.debug("setting-phase", phase=phase, file=str(PHASE_FILE))
 
     try:
-        PHASE_FILE.write_text(phase)
+        PHASE_FILE.write_text(phase, encoding="utf-8")
         logger.info(
             "phase-set",
             _replace_msg="Phase successfully set to {phase} in file {file}",
@@ -808,7 +807,7 @@ def count_todo_checkboxes(todo_file_path: str = "_TODO-AGENT.md") -> dict[str, A
             remaining=remaining,
         )
 
-        return {  # noqa: TRY300
+        return {
             "total": total,
             "completed": completed,
             "remaining": remaining,
@@ -944,7 +943,7 @@ def validate_todo_phase_discipline(
                 total_violations=total_violations,
             )
 
-        return {  # noqa: TRY300
+        return {
             "is_valid": is_valid,
             "violations": violations,
             "phase": current_phase,
@@ -987,7 +986,7 @@ def get_workflow_state(status_file: str = ".agent-run-status.json") -> dict[str,
                 "raw_status": {},
             }
 
-        run_status = json.loads(run_status_file.read_text())
+        run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
         logger.debug("workflow-status-read-success", keys_count=len(run_status))
 
         # Extract event information
@@ -1113,7 +1112,7 @@ def suggest_next_actions(
     last_event = workflow_info.get("last_event")
 
     if current_phase == "TODO":
-        if not workflow_info.get("session_active", False):
+        if not workflow_info.get("session_active"):
             suggestions.append(
                 {
                     "priority": "TODO",
@@ -1237,8 +1236,8 @@ def create_info_panel(content, title, border_style="cyan", box_style=None):
         True
 
     """
-    from rich import box  # noqa: PLC0415
-    from rich.panel import Panel  # noqa: PLC0415
+    from rich import box
+    from rich.panel import Panel
 
     logger.debug(
         "creating-info-panel",
@@ -1307,8 +1306,8 @@ def create_status_table(items, title="Status"):
         to be printed directly or included in larger Rich console outputs.
 
     """
-    from rich import box  # noqa: PLC0415
-    from rich.table import Table  # noqa: PLC0415
+    from rich import box
+    from rich.table import Table
 
     logger.debug(
         "Creating status table",
@@ -1380,8 +1379,8 @@ def create_phase_panel(phase, description, tips):
         workflow phase and understand available actions.
 
     """
-    from rich import box  # noqa: PLC0415
-    from rich.panel import Panel  # noqa: PLC0415
+    from rich import box
+    from rich.panel import Panel
 
     logger.debug(
         "creating-phase-panel",
@@ -1448,7 +1447,7 @@ def get_git_status():
         True
 
     """
-    from typing import Any  # noqa: PLC0415
+    from typing import Any
 
     logger.debug("Collecting git status information with caching")
 
@@ -1482,10 +1481,10 @@ def get_git_status():
             # Parse git status format: XY filename
             # X = staged status, Y = working tree status
             git_info["modified_count"] = len(
-                [line for line in status_lines if len(line) >= 2 and line[1] == "M"],  # noqa: PLR2004
+                [line for line in status_lines if len(line) >= 2 and line[1] == "M"],
             )
             git_info["staged_count"] = len(
-                [line for line in status_lines if len(line) >= 2 and line[0] in "AM"],  # noqa: PLR2004
+                [line for line in status_lines if len(line) >= 2 and line[0] in "AM"],
             )
             git_info["untracked_count"] = len(
                 [line for line in status_lines if line.startswith("??")],
@@ -1545,7 +1544,7 @@ def get_git_status():
             clean=git_info["is_clean"],
         )
 
-        return git_info  # noqa: TRY300
+        return git_info
 
     except subprocess.TimeoutExpired:
         logger.exception("git-commands-timed-out", _replace_msg="Git commands timed out")
@@ -1598,10 +1597,10 @@ def collect_git_status():
             # Parse git status format: XY filename
             # X = staged status, Y = working tree status
             git_info["modified_count"] = len(
-                [line for line in status_lines if len(line) >= 2 and line[1] == "M"],  # noqa: PLR2004
+                [line for line in status_lines if len(line) >= 2 and line[1] == "M"],
             )
             git_info["staged_count"] = len(
-                [line for line in status_lines if len(line) >= 2 and line[0] in "AM"],  # noqa: PLR2004
+                [line for line in status_lines if len(line) >= 2 and line[0] in "AM"],
             )
             git_info["untracked_count"] = len(
                 [line for line in status_lines if line.startswith("??")],
@@ -1661,7 +1660,7 @@ def collect_git_status():
             clean=git_info["is_clean"],
         )
 
-        return git_info  # noqa: TRY300
+        return git_info
 
     except subprocess.TimeoutExpired:
         logger.exception("git-commands-timed-out", _replace_msg="Git commands timed out")
@@ -1869,7 +1868,7 @@ def validate_agent_checklist():
             "incomplete_list": incomplete_items,
         }
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return {
             "has_checklist": False,
             "total_items": 0,
@@ -1932,7 +1931,7 @@ def display_checklist_status(checklist_info) -> None:
         console.print("-  [yellow]Missing standard checklist items:[/yellow]")
         for item in checklist_info["missing_items"][:3]:  # Show first 3
             console.print(f"  - {item}")
-        if len(checklist_info["missing_items"]) > 3:  # noqa: PLR2004
+        if len(checklist_info["missing_items"]) > 3:
             console.print(f"  ... and {len(checklist_info['missing_items']) - 3} more")
         logger.info(
             "missing-checklist-items-found",
@@ -1962,10 +1961,7 @@ def show_agent_status_footer(event_name="") -> None:
     footer_content = []
 
     # Phase and TODO progress
-    footer_content.append(
-        f"-  Phase: {current_phase} ({'Planning' if current_phase == PHASE_TODO else 'Implementation'})",
-    )
-    footer_content.append(f"-  TODO: {todo_progress['progress_text']}")
+    footer_content.extend((f"-  Phase: {current_phase} ({'Planning' if current_phase == PHASE_TODO else 'Implementation'})", f"-  TODO: {todo_progress['progress_text']}"))
 
     # Next action
     if todo_progress["is_complete"]:
@@ -2082,7 +2078,7 @@ def check_todo_implementation_separation() -> bool:
 
     # Check if TODO has recent updates (basic heuristic)
     try:
-        import time  # noqa: PLC0415
+        import time
 
         todo_mtime = todo_file.stat().st_mtime
         current_time = time.time()
@@ -2090,13 +2086,13 @@ def check_todo_implementation_separation() -> bool:
 
         logger.debug("todo-file-last-modified", hours_ago=hours_since_update)
 
-        if hours_since_update > 24:  # noqa: PLR2004
+        if hours_since_update > 24:
             logger.warning(
                 "todo-file-not-updated",
                 _replace_msg="TODO file not updated in {hours} hours",
                 hours_since_update=hours_since_update,
             )
-    except Exception:  # noqa: BLE001
+    except Exception:
         # If we can't check file time, just continue
         logger.debug("Could not check TODO file modification time")
 
@@ -2104,7 +2100,7 @@ def check_todo_implementation_separation() -> bool:
     return True
 
 
-def detect_todo_checkbox_changes():  # noqa: PLR0911, PLR0915
+def detect_todo_checkbox_changes():
     """Detect TODO checkbox changes since last commit.
 
     Uses cached git status and centralized subprocess wrapper to reduce duplication.
@@ -2140,7 +2136,7 @@ def detect_todo_checkbox_changes():  # noqa: PLR0911, PLR0915
             checked = []  # list of (line_num, full_line, text)
             unchecked = []
             mapping = {}  # text -> state
-            for _i, line in enumerate(text.split("\n")):
+            for i, line in enumerate(text.split("\n")):
                 m = checkbox_re.match(line)
                 if not m:
                     continue
@@ -2148,12 +2144,12 @@ def detect_todo_checkbox_changes():  # noqa: PLR0911, PLR0915
                 item_text = m.group(2).strip()
                 mapping[item_text] = state
             if state.lower() == "x" or state in {"OK", "✓"}:
-                checked.append((_i, line.strip(), item_text))
+                checked.append((i, line.strip(), item_text))
             else:
-                unchecked.append((_i, line.strip(), item_text))
+                unchecked.append((i, line.strip(), item_text))
             return checked, unchecked, mapping
 
-        current_checked, current_unchecked, current_map = parse_checkboxes(
+        current_checked, _current_unchecked, current_map = parse_checkboxes(
             current_content,
         )
 
@@ -2164,13 +2160,12 @@ def detect_todo_checkbox_changes():  # noqa: PLR0911, PLR0915
                 message = f"Initial TODO creation with {len(current_checked)} completed checkboxes"
                 logger.info("todo-progress-detected", _replace_msg="TODO progress detected: {message}", message=message)
                 return True, message
-            else:
-                message = "Initial TODO creation but no completed checkboxes yet"
-                logger.debug("No TODO progress", message=message)
-                return False, message
+            message = "Initial TODO creation but no completed checkboxes yet"
+            logger.debug("No TODO progress", message=message)
+            return False, message
 
         last_commit_content = result.stdout
-        last_checked, last_unchecked, last_map = parse_checkboxes(last_commit_content)
+        last_checked, _last_unchecked, last_map = parse_checkboxes(last_commit_content)
 
         # Find newly checked items ([ ] -> [x]) by matching item text
         newly_checked = []
@@ -2203,7 +2198,7 @@ def detect_todo_checkbox_changes():  # noqa: PLR0911, PLR0915
             f"last: {len(last_checked)} checked)"
         )
         logger.debug("No TODO progress", message=message)
-        return False, message  # noqa: TRY300
+        return False, message
 
     except Exception as e:
         error_message = f"Error checking TODO progress: {e}"
@@ -2211,7 +2206,7 @@ def detect_todo_checkbox_changes():  # noqa: PLR0911, PLR0915
         return False, error_message
 
 
-def validate_todo_discipline() -> bool:  # noqa: D103
+def validate_todo_discipline() -> bool:
     console.print("-  [bold blue]TODO PHASE DISCIPLINE VALIDATION[/bold blue]")
     console.print("Checking for completed checkboxes in TODO phase...")
 
@@ -2224,31 +2219,30 @@ def validate_todo_discipline() -> bool:  # noqa: D103
         else:
             console.print("-  IMPL phase: Completed checkboxes allowed")
         return True
-    else:
-        console.print("X  [red]TODO PHASE DISCIPLINE VALIDATION FAILED[/red]")
-        console.print(
-            f"ERROR Found {discipline_check['total_violations']} completed checkboxes in TODO phase!",
-        )
+    console.print("X  [red]TODO PHASE DISCIPLINE VALIDATION FAILED[/red]")
+    console.print(
+        f"ERROR Found {discipline_check['total_violations']} completed checkboxes in TODO phase!",
+    )
 
-        console.print("\n-  Violations found:")
-        for violation in discipline_check["violations"]:
-            console.print(f"  Line {violation['line']}: {violation['content']}")
+    console.print("\n-  Violations found:")
+    for violation in discipline_check["violations"]:
+        console.print(f"  Line {violation['line']}: {violation['content']}")
 
-        console.print("\ni  TODO phase is for planning only:")
-        console.print("i  - Use [ ] for planning tasks, not [x]")
-        console.print("i  - Mark checkboxes as done only in IMPL phase")
-        console.print("i  - Use bullet points (-) for analysis and notes")
-        console.print("i  - Switch to IMPL phase to mark tasks as completed")
+    console.print("\ni  TODO phase is for planning only:")
+    console.print("i  - Use [ ] for planning tasks, not [x]")
+    console.print("i  - Mark checkboxes as done only in IMPL phase")
+    console.print("i  - Use bullet points (-) for analysis and notes")
+    console.print("i  - Switch to IMPL phase to mark tasks as completed")
 
-        console.print("\n-  To fix this:")
-        console.print("1. Change [x] back to [ ] in _TODO-AGENT.md")
-        console.print("2. Or switch to IMPL phase: uv run doit switch_to_impl_phase")
-        console.print("3. Then commit your changes")
+    console.print("\n-  To fix this:")
+    console.print("1. Change [x] back to [ ] in _TODO-AGENT.md")
+    console.print("2. Or switch to IMPL phase: uv run doit switch_to_impl_phase")
+    console.print("3. Then commit your changes")
 
-        return False
+    return False
 
 
-def validate_no_code_in_todo() -> bool:  # noqa: D103
+def validate_no_code_in_todo() -> bool:
     logger.debug("Starting TODO files validation")
 
     console.print("-  [bold blue]TODO FILES VALIDATION[/bold blue]")
@@ -2274,53 +2268,51 @@ def validate_no_code_in_todo() -> bool:  # noqa: D103
             console.print("-  IMPL phase: All file modifications allowed")
             logger.debug("IMPL phase: file modifications allowed")
         return True
-    else:
-        console.print("X  [red]TODO FILES VALIDATION FAILED[/red]")
-        violation_count = len(files_check["violations"])
-        console.print(
-            f"ERROR Found {violation_count} files modified outside _TODO-AGENT.md!",
-        )
-        logger.warning(
-            "todo-files-validation-failed",
-            _replace_msg="TODO files validation failed with {count} violations",
-            violation_count=violation_count,
-        )
+    console.print("X  [red]TODO FILES VALIDATION FAILED[/red]")
+    violation_count = len(files_check["violations"])
+    console.print(
+        f"ERROR Found {violation_count} files modified outside _TODO-AGENT.md!",
+    )
+    logger.warning(
+        "todo-files-validation-failed",
+        _replace_msg="TODO files validation failed with {count} violations",
+        violation_count=violation_count,
+    )
 
-        console.print("\n-  Violations found:")
-        for violation in files_check["violations"]:
-            console.print(f"  {violation['status']} {violation['filename']}")
-            logger.debug("File violation found", filename=violation["filename"], status=violation["status"])
+    console.print("\n-  Violations found:")
+    for violation in files_check["violations"]:
+        console.print(f"  {violation['status']} {violation['filename']}")
+        logger.debug("File violation found", filename=violation["filename"], status=violation["status"])
 
-        console.print("\ni  TODO phase is for planning only:")
-        console.print("i  - Only modify _TODO-AGENT.md in TODO phase")
-        console.print("i  - Implementation files should only be modified in IMPL phase")
-        console.print("i  - Use TODO phase for planning, IMPL phase for coding")
+    console.print("\ni  TODO phase is for planning only:")
+    console.print("i  - Only modify _TODO-AGENT.md in TODO phase")
+    console.print("i  - Implementation files should only be modified in IMPL phase")
+    console.print("i  - Use TODO phase for planning, IMPL phase for coding")
 
-        console.print("\n-  To fix this:")
-        console.print("1. Move code changes to a separate commit")
-        console.print("2. Or switch to IMPL phase: uv run doit switch_to_impl_phase")
-        console.print("3. Then commit your changes")
+    console.print("\n-  To fix this:")
+    console.print("1. Move code changes to a separate commit")
+    console.print("2. Or switch to IMPL phase: uv run doit switch_to_impl_phase")
+    console.print("3. Then commit your changes")
 
-        return False
+    return False
 
 
-def validate_impl_progress() -> bool:  # noqa: D103
-    has_progress, message = detect_todo_checkbox_changes()
+def validate_impl_progress() -> bool:
+    has_progress, _message = detect_todo_checkbox_changes()
 
     if has_progress:
         return True
-    else:
-        # Show current checkbox status
-        todo_file = Path("_TODO-AGENT.md")
-        if todo_file.exists():
-            content = todo_file.read_text(encoding="utf-8")
-            content.count("- [x]")
-            content.count("- [ ]")
+    # Show current checkbox status
+    todo_file = Path("_TODO-AGENT.md")
+    if todo_file.exists():
+        content = todo_file.read_text(encoding="utf-8")
+        content.count("- [x]")
+        content.count("- [ ]")
 
-        return False
+    return False
 
 
-def format_todo_markdown() -> bool | None:  # noqa: D103
+def format_todo_markdown() -> bool | None:
     logger.debug("Starting TODO markdown formatting")
 
     console.print("-  [bold blue]MARKDOWN FORMATTING[/bold blue]")
@@ -2348,11 +2340,10 @@ def format_todo_markdown() -> bool | None:  # noqa: D103
                 _replace_msg="TODO markdown formatting completed successfully",
             )
             return True
-        else:
-            console.print("X  [red]mdformat failed:[/red]")
-            console.print(result.stderr)
-            logger.error("mdformat failed", returncode=result.returncode, stderr=result.stderr)
-            return False
+        console.print("X  [red]mdformat failed:[/red]")
+        console.print(result.stderr)
+        logger.error("mdformat failed", returncode=result.returncode, stderr=result.stderr)
+        return False
 
     except Exception as e:
         console.print(f"X  [red]Failed to run mdformat: {e}[/red]")
@@ -2388,11 +2379,10 @@ def validate_todo_markdown_format() -> bool:
                 _replace_msg="TODO markdown format validation passed",
             )
             return True
-        else:
-            console.print("X  [red]TODO markdown format validation failed:[/red]")
-            console.print(result.stderr)
-            logger.error("mdformat validation failed", returncode=result.returncode, stderr=result.stderr)
-            return False
+        console.print("X  [red]TODO markdown format validation failed:[/red]")
+        console.print(result.stderr)
+        logger.error("mdformat validation failed", returncode=result.returncode, stderr=result.stderr)
+        return False
 
     except Exception as e:
         console.print(f"X  [red]Failed to run mdformat validation: {e}[/red]")
@@ -2400,10 +2390,10 @@ def validate_todo_markdown_format() -> bool:
         return False
 
 
-def run_linting(  # noqa: PLR0912
+def run_linting(
     mode: str = "strict",
     tools: list[str] | None = None,
-    quiet: bool = True,  # noqa: FBT001, FBT002
+    quiet: bool = True,
 ) -> bool:
     """Run linting with configurable mode and tools.
 
@@ -2552,7 +2542,7 @@ def task_loc():
     }
 
 
-def clean_artifacts() -> None:  # noqa: D103
+def clean_artifacts() -> None:
     logger.debug("Starting artifact cleanup")
 
     artifacts = [
@@ -2592,7 +2582,7 @@ def clean_artifacts() -> None:  # noqa: D103
         path.unlink()
 
 
-def switch_to_todo() -> bool:  # noqa: D103, PLR0912, PLR0915
+def switch_to_todo() -> bool:
     logger.debug("Starting TODO phase switch validation")
 
     # Validate current TODO completion before switching
@@ -2602,7 +2592,7 @@ def switch_to_todo() -> bool:  # noqa: D103, PLR0912, PLR0915
         logger.debug("TODO file found, validating completion")
 
         try:
-            content = todo_file.read_text()
+            content = todo_file.read_text(encoding="utf-8")
             unchecked_items = []
 
             for i, line in enumerate(content.split("\n"), 1):
@@ -2623,7 +2613,7 @@ def switch_to_todo() -> bool:  # noqa: D103, PLR0912, PLR0915
                 for item in unchecked_items[:5]:
                     console.print(f"  - {item}")
 
-                if len(unchecked_items) > 5:  # noqa: PLR2004
+                if len(unchecked_items) > 5:
                     console.print(f"  ... and {len(unchecked_items) - 5} more")
 
                 console.print("\ni  Complete current TODO items first:")
@@ -2635,7 +2625,7 @@ def switch_to_todo() -> bool:  # noqa: D103, PLR0912, PLR0915
             console.print("OK  [green]Current TODO is complete - safe to switch[/green]")
             logger.info("todo-completion-validation-passed", _replace_msg="TODO completion validation passed")
 
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             console.print(f"!   [yellow]Warning: Could not validate TODO: {e}[/yellow]")
             logger.warning("todo-validation-failed", _replace_msg="TODO validation failed: {error}", error=str(e))
     else:
@@ -2668,7 +2658,7 @@ def switch_to_todo() -> bool:  # noqa: D103, PLR0912, PLR0915
             console.print("\n-  Incomplete checklist items:")
             for item in checklist_info["incomplete_list"][:3]:
                 console.print(f"  - {item}")
-            if len(checklist_info["incomplete_list"]) > 3:  # noqa: PLR2004
+            if len(checklist_info["incomplete_list"]) > 3:
                 console.print(
                     f"  ... and {len(checklist_info['incomplete_list']) - 3} more",
                 )
@@ -2689,10 +2679,10 @@ def switch_to_todo() -> bool:  # noqa: D103, PLR0912, PLR0915
             "-  [blue]Copying TEMPLATE_TODO-AGENT.md for new planning...[/blue]",
         )
         try:
-            template_content = template_file.read_text()
-            todo_file.write_text(template_content)
+            template_content = template_file.read_text(encoding="utf-8")
+            todo_file.write_text(template_content, encoding="utf-8")
             console.print("OK  [green]Template copied to _TODO-AGENT.md[/green]")
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             console.print(f"X  [red]Failed to copy template: {e}[/red]")
             console.print("i  Manually copy TEMPLATE_TODO-AGENT.md to _TODO-AGENT.md")
 
@@ -2726,7 +2716,7 @@ def switch_to_todo() -> bool:  # noqa: D103, PLR0912, PLR0915
     return True
 
 
-def switch_to_impl() -> bool:  # noqa: D103, PLR0912, PLR0915
+def switch_to_impl() -> bool:
     logger.debug("Starting IMPL phase switch validation")
 
     # Validate TODO exists before switching to implementation
@@ -2741,9 +2731,9 @@ def switch_to_impl() -> bool:  # noqa: D103, PLR0912, PLR0915
 
     # Check if TODO has any planning content
     try:
-        content = todo_file.read_text()
+        content = todo_file.read_text(encoding="utf-8")
         content_length = len(content.strip())
-        if content_length < 50:  # Very minimal content check  # noqa: PLR2004
+        if content_length < 50:  # Very minimal content check
             console.print("!   [yellow]TODO file seems very minimal[/yellow]")
             console.print(
                 "i  Consider adding more detailed planning before implementation",
@@ -2762,7 +2752,7 @@ def switch_to_impl() -> bool:  # noqa: D103, PLR0912, PLR0915
                 _replace_msg="TODO file validation passed",
                 content_length=content_length,
             )
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         console.print(f"!   [yellow]Warning: Could not read TODO: {e}[/yellow]")
         logger.warning("todo-file-read-failed", _replace_msg="Could not read TODO file: {error}", error=str(e))
 
@@ -2782,7 +2772,7 @@ def switch_to_impl() -> bool:  # noqa: D103, PLR0912, PLR0915
             console.print("\n-  Incomplete checklist items:")
             for item in checklist_info["incomplete_list"][:3]:
                 console.print(f"  - {item}")
-            if len(checklist_info["incomplete_list"]) > 3:  # noqa: PLR2004
+            if len(checklist_info["incomplete_list"]) > 3:
                 console.print(
                     f"  ... and {len(checklist_info['incomplete_list']) - 3} more",
                 )
@@ -2832,7 +2822,7 @@ def switch_to_impl() -> bool:  # noqa: D103, PLR0912, PLR0915
     return True
 
 
-def switch_to_discuss() -> bool:  # noqa: D103
+def switch_to_discuss() -> bool:
     logger.debug("Switching to DISCUSS phase")
 
     set_phase_with_display(PHASE_DISCUSS)
@@ -2848,7 +2838,7 @@ def switch_to_discuss() -> bool:  # noqa: D103
     return True
 
 
-def show_agent_status(event_name="agent-status") -> None:  # noqa: PLR0912, PLR0915
+def show_agent_status(event_name="agent-status") -> None:
     """Display comprehensive agent development status."""
     console.print("\n-  [bold blue]COMPREHENSIVE AGENT STATUS[/bold blue]")
 
@@ -2884,12 +2874,7 @@ def show_agent_status(event_name="agent-status") -> None:  # noqa: PLR0912, PLR0
 
     # 2. Phase and TODO status panel
     phase_content = []
-    phase_content.append(
-        f"-  Phase: [bold]{current_phase}[/bold] ({'Planning' if current_phase == PHASE_TODO else 'Implementation'})",
-    )
-    phase_content.append(
-        f"-  TODO Progress: [bold]{todo_progress['progress_text']}[/bold]",
-    )
+    phase_content.extend((f"-  Phase: [bold]{current_phase}[/bold] ({'Planning' if current_phase == PHASE_TODO else 'Implementation'})", f"-  TODO Progress: [bold]{todo_progress['progress_text']}[/bold]"))
 
     if todo_progress["next_item"] and not todo_progress["is_complete"]:
         phase_content.append(f"->   Next: {todo_progress['next_item'][:60]}...")
@@ -2944,11 +2929,7 @@ def show_agent_status(event_name="agent-status") -> None:  # noqa: PLR0912, PLR0
                 "PHASE": "yellow",
             }.get(action["priority"], "white")
 
-            actions_content.append(
-                f"[{priority_color}]{action['icon']} {action['action']}[/{priority_color}]",
-            )
-            actions_content.append(f"   Command: [bold]{action['command']}[/bold]")
-            actions_content.append("")
+            actions_content.extend((f"[{priority_color}]{action['icon']} {action['action']}[/{priority_color}]", f"   Command: [bold]{action['command']}[/bold]", ""))
 
         if len(next_actions) > MAX_ACTIONS_DISPLAY:
             actions_content.append(f"[dim]... and {len(next_actions) - MAX_ACTIONS_DISPLAY} more suggestions[/dim]")
@@ -3034,7 +3015,7 @@ def _display_phase_panel() -> None:
         console.print(phase_panel)
 
 
-def show_agent_start() -> bool:  # noqa: D103
+def show_agent_start() -> bool:
     console.print("\n-  [bold blue]AGENT WORKFLOW EVENT: START[/bold blue]")
 
     _display_agent_status_summary()
@@ -3059,7 +3040,7 @@ def _display_todo_preview() -> None:
     if todo_file.exists():
         console.print("\n-  [bold yellow]CURRENT TODO STATUS[/bold yellow]")
         try:
-            todo_content = todo_file.read_text()
+            todo_content = todo_file.read_text(encoding="utf-8")
             # Show first 20 lines or until first ## section
             lines = todo_content.split("\n")
             preview_lines = []
@@ -3075,7 +3056,7 @@ def _display_todo_preview() -> None:
                     border_style="yellow",
                 ),
             )
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             console.print(f"X  Error reading TODO file: {e}")
     else:
         console.print("\n-  [yellow]No _TODO-AGENT.md found[/yellow]")
@@ -3127,7 +3108,7 @@ def _display_next_steps() -> None:
         console.print("i  Start coding: 'uv run doit agent-coding-start'")
 
 
-def show_start() -> bool | None:  # noqa: D103
+def show_start() -> bool | None:
     try:
         # Hard git status check - fail if uncommitted changes
         result = run_subprocess(["git", "status", "--porcelain"], quiet=True)
@@ -3152,35 +3133,35 @@ def show_start() -> bool | None:  # noqa: D103
             "agent-post-commit": False,
             "session_started": True,
         }
-        run_status_file.write_text(json.dumps(run_status, indent=2))
+        run_status_file.write_text(json.dumps(run_status, indent=2), encoding="utf-8")
 
         # Show next steps guidance
 
         # Set own run_status to True
-        run_status = json.loads(run_status_file.read_text())
+        run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
         run_status["agent-coding-start"] = True
-        run_status_file.write_text(json.dumps(run_status, indent=2))
+        run_status_file.write_text(json.dumps(run_status, indent=2), encoding="utf-8")
 
         # Show checklist validation and status footer
         checklist_info = validate_agent_checklist()
         display_checklist_status(checklist_info)
         show_agent_status_footer("agent-coding-start")
 
-        return True  # noqa: TRY300
+        return True
 
-    except Exception:  # noqa: BLE001
+    except Exception:
         # Don't exit here - let the task dependency system handle failures
         return False
 
 
-def show_checkpoint() -> bool | None:  # noqa: D103
+def show_checkpoint() -> bool | None:
     try:
         # Check if coding session was started
         run_status_file = Path(".agent-run-status.json")
         if not run_status_file.exists():
             pass
         else:
-            run_status = json.loads(run_status_file.read_text())
+            run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
             if not run_status.get("agent-coding-start", False):
                 pass
 
@@ -3188,20 +3169,20 @@ def show_checkpoint() -> bool | None:  # noqa: D103
 
         # Update run status
         if run_status_file.exists():
-            run_status = json.loads(run_status_file.read_text())
+            run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
             run_status["agent-coding-checkpoint"] = True
-            run_status_file.write_text(json.dumps(run_status, indent=2))
+            run_status_file.write_text(json.dumps(run_status, indent=2), encoding="utf-8")
 
         # Show consistent status footer
         show_agent_status_footer("agent-coding-checkpoint")
 
-        return True  # noqa: TRY300
+        return True
 
-    except Exception:  # noqa: BLE001
+    except Exception:
         return True  # Don't fail the checkpoint for status tracking errors
 
 
-def show_todo_start() -> bool | None:  # noqa: D103, PLR0912, PLR0915
+def show_todo_start() -> bool | None:
     try:
         console.print("\n-  [bold blue]TODO PLANNING SESSION START[/bold blue]")
         console.print("*  [cyan]Structured planning workflow for TODO phase[/cyan]")
@@ -3215,7 +3196,7 @@ def show_todo_start() -> bool | None:  # noqa: D103, PLR0912, PLR0915
             try:
                 set_phase_with_display(PHASE_TODO)
                 console.print("OK  [green]Switched to TODO phase for planning[/green]")
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 console.print(f"X  [red]Failed to switch to TODO phase: {e}[/red]")
                 return False
 
@@ -3234,7 +3215,7 @@ def show_todo_start() -> bool | None:  # noqa: D103, PLR0912, PLR0915
             console.print("\n-  Violations found:")
             for violation in discipline_check["violations"][:3]:  # Show first 3
                 console.print(f"  Line {violation['line']}: {violation['content']}")
-            if len(discipline_check["violations"]) > 3:  # noqa: PLR2004
+            if len(discipline_check["violations"]) > 3:
                 console.print(
                     f"  ... and {len(discipline_check['violations']) - 3} more",
                 )
@@ -3261,7 +3242,7 @@ def show_todo_start() -> bool | None:  # noqa: D103, PLR0912, PLR0915
 
             # Show brief content preview
             try:
-                content = todo_file.read_text()
+                content = todo_file.read_text(encoding="utf-8")
                 lines = content.split("\n")
                 preview_lines = []
                 for i, line in enumerate(lines[:10]):
@@ -3276,7 +3257,7 @@ def show_todo_start() -> bool | None:  # noqa: D103, PLR0912, PLR0915
                         border_style="blue",
                     ),
                 )
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 console.print(f"!   [yellow]Could not read TODO content: {e}[/yellow]")
         else:
             console.print("-  [yellow]No _TODO-AGENT.md found[/yellow]")
@@ -3310,9 +3291,9 @@ OK  When Planning is Complete:
         # Show consistent status footer
         show_agent_status_footer("agent-todo-start")
 
-        return True  # noqa: TRY300
+        return True
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         console.print(f"X  [red]ERROR in agent-todo-start: {e}[/red]")
         console.print("i  Planning session may not have started properly")
         return False
@@ -3323,7 +3304,7 @@ def run_pre_commit_strict_linting():
     return run_linting(mode="pre-commit")
 
 
-def show_pre_commit() -> bool | None:  # noqa: D103
+def show_pre_commit() -> bool | None:
     try:
         # Check workflow dependency chain
         run_status_file = Path(".agent-run-status.json")
@@ -3331,7 +3312,7 @@ def show_pre_commit() -> bool | None:  # noqa: D103
             console.print("!   [yellow]WARNING: No agent session detected[/yellow]")
             console.print("i  Consider running the full workflow before committing")
         else:
-            run_status = json.loads(run_status_file.read_text())
+            run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
             if not run_status.get("agent-coding-end", False):
                 console.print(
                     "!   [yellow]WARNING: Coding session not properly ended[/yellow]",
@@ -3349,9 +3330,9 @@ def show_pre_commit() -> bool | None:  # noqa: D103
 
         # Update run status
         if run_status_file.exists():
-            run_status = json.loads(run_status_file.read_text())
+            run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
             run_status["agent-pre-commit"] = True
-            run_status_file.write_text(json.dumps(run_status, indent=2))
+            run_status_file.write_text(json.dumps(run_status, indent=2), encoding="utf-8")
 
         # Get current phase for checklist
         current_phase = get_current_phase()
@@ -3429,22 +3410,22 @@ def show_pre_commit() -> bool | None:  # noqa: D103
         display_checklist_status(checklist_info)
         show_agent_status_footer("agent-pre-commit")
 
-        return True  # noqa: TRY300
+        return True
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         console.print(f"X  [red]ERROR in agent-pre-commit: {e}[/red]")
         console.print("i  Quality gates may have passed, but status tracking failed")
         return True  # Don't fail for status tracking errors
 
 
-def show_coding_task_finished() -> bool | None:  # noqa: D103
+def show_coding_task_finished() -> bool | None:
     try:
         # Check workflow dependency chain
         run_status_file = Path(".agent-run-status.json")
         if not run_status_file.exists():
             pass
         else:
-            run_status = json.loads(run_status_file.read_text())
+            run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
             if not run_status.get("agent-coding-start", False):
                 pass
 
@@ -3452,22 +3433,22 @@ def show_coding_task_finished() -> bool | None:  # noqa: D103
 
         # Update run status
         if run_status_file.exists():
-            run_status = json.loads(run_status_file.read_text())
+            run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
             run_status["agent-coding-task-finished"] = True
-            run_status_file.write_text(json.dumps(run_status, indent=2))
+            run_status_file.write_text(json.dumps(run_status, indent=2), encoding="utf-8")
 
         # Show checklist validation and status footer
         checklist_info = validate_agent_checklist()
         display_checklist_status(checklist_info)
         show_agent_status_footer("agent-coding-end")
 
-        return True  # noqa: TRY300
+        return True
 
-    except Exception:  # noqa: BLE001
+    except Exception:
         return True  # Don't fail for status tracking errors
 
 
-def show_todo_end() -> bool | None:  # noqa: D103, PLR0912, PLR0915
+def show_todo_end() -> bool | None:
     try:
         console.print("\n-  [bold blue]TODO PLANNING SESSION END[/bold blue]")
         console.print(
@@ -3504,7 +3485,7 @@ def show_todo_end() -> bool | None:  # noqa: D103, PLR0912, PLR0915
         planning_quality = "good"
 
         try:
-            content = todo_file.read_text()
+            content = todo_file.read_text(encoding="utf-8")
             lines = content.split("\n")
 
             # Check for basic planning elements
@@ -3518,7 +3499,7 @@ def show_todo_end() -> bool | None:  # noqa: D103, PLR0912, PLR0915
             if not has_checkboxes:
                 validation_issues.append("No implementation checkboxes found")
                 planning_quality = "minimal"
-            elif todo_progress["total"] < 3:  # noqa: PLR2004
+            elif todo_progress["total"] < 3:
                 validation_issues.append(
                     f"Only {todo_progress['total']} checkboxes - consider more detailed breakdown",
                 )
@@ -3536,7 +3517,7 @@ def show_todo_end() -> bool | None:  # noqa: D103, PLR0912, PLR0915
                 )
                 planning_quality = "problematic"
 
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             validation_issues.append(f"Could not analyze TODO content: {e}")
             planning_quality = "unknown"
 
@@ -3569,7 +3550,7 @@ def show_todo_end() -> bool | None:  # noqa: D103, PLR0912, PLR0915
                 console.print(f"  - {issue}")
 
         # Show transition guidance
-        if planning_quality in ["good", "basic"] and todo_progress["completed"] == 0:
+        if planning_quality in {"good", "basic"} and todo_progress["completed"] == 0:
             transition_panel = Panel(
                 """OK  Planning Complete - Ready for Implementation:
 
@@ -3611,15 +3592,15 @@ def show_todo_end() -> bool | None:  # noqa: D103, PLR0912, PLR0915
         # Show consistent status footer
         show_agent_status_footer("agent-todo-end")
 
-        return True  # noqa: TRY300
+        return True
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         console.print(f"X  [red]ERROR in agent-todo-end: {e}[/red]")
         console.print("i  Planning session end may not have completed properly")
         return False
 
 
-def show_post_commit() -> bool:  # noqa: PLR0912, PLR0915
+def show_post_commit() -> bool:
     """Display post-commit validation and cleanup."""
     console.print("\n- [bold blue]POST-COMMIT VALIDATION[/bold blue]")
     console.print("-   [cyan]This task ALWAYS runs - enhanced reliability phase[/cyan]")
@@ -3657,7 +3638,7 @@ def show_post_commit() -> bool:  # noqa: PLR0912, PLR0915
             commit_parts = result.stdout.strip().split("|", 2)
             commit_hash = commit_parts[0][:8]  # Short hash
             commit_subject = commit_parts[1] if len(commit_parts) > 1 else ""
-            commit_body = commit_parts[2] if len(commit_parts) > 2 else ""  # noqa: PLR2004
+            commit_body = commit_parts[2] if len(commit_parts) > 2 else ""
 
             console.print(f"OK  [green]Commit verified: {commit_hash}[/green]")
             console.print(f"-  Subject: {commit_subject}")
@@ -3728,7 +3709,7 @@ def show_post_commit() -> bool:  # noqa: PLR0912, PLR0915
                     "!   [yellow]No conventional commit prefix detected[/yellow]",
                 )
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         validation_errors.append(f"Failed to verify commit: {e}")
 
     # 4. Check run_status - warn if events were skipped (always runs)
@@ -3737,7 +3718,7 @@ def show_post_commit() -> bool:  # noqa: PLR0912, PLR0915
         msg = "STOP: agent run status file not found"
         raise FileNotFoundError(msg)
 
-    run_status = json.loads(run_status_file.read_text())
+    run_status = json.loads(run_status_file.read_text(encoding="utf-8"))
 
     # Log workflow state changes
     workflow_state_log.append("- Workflow State Analysis:")
@@ -3778,7 +3759,7 @@ def show_post_commit() -> bool:  # noqa: PLR0912, PLR0915
     if not validate_todo_markdown_format():
         validation_errors.append("TODO markdown format validation failed")
 
-    run_status_file.write_text(json.dumps(run_status, indent=2))
+    run_status_file.write_text(json.dumps(run_status, indent=2), encoding="utf-8")
 
     # Log final workflow state
     workflow_state_log.append(f"-  Final state logged to {run_status_file}")
@@ -3822,7 +3803,7 @@ def show_workflow() -> bool:
     workflow_file = Path("docs/agent_workflow_diagrams.md")
     if workflow_file.exists():
         try:
-            content = workflow_file.read_text()
+            content = workflow_file.read_text(encoding="utf-8")
             console.print(
                 Panel(
                     content,
@@ -3949,7 +3930,7 @@ def validate_all_tools() -> bool:
     return not tool_failed
 
 
-def validate_todo() -> bool:  # noqa: PLR0912
+def validate_todo() -> bool:
     """Validate TODO file syntax, structure, and formatting."""
     console.print("-  [bold blue]MARKDOWN VALIDATION[/bold blue]")
     console.print("Validating TODO file syntax, structure, and formatting...")
@@ -4020,10 +4001,10 @@ def validate_todo() -> bool:  # noqa: PLR0912
 
         if not has_checkboxes:
             warnings.append("No checkboxes found - consider adding progress tracking")
-        elif checkbox_count < 3:  # noqa: PLR2004
+        elif checkbox_count < 3:
             warnings.append(f"Only {checkbox_count} checkboxes found - consider breaking down tasks")
 
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         validation_errors.append(f"Failed to validate markdown: {e}")
 
     # Report results
@@ -4054,7 +4035,7 @@ def display_status_summary(current_phase: str, todo_progress: dict, checklist_in
         total = todo_progress.get("total", 0)
         console.print(f"TODO: {completed}/{total}")
     if checklist_info:
-        status = "✓ [green]OK[/green]" if checklist_info.get("passed", False) else "✗ [red]Fail[/red]"
+        status = "✓ [green]OK[/green]" if checklist_info.get("passed") else "✗ [red]Fail[/red]"
         console.print(f"Chk: {status}")  # Abbrev for Checklist
 
 

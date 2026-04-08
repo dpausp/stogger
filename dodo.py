@@ -69,8 +69,8 @@ def task_default():
     }
 
 
-### Tasks for human interaction
-### AGENTS: don't run these tasks directly, use agent-* events instead!
+# Tasks for human interaction
+# AGENTS: don't run these tasks directly, use agent-* events instead!
 
 
 def task_tool_check():
@@ -100,7 +100,7 @@ def task_validate_todo():
 def task_validate_todo_phase_discipline():
     """Validate TODO phase discipline - block [x] checkboxes in TODO phase."""
 
-    def run_validation():
+    def run_validation() -> None:
         validate_todo_discipline()
         validate_no_code_in_todo()
 
@@ -373,7 +373,7 @@ def task_switch_to_todo_phase():
 def task_switch_to_impl_phase():
     """Switch to IMPL phase (implementation phase)."""
 
-    def run_switch():
+    def run_switch() -> None:
         show_todo_end()
         switch_to_impl()
 
@@ -449,7 +449,7 @@ def task_agent_coding_checkpoint():
 def task_agent_discuss_start():
     """Agent event: Begin discussion session with rules."""
 
-    def run_discuss_start():
+    def run_discuss_start() -> bool:
         console.print("[bold red]DISCUSS PHASE ACTIVE:[/bold red]")
         console.print("Rules:")
         console.print("- DO NOT CHANGE ANYTHING!")
@@ -468,7 +468,7 @@ def task_agent_discuss_start():
 def task_agent_todo_checkpoint():
     """Agent event: TODO checkpoint with formatting."""
 
-    def run_todo_checkpoint():
+    def run_todo_checkpoint() -> bool:
         console.print("[bold blue]TODO CHECKPOINT:[/bold blue]")
         console.print("- TODO markdown formatted")
         console.print("- Ready for next planning step")

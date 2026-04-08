@@ -15,7 +15,7 @@ class PIIScrubber:
         custom_patterns: dict[str, str] | None = None,
         sensitive_fields: list[str] | None = None,
         redaction_text: str = "[REDACTED]",
-    ):
+    ) -> None:
         """Initialize PII scrubber.
 
         Args:
@@ -148,7 +148,7 @@ class PIIScrubber:
 
         # Scrub all other fields
         for key, value in list(event_dict.items()):
-            if key in ["timestamp", "level", "logger"]:
+            if key in {"timestamp", "level", "logger"}:
                 continue  # Skip system fields
 
             if key.lower() in self.sensitive_fields:
@@ -182,7 +182,7 @@ def create_pii_processor(
 
 
 # Demo and testing
-def demo_pii_scrubbing():
+def demo_pii_scrubbing() -> None:
     """Demonstrate PII scrubbing capabilities."""
     scrubber = PIIScrubber()
 

@@ -121,7 +121,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
     return renderer
 
 
-def configure_stdlib_logging(config: NicestLogConfig, processors: list[Any]):
+def configure_stdlib_logging(config: NicestLogConfig, processors: list[Any]) -> None:
     """Configures the standard Python logging library."""
     log.debug(
         "configuring-stdlib-logging",
@@ -192,7 +192,7 @@ def configure_stdlib_logging(config: NicestLogConfig, processors: list[Any]):
         listener.start()
 
         # Register cleanup handler to stop listener on exit
-        def cleanup_listener():
+        def cleanup_listener() -> None:
             log.debug("stopping-queue-listener")
             listener.stop()
 

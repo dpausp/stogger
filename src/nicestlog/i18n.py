@@ -22,7 +22,7 @@ class NicestlogTranslator:
     because logging should be in your native language!
     """
 
-    def __init__(self, language: str = "en"):
+    def __init__(self, language: str = "en") -> None:
         self.language = language
         self.translations: dict[str, Any] = {}
         self.fallback_translations: dict[str, Any] = {}
@@ -30,7 +30,7 @@ class NicestlogTranslator:
         log.debug("initializing-translator", language=language)
         self._load_translations()
 
-    def _load_translations(self):
+    def _load_translations(self) -> None:
         """Load translation files."""
         # Prefer configured translation_dir from pyproject.toml if available
         try:
@@ -140,7 +140,7 @@ class NicestlogTranslator:
 
         return None
 
-    def set_language(self, language: str):
+    def set_language(self, language: str) -> None:
         """Change language and reload translations."""
         log.debug(
             "changing_language",
@@ -185,7 +185,7 @@ def t(key: str, section: str = "general", **kwargs) -> str:
     return get_translator().get(key, section, **kwargs)
 
 
-def set_language(language: str):
+def set_language(language: str) -> None:
     """Set global language."""
     log.debug("setting_global_language", language=language)
     get_translator().set_language(language)
@@ -208,7 +208,7 @@ def arsch(message: str) -> str:
 
 
 # Demo function
-def demo_translations():
+def demo_translations() -> None:
     """Demonstrate translation capabilities."""
     languages = ["en", "at", "ch", "wollgesisch"]
 

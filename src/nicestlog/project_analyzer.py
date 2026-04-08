@@ -102,7 +102,7 @@ class ProjectAnalysisResult:
 class ProjectAnalyzer:
     """Analyzes Python projects for nicestlog migration opportunities."""
 
-    def __init__(self, *, verbose: bool = False):
+    def __init__(self, *, verbose: bool = False) -> None:
         self.verbose = verbose
         self.log = structlog.get_logger("project_analyzer")
 
@@ -394,7 +394,7 @@ class ProjectAnalyzer:
         lines = content.split("\n")
 
         class LoggingVisitor(ast.NodeVisitor):
-            def __init__(self, analyzer, file_path, lines):
+            def __init__(self, analyzer, file_path, lines) -> None:
                 self.analyzer = analyzer
                 self.file_path = file_path
                 self.lines = lines
@@ -500,7 +500,7 @@ class ProjectAnalyzer:
                     return False
 
                 func_name = self._get_full_func_name(node.func)
-                return func_name in ["typer.echo", "click.echo", "rich.print", "console.print"]
+                return func_name in {"typer.echo", "click.echo", "rich.print", "console.print"}
 
             def _is_print_call(self, node: ast.Call) -> bool:
                 """Check if this is a print call."""
@@ -510,7 +510,7 @@ class ProjectAnalyzer:
                 # Check for sys.stdout.write, sys.stderr.write
                 if isinstance(node.func, ast.Attribute):
                     func_name = self._get_full_func_name(node.func)
-                    return func_name in ["sys.stdout.write", "sys.stderr.write"]
+                    return func_name in {"sys.stdout.write", "sys.stderr.write"}
 
                 return False
 
@@ -538,7 +538,7 @@ class ProjectAnalyzer:
                 if "." in func_name:
                     module_part, method_part = func_name.rsplit(".", 1)
                     # Check if module is a logger variable or logging module
-                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
+                    if method_part in {"debug", "info", "warning", "error", "critical", "log"} and (
                         module_part.startswith("log") or module_part == "logging"
                     ):
                         return True
@@ -587,7 +587,7 @@ class ProjectAnalyzer:
                 # Check for structlog method calls
                 if "." in func_name:
                     module_part, method_part = func_name.rsplit(".", 1)
-                    if method_part in ["debug", "info", "warning", "error", "critical", "log"] and (
+                    if method_part in {"debug", "info", "warning", "error", "critical", "log"} and (
                         module_part.startswith("log") or "structlog" in module_part
                     ):
                         return True
