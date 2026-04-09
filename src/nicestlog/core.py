@@ -749,14 +749,10 @@ class MultiRenderer:
             try:
                 messages = renderer(logger, method_name, event_dict.copy())
                 merged_messages.update(messages)
-            except Exception as e:
-                # Log the error but continue with other renderers
-                log.exception(
-                    "renderer-error",
-                    renderer=renderer.__class__.__name__,
-                    error=str(e),
-                    _replace_msg="Renderer {renderer} failed: {error}, continuing with other renderers",
-                )
+            except Exception:
+                import logging as _stdlib_logging
+
+                _stdlib_logging.getLogger(__name__).exception("Renderer failed, using fallback")
 
         return merged_messages
 
@@ -795,15 +791,10 @@ class MultiOptimisticLogger:
                 line = messages.get(name)
                 if line:
                     logger.msg(line)
-            except Exception as e:
-                # Log the error but continue with other loggers
-                log.exception(
-                    "logger-error",
-                    logger_name=name,
-                    logger_class=logger.__class__.__name__,
-                    error=str(e),
-                    _replace_msg="Logger {logger_name} ({logger_class}) failed: {error}, continuing with other loggers",
-                )
+            except Exception:
+                import logging as _stdlib_logging
+
+                _stdlib_logging.getLogger(__name__).exception("Renderer failed, using fallback")
 
     def __getattr__(self, name):
         return self.msg

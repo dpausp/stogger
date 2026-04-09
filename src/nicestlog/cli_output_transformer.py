@@ -164,9 +164,7 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
         ):
             return self._analyze_rich_console_print(node)
 
-        if (
-            isinstance(node.func, ast.Attribute) and node.func.attr == "error" and isinstance(node.func.value, ast.Name)
-        ):
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "error" and isinstance(node.func.value, ast.Name):
             return self._analyze_argparse_error(node)
 
         if (
@@ -401,7 +399,13 @@ class CLIOutputToStructlogTransformer(ast.NodeTransformer):
                     keywords.append(ast.keyword(arg="a0", value=cli_call.message_arg))
 
         # Add CLI-specific metadata
-        keywords.extend((ast.keyword(arg="cli_framework", value=ast.Constant(value=cli_call.framework)), ast.keyword(arg="cli_function", value=ast.Constant(value=cli_call.function)), ast.keyword(arg="cli_output_stream", value=ast.Constant(value=cli_call.output_stream))))
+        keywords.extend(
+            (
+                ast.keyword(arg="cli_framework", value=ast.Constant(value=cli_call.framework)),
+                ast.keyword(arg="cli_function", value=ast.Constant(value=cli_call.function)),
+                ast.keyword(arg="cli_output_stream", value=ast.Constant(value=cli_call.output_stream)),
+            )
+        )
 
         # Add styling information
         if cli_call.style_info:

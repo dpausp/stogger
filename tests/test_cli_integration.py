@@ -203,7 +203,7 @@ def main():
 
         # Should pass or fail depending on actual analysis
         assert result.exit_code in [0, 1]
-        assert "All checks passed" in result.stdout or "Unified Code Quality Analysis" in result.stdout
+        assert "All checks passed" in result.output or "Unified Code Quality Analysis" in result.output
 
     def test_lint_directory_with_mixed_files(self, caplog):
         """Test linting a directory with both good and bad files."""
@@ -370,9 +370,7 @@ class TestJournalIntegration:
         )
 
         assert result.exit_code == 0
-        mock_run_journal.assert_called_once_with(
-            "test.service", 10, follow=False, since=None, level=None
-        )
+        mock_run_journal.assert_called_once_with("test.service", 10, follow=False, since=None, level=None)
 
 
 class TestReviewIntegration:

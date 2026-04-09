@@ -538,8 +538,8 @@ print("Interactive migration test")
             mock_result.warnings = []
 
             mock_analyzer.return_value = mock_result
-            mock_analyzer.side_effect = (
-                lambda *args, **kwargs: print(f"Mock called with: {args}, {kwargs}") or mock_result
+            mock_analyzer.side_effect = lambda *args, **kwargs: (
+                print(f"Mock called with: {args}, {kwargs}") or mock_result
             )
 
             print(f"Invoking app with: {app}, args: {['migrate', str(test_dir)]}")
@@ -800,8 +800,8 @@ def test():
             result = self.runner.invoke(app, ["check", str(test_file)])
 
             assert result.exit_code == 0
-            assert "ast analysis" in result.stdout.lower()
-            # Note: check command now uses AST analysis by default, not the old linter
+            assert "ast analysis" in result.output.lower()
+            # Note: check command now uses AST analysis by default, output goes to stderr
 
     @pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
     def test_existing_commands_unchanged(self, caplog):

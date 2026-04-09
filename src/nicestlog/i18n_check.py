@@ -211,7 +211,14 @@ def format_report(report: dict[str, object], *, include_debug: bool = True) -> s
     present_cnt = len(report.get("translation_keys", []))  # type: ignore[arg-type]
 
     lines = []
-    lines.extend(("🌐 nicestlog i18n check", f"   Translation file: {report['translation_file']}", f"   Required keys: {required_cnt}", f"   Present keys:  {present_cnt}"))
+    lines.extend(
+        (
+            "🌐 nicestlog i18n check",
+            f"   Translation file: {report['translation_file']}",
+            f"   Required keys: {required_cnt}",
+            f"   Present keys:  {present_cnt}",
+        )
+    )
 
     if missing:
         lines.append("\n❗ Missing keys:")

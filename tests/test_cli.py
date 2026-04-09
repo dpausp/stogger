@@ -291,7 +291,7 @@ class TestGenerateServiceCommand:
         assert call_args.exec_command == "/bin/test"
         assert call_args.user == "testuser"
         assert call_args.working_directory == "/opt/test"
-        mock_file.assert_called_once_with("w")
+        mock_file.assert_called_once_with(mode="w", encoding="utf-8", errors=None, newline=None)
         mock_file.return_value.__enter__.return_value.write.assert_called_once_with(
             "[Unit]\nDescription=Test Service\n"
         )

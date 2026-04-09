@@ -7,6 +7,12 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+if "eliot" not in sys.modules:
+    try:
+        import eliot  # noqa: F401
+    except ImportError:
+        pytestmark = pytest.mark.skip(reason="eliot not installed")
+
 
 # Test both with and without eliot available
 @pytest.fixture
@@ -287,7 +293,10 @@ class TestHumanReadableEliotDestination:
         from src.nicestlog.eliot_integration import HumanReadableEliotDestination
 
         dest = HumanReadableEliotDestination(show_timestamps=True)
-        timestamp = datetime(2023, 1, 1, 12, 30, 45, 123456).timestamp()
+        # Use timezone-aware UTC datetime to avoid local timezone conversion
+        from datetime import timezone
+
+        timestamp = datetime(2023, 1, 1, 12, 30, 45, 123456, tzinfo=timezone.utc).timestamp()
         result = dest._format_timestamp(timestamp)
 
         assert "12:30:45.123" in result
@@ -393,9 +402,7 @@ class TestLogActionContextManager:
         # Temporarily replace the function with the dummy version
         original_log_action = eliot_mod.log_action
         eliot_mod.log_action = (
-            eliot_mod.log_action.__wrapped__
-            if hasattr(eliot_mod.log_action, "__wrapped__")
-            else original_log_action
+            eliot_mod.log_action.__wrapped__ if hasattr(eliot_mod.log_action, "__wrapped__") else original_log_action
         )
 
         # Get the dummy implementation from the else block

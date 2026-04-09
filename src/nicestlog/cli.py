@@ -14,9 +14,10 @@ import subprocess
 import sys
 import time
 import tomllib
+from collections.abc import Callable
 from importlib import resources
 from pathlib import Path
-from typing import Annotated, Protocol, cast
+from typing import Annotated, Any, Protocol, cast
 
 import structlog
 import toml
@@ -37,7 +38,7 @@ init_early_logging()
 try:
     from .web_dashboard import FLASK_AVAILABLE, run_dashboard
 except ImportError:
-    run_dashboard = None
+    run_dashboard: Callable[..., None] | None = None  # type: ignore[assignment]
     FLASK_AVAILABLE = False
 
 from .journal_viewer import SYSTEMD_AVAILABLE, JournalQueryOptions, JournalViewer
@@ -49,7 +50,7 @@ from .systemd_integration import create_systemd_service_file
 try:
     from .config import NicestLogConfig
 except ImportError:
-    NicestLogConfig = None
+    NicestLogConfig: type[NicestLogConfig] | None = None  # type: ignore[assignment,misc]
 
 import http.server
 import socketserver
@@ -61,6 +62,7 @@ from .advanced_assistant import (
     AdvancedAssistant,
     ASTPattern,
     CodeAnalysisResult,
+    TransformationMetrics,
     TransformationResult,
 )
 from .assistant import migrate_directory, migrate_file
@@ -466,7 +468,8 @@ def check(
     no_ast: Annotated[bool, typer.Option("--no-ast", help="Disable AST analysis")] = False,
     complexity: Annotated[bool, typer.Option("--complexity", help="Enable complexity analysis")] = False,
     patterns: Annotated[
-        list[str] | None, typer.Option("--pattern", "-p", help="Specific AST patterns to check"),
+        list[str] | None,
+        typer.Option("--pattern", "-p", help="Specific AST patterns to check"),
     ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
 ) -> None:
@@ -541,10 +544,13 @@ def _detect_project_structure(path_obj: Path, log):
             _display_project_context(project_structure, verbose=False, single_file=path_obj)
     except ValueError as e:
         log.info(
-            "check-project-structure-failed", error=str(e), _replace_msg=f"Project structure detection failed: {e}",
+            "check-project-structure-failed",
+            error=str(e),
+            _replace_msg=f"Project structure detection failed: {e}",
         )
         log.info(
-            "check-configure-pyproject", _replace_msg="Please configure [tool.nicestlog] section in pyproject.toml",
+            "check-configure-pyproject",
+            _replace_msg="Please configure [tool.nicestlog] section in pyproject.toml",
         )
         sys.exit(1)
     else:
@@ -621,7 +627,11 @@ def _analyze_single_file_for_check(assistant: AdvancedAssistant, path_obj: Path,
 
 
 def _analyze_directory_files(
-    assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions, log,
+    assistant: AdvancedAssistant,
+    path_obj: Path,
+    project_structure,
+    options: CheckOptions,
+    log,
 ):
     """Analyze all files in a directory."""
     python_files = filter_python_files(path_obj, respect_gitignore=True)
@@ -698,12 +708,17 @@ def _run_fix_mode(options: CheckOptions, path_obj: Path, project_structure, log)
 
     if path_obj.is_file():
         transform_result = assistant.transform_file(path_obj, dry_run=options.dry_run)
-        _display_transformation_result(transform_result, options.dry_run)
+        _display_transformation_result(transform_result, dry_run=options.dry_run)
     else:
         _fix_directory_files(assistant, path_obj, project_structure, options)
 
 
-def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_structure, options: CheckOptions) -> None:
+def _fix_directory_files(
+    assistant: AdvancedAssistant,
+    path_obj: Path,
+    project_structure,
+    options: CheckOptions,
+) -> None:
     """Fix all files in a directory."""
     python_files = []
     for src_dir in project_structure.source_dirs:
@@ -726,7 +741,7 @@ def _fix_directory_files(assistant: AdvancedAssistant, path_obj: Path, project_s
             transform_results.append(transform_result)
             progress.remove_task(task)
 
-    _display_directory_transformation(transform_results, options.dry_run)
+    _display_directory_transformation(transform_results, dry_run=options.dry_run)
 
 
 def _handle_check_summary(*, lint_success: bool, ast_issues, log) -> None:
@@ -888,7 +903,10 @@ def _display_unified_check_analysis(
     # Extract metrics and run linter
     ast_metrics, total_ast_issues, all_ast_insights = _extract_ast_metrics(results, show_complexity, directory)
     lint_success = _run_linter_with_metrics(
-        ast_metrics, directory or results[0].file_path.parent, project_structure, log,
+        ast_metrics,
+        directory or results[0].file_path.parent,
+        project_structure,
+        log,
     )
 
     # Display insights based on mode
@@ -901,7 +919,9 @@ def _display_unified_check_analysis(
 
 
 def _extract_ast_metrics(
-    results: list[CodeAnalysisResult], show_complexity: bool, directory: Path | None,
+    results: list[CodeAnalysisResult],
+    show_complexity: bool,
+    directory: Path | None,
 ) -> tuple[dict, int, list[str]]:
     """Extract AST metrics from analysis results."""
     ast_metrics = {}
@@ -943,7 +963,10 @@ def _run_linter_with_metrics(ast_metrics: dict, directory_path: Path, project_st
 
 
 def _display_verbose_unified_insights(
-    results: list[CodeAnalysisResult], total_ast_issues: int, all_ast_insights: list[str], log,
+    results: list[CodeAnalysisResult],
+    total_ast_issues: int,
+    all_ast_insights: list[str],
+    log,
 ) -> None:
     """Display detailed unified analysis insights."""
     max_insights = 5
@@ -1169,7 +1192,7 @@ def _transform_single_file(
         result = assistant.transform_file(path, dry_run=dry_run)
         progress.remove_task(task)
 
-    _display_transformation_result(result, dry_run)
+    _display_transformation_result(result, dry_run=dry_run)
 
 
 def _transform_directory(
@@ -1202,7 +1225,7 @@ def _transform_directory(
                 results.append(result)
                 progress.remove_task(task)
 
-    _display_directory_transformation(results, dry_run)
+    _display_directory_transformation(results, dry_run=dry_run)
 
 
 def _transform_interactive(path: Path, *, _verbose: bool) -> None:
@@ -1270,9 +1293,7 @@ def _display_analysis_result(result: CodeAnalysisResult) -> None:
 def _display_transformation_result(result: TransformationResult, *, dry_run: bool) -> None:
     """Display transformation results for a single file."""
     mode = "Preview" if dry_run else "Applied"
-    console.print(
-        f"\n🔄 [bold green]Transformation {mode} for {result.file_path}[/bold green]",
-    )
+    console.print(f"\n🔄 [bold green]Transformation {mode} for {result.file_path}[/bold green]")
 
     if result.changes_made:
         changes_table = Table(title=f"📝 Changes {mode}")
@@ -1280,7 +1301,7 @@ def _display_transformation_result(result: TransformationResult, *, dry_run: boo
         changes_table.add_column("Line", style="yellow", justify="right")
         changes_table.add_column("Change", style="green")
 
-        for i, change in enumerate(result.changes):
+        for i, change in enumerate(result.changes_made):
             changes_table.add_row("Change", str(i + 1), change)
 
         console.print(changes_table)
@@ -1360,7 +1381,7 @@ def _display_directory_transformation(
     total_changes = 0
 
     for result in results:
-        changes_count = len(result.changes)
+        changes_count = len(result.changes_made)
         total_changes += changes_count
         status = "✅ Modified" if result.changes_made else "INFO No changes"
 
@@ -1723,15 +1744,16 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
         report = reviewer.analyze_log_file(path)
         if format_type == "json":
             # Convert report to dict if it has to_dict method, otherwise use default serialization
-            if hasattr(report, "to_dict"):
-                report.to_dict()
+            if hasattr(report, "to_dict") and callable(report.to_dict):
+                report_dict = cast("Any", report).to_dict()
             else:
                 # Handle MagicMock or other objects that don't have to_dict
-                {
+                report_dict = {
                     "overall_score": getattr(report, "overall_score", 0.0),
                     "file_path": str(path),
                     "analysis": "Mock analysis",
                 }
+            console.print(json.dumps(report_dict, indent=2))
         else:
             print_report(report, format_type)
 
@@ -1751,14 +1773,15 @@ def run_log_reviewer(path_str: str, format_type: str = "text", min_score: float 
 
             if score >= min_score:
                 if format_type == "json":
-                    if hasattr(report, "to_dict"):
-                        report.to_dict()
+                    if hasattr(report, "to_dict") and callable(report.to_dict):
+                        report_dict = cast("Any", report).to_dict()
                     else:
-                        {
+                        report_dict = {
                             "overall_score": score,
                             "file_path": str(log_file),
                             "analysis": "Mock analysis",
                         }
+                    console.print(json.dumps(report_dict, indent=2))
                 else:
                     print_report(report, format_type)
             else:
@@ -1953,7 +1976,9 @@ def run_pii_demo() -> None:
         ssn="123-45-6789",
     )
     log.debug(
-        "api-call", token=f"Bearer {os.environ.get('DEMO_TOKEN', 'not-a-real-token')}", api_key="sk_demo_placeholder",
+        "api-call",
+        token=f"Bearer {os.environ.get('DEMO_TOKEN', 'not-a-real-token')}",
+        api_key="sk_demo_placeholder",
     )
 
 
@@ -2097,7 +2122,7 @@ def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: 
             migration_config,
             _dry_run=options.dry_run,
         )
-        show_migration_report(result, options.dry_run)
+        show_migration_report(result, dry_run=options.dry_run)
         return
 
     # 6. Automatic migration
@@ -2108,20 +2133,20 @@ def run_migrate_command(options: MigrateOptions, *, migration_type: str, force: 
             source_path,
             target_path,
             migration_config,
-            options.dry_run,
-            force,
+            dry_run=options.dry_run,
+            _force=force,
         )
     else:
         result = migrate_directory_recursive(
             source_path,
             target_path,
             migration_config,
-            options.dry_run,
-            force,
+            dry_run=options.dry_run,
+            force=force,
         )
 
     # 7. Show results
-    show_migration_report(result, options.dry_run)
+    show_migration_report(result, dry_run=options.dry_run)
 
     # 8. Exit with appropriate code
     if result.errors > 0:
@@ -2138,11 +2163,12 @@ def _handle_analysis_operation(assistant: AdvancedAssistant, source: Path) -> Tr
     )
 
     return TransformationResult(
-        file_path=source,
-        changes_made=False,
-        changes=[],
+        original_code="",
         transformed_code="",
-        analysis_result=analysis_result,
+        analysis=analysis_result,
+        metrics=TransformationMetrics(),
+        success=False,
+        changes_made=[],
     )
 
 
@@ -2152,7 +2178,7 @@ def _handle_interactive_operation(source: Path) -> TransformationResult:
     result = transformer.transform_file_interactive(source)
     log.debug(
         "migrate-single-file-interactive-completed",
-        result=result.to_dict() if result else None,
+        result=result.to_dict() if result else None,  # type: ignore[union-attr]
         _replace_msg=f"Interactive transformation completed: {result}",
     )
     return result
@@ -2390,7 +2416,7 @@ def migrate_single_file(
         class ASTTransformResult:
             def __init__(self) -> None:
                 self.files_processed = 1
-                self.transformations_applied = len(transform_result.changes)
+                self.transformations_applied = len(transform_result.changes_made)
                 self.errors = 0
                 self.warnings = []
 
@@ -2430,7 +2456,7 @@ def migrate_directory_recursive(
             source,
             target,
             migrate_cli_outputs_file,
-            dry_run,
+            dry_run=dry_run,
         )
 
     # For other migrations: Process files individually
@@ -2465,7 +2491,7 @@ def migrate_directory_recursive(
             target_file = target / rel_path if target != source else py_file
 
             # Migrate individual file
-            result = migrate_single_file(py_file, target_file, config, dry_run, force)
+            result = migrate_single_file(py_file, target_file, config, dry_run=dry_run, _force=force)
 
             total_files += result.files_processed
             total_transformations += result.transformations_applied
@@ -2937,7 +2963,7 @@ def _serve_html_docs(port: int, host: str, *, open_browser: bool, build: bool) -
             if html_package_path.is_dir():
                 # Extract to temporary directory for serving
                 temp_dir = Path(tempfile.mkdtemp(prefix="nicestlog_docs_"))
-                shutil.copytree(html_package_path, temp_dir / "html")
+                shutil.copytree(str(html_package_path), temp_dir / "html")
                 html_docs_path = temp_dir / "html"
                 console.print(
                     f"📦 [green]Using packaged HTML docs (extracted to {html_docs_path})[/green]",

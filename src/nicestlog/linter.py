@@ -575,9 +575,19 @@ def check_logging_quality(
 
     # Check overall logging coverage
     if stats.log_coverage_percent < min_coverage:
-        issues.extend((f"❌ Too little logging! {stats.log_coverage_percent:.1f}% coverage (minimum: {min_coverage}%)", "   Add more log.info(), log.debug(), or log.error() statements"))
+        issues.extend(
+            (
+                f"❌ Too little logging! {stats.log_coverage_percent:.1f}% coverage (minimum: {min_coverage}%)",
+                "   Add more log.info(), log.debug(), or log.error() statements",
+            )
+        )
     elif stats.log_coverage_percent > max_coverage:
-        issues.extend((f"⚠️  Possibly too much logging! {stats.log_coverage_percent:.1f}% coverage (maximum: {max_coverage}%)", "   Consider reducing log verbosity or using higher log levels"))
+        issues.extend(
+            (
+                f"⚠️  Possibly too much logging! {stats.log_coverage_percent:.1f}% coverage (maximum: {max_coverage}%)",
+                "   Consider reducing log verbosity or using higher log levels",
+            )
+        )
     else:
         issues.append(f"✅ Good logging coverage: {stats.log_coverage_percent:.1f}%")
 
@@ -588,7 +598,12 @@ def check_logging_quality(
     # Check function coverage
     if stats.functions > 0:
         if stats.function_coverage_percent < MIN_FUNCTION_LOGGING_PERCENT:
-            issues.extend((f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%", f"   Consider adding logging to more functions (aim for {MIN_FUNCTION_LOGGING_PERCENT}-70%)"))
+            issues.extend(
+                (
+                    f"❌ Too few functions have logging: {stats.function_coverage_percent:.1f}%",
+                    f"   Consider adding logging to more functions (aim for {MIN_FUNCTION_LOGGING_PERCENT}-70%)",
+                )
+            )
         elif stats.function_coverage_percent > MAX_FUNCTION_LOGGING_PERCENT:
             issues.append(
                 f"⚠️  Almost every function logs - might be excessive: {stats.function_coverage_percent:.1f}%",
