@@ -17,7 +17,16 @@ console = Console()
 def run_coverage() -> tuple[int, str, str]:
     """Run pytest with coverage and return results."""
     result = subprocess.run(
-        ["uv", "run", "pytest", "--cov=src/nicestlog", "--cov-report=json:coverage.json", "-q", "--tb=no", "-x"],
+        [
+            "uv",
+            "run",
+            "pytest",
+            "--cov=packages/stogger/src/stogger",
+            "--cov-report=json:coverage.json",
+            "-q",
+            "--tb=no",
+            "-x",
+        ],
         capture_output=True,
         text=True,
         timeout=300,
@@ -35,7 +44,7 @@ def analyze_coverage(coverage_file: str = "coverage.json") -> dict:
 
     files = data.get("files", {})
     for file_path, file_data in files.items():
-        module = file_path.replace("src/nicestlog/", "").replace(".py", "").replace("/", ".")
+        module = file_path.replace("packages/stogger/src/stogger/", "").replace(".py", "").replace("/", ".")
         if module == "__init__":
             continue
 

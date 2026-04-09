@@ -1,6 +1,6 @@
-# Logging Rules Specification for nicestlog check
+# Logging Rules Specification for stoggertools check
 
-This document outlines all current logging rules implemented in nicestlog's linter, along with detailed examples of how the output would appear in the proposed "full" format, oriented towards ruff's style.
+This document outlines all current logging rules implemented in stoggertools' linter, along with detailed examples of how the output would appear in the proposed "full" format, oriented towards ruff's style.
 
 ## Overview
 
@@ -22,7 +22,7 @@ At the end, a summary of total issues, files affected, and fixable items.
 
 **Example Output**:
 ```
-src/nicestlog/cli.py:45:level Library initialization should be debug level to avoid user spam
+packages/stoggertools/src/stoggertools/cli.py:45:level Library initialization should be debug level to avoid user spam
    |
 43 |     def __init__(self):
 44 |         # Initialize library
@@ -40,7 +40,7 @@ src/nicestlog/cli.py:45:level Library initialization should be debug level to av
 
 **Example Output**:
 ```
-src/nicestlog/core.py:120:except_logging Inside except: prefer log.exception(...) with automatic exception formatting
+packages/stogger/src/stogger/core.py:120:except_logging Inside except: prefer log.exception(...) with automatic exception formatting
    |
 118 |     except Exception as e:
 119 |         # Handle error
@@ -58,7 +58,7 @@ src/nicestlog/core.py:120:except_logging Inside except: prefer log.exception(...
 
 **Example Output** (file-level issue):
 ```
-src/nicestlog/utils.py: Too little logging! 2.3% coverage (minimum: 5.0%)
+packages/stogger/src/stogger/utils.py: Too little logging! 2.3% coverage (minimum: 5.0%)
    |
    = help: Add more log statements or adjust minimum in config
 ```

@@ -6,12 +6,12 @@
 This module has high test coverage and is well-documented.
 :::
 
-The `nicestlog.journal_viewer` module provides a beautiful systemd journal viewer that makes `journalctl` actually usable, with the same colored output style as nicestlog console logging.
+The `stogger_systemd.journal_viewer` module provides a beautiful systemd journal viewer that makes `journalctl` actually usable, with the same colored output style as stogger console logging.
 
 ## Quick Start
 
 ```python
-from nicestlog.journal_viewer import JournalViewer, JournalQueryOptions
+from stogger_systemd.journal_viewer import JournalViewer, JournalQueryOptions
 
 viewer = JournalViewer(show_pid=True, show_service=True)
 
@@ -31,7 +31,7 @@ for entry in viewer.query_journal(
 The main class for viewing systemd journal entries with beautiful formatting.
 
 ```python
-from nicestlog.journal_viewer import JournalViewer
+from stogger_systemd.journal_viewer import JournalViewer
 
 viewer = JournalViewer(
     show_hostname=False,  # Show hostname in output
@@ -81,7 +81,7 @@ entry = viewer.parse_journal_entry({
     "SYSLOG_IDENTIFIER": "myapp",
     "_PID": "12345",
     "PRIORITY": 6,
-    "NICESTLOG_user_id": "42",
+    "STOGGER_user_id": "42",
 })
 ```
 
@@ -90,7 +90,7 @@ entry = viewer.parse_journal_entry({
 Options for journal queries.
 
 ```python
-from nicestlog.journal_viewer import JournalQueryOptions
+from stogger_systemd.journal_viewer import JournalQueryOptions
 
 options = JournalQueryOptions(
     service="myapp.service",   # Filter by service
@@ -123,7 +123,7 @@ class JournalEntry:
     pid: str
     level: str          # "critical", "error", "warning", "info", "debug"
     message: str
-    fields: dict[str, Any]   # NICESTLOG_* fields
+    fields: dict[str, Any]   # STOGGER_* fields
     raw_entry: dict[str, Any]
 ```
 
@@ -133,16 +133,16 @@ The journal viewer also provides a standalone CLI:
 
 ```bash
 # View logs for a service
-nicestlog tools journal -u myapp.service -n 50
+stoggertools tools journal -u myapp.service -n 50
 
 # Filter by level
-nicestlog tools journal --since '1 hour ago' --level error
+stoggertools tools journal --since '1 hour ago' --level error
 
 # Follow mode
-nicestlog tools journal -f -u myapp.service
+stoggertools tools journal -f -u myapp.service
 
 # JSON output
-nicestlog tools journal --json
+stoggertools tools journal --json
 ```
 
 ## Priority Mapping
@@ -157,6 +157,6 @@ nicestlog tools journal --json
 
 ## API Reference
 
-```{autoapi} nicestlog.journal_viewer
+```{autoapi} stogger_systemd.journal_viewer
 :members:
 ```

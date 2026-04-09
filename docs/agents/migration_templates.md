@@ -372,9 +372,9 @@ RUN pip install uv && uv sync --locked
 COPY . .
 
 # Configure logging for containers
-ENV NICESTLOG_VERBOSE=false
-ENV NICESTLOG_LOG_FORMAT=json
-ENV NICESTLOG_SYSLOG_IDENTIFIER=myapp
+ENV STOGGER_VERBOSE=false
+ENV STOGGER_LOG_FORMAT=json
+ENV STOGGER_SYSLOG_IDENTIFIER=myapp
 
 # Run application
 CMD ["uv", "run", "python", "main.py"]
@@ -389,8 +389,8 @@ services:
   app:
     build: .
     environment:
-      - NICESTLOG_VERBOSE=false
-      - NICESTLOG_LOG_FORMAT=json
+      - STOGGER_VERBOSE=false
+      - STOGGER_LOG_FORMAT=json
     logging:
       driver: "json-file"
       options:

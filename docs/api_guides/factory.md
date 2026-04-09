@@ -6,11 +6,11 @@
 This module has high test coverage and is well-documented.
 :::
 
-The `nicestlog.factory` module provides factory functions for building nicestlog components, including processors, renderers, and stdlib integration.
+The `stogger.factory` module provides factory functions for building stogger components, including processors, renderers, and stdlib integration.
 
 ## Overview
 
-Factory functions simplify the configuration of nicestlog by providing pre-built processor chains and renderer setups.
+Factory functions simplify the configuration of stogger by providing pre-built processor chains and renderer setups.
 
 ## Main Functions
 
@@ -19,10 +19,10 @@ Factory functions simplify the configuration of nicestlog by providing pre-built
 Builds processors that are shared between sync and async logging modes.
 
 ```python
-from nicestlog.factory import build_shared_processors
-from nicestlog.config import NicestLogConfig
+from stogger.factory import build_shared_processors
+from stogger.config import StoggerConfig
 
-config = NicestLogConfig(verbose=True)
+config = StoggerConfig(verbose=True)
 processors = build_shared_processors(config)
 ```
 
@@ -41,10 +41,10 @@ This creates a processor chain including:
 Builds the final renderer based on configuration.
 
 ```python
-from nicestlog.factory import build_renderer
-from nicestlog.config import NicestLogConfig
+from stogger.factory import build_renderer
+from stogger.config import StoggerConfig
 
-config = NicestLogConfig(log_format="json")
+config = StoggerConfig(log_format="json")
 renderer = build_renderer(config)
 ```
 
@@ -53,10 +53,10 @@ renderer = build_renderer(config)
 Configures Python's standard logging library to work with structlog.
 
 ```python
-from nicestlog.factory import configure_stdlib_logging
-from nicestlog.config import NicestLogConfig
+from stogger.factory import configure_stdlib_logging
+from stogger.config import StoggerConfig
 
-config = NicestLogConfig(
+config = StoggerConfig(
     logdir=Path("/var/log/myapp"),
     log_to_console=True,
     async_logging=True
@@ -69,11 +69,11 @@ configure_stdlib_logging(config, processors)
 
 ```python
 from pathlib import Path
-from nicestlog.config import NicestLogConfig
-from nicestlog.factory import build_shared_processors, configure_stdlib_logging
+from stogger.config import StoggerConfig
+from stogger.factory import build_shared_processors, configure_stdlib_logging
 
 # Create configuration
-config = NicestLogConfig(
+config = StoggerConfig(
     verbose=True,
     logdir=Path("./logs"),
     log_format="simple",
@@ -98,7 +98,7 @@ log.info("application-started")
 Enable async logging for better performance in high-throughput applications:
 
 ```python
-config = NicestLogConfig(
+config = StoggerConfig(
     async_logging=True,
     logdir=Path("./logs")
 )
@@ -108,6 +108,6 @@ This uses a QueueHandler and QueueListener to handle log messages asynchronously
 
 ## API Reference
 
-```{autoapi} nicestlog.factory
+```{autoapi} stogger.factory
 :members:
 ```

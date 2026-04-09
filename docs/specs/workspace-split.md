@@ -40,7 +40,7 @@ nicestlog is a single-package structured logging library (24 .py files, ~13k lin
 
 - Context: CLI tooling (`cli.py`, `assistant.py`, `advanced_assistant.py`, `interactive_transformer.py`, `live_editor.py`, `linter.py`, `log_statement_analyzer.py`, `log_reviewer.py`, `project_analyzer.py`, `cli_output_transformer.py`) plus `__init__.py` and `__main__.py` form the user-facing command-line tool. Users importing from the CLI package currently get the full convenience API.
 - Decision: Package `stoggertools` at `packages/stoggertools/` with `src/` layout. External deps: `structlog>=25.4.0`, `typer>=0.16.1`, `rich>=14.3.3`, `toml>=0.10.2`. Internal dep: `stogger`. Entry point: `stoggertools = "stoggertools:main"`. Starting version: `1.0.0`.
-- Consequences: Re-exports stogger's core API from `stoggertools.__init__` for convenience. Users who `import stoggertools` get access to `init_logging`, `NicestLogConfig`, `t`, etc. The removed deps `click` and `colorama` are no longer required (typer bundles click; colorama is handled via rich).
+- Consequences: Re-exports stogger's core API from `stoggertools.__init__` for convenience. Users who `import stoggertools` get access to `init_logging`, `StoggerConfig`, `t`, etc. The removed deps `click` and `colorama` are no longer required (typer bundles click; colorama is handled via rich).
 
 ### color-constants-extraction
 
@@ -51,7 +51,7 @@ nicestlog is a single-package structured logging library (24 .py files, ~13k lin
 ### re-export-pattern
 
 - Context: Current `nicestlog.__init__` re-exports 36 symbols from all submodules, providing a flat convenience API. Users do `from nicestlog import init_logging`. After the split, core API lives in `stogger` while CLI tooling lives in `stoggertools`.
-- Decision: `stoggertools.__init__` re-exports stogger's core public symbols (`init_logging`, `init_early_logging`, `init_command_logging`, `drop_cmd_output_logfile`, `logging_initialized`, `JournalLogger`, `JournalLoggerFactory`, `MultiOptimisticLogger`, `MultiOptimisticLoggerFactory`, `SystemdJournalRenderer`, `NicestLogConfig`, `create_pii_processor`, `demo_pii_scrubbing`, `init_i18n`, `get_translator`, `t`, `arsch`, `leiwand`, `oida`). `stogger.__init__` only exports its own symbols.
+- Decision: `stoggertools.__init__` re-exports stogger's core public symbols (`init_logging`, `init_early_logging`, `init_command_logging`, `drop_cmd_output_logfile`, `logging_initialized`, `JournalLogger`, `JournalLoggerFactory`, `MultiOptimisticLogger`, `MultiOptimisticLoggerFactory`, `SystemdJournalRenderer`, `StoggerConfig`, `create_pii_processor`, `demo_pii_scrubbing`, `init_i18n`, `get_translator`, `t`, `arsch`, `leiwand`, `oida`). `stogger.__init__` only exports its own symbols.
 - Consequences: `stoggertools` is the drop-in convenience entry point. `stogger` is the clean library without CLI baggage. Users who need only the library import from `stogger`; CLI users import from `stoggertools` and get everything.
 
 ### import-path-migration
@@ -118,7 +118,7 @@ nicestlog is a single-package structured logging library (24 .py files, ~13k lin
 
 ### Public API per Package
 
-**stogger**: `init_logging`, `init_early_logging`, `init_command_logging`, `drop_cmd_output_logfile`, `logging_initialized`, `JournalLogger`, `JournalLoggerFactory`, `MultiOptimisticLogger`, `MultiOptimisticLoggerFactory`, `SystemdJournalRenderer`, `NicestLogConfig`, `create_pii_processor`, `demo_pii_scrubbing`, `init_i18n`, `get_translator`, `t`, `arsch`, `leiwand`, `oida`
+**stogger**: `init_logging`, `init_early_logging`, `init_command_logging`, `drop_cmd_output_logfile`, `logging_initialized`, `JournalLogger`, `JournalLoggerFactory`, `MultiOptimisticLogger`, `MultiOptimisticLoggerFactory`, `SystemdJournalRenderer`, `StoggerConfig`, `create_pii_processor`, `demo_pii_scrubbing`, `init_i18n`, `get_translator`, `t`, `arsch`, `leiwand`, `oida`
 
 **stogger-systemd**: `setup_systemd_logging`, `create_systemd_service_file`, `demo_systemd_integration`
 

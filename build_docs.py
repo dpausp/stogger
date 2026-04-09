@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ruff: noqa: T201, S602
-"""Build script for nicestlog documentation."""
+"""Build script for stogger documentation."""
 
 import os
 import shutil
@@ -30,7 +30,7 @@ def run_command(cmd, cwd=None) -> bool | None:
 
 def main() -> int:
     """Build main documentation."""
-    print("🚀 Building nicestlog documentation...")
+    print("🚀 Building stogger documentation...")
 
     # Change to docs directory
     docs_dir = Path(__file__).parent / "docs"

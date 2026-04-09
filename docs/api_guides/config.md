@@ -6,22 +6,22 @@
 This module has high test coverage and is well-documented.
 :::
 
-The `nicestlog.config` module provides configuration management for nicestlog, supporting both pyproject.toml configuration and programmatic overrides.
+The `stogger.config` module provides configuration management for stogger, supporting both pyproject.toml configuration and programmatic overrides.
 
-## NicestLogConfig
+## StoggerConfig
 
 The main configuration class that merges pyproject.toml settings with runtime overrides.
 
 ### Basic Usage
 
 ```python
-from nicestlog.config import NicestLogConfig
+from stogger.config import StoggerConfig
 
 # Load from pyproject.toml with defaults
-config = NicestLogConfig()
+config = StoggerConfig()
 
 # Override specific settings
-config = NicestLogConfig(
+config = StoggerConfig(
     verbose=True,
     log_format="json",
     logdir=Path("/var/log/myapp")
@@ -36,7 +36,7 @@ config = NicestLogConfig(
 | `logdir` | Path \| None | None | Directory for log files |
 | `log_cmd_output` | bool | False | Enable command output logging |
 | `log_to_console` | bool | True | Output to console |
-| `syslog_identifier` | str | "nicestlog" | Systemd journal identifier |
+| `syslog_identifier` | str | "stogger" | Systemd journal identifier |
 | `show_caller_info` | bool | False | Include caller info in logs |
 | `translation_dir` | Path \| None | None | Directory for translation files |
 | `language` | str | "en" | Language for translations |
@@ -50,7 +50,7 @@ config = NicestLogConfig(
 ### pyproject.toml Configuration
 
 ```toml
-[tool.nicestlog]
+[tool.stogger]
 verbose = false
 syslog_identifier = "my-app"
 log_format = "json"
@@ -59,7 +59,7 @@ enable_structured_logging = true
 enable_performance_monitoring = true
 
 # AST Analysis settings
-[tool.nicestlog.ast]
+[tool.stogger.ast]
 respect_gitignore = true
 max_parameters = 8
 logging_focus = true
@@ -72,7 +72,7 @@ logging_focus = true
 Detects project structure using smart heuristics.
 
 ```python
-from nicestlog.config import detect_project_structure
+from stogger.config import detect_project_structure
 from pathlib import Path
 
 structure = detect_project_structure(Path.cwd())
@@ -106,7 +106,7 @@ Methods:
 Settings for console formatting.
 
 ```python
-from nicestlog.config import SimpleFormatSettings
+from stogger.config import SimpleFormatSettings
 
 settings = SimpleFormatSettings(
     min_level="info",
@@ -122,14 +122,14 @@ settings = SimpleFormatSettings(
 
 ```python
 from pathlib import Path
-from nicestlog.config import NicestLogConfig, detect_project_structure
+from stogger.config import StoggerConfig, detect_project_structure
 
 # Detect project structure
 structure = detect_project_structure()
 print(f"Detected from: {structure.detection_source}")
 
 # Create configuration
-config = NicestLogConfig(
+config = StoggerConfig(
     verbose=True,
     logdir=Path("./logs"),
     log_format="json",
@@ -145,6 +145,6 @@ print(f"PII scrubbing: {config.enable_pii_scrubbing}")
 
 ## API Reference
 
-```{autoapi} nicestlog.config
+```{autoapi} stogger.config
 :members:
 ```

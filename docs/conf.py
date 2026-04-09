@@ -5,9 +5,9 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "nicestlog"
-copyright = "2024, nicestlog contributors"
-author = "nicestlog contributors"
+project = "stogger"
+copyright = "2024, stogger contributors"
+author = "stogger contributors"
 release = "0.3.5"
 
 # -- General configuration ---------------------------------------------------
@@ -37,7 +37,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- autoapi configuration ---------------------------------------------------
 autoapi_type = "python"
-autoapi_dirs = ["../src/nicestlog"]
+autoapi_dirs = ["../packages/stogger/src/stogger"]
 autoapi_file_patterns = ["*.py"]
 autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = False
@@ -74,7 +74,7 @@ autodoc_typehints_format = "short"
 # -- sphinx-llm configuration ------------------------------------------------
 llms_txt_build_parallel = True
 llms_txt_full_build = True
-llms_txt_description = "nicestlog - A sophisticated multi-target structured logging system built on structlog"
+llms_txt_description = "stogger - A sophisticated multi-target structured logging system built on structlog"
 
 # -- MyST Parser configuration ----------------------------------------------
 myst_enable_extensions = [
@@ -95,7 +95,7 @@ myst_heading_anchors = 3
 
 # -- Furo theme configuration -----------------------------------------------
 html_theme = "furo"
-html_title = "nicestlog Documentation"
+html_title = "stogger Documentation"
 html_static_path = ["_static"]
 
 html_theme_options = {
@@ -110,7 +110,7 @@ html_theme_options = {
         "color-brand-primary": "#60a5fa",
         "color-brand-content": "#60a5fa",
     },
-    "source_repository": "https://github.com/nicestlog/nicestlog",
+    "source_repository": "https://github.com/nicestlog/stogger",
     "source_branch": "main",
     "source_directory": "docs/",
 }

@@ -157,11 +157,11 @@ class JournalViewer:
             priority = int(priority)
         level = self.PRIORITY_TO_LEVEL.get(priority, "info")
 
-        # Extract custom fields (nicestlog fields)
+        # Extract custom fields (stogger fields)
         fields = {}
         for key, value in entry.items():
-            if key.startswith("NICESTLOG_"):
-                field_name = key.replace("NICESTLOG_", "").lower()
+            if key.startswith("STOGGER_"):
+                field_name = key.replace("STOGGER_", "").lower()
                 # Try to parse JSON values
                 try:
                     if isinstance(value, str) and (value.startswith(("{", "["))):

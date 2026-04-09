@@ -1,7 +1,7 @@
 """🔍 Project Analyzer for AI Agents.
 
 This module provides automated analysis of existing Python projects to determine
-the best nicestlog migration strategy and identify potential issues.
+the best stogger migration strategy and identify potential issues.
 """
 
 import ast

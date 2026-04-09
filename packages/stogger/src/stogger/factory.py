@@ -8,7 +8,7 @@ from typing import Any
 
 import structlog
 
-from .config import NicestLogConfig
+from .config import StoggerConfig
 from .core import (
     ConsoleFileRenderer,
     JSONRenderer,
@@ -23,7 +23,7 @@ from .core import (
 log = structlog.get_logger(__name__)
 
 
-def build_shared_processors(config: NicestLogConfig) -> list[Any]:
+def build_shared_processors(config: StoggerConfig) -> list[Any]:
     """Builds processors that are shared between sync and async modes."""
     if config.verbose:
         log.debug(
@@ -96,7 +96,7 @@ def build_shared_processors(config: NicestLogConfig) -> list[Any]:
     return processors
 
 
-def build_renderer(config: NicestLogConfig) -> Any:
+def build_renderer(config: StoggerConfig) -> Any:
     """Builds the final renderer based on the log format."""
     log.debug(
         "building-renderer",
@@ -121,7 +121,7 @@ def build_renderer(config: NicestLogConfig) -> Any:
     return renderer
 
 
-def configure_stdlib_logging(config: NicestLogConfig, processors: list[Any]) -> None:
+def configure_stdlib_logging(config: StoggerConfig, processors: list[Any]) -> None:
     """Configures the standard Python logging library."""
     log.debug(
         "configuring-stdlib-logging",

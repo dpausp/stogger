@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from stogger.config import NicestLogConfig
+from stogger.config import StoggerConfig
 from stogger.factory import (
     build_renderer,
     build_shared_processors,
@@ -20,7 +20,7 @@ class TestBuildSharedProcessors:
 
     def test_basic_processor_chain(self):
         """Test that basic processors are included."""
-        config = NicestLogConfig()
+        config = StoggerConfig()
         processors = build_shared_processors(config)
 
         # Should contain basic processors
@@ -33,7 +33,7 @@ class TestBuildSharedProcessors:
 
     def test_caller_info_processor_inclusion(self):
         """Test that caller info processor is included when enabled."""
-        config = NicestLogConfig(show_caller_info=True)
+        config = StoggerConfig(show_caller_info=True)
         processors = build_shared_processors(config)
 
         # Should include add_caller_info when show_caller_info is True
@@ -43,7 +43,7 @@ class TestBuildSharedProcessors:
 
     def test_caller_info_processor_exclusion(self):
         """Test that caller info processor is always included (based on actual implementation)."""
-        config = NicestLogConfig(show_caller_info=False)
+        config = StoggerConfig(show_caller_info=False)
         processors = build_shared_processors(config)
 
         from stogger.core import add_caller_info
@@ -53,7 +53,7 @@ class TestBuildSharedProcessors:
 
     def test_pid_processor_inclusion(self):
         """Test that PID processor is included."""
-        config = NicestLogConfig()
+        config = StoggerConfig()
         processors = build_shared_processors(config)
 
         from stogger.core import add_pid
@@ -67,27 +67,23 @@ class TestBuildSharedProcessors:
             translation_file = translation_dir / "en.toml"
             translation_file.write_text('[messages]\ntest = "Test message"')
 
-            config = NicestLogConfig(translation_dir=translation_dir, language="en")
+            config = StoggerConfig(translation_dir=translation_dir, language="en")
             processors = build_shared_processors(config)
 
             # Should include TranslationProcessor
             from stogger.core import TranslationProcessor
 
-            translation_processors = [
-                p for p in processors if isinstance(p, TranslationProcessor)
-            ]
+            translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
             assert len(translation_processors) == 1
 
     def test_translation_processor_without_translations(self):
         """Test that translation processor is not included when no translation dir."""
-        config = NicestLogConfig(translation_dir=None, language="en")
+        config = StoggerConfig(translation_dir=None, language="en")
         processors = build_shared_processors(config)
 
         from stogger.core import TranslationProcessor
 
-        translation_processors = [
-            p for p in processors if isinstance(p, TranslationProcessor)
-        ]
+        translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
         assert len(translation_processors) == 0
 
     @patch("stogger.pii_scrubber.create_pii_processor")
@@ -96,7 +92,7 @@ class TestBuildSharedProcessors:
         mock_pii_processor = MagicMock()
         mock_create_pii.return_value = mock_pii_processor
 
-        config = NicestLogConfig(enable_pii_scrubbing=True)
+        config = StoggerConfig(enable_pii_scrubbing=True)
         processors = build_shared_processors(config)
 
         mock_create_pii.assert_called_once()
@@ -104,7 +100,7 @@ class TestBuildSharedProcessors:
 
     def test_pii_processor_exclusion(self):
         """Test that PII processor is excluded when disabled."""
-        config = NicestLogConfig(enable_pii_scrubbing=False)
+        config = StoggerConfig(enable_pii_scrubbing=False)
         processors = build_shared_processors(config)
 
         # Should not include PII processor
@@ -117,7 +113,7 @@ class TestBuildRenderer:
 
     def test_console_renderer_creation(self):
         """Test console renderer creation."""
-        config = NicestLogConfig(log_format="console")
+        config = StoggerConfig(log_format="console")
         renderer = build_renderer(config)
 
         from stogger.core import ConsoleFileRenderer
@@ -126,7 +122,7 @@ class TestBuildRenderer:
 
     def test_json_renderer_creation(self):
         """Test JSON renderer creation."""
-        config = NicestLogConfig(log_format="json")
+        config = StoggerConfig(log_format="json")
         renderer = build_renderer(config)
 
         from stogger.core import JSONRenderer
@@ -135,8 +131,8 @@ class TestBuildRenderer:
 
     def test_verbose_mode_affects_min_level(self):
         """Test that verbose mode affects the minimum log level."""
-        config_verbose = NicestLogConfig(log_format="console", verbose=True)
-        config_normal = NicestLogConfig(log_format="console", verbose=False)
+        config_verbose = StoggerConfig(log_format="console", verbose=True)
+        config_normal = StoggerConfig(log_format="console", verbose=False)
 
         renderer_verbose = build_renderer(config_verbose)
         renderer_normal = build_renderer(config_normal)
@@ -154,7 +150,7 @@ class TestConfigureStdlibLogging:
     @patch("logging.basicConfig")
     def test_sync_logging_configuration(self, mock_basic_config):
         """Test synchronous logging configuration."""
-        config = NicestLogConfig(async_logging=False, log_to_console=True)
+        config = StoggerConfig(async_logging=False, log_to_console=True)
         processors = []
 
         configure_stdlib_logging(config, processors)
@@ -174,7 +170,7 @@ class TestConfigureStdlibLogging:
         mock_listener_instance = MagicMock()
         mock_queue_listener.return_value = mock_listener_instance
 
-        config = NicestLogConfig(async_logging=True, log_to_console=True)
+        config = StoggerConfig(async_logging=True, log_to_console=True)
         processors = []
 
         configure_stdlib_logging(config, processors)
@@ -192,7 +188,7 @@ class TestConfigureStdlibLogging:
         """Test file logging configuration."""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_dir = Path(tmpdir)
-            config = NicestLogConfig(logdir=log_dir, log_to_console=False)
+            config = StoggerConfig(logdir=log_dir, log_to_console=False)
             processors = []
 
             configure_stdlib_logging(config, processors)
@@ -209,7 +205,7 @@ class TestConfigureStdlibLogging:
         """Test configuration with both console and file logging."""
         with tempfile.TemporaryDirectory() as tmpdir:
             log_dir = Path(tmpdir)
-            config = NicestLogConfig(logdir=log_dir, log_to_console=True)
+            config = StoggerConfig(logdir=log_dir, log_to_console=True)
             processors = []
 
             configure_stdlib_logging(config, processors)
@@ -224,7 +220,7 @@ class TestConfigureStdlibLogging:
 
     def test_level_setting(self):
         """Test that logging level is set to DEBUG."""
-        config = NicestLogConfig(verbose=True, log_to_console=True)
+        config = StoggerConfig(verbose=True, log_to_console=True)
         processors = []
 
         with patch("logging.basicConfig") as mock_basic_config:

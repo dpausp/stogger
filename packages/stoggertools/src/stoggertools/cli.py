@@ -47,9 +47,9 @@ from .log_reviewer import LogQualityReviewer, print_report
 from .project_analyzer import analyze_project_for_agents
 
 try:
-    from stogger.config import NicestLogConfig
+    from stogger.config import StoggerConfig
 except ImportError:
-    NicestLogConfig: type[NicestLogConfig] | None = None  # type: ignore[assignment,misc]
+    StoggerConfig: type[StoggerConfig] | None = None  # type: ignore[assignment,misc]
 
 import http.server
 import socketserver
@@ -949,15 +949,15 @@ def _run_linter_with_metrics(ast_metrics: dict, directory_path: Path, project_st
     log.info("check-unified-analysis", _replace_msg="Unified Code Quality Analysis")
 
     # Set environment variable to pass AST metrics to linter
-    os.environ["NICESTLOG_AST_METRICS"] = json.dumps(ast_metrics)
+    os.environ["STOGGER_AST_METRICS"] = json.dumps(ast_metrics)
 
     lint_success = True
     try:
         lint_success = lint_directory(directory_path, LintOptions(project_structure=project_structure))
     finally:
         # Clean up environment variable
-        if "NICESTLOG_AST_METRICS" in os.environ:
-            del os.environ["NICESTLOG_AST_METRICS"]
+        if "STOGGER_AST_METRICS" in os.environ:
+            del os.environ["STOGGER_AST_METRICS"]
 
     return lint_success
 
@@ -1941,11 +1941,11 @@ def run_i18n_demo() -> None:
     print_demo_header("Internationalization (i18n)", "Multi-language log messages")
 
     # Load config to optionally honor translation_dir and language from pyproject.toml
-    if NicestLogConfig is None:
+    if StoggerConfig is None:
         logger.warning("Config module not available")
         cfg = None
     else:
-        cfg = NicestLogConfig()
+        cfg = StoggerConfig()
 
     init_kwargs = {"verbose": True, "syslog_identifier": "i18n-demo"}
     if cfg and cfg.translation_dir:

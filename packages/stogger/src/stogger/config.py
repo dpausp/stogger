@@ -45,8 +45,8 @@ class ProjectStructure:
             return True
 
 
-class NicestLogConfig:
-    """Manages nicestlog configuration by merging pyproject.toml settings
+class StoggerConfig:
+    """Manages stogger configuration by merging pyproject.toml settings
     with keyword arguments.
     """
 

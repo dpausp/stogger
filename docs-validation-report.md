@@ -1,7 +1,7 @@
 # Documentation Validation Report
 
 **Generated**: 2026-03-27
-**Project**: nicestlog v0.3.5
+**Project**: stogger v0.3.5
 
 ## Summary
 
@@ -143,7 +143,7 @@
 | `JournalLoggerFactory` | core | ✅ | High |
 | `MultiOptimisticLogger` | core | ✅ | High |
 | `MultiOptimisticLoggerFactory` | core | ✅ | High |
-| `NicestLogConfig` | config | ✅ | High (93.4%) |
+| `StoggerConfig` | config | ✅ | High (93.4%) |
 | `SystemdJournalRenderer` | core | ✅ | High |
 | `analyze_python_file` | advanced_assistant | ✅ | High (84.9%) |
 | `arsch` | i18n | ❌ | Unknown |

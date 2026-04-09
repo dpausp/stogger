@@ -9,7 +9,7 @@ from typing import Any
 
 import structlog
 
-from .config import NicestLogConfig
+from .config import StoggerConfig
 
 # Get logger for this module
 log = structlog.get_logger(__name__)
@@ -34,7 +34,7 @@ class NicestlogTranslator:
         """Load translation files."""
         # Prefer configured translation_dir from pyproject.toml if available
         try:
-            cfg = NicestLogConfig()
+            cfg = StoggerConfig()
             if cfg.translation_dir:
                 translations_dir = Path(cfg.translation_dir)
             else:

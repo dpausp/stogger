@@ -162,9 +162,9 @@ class TestJournalViewer:
 
             raw_entry = {
                 "MESSAGE": "test message",
-                "NICESTLOG_USER_ID": "123",
-                "NICESTLOG_DATA": '{"key": "value"}',
-                "NICESTLOG_SIMPLE": "simple_value",
+                "STOGGER_USER_ID": "123",
+                "STOGGER_DATA": '{"key": "value"}',
+                "STOGGER_SIMPLE": "simple_value",
             }
 
             entry = viewer.parse_journal_entry(raw_entry)
@@ -180,7 +180,7 @@ class TestJournalViewer:
 
             raw_entry = {
                 "MESSAGE": "test message",
-                "NICESTLOG_INVALID": '{"invalid": json}',
+                "STOGGER_INVALID": '{"invalid": json}',
             }
 
             entry = viewer.parse_journal_entry(raw_entry)

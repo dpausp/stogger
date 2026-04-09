@@ -1,4 +1,4 @@
-"""Tests for the NicestLogConfig class."""
+"""Tests for the StoggerConfig class."""
 
 from pathlib import Path
 import tempfile
@@ -7,7 +7,7 @@ import logging
 
 import pytest
 
-from stogger.config import NicestLogConfig
+from stogger.config import StoggerConfig
 from stogger.factory import build_shared_processors, configure_stdlib_logging
 
 
@@ -31,7 +31,7 @@ language = "fr"
 
 def test_config_loading_from_file(create_pyproject_toml):
     """Test that config is correctly loaded from pyproject.toml."""
-    config = NicestLogConfig()
+    config = StoggerConfig()
     assert config.verbose is True
     assert config.logdir == Path("/tmp/logs")
     assert config.syslog_identifier == "test-app"
@@ -41,7 +41,7 @@ def test_config_loading_from_file(create_pyproject_toml):
 
 def test_config_kwargs_override_file(create_pyproject_toml):
     """Test that kwargs provided to the constructor override file settings."""
-    config = NicestLogConfig(
+    config = StoggerConfig(
         verbose=False,
         syslog_identifier="override-app",
         log_to_console=False,
@@ -56,7 +56,7 @@ def test_config_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
     with tempfile.TemporaryDirectory() as tmpdir:
         with patch("pathlib.Path.cwd", return_value=Path(tmpdir)):
-            config = NicestLogConfig()
+            config = StoggerConfig()
             assert config.verbose is False
             assert config.logdir is None
             assert config.syslog_identifier == "stogger"
@@ -66,7 +66,7 @@ def test_config_defaults_when_no_file():
 @patch("logging.basicConfig")
 def test_sync_logging_setup(mock_basic_config):
     """Test that synchronous logging sets up basicConfig directly."""
-    config = NicestLogConfig(async_logging=False, log_to_console=True)
+    config = StoggerConfig(async_logging=False, log_to_console=True)
     processors = build_shared_processors(config)
     configure_stdlib_logging(config, processors)
 
@@ -82,7 +82,7 @@ def test_async_logging_setup(mock_get_logger, mock_listener):
     mock_root_logger = MagicMock()
     mock_get_logger.return_value = mock_root_logger
 
-    config = NicestLogConfig(async_logging=True, log_to_console=True)
+    config = StoggerConfig(async_logging=True, log_to_console=True)
     processors = build_shared_processors(config)
     configure_stdlib_logging(config, processors)
 
@@ -99,7 +99,7 @@ def test_config_src_dir_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
     with tempfile.TemporaryDirectory() as tmpdir:
         with patch("pathlib.Path.cwd", return_value=Path(tmpdir)):
-            config = NicestLogConfig()
+            config = StoggerConfig()
             assert config.src_dir == "src"  # Default source directory
 
 
@@ -114,7 +114,7 @@ def test_config_src_dir_from_file():
 src_dir = "custom_src"
 """)
         with patch("pathlib.Path.cwd", return_value=config_dir):
-            config = NicestLogConfig()
+            config = StoggerConfig()
             assert config.src_dir == "custom_src"
 
 
@@ -129,7 +129,7 @@ def test_config_src_dir_kwargs_override():
 src_dir = "custom_src"
 """)
         with patch("pathlib.Path.cwd", return_value=config_dir):
-            config = NicestLogConfig(src_dir="override_src")
+            config = StoggerConfig(src_dir="override_src")
             assert config.src_dir == "override_src"
 
 

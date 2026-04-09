@@ -682,9 +682,9 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
         python_files = [p for p in directory.rglob("*.py") if not is_excluded(p)]
 
     if not python_files:
-        if os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower() in {"json", "toml"}:
+        if os.getenv("STOGGER_LINTER_FORMAT", "table").lower() in {"json", "toml"}:
             # Emit empty machine-readable report
-            fmt = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
+            fmt = os.getenv("STOGGER_LINTER_FORMAT", "table").lower()
             if fmt == "json":
                 pass
         return True
@@ -693,7 +693,7 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
     total_stats = LoggingStats(0, 0, 0, 0, 0, 0.0, 0.0)
 
     # Allow machine-readable output via environment variable
-    output_format = os.getenv("NICESTLOG_LINTER_FORMAT", "table").lower()
+    output_format = os.getenv("STOGGER_LINTER_FORMAT", "table").lower()
 
     if output_format not in {"json", "toml"}:
         pass
@@ -823,7 +823,7 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
         # Check if AST metrics are available for unified display
         ast_metrics = {}
         try:
-            ast_data = os.getenv("NICESTLOG_AST_METRICS")
+            ast_data = os.getenv("STOGGER_AST_METRICS")
             if ast_data:
                 ast_metrics = json.loads(ast_data)
         except (json.JSONDecodeError, ValueError, TypeError) as e:

@@ -5,7 +5,7 @@ __all__ = [
     "JournalLoggerFactory",
     "MultiOptimisticLogger",
     "MultiOptimisticLoggerFactory",
-    "NicestLogConfig",
+    "StoggerConfig",
     "SystemdJournalRenderer",
     "arsch",
     "create_pii_processor",
@@ -22,7 +22,7 @@ __all__ = [
     "t",
 ]
 
-from .config import NicestLogConfig as NicestLogConfig
+from .config import StoggerConfig as StoggerConfig
 from .core import (
     JournalLogger as JournalLogger,
 )

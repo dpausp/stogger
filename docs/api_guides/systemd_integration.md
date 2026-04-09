@@ -6,15 +6,15 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.systemd_integration` module provides advanced systemd journal integration, including structured field mapping, environment detection, and service file generation.
+The `stogger_systemd.systemd_integration` module provides advanced systemd journal integration, including structured field mapping, environment detection, and service file generation.
 
 ## Basic Usage
 
 ```python
-import nicestlog
+import stogger
 
 # Setup systemd logging
-success = nicestlog.setup_systemd_logging(identifier="myapp")
+success = stogger.setup_systemd_logging(identifier="myapp")
 ```
 
 ## Functions
@@ -24,9 +24,9 @@ success = nicestlog.setup_systemd_logging(identifier="myapp")
 Configure systemd journal logging integration.
 
 ```python
-import nicestlog
+import stogger
 
-success = nicestlog.setup_systemd_logging(
+success = stogger.setup_systemd_logging(
     identifier="myapp",      # SYSLOG_IDENTIFIER
     facility=None,            # SYSLOG_FACILITY
 )
@@ -39,8 +39,8 @@ Returns `True` if systemd logging was configured, `False` otherwise.
 Detect if running under systemd and gather environment info.
 
 ```python
-import nicestlog
-from nicestlog.systemd_integration import detect_systemd_environment
+import stogger
+from stogger_systemd.systemd_integration import detect_systemd_environment
 
 info = detect_systemd_environment()
 print(info["running_under_systemd"])
@@ -54,7 +54,7 @@ print(info["invocation_id"])
 Generate a systemd service unit file with proper logging configuration.
 
 ```python
-from nicestlog.systemd_integration import ServiceConfig, create_systemd_service_file
+from stogger_systemd.systemd_integration import ServiceConfig, create_systemd_service_file
 
 config = ServiceConfig(
     service_name="my-python-app",
@@ -72,7 +72,7 @@ service_content = create_systemd_service_file(config)
 Query systemd journal for logs.
 
 ```python
-from nicestlog.systemd_integration import query_journal_logs
+from stogger_systemd.systemd_integration import query_journal_logs
 
 entries = query_journal_logs(
     service_name="myapp",
@@ -87,7 +87,7 @@ entries = query_journal_logs(
 A structlog processor that sends log events to the systemd journal with proper field mapping.
 
 ```python
-from nicestlog.systemd_integration import SystemdJournalHandler
+from stogger_systemd.systemd_integration import SystemdJournalHandler
 
 handler = SystemdJournalHandler(
     identifier="myapp",
@@ -99,7 +99,7 @@ import structlog
 structlog.configure(processors=[handler, ...])
 ```
 
-Custom event fields are automatically prefixed with `NICESTLOG_` for journal compatibility.
+Custom event fields are automatically prefixed with `STOGGER_` for journal compatibility.
 
 ## ServiceConfig
 
@@ -126,6 +126,6 @@ pip install systemd-python
 
 ## API Reference
 
-```{autoapi} nicestlog.systemd_integration
+```{autoapi} stogger_systemd.systemd_integration
 :members:
 ```

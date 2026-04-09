@@ -96,7 +96,7 @@ class SystemdJournalHandler:
                 continue
 
             # Convert to systemd field format (uppercase, prefix with app name)
-            field_name = f"NICESTLOG_{key.upper()}"
+            field_name = f"STOGGER_{key.upper()}"
 
             # Systemd fields must be strings
             if isinstance(value, dict | list):
@@ -327,8 +327,8 @@ def query_journal_logs(
 
             # Add custom fields
             for key, value in entry.items():
-                if key.startswith("NICESTLOG_"):
-                    field_name = key.replace("NICESTLOG_", "").lower()
+                if key.startswith("STOGGER_"):
+                    field_name = key.replace("STOGGER_", "").lower()
                     log_entry[field_name] = value
 
             entries.append(log_entry)

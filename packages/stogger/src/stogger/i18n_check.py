@@ -150,7 +150,7 @@ def check_translations(
         }
 
     # Debug events are collected during the single scan pass above.
-    # These are excluded from required translation coverage as nicestlog
+    # These are excluded from required translation coverage as stogger
     # does not require translations for debug-level messages.
     debug_with_replace = debug_events
 
