@@ -47,7 +47,7 @@ Query the systemd journal and yield structured entries.
 
 ```python
 # Using JournalQueryOptions (recommended)
-from nicestlog.journal_viewer import JournalQueryOptions
+from stogger_systemd.journal_viewer import JournalQueryOptions
 
 for entry in viewer.query_journal(JournalQueryOptions(
     service="myapp.service",

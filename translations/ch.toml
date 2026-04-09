@@ -1,8 +1,8 @@
-# Schweizerdeutsche Übersetzungen für nicestlog
+# Schweizerdeutsche Übersetzungen für stogger
 # Swiss German translations with politeness
 
 [setup]
-welcome = "Grüezi! Willkomme bim nicestlog Setup!"
+welcome = "Grüezi! Willkomme bim stogger Setup!"
 config_created = "Konfiguration erstellt - merci vilmal!"
 config_exists = "Konfiguration git's scho, oder?"
 

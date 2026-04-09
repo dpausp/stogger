@@ -6,31 +6,31 @@
 This module has high test coverage and is well-documented.
 :::
 
-The `nicestlog.eliot_integration` module combines Eliot's powerful action tracking with nicestlog's beautiful output, providing human-readable action traces instead of raw JSON.
+The `stogger.eliot_integration` module combines Eliot's powerful action tracking with stogger's beautiful output, providing human-readable action traces instead of raw JSON.
 
 ## Quick Start
 
 ```python
-import nicestlog
+import stogger
 
 # Setup Eliot with beautiful output
-nicestlog.setup_eliot_logging(human_readable=True)
+stogger.setup_eliot_logging(human_readable=True)
 
 # Use Eliot actions
-with nicestlog.eliot_integration.log_action("user_request", user_id=123):
+with stogger_eliot.log_action("user_request", user_id=123):
     # Nested actions
-    with nicestlog.eliot_integration.log_action("database_query", table="users"):
+    with stogger_eliot.log_action("database_query", table="users"):
         pass
 ```
 
 ## setup_eliot_logging
 
-Configure Eliot logging with nicestlog's beautiful formatting.
+Configure Eliot logging with stogger's beautiful formatting.
 
 ```python
-import nicestlog
+import stogger
 
-success = nicestlog.setup_eliot_logging(
+success = stogger.setup_eliot_logging(
     destination=None,       # Write to stdout (default)
     human_readable=True,    # Beautiful colored output
     show_timestamps=True,   # Include timestamps
@@ -45,7 +45,7 @@ Returns `True` if Eliot was successfully configured, `False` if not available.
 For machine-readable output, disable human-readable mode:
 
 ```python
-nicestlog.setup_eliot_logging(human_readable=False)
+stogger.setup_eliot_logging(human_readable=False)
 ```
 
 ## HumanReadableEliotDestination
@@ -53,7 +53,7 @@ nicestlog.setup_eliot_logging(human_readable=False)
 The main destination class that formats Eliot messages with colors and indentation.
 
 ```python
-from nicestlog.eliot_integration import HumanReadableEliotDestination
+from stogger_eliot import HumanReadableEliotDestination
 
 dest = HumanReadableEliotDestination(
     file=sys.stdout,          # Output stream
@@ -87,10 +87,10 @@ dest = HumanReadableEliotDestination(
 
 ### log_action
 
-Context manager for logging Eliot actions with nicestlog formatting.
+Context manager for logging Eliot actions with stogger formatting.
 
 ```python
-from nicestlog.eliot_integration import log_action
+from stogger_eliot import log_action
 
 with log_action("process_order", order_id=456):
     # Your code here
@@ -103,7 +103,7 @@ with log_action("process_order", order_id=456):
 Decorator to log function calls as Eliot actions.
 
 ```python
-from nicestlog.eliot_integration import log_call
+from stogger_eliot import log_call
 
 @log_call("process_user_data")
 def process_user(user_id: int):
@@ -130,11 +130,11 @@ When Eliot is not installed, all functions degrade gracefully:
 Eliot is an optional dependency:
 
 ```bash
-pip install nicestlog[eliot]
+pip install stogger[eliot]
 ```
 
 ## API Reference
 
-```{autoapi} nicestlog.eliot_integration
+```{autoapi} stogger.eliot_integration
 :members:
 ```

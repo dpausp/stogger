@@ -6,13 +6,13 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.gitignore_utils` module provides utilities for respecting `.gitignore` patterns during file analysis, ensuring that ignored files are not processed by nicestlog's analysis tools.
+The `stogger.gitignore_utils` module provides utilities for respecting `.gitignore` patterns during file analysis, ensuring that ignored files are not processed by stogger's analysis tools.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.gitignore_utils import filter_python_files
+from stogger.gitignore_utils import filter_python_files
 
 # Get Python files respecting .gitignore
 files = filter_python_files(Path("src/"), respect_gitignore=True)
@@ -25,7 +25,7 @@ files = filter_python_files(Path("src/"), respect_gitignore=True)
 Load patterns from a `.gitignore` file, plus common defaults.
 
 ```python
-from nicestlog.gitignore_utils import load_gitignore_patterns
+from stogger.gitignore_utils import load_gitignore_patterns
 
 patterns = load_gitignore_patterns(Path("."))
 # Returns: list of gitignore patterns including defaults
@@ -42,7 +42,7 @@ Default patterns always included:
 Check if a file path should be ignored based on gitignore patterns.
 
 ```python
-from nicestlog.gitignore_utils import should_ignore_path
+from stogger.gitignore_utils import should_ignore_path
 
 ignored = should_ignore_path(
     file_path=Path("src/.venv/module.py"),
@@ -57,7 +57,7 @@ ignored = should_ignore_path(
 Get Python files in a directory, respecting `.gitignore` if requested.
 
 ```python
-from nicestlog.gitignore_utils import filter_python_files
+from stogger.gitignore_utils import filter_python_files
 
 # With gitignore respect
 files = filter_python_files(Path("src/"), respect_gitignore=True)
@@ -68,6 +68,6 @@ files = filter_python_files(Path("src/"), respect_gitignore=False)
 
 ## API Reference
 
-```{autoapi} nicestlog.gitignore_utils
+```{autoapi} stogger.gitignore_utils
 :members:
 ```

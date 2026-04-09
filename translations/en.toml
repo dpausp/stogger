@@ -1,4 +1,4 @@
-# English translations for nicestlog
+# English translations for stogger
 
 # Event translations for all _replace_msg usages
 "application-started" = "Application {name} v{version} started successfully"

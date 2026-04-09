@@ -6,8 +6,8 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
-from nicestlog.config import SimpleFormatSettings
-from nicestlog.core import ConsoleFileRenderer
+from stogger.config import SimpleFormatSettings
+from stogger.core import ConsoleFileRenderer
 
 
 def test_console_file_renderer_with_simple_settings():

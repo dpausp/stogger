@@ -1,4 +1,4 @@
-"""Vulture whitelist for nicestlog project.
+"""Vulture whitelist for stogger project.
 
 This file contains known false positives that vulture incorrectly flags as unused code.
 These are legitimate code patterns that vulture doesn't understand due to framework

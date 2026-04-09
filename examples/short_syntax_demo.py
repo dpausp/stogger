@@ -5,12 +5,12 @@ instead of the longer logger.info() / logger.debug().
 
 import structlog
 
-import nicestlog
+import stogger
 
 
 def main():
-    # Initialize nicestlog
-    nicestlog.init_logging(verbose=True, syslog_identifier="short_demo")
+    # Initialize stogger
+    stogger.init_logging(verbose=True, syslog_identifier="short_demo")
 
     # Get logger with short, clean name
     log = structlog.get_logger("demo")

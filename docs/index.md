@@ -1,27 +1,27 @@
-# nicestlog Documentation
+# stogger Documentation
 
-```{image} assets/nicestlog_logo_ascii.txt
-:alt: nicestlog logo
+```{image} assets/stogger_logo_ascii.txt
+:alt: stogger logo
 ```
 
 **A sophisticated multi-target structured logging system built on structlog**
 
-Welcome to the comprehensive documentation for nicestlog - your go-to solution for elegant, structured, and powerful logging in Python applications.
+Welcome to the comprehensive documentation for stogger - your go-to solution for elegant, structured, and powerful logging in Python applications.
 
 ## Quick Start
 
-Install nicestlog and start logging:
+Install stogger and start logging:
 
 ```bash
-pip install nicestlog
+pip install stogger
 ```
 
 ```python
-import nicestlog
+import stogger
 import structlog
 
 # Initialize console logging and get a structlog logger
-nicestlog.init_logging(verbose=True)
+stogger.init_logging(verbose=True)
 log = structlog.get_logger()
 log.info("hello-world", user_id=123, action="login")
 ```

@@ -1,6 +1,6 @@
 # Nicestlog Logging Conventions (structlog)
 
-This project uses [nicestlog](https://github.com/your-repo/nicestlog) for structured logging analysis and improvement, including line-based user messages and diagnostics.
+This project uses [stogger](https://github.com/stogger/stogger) for structured logging analysis and improvement, including line-based user messages and diagnostics.
 
 ## Core Principles
 
@@ -9,7 +9,7 @@ This project uses [nicestlog](https://github.com/your-repo/nicestlog) for struct
 3. Choose appropriate log levels
 4. Use `log.exception()` for errors
 5. For CLI, use `log.info()` for user-oriented line-based output
-6. Run `nicestlog check` regularly or as part of a CI pipeline
+6. Run `stogger check` regularly or as part of a CI pipeline
 
 ### 1. Event-Style Logging with Dash-Case
 Use descriptive event names in **dash-case**:
@@ -55,7 +55,7 @@ except ValidationError as e:
 
 ### 5. User Output Integration
 
-**nicestlog fuses user output with logging** - use `log.info()` instead of `print()` or `typer.echo()` for line-oriented user output. This creates a "protocol" of what was shown to the user:
+**stogger fuses user output with logging** - use `log.info()` instead of `print()` or `typer.echo()` for line-oriented user output. This creates a "protocol" of what was shown to the user:
 
 ```python
 # User output via logging with placeholders
@@ -66,7 +66,7 @@ log.info("package-installed",
          size_mb=15.7)
 ```
 
-Typically, you would configure nicestlog/structlog to show clean user messages while capturing structured data for analysis.
+Typically, you would configure stogger/structlog to show clean user messages while capturing structured data for analysis.
 
 **Benefits:**
 - Single source of truth for both user communication and diagnostics
@@ -114,7 +114,7 @@ def timed_operation():
 
 ### pyproject.toml
 ```toml
-[tool.nicestlog]
+[tool.stogger]
 verbose = true
 source_dirs = ["src"]
 test_dirs = ["tests"]
@@ -126,20 +126,20 @@ exclude_patterns = [
 ]
 ```
 
-## Integration with nicestlog Tools
+## Integration with stogger Tools
 
 ### Code Quality Checking
-Run `nicestlog check` to validate logging practices:
+Run `stogger check` to validate logging practices:
 
 ```bash
 # Check current directory
-nicestlog check .
+stoggertools check .
 
 # Fix issues automatically
-nicestlog check . --fix
+stoggertools check . --fix
 
 # Interactive fixing
-nicestlog check . --interactive
+stoggertools check . --interactive
 ```
 
 ### Migration from Legacy Logging
@@ -147,10 +147,10 @@ For existing projects with print statements or standard logging:
 
 ```bash
 # Analyze migration opportunities
-nicestlog migrate .
+stoggertools migrate .
 
 # Apply migration with backup
-nicestlog migrate . --do-migrate --backup
+stoggertools migrate . --do-migrate --backup
 ```
 
 ## Common Patterns
@@ -234,7 +234,7 @@ def validate_config(config_path: Path):
 
 ## Linter Rules and Common Issues
 
-nicestlog's `check` command enforces specific logging quality rules to ensure consistent, maintainable, and observable code. Below are the most common issues detected and how to fix them.
+stogger's `check` command enforces specific logging quality rules to ensure consistent, maintainable, and observable code. Below are the most common issues detected and how to fix them.
 
 ### 1. Too Little Logging (E1/E2 Errors)
 
@@ -310,14 +310,14 @@ def deploy():
 
 ### Running the Linter
 
-Use `nicestlog check` to validate your logging:
+Use `stogger check` to validate your logging:
 
 ```bash
 # Check current directory
-nicestlog check .
+stoggertools check .
 
 # Fix issues automatically (where possible)
-nicestlog check . --fix
+stoggertools check . --fix
 ```
 
 The linter helps maintain high-quality, consistent logging across your codebase.

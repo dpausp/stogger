@@ -110,7 +110,7 @@ html_theme_options = {
         "color-brand-primary": "#60a5fa",
         "color-brand-content": "#60a5fa",
     },
-    "source_repository": "https://github.com/nicestlog/stogger",
+    "source_repository": "https://github.com/stogger/stogger",
     "source_branch": "main",
     "source_directory": "docs/",
 }

@@ -1,6 +1,6 @@
 # Type Checking Best Practices Guide
 
-This guide documents the proven methodology for systematic type checking improvements in nicestlog, based on our successful journey from 66 mypy errors to 0 errors.
+This guide documents the proven methodology for systematic type checking improvements in stogger, based on our successful journey from 66 mypy errors to 0 errors.
 
 ## Overview
 
@@ -21,7 +21,7 @@ Always start with comprehensive error analysis:
 uv run mypy src/ | grep "error:" | cut -d: -f1 | sort | uniq -c | sort -nr
 
 # Get specific error details
-uv run mypy src/nicestlog/filename.py --show-error-codes
+uv run mypy packages/stogger/src/stogger/filename.py --show-error-codes
 ```
 
 **Priority Order:**
@@ -62,7 +62,7 @@ def process(data: Optional[List[str]]):
 
 ### Dict.get() Object Type Resolution
 
-The most common issue in nicestlog was `dict.get()` returning `object` type:
+The most common issue in stogger was `dict.get()` returning `object` type:
 
 ```python
 # Explicit casting
@@ -74,7 +74,7 @@ missing_keys: List[str] = result.get("missing_keys", [])  # type: ignore[assignm
 
 ### External Dependency Imports
 
-For dependencies without type stubs (common in nicestlog):
+For dependencies without type stubs (common in stogger):
 
 ```python
 try:
@@ -242,7 +242,7 @@ Track type safety improvements:
 - **Team Velocity**: Measure development speed improvements
 - **Bug Reduction**: Track runtime type-related errors
 
-## Case Study: nicestlog Success
+## Case Study: stogger Success
 
 Our systematic approach achieved:
 - **Starting Point**: 66 mypy errors across 17 files

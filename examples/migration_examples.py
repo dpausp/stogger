@@ -56,12 +56,12 @@ if __name__ == "__main__":
     logging_example = '''#!/usr/bin/env python3
 """Example with standard logging - BEFORE migration."""
 
-import nicestlog
+import stogger
 
-# Configure nicestlog
-nicestlog.configure()
+# Configure stogger
+stogger.init_logging()
 
-logger = nicestlog.get_logger(__name__)
+logger = stogger.get_logger(__name__)
 
 class OrderProcessor:
     def __init__(self):
@@ -151,9 +151,9 @@ import logging
 import sys
 from datetime import datetime
 
-# Mix of logging configurations
-nicestlog.configure()
-logger = nicestlog.get_logger(__name__)
+    # Mix of logging configurations
+    stogger.init_logging()
+    logger = stogger.get_logger(__name__)
 
 class DataSyncService:
     def __init__(self, source_url, target_url):
@@ -287,11 +287,11 @@ if __name__ == "__main__":
 
 def demonstrate_migration():
     """Demonstrate the migration process with real examples."""
-    print("🎯 Nicestlog Migration Examples")
+    print("🎯 Stogger Migration Examples")
     print("=" * 50)
 
     # Create temporary directory
-    with tempfile.TemporaryDirectory(prefix="nicestlog_migration_") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="stogger_migration_") as temp_dir:
         temp_path = Path(temp_dir)
         print(f"📁 Working in: {temp_path}")
 
@@ -315,11 +315,11 @@ def demonstrate_migration():
 
         print("\n📊 To analyze these files, run:")
         print(f"  cd {temp_path}")
-        print("  nicestlog migrate .")
+        print("  stoggertools migrate .")
 
         print("\n🔄 To migrate these files, run:")
         print(f"  cd {temp_path}")
-        print("  nicestlog migrate . --do-migrate --type print-to-structlog --backup")
+        print("  stoggertools migrate . --do-migrate --type print-to-structlog --backup")
 
         print("\n🎬 To see the actual migration in action:")
         print("  # Run the original examples")
@@ -327,7 +327,7 @@ def demonstrate_migration():
             print(f"  python {temp_path / filename}")
 
         print("\n  # Then migrate and run again to see the difference")
-        print(f"  nicestlog migrate {temp_path} --do-migrate --type print-to-structlog")
+        print(f"  stoggertools migrate {temp_path} --do-migrate --type print-to-structlog")
 
         print(f"\n📚 Example files will remain in: {temp_path}")
         print("   (until system cleanup)")
@@ -345,32 +345,32 @@ def show_library_comparison():
         "print() statements": {
             "migration_type": "print-to-structlog",
             "difficulty": "Easy",
-            "command": "nicestlog migrate . --do-migrate --type print-to-structlog",
+            "command": "stoggertools migrate . --do-migrate --type print-to-structlog",
             "notes": "Automatic transformation, very safe",
         },
         "Standard logging": {
             "migration_type": "logging-to-structlog",
             "difficulty": "Medium",
-            "command": "nicestlog migrate . --do-migrate --type logging-to-structlog --interactive",
+            "command": "stoggertools migrate . --do-migrate --type logging-to-structlog --interactive",
             "notes": "Interactive review recommended",
         },
         "Eliot": {
             "migration_type": "enhancement",
             "difficulty": "Easy",
-            "command": "Already compatible! Use nicestlog.eliot_integration",
-            "notes": "Nicestlog enhances Eliot with beautiful output",
+            "command": "Already compatible! Use stogger_eliot",
+            "notes": "Stogger enhances Eliot with beautiful output",
         },
         "Sentry": {
             "migration_type": "integration",
             "difficulty": "Easy",
             "command": "Use Sentry's StructlogIntegration",
-            "notes": "Works seamlessly with nicestlog",
+            "notes": "Works seamlessly with stogger",
         },
         "Rich logging": {
             "migration_type": "enhancement",
             "difficulty": "Easy",
-            "command": "nicestlog already uses Rich for beautiful output",
-            "notes": "Complementary - nicestlog uses Rich internally",
+            "command": "stogger already uses Rich for beautiful output",
+            "notes": "Complementary - stogger uses Rich internally",
         },
     }
 
@@ -382,10 +382,10 @@ def show_library_comparison():
         print(f"   Notes: {info['notes']}")
 
     print("\n💡 Pro Tips:")
-    print("   • Always run 'nicestlog migrate .' first to analyze")
+    print("   • Always run 'stoggertools migrate .' first to analyze")
     print("   • Use --backup flag for safety")
     print("   • Use --interactive for complex projects")
-    print("   • Run 'nicestlog check . --ast' after migration")
+    print("   • Run 'stoggertools check . --ast' after migration")
 
 
 def main():
@@ -396,7 +396,7 @@ def main():
         print(f"\n✅ Examples created in: {temp_path}")
         return
 
-    print("🚀 Nicestlog Migration Examples Demo")
+    print("🚀 Stogger Migration Examples Demo")
     print("=" * 50)
     print()
     print("This demo shows:")
@@ -412,12 +412,12 @@ def main():
     show_library_comparison()
 
     print("\n🎯 Next Steps:")
-    print("   1. Try: nicestlog demo basic")
-    print("   2. Analyze your project: nicestlog migrate /path/to/your/project")
+    print("   1. Try: stoggertools demo basic")
+    print("   2. Analyze your project: stoggertools migrate /path/to/your/project")
     print(
-        "   3. Apply migration: nicestlog migrate /path/to/your/project --do-migrate --backup",
+        "   3. Apply migration: stoggertools migrate /path/to/your/project --do-migrate --backup",
     )
-    print("   4. Validate: nicestlog check /path/to/your/project")
+    print("   4. Validate: stoggertools check /path/to/your/project")
 
 
 if __name__ == "__main__":

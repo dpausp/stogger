@@ -308,11 +308,11 @@ def check(
     Check code quality with optional AST analysis.
     
     Examples:
-      nicestlog check file.py                    # Basic linting
-      nicestlog check file.py --ast              # With AST analysis  
-      nicestlog check file.py --fix --ast        # Fix with AST transforms
-      nicestlog check file.py --interactive      # Interactive mode
-      nicestlog check file.py --complexity       # Complexity analysis
+      stoggertools check file.py                    # Basic linting
+      stoggertools check file.py --ast              # With AST analysis  
+      stoggertools check file.py --fix --ast        # Fix with AST transforms
+      stoggertools check file.py --interactive      # Interactive mode
+      stoggertools check file.py --complexity       # Complexity analysis
     """
 
 # migrate command help
@@ -324,11 +324,11 @@ def migrate(
     Migrate code using AST transformations.
     
     Examples:
-      nicestlog migrate file.py                           # Print to structlog
-      nicestlog migrate src/ --output migrated/           # Directory migration
-      nicestlog migrate file.py --type logging-to-structlog  # Logging migration
-      nicestlog migrate file.py --interactive             # Interactive mode
-      nicestlog migrate file.py --dry-run                 # Preview changes
+      stoggertools migrate file.py                           # Print to structlog
+      stoggertools migrate src/ --output migrated/           # Directory migration
+      stoggertools migrate file.py --type logging-to-structlog  # Logging migration
+      stoggertools migrate file.py --interactive             # Interactive mode
+      stoggertools migrate file.py --dry-run                 # Preview changes
     """
 ```
 
@@ -375,13 +375,13 @@ def migrate(
 ### Config File Extensions
 ```toml
 # pyproject.toml
-[tool.nicestlog.ast]
+[tool.stogger.ast]
 default_patterns = ["complexity", "logging_quality", "code_smells"]
 max_complexity = 10
 interactive_mode = false
 auto_backup = true
 
-[tool.nicestlog.migration]
+[tool.stogger.migration]
 default_type = "print-to-structlog"
 preserve_comments = true
 update_imports = true

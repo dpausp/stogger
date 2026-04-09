@@ -1,6 +1,6 @@
-# nicestlog Documentation
+# stogger Documentation
 
-This directory contains the Sphinx-based documentation for nicestlog.
+This directory contains the Sphinx-based documentation for stogger.
 
 ## Building the Documentation
 
@@ -84,7 +84,7 @@ docs/
 - **MyST Parser**: Markdown support with Sphinx extensions
 - **Copy Buttons**: Easy code copying
 - **Auto-generated API**: Automatic API documentation
-- **Custom Styling**: nicestlog-branded appearance
+- **Custom Styling**: stogger-branded appearance
 - **Mobile Responsive**: Works on all devices
 
 ## Customization
@@ -143,7 +143,7 @@ pip install myst-parser
 ```
 
 **Build fails with import errors**
-Make sure nicestlog is installed:
+Make sure stogger is installed:
 ```bash
 pip install -e .
 ```

@@ -6,13 +6,13 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.linter` module provides linting capabilities for log statements.
+The `stogger.linter` module provides linting capabilities for log statements.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.linter import LintOptions, lint_directory
+from stoggertools.linter import LintOptions, lint_directory
 
 # Lint all Python files in a project directory
 options = LintOptions(min_coverage=5.0, max_coverage=15.0, verbose=True)
@@ -31,6 +31,6 @@ The linter checks for:
 
 ## API Reference
 
-```{autoapi} nicestlog.linter
+```{autoapi} stogger.linter
 :members:
 ```

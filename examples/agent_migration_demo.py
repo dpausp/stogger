@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """🤖 Agent Migration Demo.
 
-This script demonstrates how AI agents can use nicestlog's project analysis
+This script demonstrates how AI agents can use stogger's project analysis
 and migration tools to automatically retrofit existing Python projects.
 """
 
@@ -55,9 +55,9 @@ if __name__ == "__main__":
     # Create utils.py with logging module
     utils_py = project_dir / "utils.py"
     utils_py.write_text('''"""Utility functions with standard logging."""
-import nicestlog
+import stogger
 
-logger = nicestlog.get_logger(__name__)
+logger = stogger.get_logger(__name__)
 
 def validate_input(data):
     logger.info(f"Validating input data: {data}")
@@ -108,7 +108,7 @@ def run_agent_analysis(project_dir):
 
     try:
         result = subprocess.run(
-            ["uv", "run", "nicestlog", "migrate", str(project_dir), "--json"],
+            ["uv", "run", "stoggertools", "migrate", str(project_dir), "--json"],
             capture_output=True,
             text=True,
             check=True,
@@ -182,24 +182,24 @@ def simulate_agent_migration(project_dir, analysis):
     strategy = analysis["recommendation"]["strategy"]
     print(f"\n🤖 Agent executing migration strategy: {strategy}")
 
-    # Step 1: Add nicestlog dependency
-    print("  1. Adding nicestlog dependency...")
+    # Step 1: Add stogger dependency
+    print("  1. Adding stogger dependency...")
     pyproject_path = project_dir / "pyproject.toml"
     content = pyproject_path.read_text()
 
     if "dependencies = []" in content:
         new_content = content.replace(
             "dependencies = []",
-            'dependencies = [\n    "nicestlog>=1.0.0",\n]',
+            'dependencies = [\n    "stogger>=1.0.0",\n]',
         )
         pyproject_path.write_text(new_content)
-        print("     ✅ Added nicestlog to dependencies")
+        print("     ✅ Added stogger to dependencies")
 
-    # Step 2: Add nicestlog configuration
-    print("  2. Adding nicestlog configuration...")
+    # Step 2: Add stogger configuration
+    print("  2. Adding stogger configuration...")
     config = """
 
-[tool.nicestlog]
+[tool.stogger]
 verbose = true
 syslog_identifier = "sample-project"
 translation_dir = "translations"
@@ -207,7 +207,7 @@ language = "en"
 """
     with open(pyproject_path, "a") as f:
         f.write(config)
-    print("     ✅ Added nicestlog configuration")
+    print("     ✅ Added stogger configuration")
 
     # Step 3: Preview migration
     print("  3. Previewing migration changes...")
@@ -216,7 +216,7 @@ language = "en"
             [
                 "uv",
                 "run",
-                "nicestlog",
+                "stoggertools",
                 "migrate",
                 str(project_dir),
                 "--type",
@@ -263,7 +263,7 @@ def main():
             print("\nTo see the full migration in action:")
             print(f"  cd {project_dir}")
             print(
-                f"  uv run nicestlog migrate . --type {analysis['recommendation']['strategy']} --backup",
+                f"  uv run stoggertools migrate . --type {analysis['recommendation']['strategy']} --backup",
             )
         else:
             print("\n❌ Agent migration simulation failed")

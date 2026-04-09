@@ -8,32 +8,32 @@ Nicestlog supports migration from various logging approaches:
 
 | Source | Migration Type | Difficulty | Command |
 |--------|---------------|------------|---------|
-| **print() statements** | `print-to-structlog` | Easy | `nicestlog migrate . --do-migrate --type print-to-structlog` |
-| **Standard logging** | `logging-to-structlog` | Medium | `nicestlog migrate . --do-migrate --type logging-to-structlog --interactive` |
-| **Format strings** | `format-strings` | Easy | `nicestlog migrate . --do-migrate --type format-strings` |
-| **Eliot** | Enhancement | Easy | Already compatible! Use `nicestlog.eliot_integration` |
+| **print() statements** | `print-to-structlog` | Easy | `stoggertools migrate . --do-migrate --type print-to-structlog` |
+| **Standard logging** | `logging-to-structlog` | Medium | `stoggertools migrate . --do-migrate --type logging-to-structlog --interactive` |
+| **Format strings** | `format-strings` | Easy | `stoggertools migrate . --do-migrate --type format-strings` |
+| **Eliot** | Enhancement | Easy | Already compatible! Use `stogger_eliot` |
 | **Sentry** | Integration | Easy | Use Sentry's `StructlogIntegration` |
 
 ## 🎯 Quick Start Migration
 
 1. **Analyze your project** (safe, no changes):
    ```bash
-   nicestlog migrate /path/to/project
+   stoggertools migrate /path/to/project
    ```
 
 2. **Apply migration with backup**:
    ```bash
-   nicestlog migrate /path/to/project --do-migrate --backup
+   stoggertools migrate /path/to/project --do-migrate --backup
    ```
 
 3. **Validate results**:
    ```bash
-   nicestlog check /path/to/project --ast
+   stoggertools check /path/to/project --ast
    ```
 
 ## Overview
 
-nicestlog v2.1 introduces a cleaner, more intuitive CLI structure. This guide helps existing users migrate to the new commands.
+stogger v2.1 introduces a cleaner, more intuitive CLI structure. This guide helps existing users migrate to the new commands.
 
 ## 🚨 Breaking Changes Summary
 
@@ -67,23 +67,23 @@ The CLI has been restructured for better usability and logical workflow:
 ### Before (v2.0)
 ```bash
 # Separate commands for analysis and migration
-nicestlog migrate .                   # Analyze project
-nicestlog migrate . --dry-run          # Preview migration
-nicestlog migrate .                    # Apply migration
+stoggertools migrate .                   # Analyze project
+stoggertools migrate . --dry-run          # Preview migration
+stoggertools migrate .                    # Apply migration
 ```
 
 ### After (v2.1)
 ```bash
 # Integrated workflow - safer and more logical
-nicestlog migrate .                    # Analyze project (safe, default)
-nicestlog migrate . --do-migrate      # Apply migration changes
+stoggertools migrate .                    # Analyze project (safe, default)
+stoggertools migrate . --do-migrate      # Apply migration changes
 ```
 
 ## 🎯 Key Benefits of New Design
 
 1. **Safer by default**: No accidental changes without explicit `--do-migrate`
 2. **Logical workflow**: Analysis is naturally part of migration
-3. **Faster typing**: `nicestlog migrate` for quick analysis
+3. **Faster typing**: `stogger migrate` for quick analysis
 4. **Clear intent**: `--do-migrate` makes destructive actions explicit
 5. **Agent-friendly**: Clean JSON output with `--json`
 
@@ -94,16 +94,16 @@ nicestlog migrate . --do-migrate      # Apply migration changes
 **Before:**
 ```bash
 # Multiple ways to analyze (confusing)
-nicestlog migrate .
-nicestlog migrate . --json
-nicestlog migrate . --json
+stoggertools migrate .
+stoggertools migrate . --json
+stoggertools migrate . --json
 ```
 
 **After:**
 ```bash
 # Single, clear way
-nicestlog migrate .                    # Human-readable analysis
-nicestlog migrate . --json            # Machine-readable analysis
+stoggertools migrate .                    # Human-readable analysis
+stoggertools migrate . --json            # Machine-readable analysis
 ```
 
 ### Code Migration
@@ -111,16 +111,16 @@ nicestlog migrate . --json            # Machine-readable analysis
 **Before:**
 ```bash
 # Separate analysis and migration steps
-nicestlog check .
-nicestlog migrate . --type print-to-structlog
+stoggertools check .
+stoggertools migrate . --type print-to-structlog
 ```
 
 **After:**
 ```bash
 # Integrated workflow
-nicestlog migrate .                              # Analyze first
-nicestlog migrate . --do-migrate                # Apply recommended changes
-nicestlog migrate . --do-migrate --type logging-to-structlog  # Specific type
+stoggertools migrate .                              # Analyze first
+stoggertools migrate . --do-migrate                # Apply recommended changes
+stoggertools migrate . --do-migrate --type logging-to-structlog  # Specific type
 ```
 
 ### AST Operations
@@ -128,15 +128,15 @@ nicestlog migrate . --do-migrate --type logging-to-structlog  # Specific type
 **Before:**
 ```bash
 # Buried under tools ast
-nicestlog check file.py --ast
-nicestlog fix file.py --interactive
+stoggertools check file.py --ast
+stoggertools fix file.py --interactive
 ```
 
 **After:**
 ```bash
 # Integrated into main commands
-nicestlog check file.py --ast
-nicestlog fix file.py --interactive
+stoggertools check file.py --ast
+stoggertools fix file.py --interactive
 ```
 
 ### Configuration Setup
@@ -144,15 +144,15 @@ nicestlog fix file.py --interactive
 **Before:**
 ```bash
 # Duplicate commands
-nicestlog init
-nicestlog init
+stogger init
+stogger init
 ```
 
 **After:**
 ```bash
 # Single, enhanced command
-nicestlog init                         # Current directory
-nicestlog init /path/to/project        # Specific directory
+stoggertools init                         # Current directory
+stoggertools init /path/to/project        # Specific directory
 ```
 
 ## 🤖 Agent/Script Migration
@@ -162,14 +162,14 @@ nicestlog init /path/to/project        # Specific directory
 **Before:**
 ```bash
 # Multiple inconsistent ways
-nicestlog migrate . --json
-nicestlog migrate . --json
+stoggertools migrate . --json
+stoggertools migrate . --json
 ```
 
 **After:**
 ```bash
 # Single, consistent way
-nicestlog migrate . --json
+stoggertools migrate . --json
 ```
 
 ### Automated Workflows
@@ -178,10 +178,10 @@ nicestlog migrate . --json
 ```bash
 #!/bin/bash
 # Old agent workflow
-nicestlog migrate . --json > analysis.json
+stoggertools migrate . --json > analysis.json
 STRATEGY=$(cat analysis.json | jq -r '.recommendation.strategy')
 if [ "$STRATEGY" = "print-to-structlog" ]; then
-    nicestlog migrate . --type print-to-structlog
+    stoggertools migrate . --type print-to-structlog
 fi
 ```
 
@@ -189,10 +189,10 @@ fi
 ```bash
 #!/bin/bash
 # New agent workflow
-nicestlog migrate . --json > analysis.json
+stoggertools migrate . --json > analysis.json
 STRATEGY=$(cat analysis.json | jq -r '.recommendation.strategy')
 if [ "$STRATEGY" = "print-to-structlog" ]; then
-    nicestlog migrate . --do-migrate --type print-to-structlog
+    stoggertools migrate . --do-migrate --type print-to-structlog
 fi
 ```
 
@@ -233,17 +233,17 @@ fi
 If you see command not found errors, you might be using a very old version:
 ```bash
 # Check your version
-nicestlog --version
+stogger --version
 
 # Upgrade to latest
-pip install --upgrade nicestlog
+pip install --upgrade stogger
 ```
 
 ### Deprecated command warnings
 These are normal during the transition period:
 ```bash
 ⚠️ DEPRECATED: 'analyze' command is deprecated.
-   Use 'nicestlog migrate' instead (analysis is default behavior).
+   Use 'stogger migrate' instead (analysis is default behavior).
 ```
 
 Simply replace the command as indicated in the warning.
@@ -258,9 +258,9 @@ The new `migrate` command is safer by default:
 If you encounter issues during migration:
 
 1. **Check the warnings**: Deprecated commands show exact replacements
-2. **Read the help**: `nicestlog migrate --help`
+2. **Read the help**: `stoggertools migrate --help`
 3. **Test safely**: Use `migrate` without `--do-migrate` to analyze first
-4. **Check documentation**: Updated guides at `nicestlog docs`
+4. **Check documentation**: Updated guides at `stogger docs`
 
 ## 🎉 Welcome to v2.1!
 
@@ -270,4 +270,4 @@ The new CLI design is:
 - **Faster**: Quick analysis with `migrate`
 - **Agent-friendly**: Consistent JSON output
 
-Thank you for using nicestlog! 🚀
+Thank you for using stogger! 🚀

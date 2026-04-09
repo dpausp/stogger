@@ -1,8 +1,8 @@
 # Nicestlog Best Practices
 
-> 📖 **See also**: [Logging Conventions](logging_conventions.md) for detailed structlog/nicestlog coding standards and patterns.
+> 📖 **See also**: [Logging Conventions](logging_conventions.md) for detailed structlog/stogger coding standards and patterns.
 
-This guide covers proven patterns and best practices for effective logging with nicestlog.
+This guide covers proven patterns and best practices for effective logging with stogger.
 
 ## Core Principles
 
@@ -78,10 +78,10 @@ log.info("user-authenticated", user_id=123, email_domain="example.com")
 
 ### Use PII Scrubbing
 
-nicestlog provides built-in PII scrubbing capabilities:
+stogger provides built-in PII scrubbing capabilities:
 
 ```python
-from nicestlog import PIIScrubber
+from stogger import PIIScrubber
 
 scrubber = PIIScrubber()
 log.info("user-data-processed", **scrubber.scrub(user_data))
@@ -157,9 +157,9 @@ if random.random() < 0.1:  # 10% sampling
 ```python
 # Flask example
 from flask import request, g
-import nicestlog, structlog
+import stogger, structlog
 
-nicestlog.init_logging(verbose=True)
+stogger.init_logging(verbose=True)
 log = structlog.get_logger()
 
 @app.before_request
@@ -183,9 +183,9 @@ def after_request(response):
 ```python
 # Celery example
 from celery import Celery
-import nicestlog
+import stogger
 
-log = nicestlog.get_logger()
+log = stogger.get_logger()
 
 @app.task
 def process_order(order_id):

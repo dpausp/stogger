@@ -36,7 +36,7 @@ Configuration is in `pyproject.toml`:
   - `uv version patch` - for bug fixes (0.3.1 → 0.3.2)
   - `uv version minor` - for new features (0.3.1 → 0.4.0)
   - `uv version major` - for breaking changes (0.3.1 → 1.0.0)
-- Check current version: `uv run nicestlog --version`
+- Check current version: `uv run stoggertools --version`
 
 ## Project-Specific Patterns
 
@@ -56,8 +56,8 @@ Configuration is in `pyproject.toml`:
 #### CLI Best Practices
 
 **Command Structure:**
-- Use verb-noun pattern: `nicestlog check file.py`, `nicestlog migrate project/`
-- Group related commands in sub-apps: `nicestlog tools review`, `nicestlog tools journal`
+- Use verb-noun pattern: `stoggertools check file.py`, `stoggertools migrate project/`
+- Group related commands in sub-apps: `stoggertools tools review`, `stoggertools tools journal`
 - Provide both short and long options: `-v/--verbose`, `-o/--output`
 
 **Help and Documentation:**
@@ -163,13 +163,13 @@ def process(
 
 ### Core Components
 
-- **nicestlog.core**: Main logging initialization and configuration
-- **nicestlog.cli**: Command-line interface with Typer
-- **nicestlog.advanced_assistant**: AST-based code analysis and transformation
-- **nicestlog.interactive_transformer**: Interactive code transformation with user prompts
-- **nicestlog.linter**: Code quality checking for logging best practices
-- **nicestlog.factory**: Logger factory and configuration management
-- **nicestlog.i18n**: Internationalization support and translation checking
+- **stogger.core**: Main logging initialization and configuration
+- **stoggertools.cli**: Command-line interface with Typer
+- **stogger.advanced_assistant**: AST-based code analysis and transformation
+- **stoggertools.interactive_transformer**: Interactive code transformation with user prompts
+- **stoggertools.linter**: Code quality checking for logging best practices
+- **stogger.factory**: Logger factory and configuration management
+- **stogger.i18n**: Internationalization support and translation checking
 
 ### Testing
 
@@ -218,7 +218,7 @@ def temp_project(tmp_path):
 
 ### Logging
 
-- we use structured logging with structlog/nicestlog. No plain log messages or print statements!
+- we use structured logging with structlog/stogger. No plain log messages or print statements!
 - logging is configured on console to go to stderr.
 - always use simple, descriptive event identifiers (max 4 words) in dash-case style
 - log.info needs a _replace_msg meant for user-focused output relevant to all users

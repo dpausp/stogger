@@ -1,1 +1,1 @@
-# Examples for nicestlog
+# Examples for stogger

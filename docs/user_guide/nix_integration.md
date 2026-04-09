@@ -1,4 +1,4 @@
-# Nix Integration for nicestlog
+# Nix Integration for stogger
 
 This project includes a comprehensive Nix flake for reproducible development and deployment.
 
@@ -18,7 +18,7 @@ experimental-features = nix-command flakes
 
 ## Usage
 
-### Run nicestlog CLI directly
+### Run stogger CLI directly
 
 ```bash
 # Run the CLI tool
@@ -53,7 +53,7 @@ direnv allow
 Inside the development shell:
 ```bash
 # CLI tool is available
-nicestlog --help
+stogger --help
 
 # Build documentation
 build-docs
@@ -69,13 +69,13 @@ ruff check
 mypy src/
 
 # Development info
-nicestlog-dev
+stogger-dev
 ```
 
 ### Build Package
 
 ```bash
-# Build the nicestlog package
+# Build the stogger package
 nix build
 
 # Build documentation
@@ -89,13 +89,13 @@ nix flake check
 
 ### Apps (nix run)
 
-- nix run . or nix run .#nicestlog - Run nicestlog CLI
+- nix run . or nix run .#stogger - Run stogger CLI
 - nix run .#build-docs - Build documentation
 - nix run .#live-docs - Start live documentation server
 
 ### Packages (nix build)
 
-- nix build or nix build .#nicestlog - Build nicestlog package
+- nix build or nix build .#stogger - Build stogger package
 - nix build .#docs - Build documentation
 
 ### Development
@@ -110,7 +110,7 @@ nix flake check
 The Nix flake provides:
 
 - Python with all dependencies
-- nicestlog package built and available
+- stogger package built and available
 - Documentation tools (Sphinx, Furo, MyST)
 - Development tools (pytest, ruff, mypy, pre-commit)
 - CLI tools ready to use
@@ -192,7 +192,7 @@ sudo chown -R $USER:$USER ~/.cache/nix
 
 ### Python path issues
 
-The development shell automatically sets up PYTHONPATH to include the built nicestlog package.
+The development shell automatically sets up PYTHONPATH to include the built stogger package.
 
 ### Documentation build fails
 
@@ -224,7 +224,7 @@ echo "use flake" > .envrc
 direnv allow
 
 # Environment loads automatically when entering directory
-cd nicestlog  # Environment activates
+cd stogger  # Environment activates
 cd ..         # Environment deactivates
 ```
 
@@ -238,7 +238,7 @@ nix build .#dockerImage
 
 # Load and run
 docker load < result
-docker run nicestlog:latest nicestlog --help
+docker run stogger:latest stogger --help
 ```
 
 ## Performance Tips
@@ -267,13 +267,13 @@ nix build --max-jobs auto
 ```bash
 # Clone and enter
 git clone <repo>
-cd nicestlog
+cd stogger
 
 # Automatic environment (with direnv)
 # Or manual: nix develop
 
 # Work on code
-vim src/nicestlog/core.py
+vim packages/stogger/src/stogger/core.py
 
 # Test changes
 pytest tests/
@@ -282,7 +282,7 @@ pytest tests/
 build-docs
 
 # Run CLI
-nicestlog migrate src/
+stoggertools migrate src/
 ```
 
 ### CI/CD Pipeline
@@ -295,7 +295,7 @@ nix flake check
 nix build
 
 # Create deployment artifact
-nix bundle .#nicestlog
+nix bundle .#stogger
 ```
 
-The Nix integration provides a complete, reproducible development and deployment environment for nicestlog!
+The Nix integration provides a complete, reproducible development and deployment environment for stogger!

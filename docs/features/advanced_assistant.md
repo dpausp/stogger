@@ -2,14 +2,14 @@
 
 The Advanced AST Assistant provides AST-based analysis and transformations. The API and CLI described here reflect the current implementation.
 
-- Python API: see `src/nicestlog/advanced_assistant.py`
-- CLI: available under `nicestlog check` (with AST analysis by default)
+- Python API: see `packages/stogger/src/stogger/advanced_assistant.py`
+- CLI: available under `stogger check` (with AST analysis by default)
 
 ## Quick Python examples
 
 ```python
 from pathlib import Path
-from nicestlog.advanced_assistant import (
+from stogger.advanced_assistant import (
     AdvancedAssistant,
     ASTPattern,
     NodeType,
@@ -43,21 +43,21 @@ assistant.add_pattern(
 
 ```bash
 # Analyze (check with AST analysis)
-nicestlog check my_script.py --verbose
-nicestlog check src/ --complexity
+stoggertools check my_script.py --verbose
+stoggertools check src/ --complexity
 
 # Transform (check with fix)
-nicestlog check my_script.py --fix --dry-run --verbose
-nicestlog check src/ --fix --pattern specific_pattern
+stoggertools check my_script.py --fix --dry-run --verbose
+stoggertools check src/ --fix --pattern specific_pattern
 
 # Interactive demos
-nicestlog tools demo
+stoggertools tools demo
 ```
 
 For details on detected issues in logging calls, see Log Statement Analysis.
 
 
-The Advanced AST Assistant is nicestlog's flagship feature that provides intelligent code transformation and analysis capabilities using Python's Abstract Syntax Tree (AST).
+The Advanced AST Assistant is stogger's flagship feature that provides intelligent code transformation and analysis capabilities using Python's Abstract Syntax Tree (AST).
 
 ## Overview
 
@@ -87,7 +87,7 @@ logger.info("user-login", user_id=user_id, ip_address=ip_address)
 Transform entire codebases with a single command:
 
 ```bash
-nicestlog check src/ --fix --backup
+stoggertools check src/ --fix --backup
 ```
 
 ### 📊 Code Quality Metrics
@@ -95,7 +95,7 @@ nicestlog check src/ --fix --backup
 Get detailed reports on your logging quality:
 
 ```bash
-nicestlog check src/ --complexity --verbose
+stoggertools check src/ --complexity --verbose
 ```
 
 ## Usage Examples
@@ -103,7 +103,7 @@ nicestlog check src/ --complexity --verbose
 ### Basic Transformation
 
 ```python
-from nicestlog.advanced_assistant import AdvancedAssistant
+from stogger.advanced_assistant import AdvancedAssistant
 
 assistant = AdvancedAssistant()
 
@@ -140,7 +140,7 @@ for file_path, transformation in results.items():
 Define your own transformation rules:
 
 ```python
-from nicestlog.advanced_assistant import TransformationRule
+from stogger.advanced_assistant import TransformationRule
 
 class CustomLogRule(TransformationRule):
     def should_transform(self, node):
@@ -205,7 +205,7 @@ log.critical("system-unavailable", component="database")
 
 ### Configuration File
 
-Create a `.nicestlog.toml` file in your project root:
+Create a `.stogger.toml` file in your project root:
 
 ```toml
 [advanced_assistant]
@@ -235,7 +235,7 @@ forbidden_patterns = ["password", "secret", "token"]
 ### Programmatic Configuration
 
 ```python
-from nicestlog.advanced_assistant import AssistantConfig
+from stogger.advanced_assistant import AssistantConfig
 
 config = AssistantConfig(
     enforce_event_style=True,
@@ -253,61 +253,61 @@ assistant = AdvancedAssistant(config=config)
 
 ```bash
 # Check and fix a single file
-nicestlog check my_file.py --fix
+stoggertools check my_file.py --fix
 
 # Check and fix a directory
-nicestlog check src/ --fix
+stoggertools check src/ --fix
 
 # Dry run (preview changes)
-nicestlog check src/ --fix --dry-run
+stoggertools check src/ --fix --dry-run
 
 # Create backups
-nicestlog check src/ --fix --backup
+stoggertools check src/ --fix --backup
 
 # Custom pattern analysis
-nicestlog check src/ --pattern specific_pattern
+stoggertools check src/ --pattern specific_pattern
 ```
 
 ### Analyze Command
 
 ```bash
 # Analyze code quality
-nicestlog check src/
+stoggertools check src/
 
 # Generate detailed analysis with complexity
-nicestlog check src/ --complexity --verbose
+stoggertools check src/ --complexity --verbose
 
 # Check specific patterns
-nicestlog check src/ --pattern specific_pattern
+stoggertools check src/ --pattern specific_pattern
 ```
 
 ### Interactive Mode
 
 ```bash
 # Interactive mode for fixes
-nicestlog check src/ --fix --interactive
+stoggertools check src/ --fix --interactive
 
 # Dry run to preview changes
-nicestlog check src/ --fix --dry-run
+stoggertools check src/ --fix --dry-run
 ```
 
 ## Integration with IDEs
 
 ### VS Code Extension
 
-Install the nicestlog VS Code extension for real-time assistance:
+Install the stogger VS Code extension for real-time assistance:
 
 ```json
 {
-    "nicestlog.enableRealTimeAnalysis": true,
-    "nicestlog.showTransformationHints": true,
-    "nicestlog.autoFixOnSave": false
+    "stogger.enableRealTimeAnalysis": true,
+    "stogger.showTransformationHints": true,
+    "stogger.autoFixOnSave": false
 }
 ```
 
 ### PyCharm Plugin
 
-The nicestlog PyCharm plugin provides:
+The stogger PyCharm plugin provides:
 
 - Real-time code inspection
 - Quick-fix suggestions
@@ -322,7 +322,7 @@ Create custom AST visitors for specialized transformations:
 
 ```python
 import ast
-from nicestlog.advanced_assistant import BaseVisitor
+from stogger.advanced_assistant import BaseVisitor
 
 class CustomLogVisitor(BaseVisitor):
     def visit_Call(self, node):
@@ -339,7 +339,7 @@ assistant = AdvancedAssistant(visitors=[CustomLogVisitor()])
 Extend the assistant with custom plugins:
 
 ```python
-from nicestlog.advanced_assistant import Plugin
+from stogger.advanced_assistant import Plugin
 
 class MyCustomPlugin(Plugin):
     def name(self):
@@ -387,7 +387,7 @@ assistant = AdvancedAssistant(
 # Enable transformation caching
 assistant = AdvancedAssistant(
     enable_cache=True,
-    cache_dir=".nicestlog_cache"
+    cache_dir=".stogger_cache"
 )
 ```
 
@@ -398,8 +398,8 @@ assistant = AdvancedAssistant(
 Always analyze before transforming:
 
 ```bash
-nicestlog check src/ --complexity --verbose
-nicestlog check src/ --fix --backup
+stoggertools check src/ --complexity --verbose
+stoggertools check src/ --fix --backup
 ```
 
 ### 2. Use Dry Run
@@ -407,7 +407,7 @@ nicestlog check src/ --fix --backup
 Preview changes before applying:
 
 ```bash
-nicestlog check src/ --fix --dry-run
+stoggertools check src/ --fix --dry-run
 ```
 
 ### 3. Incremental Transformation
@@ -415,8 +415,8 @@ nicestlog check src/ --fix --dry-run
 Transform in small batches:
 
 ```bash
-nicestlog check src/module1/ --fix --backup
-nicestlog check src/module2/ --fix --backup
+stoggertools check src/module1/ --fix --backup
+stoggertools check src/module2/ --fix --backup
 ```
 
 ### 4. Version Control Integration
@@ -424,9 +424,9 @@ nicestlog check src/module2/ --fix --backup
 Always commit before transformation:
 
 ```bash
-git add -A && git commit -m "Before nicestlog transformation"
-nicestlog check src/ --fix --backup
-git add -A && git commit -m "After nicestlog transformation"
+git add -A && git commit -m "Before stogger transformation"
+stoggertools check src/ --fix --backup
+git add -A && git commit -m "After stogger transformation"
 ```
 
 ## Troubleshooting

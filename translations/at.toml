@@ -1,8 +1,8 @@
-# Österreichische Übersetzungen für nicestlog
+# Österreichische Übersetzungen für stogger
 # Austrian German translations with proper dialect
 
 [setup]
-welcome = "Servas! Willkommen beim nicestlog Setup!"
+welcome = "Servas! Willkommen beim stogger Setup!"
 config_created = "Konfiguration erstellt - leiwand!"
 config_exists = "Konfiguration gibt's schon, Hawara!"
 

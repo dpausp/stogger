@@ -6,12 +6,12 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.pii_scrubber` module provides PII (Personally Identifiable Information) scrubbing capabilities.
+The `stogger.pii_scrubber` module provides PII (Personally Identifiable Information) scrubbing capabilities.
 
 ## Basic Usage
 
 ```python
-from nicestlog.pii_scrubber import create_pii_processor
+from stogger.pii_scrubber import create_pii_processor
 
 # Create PII processor
 processor = create_pii_processor(redaction_text="[REDACTED]")
@@ -26,7 +26,7 @@ structlog.configure(processors=[processor])
 Create a PII scrubbing processor for structlog.
 
 ```python
-from nicestlog.pii_scrubber import create_pii_processor
+from stogger.pii_scrubber import create_pii_processor
 
 processor = create_pii_processor(
     redaction_text="[REDACTED]"
@@ -38,7 +38,7 @@ processor = create_pii_processor(
 Demonstrate PII scrubbing capabilities.
 
 ```python
-from nicestlog.pii_scrubber import demo_pii_scrubbing
+from stogger.pii_scrubber import demo_pii_scrubbing
 
 demo_pii_scrubbing()
 ```
@@ -56,6 +56,6 @@ The scrubber detects and redacts:
 
 ## API Reference
 
-```{autoapi} nicestlog.pii_scrubber
+```{autoapi} stogger.pii_scrubber
 :members:
 ```

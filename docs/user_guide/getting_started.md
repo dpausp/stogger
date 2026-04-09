@@ -1,25 +1,25 @@
-# Getting Started with nicestlog
+# Getting Started with stogger
 
-Welcome to nicestlog! This guide will help you get up and running quickly with our sophisticated structured logging system.
+Welcome to stogger! This guide will help you get up and running quickly with our sophisticated structured logging system.
 
 ## Installation
 
-Install nicestlog using pip:
+Install stogger using pip:
 
 ```bash
-pip install nicestlog
+pip install stogger
 ```
 
 ## Basic Usage
 
-Here's how to start logging with nicestlog:
+Here's how to start logging with stogger:
 
 ```python
-import nicestlog
+import stogger
 import structlog
 
 # Initialize logging (console by default)
-nicestlog.init_logging(verbose=True)
+stogger.init_logging(verbose=True)
 
 # Get a logger instance
 log = structlog.get_logger()
@@ -34,7 +34,7 @@ log.error("database-connection-failed", _replace_msg="Database connection failed
 
 ### Event-Style Logging
 
-nicestlog promotes event-style logging where each log entry represents a specific event:
+stogger promotes event-style logging where each log entry represents a specific event:
 
 ```python
 log.info("order-created", _replace_msg="Order {order_id} created for customer {customer_id}", order_id=12345, customer_id=67890, amount=99.99)
@@ -58,14 +58,14 @@ log.info("payment-processed",
 
 Note: The high-level configure API is not finalized; prefer init_logging with kwargs.
 
-nicestlog can be configured through various methods:
+stogger can be configured through various methods:
 
 ```python
-import nicestlog
+import stogger
 
 # Configure with custom settings
 # Prefer init_logging; configure is subject to change.
-nicestlog.init_logging(
+stogger.init_logging(
     level="INFO",
     format="json",
     include_timestamp=True

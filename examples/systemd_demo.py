@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Demo: Advanced systemd integration with nicestlog.
+"""Demo: Advanced systemd integration with stogger.
 
 Shows how to properly integrate with systemd for production deployments.
 """
@@ -9,8 +9,8 @@ import time
 
 import structlog
 
-import nicestlog
-from nicestlog import detect_systemd_environment
+import stogger
+from stogger_systemd.systemd_integration import detect_systemd_environment
 
 
 def demo_systemd_features():
@@ -29,7 +29,7 @@ def demo_systemd_features():
 
     # Initialize logging with systemd support
     print("\n📝 Setting up logging...")
-    nicestlog.init_logging(
+    stogger.init_logging(
         verbose=True,
         syslog_identifier="systemd-demo",
         enable_systemd=True,
@@ -131,7 +131,7 @@ def generate_example_service():
     print("\n📄 Example systemd service file generation:")
     print("=" * 60)
 
-    from nicestlog.systemd_integration import create_systemd_service_file
+    from stogger_systemd.systemd_integration import create_systemd_service_file
 
     # Example Python web app
     service_content = create_systemd_service_file(
@@ -178,7 +178,7 @@ def show_production_tips():
     for tip in tips:
         print(f"   {tip}")
 
-    print("\n🎯 nicestlog makes all of this easier with:")
+    print("\n🎯 stogger makes all of this easier with:")
     print("   ✅ Automatic systemd detection and integration")
     print("   ✅ Proper structured logging with systemd fields")
     print("   ✅ Service file generation with best practices")
@@ -193,4 +193,4 @@ if __name__ == "__main__":
     show_production_tips()
 
     print("\n🎉 Systemd integration demo complete!")
-    print("💡 Try: uv run python -m nicestlog generate-service my-app 'python app.py'")
+    print("💡 Try: uv run python -m stoggertools generate-service my-app 'python app.py'")

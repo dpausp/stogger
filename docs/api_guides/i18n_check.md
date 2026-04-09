@@ -6,13 +6,13 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.i18n_check` module checks completeness of nicestlog i18n translation files by scanning Python source files for translation key usage and verifying coverage.
+The `stogger.i18n_check` module checks completeness of stogger i18n translation files by scanning Python source files for translation key usage and verifying coverage.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.i18n_check import check_translations, format_report
+from stogger.i18n_check import check_translations, format_report
 
 # Check translation coverage
 report = check_translations(
@@ -28,7 +28,7 @@ print(format_report(report))
 ## CLI Usage
 
 ```bash
-nicestlog i18n check
+stoggertools tools i18n check
 ```
 
 ## Functions
@@ -38,7 +38,7 @@ nicestlog i18n check
 Scan Python files for all translation-related keys in a single pass.
 
 ```python
-from nicestlog.i18n_check import scan_translation_keys
+from stogger.i18n_check import scan_translation_keys
 
 event_keys, msg_keys, debug_events = scan_translation_keys([Path("src/")])
 ```
@@ -50,7 +50,7 @@ Returns a tuple of `(event_keys, msg_keys, debug_events)`.
 Scan for keys required by the TranslationProcessor.
 
 ```python
-from nicestlog.i18n_check import find_required_translation_keys
+from stogger.i18n_check import find_required_translation_keys
 
 event_keys, msg_keys = find_required_translation_keys([Path("src/")])
 ```
@@ -60,7 +60,7 @@ event_keys, msg_keys = find_required_translation_keys([Path("src/")])
 Load top-level keys from a TOML translation file.
 
 ```python
-from nicestlog.i18n_check import load_translation_keys
+from stogger.i18n_check import load_translation_keys
 
 keys = load_translation_keys(Path("translations/en.toml"))
 ```
@@ -70,7 +70,7 @@ keys = load_translation_keys(Path("translations/en.toml"))
 Full translation coverage check returning a report dict.
 
 ```python
-from nicestlog.i18n_check import check_translations
+from stogger.i18n_check import check_translations
 
 report = check_translations(
     source_paths=[Path("src/")],
@@ -94,7 +94,7 @@ report = check_translations(
 Format the report as a human-readable string.
 
 ```python
-from nicestlog.i18n_check import format_report
+from stogger.i18n_check import format_report
 
 print(format_report(report, include_debug=True))
 ```
@@ -104,7 +104,7 @@ print(format_report(report, include_debug=True))
 Run the i18n check and print a report. Returns an exit code.
 
 ```python
-from nicestlog.i18n_check import run_i18n_check_cli
+from stogger.i18n_check import run_i18n_check_cli
 
 exit_code = run_i18n_check_cli(
     path=".",
@@ -124,6 +124,6 @@ The scanner detects translation keys from:
 
 ## API Reference
 
-```{autoapi} nicestlog.i18n_check
+```{autoapi} stogger.i18n_check
 :members:
 ```

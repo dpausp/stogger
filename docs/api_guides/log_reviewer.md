@@ -6,7 +6,7 @@
 This module has high test coverage and is well-documented.
 :::
 
-The `nicestlog.log_reviewer` module provides tools for analyzing and reviewing log quality in Python codebases.
+The `stogger.log_reviewer` module provides tools for analyzing and reviewing log quality in Python codebases.
 
 ## Overview
 
@@ -20,7 +20,7 @@ Log reviewer helps you:
 
 ```python
 from pathlib import Path
-from nicestlog.log_reviewer import LogQualityReviewer, print_report
+from stoggertools.log_reviewer import LogQualityReviewer, print_report
 
 reviewer = LogQualityReviewer()
 
@@ -39,7 +39,7 @@ Create a reviewer instance and analyze log files or raw log content.
 
 ```python
 from pathlib import Path
-from nicestlog.log_reviewer import LogQualityReviewer
+from stoggertools.log_reviewer import LogQualityReviewer
 
 reviewer = LogQualityReviewer()
 
@@ -56,7 +56,7 @@ report = reviewer.analyze_log_content("""2025-01-15 10:30:00 INFO user_login use
 The dataclass returned by every analysis method.
 
 ```python
-from nicestlog.log_reviewer import LogQualityReport
+from stoggertools.log_reviewer import LogQualityReport
 
 report: LogQualityReport = reviewer.analyze_log_file(Path("logs/app.log"))
 report.overall_score      # 0-100 float
@@ -72,7 +72,7 @@ report.stats              # dict with structured/unstructured line counts, level
 Pretty-print a `LogQualityReport` to stdout.
 
 ```python
-from nicestlog.log_reviewer import print_report
+from stoggertools.log_reviewer import print_report
 
 print_report(report)       # text format (default)
 print_report(report, format_type="json")
@@ -104,7 +104,7 @@ The reviewer checks for:
 
 ```python
 from pathlib import Path
-from nicestlog.log_reviewer import LogQualityReviewer
+from stoggertools.log_reviewer import LogQualityReviewer
 
 reviewer = LogQualityReviewer()
 report = reviewer.analyze_log_file(Path("logs/app.log"))
@@ -129,6 +129,6 @@ print(f"\nStats: {report.stats}")
 
 ## API Reference
 
-```{autoapi} nicestlog.log_reviewer
+```{autoapi} stogger.log_reviewer
 :members:
 ```

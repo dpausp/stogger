@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Basic usage examples for nicestlog.
+"""Basic usage examples for stogger.
 This script demonstrates various logging patterns and best practices
-using the new nicestlog API.
+using the new stogger API.
 """
 
 from pathlib import Path
@@ -11,7 +11,7 @@ import tempfile
 import structlog
 
 # Import our logging library
-import nicestlog
+import stogger
 
 
 def demonstrate_logging(log):
@@ -59,7 +59,7 @@ def demonstrate_logging(log):
 
 def main():
     """Run all demonstration functions."""
-    print("Nicestlog Usage Examples")
+    print("Stogger Usage Examples")
     print("=" * 50)
 
     # --- Logging initialized from pyproject.toml ---
@@ -69,7 +69,7 @@ def main():
         pyproject_path = config_dir / "pyproject.toml"
         with open(pyproject_path, "w") as f:
             f.write("""
-[tool.nicestlog]
+[tool.stogger]
 verbose = true
 logdir = "logs"
 syslog_identifier = "demo-config"
@@ -100,7 +100,7 @@ language = "en"
 
         os.chdir(config_dir)
         print(f"\n=== Logging configured from {pyproject_path} ===")
-        nicestlog.init_logging()
+        stogger.init_logging()
         log = structlog.get_logger("config_demo")
         demonstrate_logging(log)
         os.chdir(original_dir)

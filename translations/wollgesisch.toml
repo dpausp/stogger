@@ -1,9 +1,9 @@
-# Wollgesische Übersetzungen für nicestlog
+# Wollgesische Übersetzungen für stogger
 # Kölsch-Walisisch Mischung mit "woll" als Füllwort
 # Die verrückteste Sprache der Welt!
 
 [setup]
-welcome = "Croeso, woll! Willkomme bei dat nicestlog, oder woll?"
+welcome = "Croeso, woll! Willkomme bei dat stogger, oder woll?"
 config_created = "Konfig is jemaat, woll! Pob lwc!"
 config_exists = "Konfig jibt et ald, woll bach!"
 

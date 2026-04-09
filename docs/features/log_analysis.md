@@ -1,6 +1,6 @@
 # 🔍 Log Statement Analysis
 
-The nicestlog Log Statement Analyzer provides intelligent detection of logging anti-patterns and issues in your Python code using AST-based analysis.
+The stogger Log Statement Analyzer provides intelligent detection of logging anti-patterns and issues in your Python code using AST-based analysis.
 
 ## Overview
 
@@ -201,22 +201,22 @@ log.info("operation-failed",
 
 ```bash
 # Analyze a single file
-nicestlog check my_file.py
+stoggertools check my_file.py
 
 # Analyze a directory
-nicestlog check src/
+stoggertools check src/
 
 # Generate detailed analysis with complexity
-nicestlog check src/ --complexity --verbose
+stoggertools check src/ --complexity --verbose
 
 # Check specific patterns
-nicestlog check src/ --pattern specific_pattern
+stoggertools check src/ --pattern specific_pattern
 ```
 
 ### Programmatic Analysis
 
 ```python
-from nicestlog.log_statement_analyzer import LogStatementAnalyzer
+from stogger.log_statement_analyzer import LogStatementAnalyzer
 
 analyzer = LogStatementAnalyzer()
 
@@ -253,19 +253,19 @@ analyzer = LogStatementAnalyzer(
 
 ### VS Code
 
-The nicestlog VS Code extension provides real-time issue detection:
+The stogger VS Code extension provides real-time issue detection:
 
 ```json
 {
-    "nicestlog.enableAnalysis": true,
-    "nicestlog.showInlineWarnings": true,
-    "nicestlog.analysisOnSave": true
+    "stogger.enableAnalysis": true,
+    "stogger.showInlineWarnings": true,
+    "stogger.analysisOnSave": true
 }
 ```
 
 ### PyCharm
 
-Install the nicestlog PyCharm plugin for:
+Install the stogger PyCharm plugin for:
 - Real-time code inspection
 - Quick-fix suggestions
 - Issue highlighting
@@ -294,16 +294,16 @@ Generate reports in various formats:
 
 ```bash
 # Basic analysis
-nicestlog check src/ --verbose
+stoggertools check src/ --verbose
 
 # Complexity analysis
-nicestlog check src/ --complexity
+stoggertools check src/ --complexity
 
 # Pattern-specific analysis
-nicestlog check src/ --pattern specific_pattern
+stoggertools check src/ --pattern specific_pattern
 
 # Interactive analysis
-nicestlog check src/ --interactive
+stoggertools check src/ --interactive
 ```
 
 ### Sample JSON Report
@@ -354,13 +354,13 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.11'
-      - name: Install nicestlog
-        run: pip install nicestlog
+      - name: Install stogger
+        run: pip install stogger
       - name: Analyze logs
         run: |
-          nicestlog check src/ --complexity --verbose
+          stoggertools check src/ --complexity --verbose
           # Use exit code to fail on issues
-          nicestlog check src/ --pattern critical_issues
+          stoggertools check src/ --pattern critical_issues
 ```
 
 ### Pre-commit Hook
@@ -370,9 +370,9 @@ jobs:
 repos:
   - repo: local
     hooks:
-      - id: nicestlog-analysis
-        name: nicestlog log analysis
-        entry: nicestlog check
+      - id: stogger-analysis
+        name: stogger log analysis
+        entry: stogger check
         language: system
         files: \.py$
         args: [--fail-on, error]
@@ -383,7 +383,7 @@ repos:
 ### Creating Custom Analyzers
 
 ```python
-from nicestlog.log_statement_analyzer import BaseAnalyzer, Issue
+from stogger.log_statement_analyzer import BaseAnalyzer, Issue
 
 class CustomAnalyzer(BaseAnalyzer):
     def analyze_log_call(self, node, context):
@@ -407,7 +407,7 @@ analyzer = LogStatementAnalyzer(custom_analyzers=[CustomAnalyzer()])
 ### Rule Configuration
 
 ```toml
-# .nicestlog.toml
+# .stogger.toml
 [analyzer]
 max_kwargs = 7
 event_id_max_length = 50
@@ -434,10 +434,10 @@ Run analysis regularly as part of your development workflow:
 
 ```bash
 # Daily analysis
-nicestlog check src/ --verbose
+stoggertools check src/ --verbose
 
 # Pre-commit analysis
-nicestlog check .
+stoggertools check .
 ```
 
 ### 2. Gradual Improvement
@@ -446,10 +446,10 @@ Fix issues incrementally:
 
 ```bash
 # Fix high-priority issues first
-nicestlog check src/ --fix --pattern critical_issues
+stoggertools check src/ --fix --pattern critical_issues
 
 # Then address warnings
-nicestlog check src/ --fix --verbose
+stoggertools check src/ --fix --verbose
 ```
 
 ### 3. Team Standards

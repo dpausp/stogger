@@ -1,4 +1,4 @@
-# nicestlog
+# stogger
 
 A sophisticated logging system built on top of [structlog](https://www.structlog.org/) that provides multi-target logging with different renderers for console output, systemd journal, and file logging.
 
@@ -16,7 +16,7 @@ A sophisticated logging system built on top of [structlog](https://www.structlog
 ## Installation
 
 ```bash
-pip install nicestlog
+pip install stogger
 ```
 
 ## Quick Start
@@ -27,13 +27,13 @@ Already have a project with print statements or standard logging? Nicestlog can 
 
 ```bash
 # Analyze your legacy project (safe, no changes)
-nicestlog migrate /path/to/your/project
+stoggertools migrate /path/to/your/project
 
 # Apply migration (dry-run preview by default)
-nicestlog migrate /path/to/your/project --no-dry-run
+stoggertools migrate /path/to/your/project --no-dry-run
 
 # Validate results in structlog-based projects
-nicestlog check /path/to/your/project
+stoggertools check /path/to/your/project
 ```
 
 **Supported migrations:**
@@ -42,7 +42,7 @@ nicestlog check /path/to/your/project
 - ✅ Eliot integration (already compatible!)
 - ✅ Sentry and other libraries
 
-For ongoing code quality in structlog-based projects, use `nicestlog check` to identify logging anti-patterns and best practice violations.
+For ongoing code quality in structlog-based projects, use `stoggertools check` to identify logging anti-patterns and best practice violations.
 
 📚 See [Migration Examples](docs/user_guide/migration_examples.md) for concrete before/after code examples.
 
@@ -51,11 +51,11 @@ For ongoing code quality in structlog-based projects, use `nicestlog check` to i
 ### Basic Console Logging
 
 ```python
-import nicestlog
+import stogger
 import structlog
 
 # Initialize logging for console output
-nicestlog.init_logging(verbose=True, syslog_identifier="myapp")
+stogger.init_logging(verbose=True, syslog_identifier="myapp")
 
 # Get a logger instance
 log = structlog.get_logger()
@@ -71,12 +71,12 @@ log.info(
 ### File + Console Logging
 
 ```python
-import nicestlog
+import stogger
 import structlog
 from pathlib import Path
 
 # Setup with file and console logging
-nicestlog.init_logging(
+stogger.init_logging(
     logdir=Path("/var/log/myapp"),
     verbose=True,
     syslog_identifier="myapp"
@@ -102,48 +102,48 @@ For internationalization and translation coverage checking, see [i18n documentat
 
 ```bash
 # Project analysis and migration (for legacy projects without structlog)
-nicestlog migrate .                    # Analyze project (safe, default)
-nicestlog migrate . --json            # JSON output for agents
-nicestlog migrate . --no-dry-run      # Apply migration changes
+stoggertools migrate .                    # Analyze project (safe, default)
+stoggertools migrate . --json            # JSON output for agents
+stoggertools migrate . --no-dry-run      # Apply migration changes
 
 # Code quality and fixes (for structlog-based projects)
-nicestlog check .                      # Check logging best practices
-nicestlog check . --fix                # Fix issues automatically
-nicestlog check . --interactive        # Fix issues interactively
+stoggertools check .                      # Check logging best practices
+stoggertools check . --fix                # Fix issues automatically
+stoggertools check . --interactive        # Fix issues interactively
 
 # Internationalization
-nicestlog tools i18n check .           # Check translation coverage
-nicestlog tools i18n check . --strict  # Fail on missing translations
+stoggertools tools i18n check .           # Check translation coverage
+stoggertools tools i18n check . --strict  # Fail on missing translations
 
 # Setup and utilities
-nicestlog init                         # Initialize configuration
-nicestlog docs                         # Browse documentation
-nicestlog docs --pager                 # Browse documentation with pager
-nicestlog tools demo                   # Run interactive demos
+stoggertools init                         # Initialize configuration
+stoggertools docs                         # Browse documentation
+stoggertools docs --pager                 # Browse documentation with pager
+stoggertools tools demo                   # Run interactive demos
 ```
 
 ## 🚀 Project Migration & Code Analysis
 
-nicestlog includes powerful tools for analyzing existing projects and migrating them to use structured logging:
+stogger includes powerful tools for analyzing existing projects and migrating them to use structured logging:
 
 ```bash
 # Analyze legacy project for migration opportunities (safe, fast)
-nicestlog migrate .
+stoggertools migrate .
 
 # Get JSON output for automated processing
-nicestlog migrate . --json
+stoggertools migrate . --json
 
 # Actually apply migration changes (dry-run by default, so --no-dry-run is needed to apply)
-nicestlog migrate . --no-dry-run
+stoggertools migrate . --no-dry-run
 
 # Interactive migration with user confirmation
-nicestlog migrate . --no-dry-run --interactive
+stoggertools migrate . --no-dry-run --interactive
 
 # Specific migration type
-nicestlog migrate . --no-dry-run --type logging-to-structlog
+stoggertools migrate . --no-dry-run --type logging-to-structlog
 ```
 
-For ongoing code quality in structlog-based projects, use `nicestlog check` to identify logging anti-patterns and best practice violations.
+For ongoing code quality in structlog-based projects, use `stoggertools check` to identify logging anti-patterns and best practice violations.
 
 **Key Features:**
 - 🔍 **Project Analysis** - Comprehensive assessment of logging patterns
@@ -154,14 +154,14 @@ For ongoing code quality in structlog-based projects, use `nicestlog check` to i
 - 🤖 **Agent-Friendly** - JSON output for programmatic consumption
 
 **Migration Workflow:**
-1. `nicestlog migrate .` - Analyze project (shows recommendations)
+1. `stoggertools migrate .` - Analyze project (shows recommendations)
 2. Review suggestions and warnings
-3. `nicestlog migrate . --no-dry-run` - Apply changes
+3. `stoggertools migrate . --no-dry-run` - Apply changes
 
 **For AI Agents:**
 ```bash
 # Get structured analysis data
-nicestlog migrate /path/to/project --json > analysis.json
+stoggertools migrate /path/to/project --json > analysis.json
 
 # Parse recommendations
 cat analysis.json | jq '.recommendation.strategy'

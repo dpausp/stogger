@@ -6,13 +6,13 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.assistant` module provides tools for migrating print statements to structured logging.
+The `stogger.assistant` module provides tools for migrating print statements to structured logging.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.assistant import migrate_directory
+from stogger.assistant import migrate_directory
 
 # Migrate all Python files in a directory
 migrate_directory(Path("src/"))
@@ -23,7 +23,7 @@ migrate_directory(Path("src/"))
 Migrate all Python files in a directory from print statements to structured logging.
 
 ```python
-from nicestlog.assistant import migrate_directory
+from stogger.assistant import migrate_directory
 from pathlib import Path
 
 migrate_directory(
@@ -34,6 +34,6 @@ migrate_directory(
 
 ## API Reference
 
-```{autoapi} nicestlog.assistant
+```{autoapi} stogger.assistant
 :members:
 ```

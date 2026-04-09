@@ -44,32 +44,32 @@
 
 #### Undocumented APIs
 
-- `nicestlog.core.PartialFormatter` - Class documented in autoapi but not in api_guides/core.md
-- `nicestlog.core.TranslationProcessor` - Class documented in autoapi but not in api_guides/core.md
-- `nicestlog.core.CmdOutputFileRenderer` - Class documented in autoapi but not in api_guides/core.md
-- `nicestlog.core.MultiRenderer` - Class documented in autoapi but not in api_guides/core.md
-- `nicestlog.core.SelectRenderedString` - Class documented in autoapi but not in api_guides/core.md
-- `nicestlog.core.log_to_stdlib()` - Function documented in autoapi but not in api_guides/core.md
-- `nicestlog.core.prefix()` - Function documented in autoapi but not in api_guides/core.md
-- `nicestlog.factory.build_shared_processors()` - Missing parameter docs in api_guides/factory.md
-- `nicestlog.config.ProjectStructure` - Class missing from api_guides/config.md overview
-- `nicestlog.config.SimpleFormatSettings` - Minimal documentation in api_guides/config.md
-- `nicestlog.i18n.NicestlogTranslator` - Not documented in any api_guides
-- `nicestlog.i18n.set_language()` - Exported function not documented
-- `nicestlog.i18n.demo_translations()` - Exported function not documented
-- `nicestlog.interactive_transformer.InteractiveTransformer` - Not documented in api_guides
-- `nicestlog.interactive_transformer.UserChoice` - Enum not documented
-- `nicestlog.interactive_transformer.TransformationProposal` - Dataclass not documented
-- `nicestlog.interactive_transformer.InteractiveSession` - Dataclass not documented
-- `nicestlog.eliot_integration.HumanReadableEliotDestination` - Not documented in api_guides
-- `nicestlog.eliot_integration.log_action()` - Decorator not documented
-- `nicestlog.eliot_integration.log_call()` - Decorator not documented
+- `stogger.core.PartialFormatter` - Class documented in autoapi but not in api_guides/core.md
+- `stogger.core.TranslationProcessor` - Class documented in autoapi but not in api_guides/core.md
+- `stogger.core.CmdOutputFileRenderer` - Class documented in autoapi but not in api_guides/core.md
+- `stogger.core.MultiRenderer` - Class documented in autoapi but not in api_guides/core.md
+- `stogger.core.SelectRenderedString` - Class documented in autoapi but not in api_guides/core.md
+- `stogger.core.log_to_stdlib()` - Function documented in autoapi but not in api_guides/core.md
+- `stogger.core.prefix()` - Function documented in autoapi but not in api_guides/core.md
+- `stogger.factory.build_shared_processors()` - Missing parameter docs in api_guides/factory.md
+- `stogger.config.ProjectStructure` - Class missing from api_guides/config.md overview
+- `stogger.config.SimpleFormatSettings` - Minimal documentation in api_guides/config.md
+- `stogger.i18n.NicestlogTranslator` - Not documented in any api_guides
+- `stogger.i18n.set_language()` - Exported function not documented
+- `stogger.i18n.demo_translations()` - Exported function not documented
+- `stoggertools.interactive_transformer.InteractiveTransformer` - Not documented in api_guides
+- `stoggertools.interactive_transformer.UserChoice` - Enum not documented
+- `stoggertools.interactive_transformer.TransformationProposal` - Dataclass not documented
+- `stoggertools.interactive_transformer.InteractiveSession` - Dataclass not documented
+- `stogger_eliot.HumanReadableEliotDestination` - Not documented in api_guides
+- `stogger_eliot.log_action()` - Decorator not documented
+- `stogger_eliot.log_call()` - Decorator not documented
 
 #### Outdated Documentation
 
-- `api_guides/cli.md` - References `nicestlog analyze` command which does not exist in current CLI
-- `api_guides/cli.md` - References `nicestlog transform` command which does not exist in current CLI
-- `api_guides/cli.md` - Missing documentation for `nicestlog check`, `nicestlog migrate`, `nicestlog docs` commands
+- `api_guides/cli.md` - References `stoggertools analyze` command which does not exist in current CLI
+- `api_guides/cli.md` - References `stoggertools transform` command which does not exist in current CLI
+- `api_guides/cli.md` - Missing documentation for `stoggertools check`, `stoggertools migrate`, `stoggertools docs` commands
 - `api_guides/linter.md` - References `lint_file()` function which does not exist; actual API is `analyze_file()` and `lint_directory()`
 - `api_guides/log_reviewer.md` - References `review_file()` and `review_directory()` functions which do not exist; actual API is `LogQualityReviewer.analyze_log_file()` and `LogQualityReviewer.analyze_log_content()`
 
@@ -77,25 +77,25 @@
 
 #### Documented but Untested (High Risk)
 
-- `nicestlog.web_dashboard` - Module exposed in `__init__.py` but tests conditional on Flask availability
-- `nicestlog.live_editor` - Module exposed in `__init__.py` with limited test coverage
-- `nicestlog.cli_output_transformer` - Module exposed but minimal test coverage
-- `nicestlog.log_statement_analyzer` - Module used but not directly tested
-- `nicestlog.project_analyzer` - Module exposed in CLI but limited test coverage
+- `stogger_web.web_dashboard` - Module exposed in `__init__.py` but tests conditional on Flask availability
+- `stoggertools.live_editor` - Module exposed in `__init__.py` with limited test coverage
+- `stoggertools.cli_output_transformer` - Module exposed but minimal test coverage
+- `stogger.log_statement_analyzer` - Module used but not directly tested
+- `stoggertools.project_analyzer` - Module exposed in CLI but limited test coverage
 
 #### Tested but Undocumented
 
-- `nicestlog.interactive_transformer` - 67.1% coverage, exposed publicly but no api_guides page
-- `nicestlog.eliot_integration` - 82.7% coverage, exposed publicly but no api_guides page
-- `nicestlog.gitignore_utils` - Well tested, used internally, exposed in CLI
-- `nicestlog.i18n_check` - Has test coverage, CLI command exists, no api_guides
+- `stoggertools.interactive_transformer` - 67.1% coverage, exposed publicly but no api_guides page
+- `stogger_eliot` - 82.7% coverage, exposed publicly but no api_guides page
+- `stogger.gitignore_utils` - Well tested, used internally, exposed in CLI
+- `stogger.i18n_check` - Has test coverage, CLI command exists, no api_guides
 
 ### Code Example Issues
 
 #### Outdated Examples
 
-- `docs/api_guides/cli.md:15-18` - Example uses `nicestlog analyze` command which does not exist
-- `docs/api_guides/cli.md:21-24` - Example uses `nicestlog transform` command which does not exist
+- `docs/api_guides/cli.md:15-18` - Example uses `stoggertools analyze` command which does not exist
+- `docs/api_guides/cli.md:21-24` - Example uses `stoggertools transform` command which does not exist
 
 #### Missing Import Context
 

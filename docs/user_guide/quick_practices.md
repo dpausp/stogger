@@ -51,7 +51,7 @@ except Exception as e:
     )
 ```
 
-- Warum wichtig: nicestlog verarbeitet `exc_info` und rendert einen vollständigen Traceback ins Feld `exception`. Ohne `exc_info` geht der Stacktrace verloren.
+- Warum wichtig: stogger verarbeitet `exc_info` und rendert einen vollständigen Traceback ins Feld `exception`. Ohne `exc_info` geht der Stacktrace verloren.
 - Kein `exc_info` auf `info`/`debug` — zu laut und unnötig.
 
 ## Message formatting

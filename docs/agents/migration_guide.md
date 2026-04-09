@@ -1,13 +1,13 @@
-# 🤖 AI Agent Migration Guide for nicestlog
+# 🤖 AI Agent Migration Guide for stogger
 
 ## Overview
 
-This guide helps AI agents analyze existing Python projects and systematically retrofit them with nicestlog for superior structured logging. The goal is to provide clear decision trees and automated workflows for seamless adoption.
+This guide helps AI agents analyze existing Python projects and systematically retrofit them with stogger for superior structured logging. The goal is to provide clear decision trees and automated workflows for seamless adoption.
 
 ## 🎯 Agent Use Case
 
 **Scenario**: Agent encounters an existing Python project that needs better logging
-**Goal**: Retrofit the project with nicestlog using minimal manual intervention
+**Goal**: Retrofit the project with stogger using minimal manual intervention
 **Outcome**: Project has structured, translatable, and maintainable logging
 
 ## 📋 Phase 1: Project Analysis
@@ -16,10 +16,10 @@ This guide helps AI agents analyze existing Python projects and systematically r
 
 ```bash
 # Scan project structure and identify logging patterns
-nicestlog migrate . --json > project_analysis.json
+stoggertools migrate . --json > project_analysis.json
 
 # Check existing logging coverage
-nicestlog check . --ast --complexity --verbose
+stoggertools check . --ast --complexity --verbose
 ```
 
 **Agent Decision Points:**
@@ -39,7 +39,7 @@ Check `pyproject.toml`, `requirements.txt`, or `setup.py` for:
 
 ```bash
 # Get detailed metrics
-nicestlog migrate . --json | jq '.[] | {file: .file_path, complexity: .complexity_score, issues: (.issues | length)}'
+stoggertools migrate . --json | jq '.[] | {file: .file_path, complexity: .complexity_score, issues: (.issues | length)}'
 ```
 
 **Complexity Thresholds:**
@@ -55,10 +55,10 @@ nicestlog migrate . --json | jq '.[] | {file: .file_path, complexity: .complexit
 
 ```bash
 # Preview changes
-nicestlog migrate . --type print-to-structlog --dry-run
+stoggertools migrate . --type print-to-structlog --dry-run
 
 # Apply with backup
-nicestlog migrate . --type print-to-structlog --backup
+stoggertools migrate . --type print-to-structlog --backup
 ```
 
 **Agent checklist:**
@@ -76,7 +76,7 @@ nicestlog migrate . --type print-to-structlog --backup
 grep -r "logging\." . --include="*.py" | head -20
 
 # Apply migration
-nicestlog migrate . --type logging-to-structlog --interactive
+stoggertools migrate . --type logging-to-structlog --interactive
 ```
 
 ### Strategy C: Enhancement Migration
@@ -85,7 +85,7 @@ nicestlog migrate . --type logging-to-structlog --interactive
 
 ```bash
 # Focus on specific improvements
-nicestlog fix . --ast --pattern logging --verbose
+stoggertools fix . --ast --pattern logging --verbose
 ```
 
 ## 🛠️ Phase 3: Implementation Workflow
@@ -93,11 +93,11 @@ nicestlog fix . --ast --pattern logging --verbose
 ### Step 1: Environment Setup
 
 ```bash
-# Add nicestlog to project dependencies
-echo 'nicestlog = "^1.0.0"' >> pyproject.toml
+# Add stogger to project dependencies
+echo 'stogger = "^1.0.0"' >> pyproject.toml
 
 # Or for requirements.txt projects
-echo 'nicestlog>=1.0.0' >> requirements.txt
+echo 'stogger>=1.0.0' >> requirements.txt
 ```
 
 ### Step 2: Configuration Integration
@@ -105,7 +105,7 @@ echo 'nicestlog>=1.0.0' >> requirements.txt
 Create or update `pyproject.toml`:
 
 ```toml
-[tool.nicestlog]
+[tool.stogger]
 verbose = true
 syslog_identifier = "your-project-name"
 translation_dir = "translations"
@@ -121,7 +121,7 @@ async_logging = true
 mkdir -p translations
 
 # Generate initial English translations
-nicestlog tools i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
+stoggertools tools i18n check . --translation-dir translations -l en --list-missing > missing_keys.txt
 
 # Create basic translation file
 cat > translations/en.toml << 'EOF'
@@ -138,10 +138,10 @@ EOF
 
 ```bash
 # Check translation completeness
-nicestlog tools i18n check . --translation-dir translations -l en --strict
+stoggertools tools i18n check . --translation-dir translations -l en --strict
 
 # Lint the migrated code
-nicestlog check . --ast --verbose
+stoggertools check . --ast --verbose
 
 # Run project tests to ensure functionality
 python -m pytest  # or your test command
@@ -151,10 +151,10 @@ python -m pytest  # or your test command
 
 ```bash
 # Review log quality
-nicestlog review . --format text --min-score 80
+stoggertools review . --format text --min-score 80
 
 # Check for any remaining issues
-nicestlog check . --ast --verbose
+stoggertools check . --ast --verbose
 ```
 
 ## 📊 Phase 5: Monitoring and Optimization
@@ -164,11 +164,11 @@ nicestlog check . --ast --verbose
 ```bash
 # Test logging performance
 python -c "
-import nicestlog
+import stogger
 import structlog
 import time
 
-nicestlog.init_logging(verbose=True)
+stogger.init_logging(verbose=True)
 log = structlog.get_logger()
 
 start = time.time()
@@ -192,7 +192,7 @@ print(f'1000 log entries in {end-start:.3f}s')
 
 ### Issue: Import Conflicts
 
-**Problem:** Existing `import logging` conflicts with nicestlog
+**Problem:** Existing `import logging` conflicts with stogger
 **Solution:** Use aliased imports or gradual migration
 
 ```python
@@ -212,7 +212,7 @@ log = structlog.get_logger(__name__)
 
 ```python
 # Enable async logging
-nicestlog.init_logging(async_logging=True)
+stogger.init_logging(async_logging=True)
 
 # Conditional debug logging
 if log.isEnabledFor(logging.DEBUG):
@@ -228,7 +228,7 @@ if log.isEnabledFor(logging.DEBUG):
 # .github/workflows/i18n-check.yml
 - name: Check translations
   run: |
-    uv run nicestlog tools i18n check . --translation-dir translations -l en --strict --fail-on-extra
+    uv run stoggertools tools i18n check . --translation-dir translations -l en --strict --fail-on-extra
 ```
 
 ## 🎯 Success Metrics
@@ -252,7 +252,7 @@ After migration, the project should have:
 
 ## 📚 Additional Resources
 
-- [nicestlog Best Practices](../user_guide/best_practices.md)
+- [stogger Best Practices](../user_guide/best_practices.md)
 - [Advanced AST Assistant](../features/advanced_assistant.md)
 - [Translation System Guide](../user_guide/advanced_features.md)
 - [Performance Optimization](../user_guide/quick_practices.md)

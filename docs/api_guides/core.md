@@ -6,16 +6,16 @@
 This module has high test coverage and is well-documented.
 :::
 
-The `nicestlog.core` module provides the core logging functionality for nicestlog, including renderers, processors, and logger factories.
+The `stogger.core` module provides the core logging functionality for stogger, including renderers, processors, and logger factories.
 
 ## Quick Start
 
 ```python
-import nicestlog
+import stogger
 import structlog
 
 # Initialize console logging
-nicestlog.init_logging(verbose=True)
+stogger.init_logging(verbose=True)
 
 # Get a logger
 log = structlog.get_logger()
@@ -29,12 +29,12 @@ log.info("hello-world", user_id=123, action="login")
 Initialize the logging system with multiple output targets.
 
 ```python
-nicestlog.init_logging(
+stogger.init_logging(
     verbose=True,           # Enable debug-level logging
     logdir=None,            # Directory for log files
     log_cmd_output=False,   # Enable command output logging
     log_to_console=True,    # Output to console
-    syslog_identifier="nicestlog",  # Systemd journal identifier
+    syslog_identifier="stogger",  # Systemd journal identifier
     show_caller_info=False  # Include caller info in logs
 )
 ```
@@ -44,7 +44,7 @@ nicestlog.init_logging(
 Initialize minimal logging early in application startup to reduce uninitialized structlog messages.
 
 ```python
-nicestlog.init_early_logging()
+stogger.init_early_logging()
 ```
 
 ### logging_initialized
@@ -52,7 +52,7 @@ nicestlog.init_early_logging()
 Check if logging has been configured.
 
 ```python
-if nicestlog.logging_initialized():
+if stogger.logging_initialized():
     print("Logging is configured")
 ```
 
@@ -63,7 +63,7 @@ if nicestlog.logging_initialized():
 Renders log events with colors and alignment for console output.
 
 ```python
-from nicestlog.core import ConsoleFileRenderer
+from stogger.core import ConsoleFileRenderer
 
 renderer = ConsoleFileRenderer(
     min_level="info",
@@ -76,7 +76,7 @@ renderer = ConsoleFileRenderer(
 Renders log events as JSON for structured logging.
 
 ```python
-from nicestlog.core import JSONRenderer
+from stogger.core import JSONRenderer
 
 renderer = JSONRenderer(min_level="debug")
 ```
@@ -86,7 +86,7 @@ renderer = JSONRenderer(min_level="debug")
 Renders log events for systemd journal integration.
 
 ```python
-from nicestlog.core import SystemdJournalRenderer
+from stogger.core import SystemdJournalRenderer
 
 renderer = SystemdJournalRenderer(
     syslog_identifier="my-app",
@@ -129,12 +129,12 @@ Logger for systemd journal integration.
 ## Example Usage
 
 ```python
-import nicestlog
+import stogger
 import structlog
 from pathlib import Path
 
 # Initialize with file logging
-nicestlog.init_logging(
+stogger.init_logging(
     verbose=True,
     logdir=Path("/var/log/myapp"),
     log_to_console=True
@@ -159,6 +159,6 @@ except Exception as e:
 
 ## API Reference
 
-```{autoapi} nicestlog.core
+```{autoapi} stogger.core
 :members:
 ```

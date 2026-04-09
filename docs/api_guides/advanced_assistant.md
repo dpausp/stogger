@@ -6,13 +6,13 @@
 This module has high test coverage and is well-documented.
 :::
 
-The `nicestlog.advanced_assistant` module provides sophisticated AST analysis and transformation capabilities for code migration and refactoring, with comprehensive logging of every operation.
+The `stogger.advanced_assistant` module provides sophisticated AST analysis and transformation capabilities for code migration and refactoring, with comprehensive logging of every operation.
 
 ## Quick Start
 
 ```python
 from pathlib import Path
-from nicestlog.advanced_assistant import create_advanced_assistant, analyze_python_file
+from stogger.advanced_assistant import create_advanced_assistant, analyze_python_file
 
 # Quick analysis
 result = analyze_python_file(Path("my_module.py"))
@@ -31,7 +31,7 @@ result = assistant.transform_file(Path("my_module.py"), dry_run=True)
 The main entry point for AST analysis and transformation.
 
 ```python
-from nicestlog.advanced_assistant import AdvancedAssistant
+from stogger.advanced_assistant import AdvancedAssistant
 
 assistant = AdvancedAssistant(verbose=True)
 
@@ -94,7 +94,7 @@ class TransformationResult:
 Define custom transformation patterns.
 
 ```python
-from nicestlog.advanced_assistant import ASTPattern, NodeType, AdvancedAssistant
+from stogger.advanced_assistant import ASTPattern, NodeType, AdvancedAssistant
 import ast
 
 # Custom pattern to detect and transform print statements
@@ -138,7 +138,7 @@ assistant.add_pattern(pattern)
 Create a new AdvancedAssistant instance.
 
 ```python
-from nicestlog.advanced_assistant import create_advanced_assistant
+from stogger.advanced_assistant import create_advanced_assistant
 
 assistant = create_advanced_assistant(verbose=True)
 ```
@@ -148,7 +148,7 @@ assistant = create_advanced_assistant(verbose=True)
 Quick analysis of a Python file.
 
 ```python
-from nicestlog.advanced_assistant import analyze_python_file
+from stogger.advanced_assistant import analyze_python_file
 from pathlib import Path
 
 result = analyze_python_file(Path("module.py"))
@@ -161,7 +161,7 @@ print(f"Patterns: {result.detected_patterns}")
 Quick transformation of a Python file.
 
 ```python
-from nicestlog.advanced_assistant import transform_python_file
+from stogger.advanced_assistant import transform_python_file
 from pathlib import Path
 
 result = transform_python_file(Path("module.py"), dry_run=True)
@@ -173,7 +173,7 @@ if result.success:
 
 ```python
 from pathlib import Path
-from nicestlog.advanced_assistant import create_advanced_assistant
+from stogger.advanced_assistant import create_advanced_assistant
 
 assistant = create_advanced_assistant(verbose=True)
 
@@ -198,6 +198,6 @@ results = assistant.transform_directory(
 
 ## API Reference
 
-```{autoapi} nicestlog.advanced_assistant
+```{autoapi} stogger.advanced_assistant
 :members:
 ```

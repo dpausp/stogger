@@ -10,7 +10,7 @@ except Exception as e:
 try:
     import inspect
 
-    from nicestlog.core import ConsoleFileRenderer
+    from stogger.core import ConsoleFileRenderer
 
     print("✓ ConsoleFileRenderer import successful")  # noqa: T201
 

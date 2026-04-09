@@ -1,13 +1,13 @@
 # 🔌 Integrations
 
-nicestlog provides integrations and examples for common ecosystems. The snippets below reflect the current API.
+stogger provides integrations and examples for common ecosystems. The snippets below reflect the current API.
 
 ## Eliot Integration
 
 Use the Eliot helpers to get beautiful, human-readable action traces.
 
 ```python
-from nicestlog.eliot_integration import setup_eliot_logging, log_action, log_call
+from stogger_eliot import setup_eliot_logging, log_action, log_call
 
 # Configure Eliot output (human-readable by default)
 setup_eliot_logging(human_readable=True, show_timestamps=True)
@@ -30,7 +30,7 @@ Send logs to the systemd journal when running as a service.
 
 ```python
 import structlog
-from nicestlog.systemd_integration import setup_systemd_logging, detect_systemd_environment
+from stogger_systemd.systemd_integration import setup_systemd_logging, detect_systemd_environment
 
 # Only enable when systemd is available
 if detect_systemd_environment():
@@ -47,13 +47,13 @@ Simple real-time log viewer powered by Flask + HTMX.
 **Note:** The web dashboard requires Flask as an optional dependency. Install it with:
 
 ```bash
-pip install 'nicestlog[web]'
+pip install 'stogger[web]'
 # or
 pip install flask>=3.0.3
 ```
 
 ```python
-from nicestlog.web_dashboard import run_dashboard, setup_web_logging
+from stogger_web.web_dashboard import run_dashboard, setup_web_logging
 import structlog
 
 # Route logs to the in-memory dashboard buffer
@@ -69,9 +69,9 @@ run_dashboard(port=8080, debug=False)
 ```python
 from flask import Flask, request
 import structlog
-import nicestlog
+import stogger
 
-nicestlog.init_logging(verbose=True)
+stogger.init_logging(verbose=True)
 app = Flask(__name__)
 log = structlog.get_logger("web")
 
@@ -90,9 +90,9 @@ def log_request():
 ```python
 from fastapi import FastAPI
 import structlog
-import nicestlog
+import stogger
 
-nicestlog.init_logging(verbose=True)
+stogger.init_logging(verbose=True)
 app = FastAPI()
 log = structlog.get_logger("api")
 

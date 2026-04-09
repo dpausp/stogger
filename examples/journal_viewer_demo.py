@@ -8,16 +8,16 @@ import time
 
 import structlog
 
-import nicestlog
-from nicestlog.journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
+import stogger
+from stogger_systemd.journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
 
 
 def generate_test_logs():
     """Generate some test logs to demonstrate the viewer."""
     print("📝 Generating test logs for journal viewer demo...")
 
-    # Setup nicestlog with systemd integration
-    nicestlog.init_logging(
+    # Setup stogger with systemd integration
+    stogger.init_logging(
         verbose=True,
         syslog_identifier="journal-viewer-demo",
         enable_systemd=True,
@@ -106,9 +106,9 @@ def demo_journal_viewer():
         print(f"   Error reading journal: {e}")
 
     print("\n💡 Usage examples:")
-    print("   uv run python -m nicestlog journal -u myapp.service -n 50")
-    print("   uv run python -m nicestlog journal --since '1 hour ago' --level error")
-    print("   uv run python -m nicestlog journal -f -u myapp.service  # Follow live")
+    print("   uv run python -m stoggertools journal -u myapp.service -n 50")
+    print("   uv run python -m stoggertools journal --since '1 hour ago' --level error")
+    print("   uv run python -m stoggertools journal -f -u myapp.service  # Follow live")
 
 
 def show_mock_output():
@@ -117,7 +117,7 @@ def show_mock_output():
     print("=" * 60)
 
     # Simulate beautiful journal output
-    from nicestlog.core import (
+    from stogger.core import (
         BLUE,
         BRIGHT,
         CYAN,
@@ -202,8 +202,8 @@ def show_mock_output():
 
 
 def show_comparison():
-    """Show comparison between journalctl and nicestlog journal viewer."""
-    print("\n📊 Comparison: journalctl vs nicestlog journal")
+    """Show comparison between journalctl and stogger journal viewer."""
+    print("\n📊 Comparison: journalctl vs stogger journal")
     print("=" * 60)
 
     print("🤮 Traditional journalctl output:")
@@ -214,7 +214,7 @@ def show_comparison():
         "Dec 07 14:23:46 hostname myapp[1234]: {'level': 'error', 'event': 'db_error', 'error': 'connection failed', 'host': 'db.example.com'}",
     )
 
-    print("\n😍 Beautiful nicestlog journal output:")
+    print("\n😍 Beautiful stogger journal output:")
     print("14:23:45.123 I [myapp] (1234) user_login user_id=12345")
     print(
         "14:23:46.789 E [myapp] (1234) db_error error='connection failed' host=db.example.com",
@@ -235,13 +235,13 @@ def show_cli_examples():
     print("=" * 60)
 
     examples = [
-        ("View recent logs", "uv run python -m nicestlog journal -u myapp.service"),
-        ("Follow live logs", "uv run python -m nicestlog journal -f -u myapp.service"),
-        ("Show only errors", "uv run python -m nicestlog journal --level error"),
-        ("Last hour's logs", "uv run python -m nicestlog journal --since '1 hour ago'"),
-        ("Last 100 entries", "uv run python -m nicestlog journal -n 100"),
-        ("Specific service", "uv run python -m nicestlog journal -u nginx.service"),
-        ("Debug level logs", "uv run python -m nicestlog journal --level debug -n 20"),
+        ("View recent logs", "uv run python -m stoggertools journal -u myapp.service"),
+        ("Follow live logs", "uv run python -m stoggertools journal -f -u myapp.service"),
+        ("Show only errors", "uv run python -m stoggertools journal --level error"),
+        ("Last hour's logs", "uv run python -m stoggertools journal --since '1 hour ago'"),
+        ("Last 100 entries", "uv run python -m stoggertools journal -n 100"),
+        ("Specific service", "uv run python -m stoggertools journal -u nginx.service"),
+        ("Debug level logs", "uv run python -m stoggertools journal --level debug -n 20"),
     ]
 
     for description, command in examples:

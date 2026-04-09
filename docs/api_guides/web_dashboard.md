@@ -5,15 +5,15 @@
 This module has limited test coverage. Use at your own risk. Contributions to improve test coverage are welcome.
 :::
 
-The `nicestlog.web_dashboard` module provides a simple Flask + HTMX web dashboard for live log viewing.
+The `stogger.web_dashboard` module provides a simple Flask + HTMX web dashboard for live log viewing.
 
 ## Basic Usage
 
 ```python
-import nicestlog
+import stogger
 
 # Setup web logging
-nicestlog.setup_web_logging(host="0.0.0.0", port=8080)
+stogger.setup_web_logging(host="0.0.0.0", port=8080)
 
 # The dashboard captures all structlog events
 import structlog
@@ -28,9 +28,9 @@ log.info("user-login", user_id=123)  # Visible in dashboard
 Setup the web dashboard with optional Flask server.
 
 ```python
-import nicestlog
+import stogger
 
-nicestlog.setup_web_logging(
+stogger.setup_web_logging(
     host="0.0.0.0",     # Bind address
     port=8080,           # Port
     debug=False,         # Flask debug mode
@@ -43,8 +43,8 @@ nicestlog.setup_web_logging(
 Run the web dashboard server.
 
 ```python
-import nicestlog
-nicestlog.run_dashboard(host="0.0.0.0", port=8080)
+import stogger
+stogger.run_dashboard(host="0.0.0.0", port=8080)
 ```
 
 ### get_log_stats
@@ -52,8 +52,8 @@ nicestlog.run_dashboard(host="0.0.0.0", port=8080)
 Get statistics about captured logs.
 
 ```python
-import nicestlog
-stats = nicestlog.get_log_stats()
+import stogger
+stats = stogger.get_log_stats()
 ```
 
 ## WebLogHandler
@@ -61,7 +61,7 @@ stats = nicestlog.get_log_stats()
 A structlog processor that captures log events for web display.
 
 ```python
-from nicestlog.web_dashboard import WebLogHandler
+from stogger_web.web_dashboard import WebLogHandler
 
 handler = WebLogHandler()
 # Add to structlog processors
@@ -80,11 +80,11 @@ The dashboard uses:
 Requires Flask:
 
 ```bash
-pip install nicestlog[web]
+pip install stogger[web]
 ```
 
 ## API Reference
 
-```{autoapi} nicestlog.web_dashboard
+```{autoapi} stogger.web_dashboard
 :members:
 ```

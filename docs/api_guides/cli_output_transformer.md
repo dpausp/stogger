@@ -5,13 +5,13 @@
 This module has limited test coverage. Use at your own risk. Contributions to improve test coverage are welcome.
 :::
 
-The `nicestlog.cli_output_transformer` module provides AST transformation capabilities to convert CLI framework output functions (typer.echo, click.echo, rich.print, etc.) to structured logging with nicestlog.
+The `stogger.cli_output_transformer` module provides AST transformation capabilities to convert CLI framework output functions (typer.echo, click.echo, rich.print, etc.) to structured logging with stogger.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.cli_output_transformer import CLIOutputToStructlogTransformer
+from stoggertools.cli_output_transformer import CLIOutputToStructlogTransformer
 
 transformer = CLIOutputToStructlogTransformer()
 
@@ -26,7 +26,7 @@ tree = transformer.transform(source)
 AST node transformer that converts CLI output calls to structlog calls.
 
 ```python
-from nicestlog.cli_output_transformer import CLIOutputToStructlogTransformer
+from stoggertools.cli_output_transformer import CLIOutputToStructlogTransformer
 
 transformer = CLIOutputToStructlogTransformer()
 ```
@@ -80,6 +80,6 @@ event = CLIOutputToStructlogTransformer.derive_event_from_literal(
 
 ## API Reference
 
-```{autoapi} nicestlog.cli_output_transformer
+```{autoapi} stogger.cli_output_transformer
 :members:
 ```

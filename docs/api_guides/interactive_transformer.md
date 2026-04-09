@@ -6,13 +6,13 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.interactive_transformer` module provides interactive, user-guided code transformations with preview and confirmation, inspired by the amber search and replace tool.
+The `stogger.interactive_transformer` module provides interactive, user-guided code transformations with preview and confirmation, inspired by the amber search and replace tool.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.interactive_transformer import (
+from stoggertools.interactive_transformer import (
     create_interactive_transformer,
     transform_file_interactive,
     transform_directory_interactive,
@@ -30,7 +30,7 @@ transform_directory_interactive(Path("src/"), pattern="*.py")
 The main class for interactive code transformation sessions.
 
 ```python
-from nicestlog.interactive_transformer import InteractiveTransformer
+from stoggertools.interactive_transformer import InteractiveTransformer
 
 transformer = InteractiveTransformer(
     context_lines=3,              # Lines of context to show
@@ -64,7 +64,7 @@ During transformation, the user can choose:
 ### create_interactive_transformer
 
 ```python
-from nicestlog.interactive_transformer import create_interactive_transformer
+from stoggertools.interactive_transformer import create_interactive_transformer
 
 transformer = create_interactive_transformer(context_lines=3)
 ```
@@ -72,7 +72,7 @@ transformer = create_interactive_transformer(context_lines=3)
 ### transform_file_interactive
 
 ```python
-from nicestlog.interactive_transformer import transform_file_interactive
+from stoggertools.interactive_transformer import transform_file_interactive
 
 result = transform_file_interactive(Path("module.py"), context_lines=3)
 ```
@@ -80,7 +80,7 @@ result = transform_file_interactive(Path("module.py"), context_lines=3)
 ### transform_directory_interactive
 
 ```python
-from nicestlog.interactive_transformer import transform_directory_interactive
+from stoggertools.interactive_transformer import transform_directory_interactive
 
 results = transform_directory_interactive(
     Path("src/"),
@@ -102,11 +102,11 @@ After completing a transformation session, a summary is displayed showing:
 Requires `rich` for terminal UI:
 
 ```bash
-pip install nicestlog[cli]
+pip install stogger[cli]
 ```
 
 ## API Reference
 
-```{autoapi} nicestlog.interactive_transformer
+```{autoapi} stogger.interactive_transformer
 :members:
 ```

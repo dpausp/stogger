@@ -1,12 +1,12 @@
 API Reference
 =============
 
-This section provides detailed API documentation for all nicestlog modules and classes.
+This section provides detailed API documentation for all stogger modules and classes.
 
 Core Module
 -----------
 
-.. automodule:: nicestlog.core
+.. automodule:: stogger.core
    :members:
    :undoc-members:
    :show-inheritance:
@@ -14,7 +14,7 @@ Core Module
 Configuration
 -------------
 
-.. automodule:: nicestlog.config
+.. automodule:: stogger.config
    :members:
    :undoc-members:
    :show-inheritance:
@@ -22,7 +22,7 @@ Configuration
 Factory
 -------
 
-.. automodule:: nicestlog.factory
+.. automodule:: stogger.factory
    :members:
    :undoc-members:
    :show-inheritance:
@@ -30,7 +30,7 @@ Factory
 Advanced Assistant
 ------------------
 
-.. automodule:: nicestlog.advanced_assistant
+.. automodule:: stogger.advanced_assistant
    :members:
    :undoc-members:
    :show-inheritance:
@@ -38,7 +38,7 @@ Advanced Assistant
 Log Statement Analyzer
 ----------------------
 
-.. automodule:: nicestlog.log_statement_analyzer
+.. automodule:: stogger.log_statement_analyzer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -46,7 +46,7 @@ Log Statement Analyzer
 Assistant
 ---------
 
-.. automodule:: nicestlog.assistant
+.. automodule:: stogger.assistant
    :members:
    :undoc-members:
    :show-inheritance:
@@ -54,7 +54,7 @@ Assistant
 CLI
 ---
 
-.. automodule:: nicestlog.cli
+.. automodule:: stoggertools.cli
    :members:
    :undoc-members:
    :show-inheritance:
@@ -63,14 +63,14 @@ Advanced CLI Features
 ~~~~~~~~~~~~~~~~~~~~~
 
 The CLI module now includes all advanced AST functionality that was previously in cli_advanced.
-All AST commands are available under ``nicestlog tools ast``.
+All AST commands are available under ``stoggertools tools ast``.
 
-Note: Some high-level CLI examples in Features docs use legacy names (analyze/transform at top-level). The authoritative CLI layout is the help in `nicestlog --help` which reflects this repository's CLI (tools ast ...).
+Note: Some high-level CLI examples in Features docs use legacy names (analyze/transform at top-level). The authoritative CLI layout is the help in `stoggertools --help` which reflects this repository's CLI (tools ast ...).
 
 Eliot Integration
 -----------------
 
-.. automodule:: nicestlog.eliot_integration
+.. automodule:: stogger_eliot.eliot_integration
    :members:
    :undoc-members:
    :show-inheritance:
@@ -78,7 +78,7 @@ Eliot Integration
 Systemd Integration
 -------------------
 
-.. automodule:: nicestlog.systemd_integration
+.. automodule:: stogger_systemd.systemd_integration
    :members:
    :undoc-members:
    :show-inheritance:
@@ -86,7 +86,7 @@ Systemd Integration
 PII Scrubber
 ------------
 
-.. automodule:: nicestlog.pii_scrubber
+.. automodule:: stogger.pii_scrubber
    :members:
    :undoc-members:
    :show-inheritance:
@@ -94,7 +94,7 @@ PII Scrubber
 Interactive Transformer
 -----------------------
 
-.. automodule:: nicestlog.interactive_transformer
+.. automodule:: stoggertools.interactive_transformer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -102,7 +102,7 @@ Interactive Transformer
 Journal Viewer
 --------------
 
-.. automodule:: nicestlog.journal_viewer
+.. automodule:: stogger_systemd.journal_viewer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -110,7 +110,7 @@ Journal Viewer
 Linter
 ------
 
-.. automodule:: nicestlog.linter
+.. automodule:: stoggertools.linter
    :members:
    :undoc-members:
    :show-inheritance:
@@ -118,7 +118,7 @@ Linter
 Live Editor
 -----------
 
-.. automodule:: nicestlog.live_editor
+.. automodule:: stoggertools.live_editor
    :members:
    :undoc-members:
    :show-inheritance:
@@ -126,7 +126,7 @@ Live Editor
 Log Reviewer
 ------------
 
-.. automodule:: nicestlog.log_reviewer
+.. automodule:: stoggertools.log_reviewer
    :members:
    :undoc-members:
    :show-inheritance:
@@ -134,7 +134,7 @@ Log Reviewer
 Web Dashboard
 -------------
 
-.. automodule:: nicestlog.web_dashboard
+.. automodule:: stogger_web.web_dashboard
    :members:
    :undoc-members:
    :show-inheritance:
@@ -142,7 +142,7 @@ Web Dashboard
 Internationalization
 --------------------
 
-.. automodule:: nicestlog.i18n
+.. automodule:: stogger.i18n
    :members:
    :undoc-members:
    :show-inheritance:

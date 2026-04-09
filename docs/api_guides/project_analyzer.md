@@ -6,13 +6,13 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.project_analyzer` module provides automated analysis of existing Python projects to determine the best nicestlog migration strategy and identify potential issues.
+The `stogger.project_analyzer` module provides automated analysis of existing Python projects to determine the best stogger migration strategy and identify potential issues.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.project_analyzer import ProjectAnalyzer
+from stoggertools.project_analyzer import ProjectAnalyzer
 
 analyzer = ProjectAnalyzer(Path("."))
 report = analyzer.analyze()
@@ -29,7 +29,7 @@ print(f"Patterns found: {len(report.logging_patterns)}")
 Analyzes a Python project for logging migration readiness.
 
 ```python
-from nicestlog.project_analyzer import ProjectAnalyzer
+from stoggertools.project_analyzer import ProjectAnalyzer
 
 analyzer = ProjectAnalyzer(
     project_root=Path("."),
@@ -80,6 +80,6 @@ class MigrationRecommendation:
 
 ## API Reference
 
-```{autoapi} nicestlog.project_analyzer
+```{autoapi} stogger.project_analyzer
 :members:
 ```

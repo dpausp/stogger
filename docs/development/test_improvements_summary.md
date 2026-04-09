@@ -7,10 +7,10 @@ This document summarizes the test improvements made to build pexpect tests witho
 
 ### 1. Logging Level Issues Fixed
 - **Problem**: Tests were failing because 'exception' was not in the LEVELS list in core.py
-- **Solution**: Added 'exception' to the LEVELS list in `src/nicestlog/core.py`
+- **Solution**: Added 'exception' to the LEVELS list in `packages/stogger/src/stogger/core.py`
 - **Files Modified**: 
-  - `src/nicestlog/core.py` - Added 'exception' level
-  - `src/nicestlog/interactive_transformer.py` - Fixed exception logging calls
+  - `packages/stogger/src/stogger/core.py` - Added 'exception' level
+  - `packages/stogger/src/stogger/interactive_transformer.py` - Fixed exception logging calls
 
 ### 2. Pexpect Tests Implementation
 - **Purpose**: Create real terminal interaction tests without mocking

@@ -8,33 +8,33 @@ Nicestlog supports migration from various logging approaches:
 
 | Source | Migration Type | Difficulty | Command |
 |--------|---------------|------------|---------|
-| **print() statements** | `print-to-structlog` | Easy | `nicestlog migrate . --no-dry-run --type print-to-structlog` |
-| **Standard logging** | `logging-to-structlog` | Medium | `nicestlog migrate . --no-dry-run --type logging-to-structlog --interactive` |
-| **CLI outputs (typer.echo, click.echo, rich.print)** | `cli-outputs-to-structlog` | Easy | `nicestlog migrate . --no-dry-run --type cli-outputs-to-structlog` |
-| **Format strings** | `format-strings` | Easy | `nicestlog migrate . --no-dry-run --type format-strings` |
-| **Eliot** | Enhancement | Easy | Already compatible! Use `nicestlog.eliot_integration` |
+| **print() statements** | `print-to-structlog` | Easy | `stoggertools migrate . --no-dry-run --type print-to-structlog` |
+| **Standard logging** | `logging-to-structlog` | Medium | `stoggertools migrate . --no-dry-run --type logging-to-structlog --interactive` |
+| **CLI outputs (typer.echo, click.echo, rich.print)** | `cli-outputs-to-structlog` | Easy | `stoggertools migrate . --no-dry-run --type cli-outputs-to-structlog` |
+| **Format strings** | `format-strings` | Easy | `stoggertools migrate . --no-dry-run --type format-strings` |
+| **Eliot** | Enhancement | Easy | Already compatible! Use `stogger_eliot` |
 | **Sentry** | Integration | Easy | Use Sentry's `StructlogIntegration` |
 
 ## 🎯 Quick Start Migration
 
 1. **Analyze your project** (safe, no changes):
    ```bash
-   nicestlog migrate /path/to/project
+   stoggertools migrate /path/to/project
    ```
 
 2. **Preview migration changes**:
    ```bash
-   nicestlog migrate /path/to/project --no-dry-run
+   stoggertools migrate /path/to/project --no-dry-run
    ```
 
 3. **Apply migration**:
    ```bash
-   nicestlog migrate /path/to/project --no-dry-run
+   stoggertools migrate /path/to/project --no-dry-run
    ```
 
 4. **Validate results**:
    ```bash
-   nicestlog check /path/to/project
+   stoggertools check /path/to/project
    ```
 
 ## 📋 Main Commands
@@ -45,19 +45,19 @@ The primary command for analyzing and migrating projects to structured logging.
 
 ```bash
 # Analyze project (default behavior - safe, dry-run)
-nicestlog migrate .
+stoggertools migrate .
 
 # JSON output for automated processing
-nicestlog migrate . --json
+stoggertools migrate . --json
 
 # Apply migration changes
-nicestlog migrate . --no-dry-run
+stoggertools migrate . --no-dry-run
 
 # Interactive migration with user confirmation
-nicestlog migrate . --no-dry-run --interactive
+stoggertools migrate . --no-dry-run --interactive
 
 # Specific migration type
-nicestlog migrate . --no-dry-run --type logging-to-structlog
+stoggertools migrate . --no-dry-run --type logging-to-structlog
 ```
 
 ### `check` - Code Quality and Best Practices
@@ -66,31 +66,31 @@ For ongoing code quality in structlog-based projects.
 
 ```bash
 # Check logging best practices with AST analysis
-nicestlog check .
+stoggertools check .
 
 # Fix issues automatically
-nicestlog check . --fix
+stoggertools check . --fix
 
 # Fix issues interactively
-nicestlog check . --interactive
+stoggertools check . --interactive
 
 # Preview fixes without applying
-nicestlog check . --fix --dry-run
+stoggertools check . --fix --dry-run
 ```
 
 ### `init` - Initialize Configuration
 
-Initialize nicestlog configuration in your project.
+Initialize stogger configuration in your project.
 
 ```bash
 # Initialize in current directory
-nicestlog init
+stogger init
 
 # Initialize in specific directory
-nicestlog init /path/to/project
+stoggertools init /path/to/project
 
 # Force overwrite existing config
-nicestlog init --force
+stoggertools init --force
 ```
 
 ### `docs` - Documentation Viewer
@@ -99,16 +99,16 @@ Browse documentation directly from the CLI.
 
 ```bash
 # Show all documentation
-nicestlog docs
+stogger docs
 
 # Show documentation with pager
-nicestlog docs --pager
+stoggertools docs --pager
 
 # Interactive documentation browser
-nicestlog docs --interactive
+stoggertools docs --interactive
 
 # Show docs for specific feature
-nicestlog docs --feature logging
+stoggertools docs --feature logging
 ```
 
 ### `docs-serve` - Serve HTML Documentation
@@ -117,13 +117,13 @@ Serve HTML documentation in browser.
 
 ```bash
 # Serve on default port (8000)
-nicestlog docs-serve
+stogger docs-serve
 
 # Serve on specific port
-nicestlog docs-serve --port 9000
+stoggertools docs-serve --port 9000
 
 # Serve and open browser automatically
-nicestlog docs-serve --open
+stoggertools docs-serve --open
 ```
 
 ## 🛠️ Tools Commands
@@ -136,13 +136,13 @@ Generate systemd service files for your applications.
 
 ```bash
 # Generate service file
-nicestlog tools generate-service myapp "/usr/bin/myapp --config /etc/myapp.conf"
+stoggertools tools generate-service myapp "/usr/bin/myapp --config /etc/myapp.conf"
 
 # Specify user and working directory
-nicestlog tools generate-service myapp "/usr/bin/myapp" --user myuser --working-dir /var/lib/myapp
+stoggertools tools generate-service myapp "/usr/bin/myapp" --user myuser --working-dir /var/lib/myapp
 
 # Output to file
-nicestlog tools generate-service myapp "/usr/bin/myapp" --output myapp.service
+stoggertools tools generate-service myapp "/usr/bin/myapp" --output myapp.service
 ```
 
 ### `tools review` - Log Quality Review
@@ -151,13 +151,13 @@ Review log quality and provide suggestions.
 
 ```bash
 # Review log file or directory
-nicestlog tools review /var/log/myapp.log
+stoggertools tools review /var/log/myapp.log
 
 # Output in JSON format
-nicestlog tools review /var/log/myapp.log --format json
+stoggertools tools review /var/log/myapp.log --format json
 
 # Set minimum quality score
-nicestlog tools review /var/log/myapp.log --min-score 80.0
+stoggertools tools review /var/log/myapp.log --min-score 80.0
 ```
 
 ### `tools journal` - Systemd Journal Viewer
@@ -166,19 +166,19 @@ Beautiful systemd journal viewer.
 
 ```bash
 # View last 50 journal entries
-nicestlog tools journal
+stoggertools tools journal
 
 # View entries for specific unit
-nicestlog tools journal --unit myapp.service
+stoggertools tools journal --unit myapp.service
 
 # Follow log output
-nicestlog tools journal --follow
+stoggertools tools journal --follow
 
 # Show logs since specific time
-nicestlog tools journal --since "1 hour ago"
+stoggertools tools journal --since "1 hour ago"
 
 # Filter by log level
-nicestlog tools journal --level error
+stoggertools tools journal --level error
 ```
 
 ### `tools dashboard` - Web Dashboard
@@ -187,28 +187,28 @@ Start the web dashboard (requires Flask).
 
 ```bash
 # Start dashboard on default port (8080)
-nicestlog tools dashboard
+stoggertools tools dashboard
 
 # Start on specific host and port
-nicestlog tools dashboard --host 0.0.0.0 --port 9090
+stoggertools tools dashboard --host 0.0.0.0 --port 9090
 
 # Start in debug mode
-nicestlog tools dashboard --debug
+stoggertools tools dashboard --debug
 ```
 
 ### `tools demo` - Interactive Demos
 
-Run interactive demos to explore nicestlog features.
+Run interactive demos to explore stogger features.
 
 ```bash
 # List available demos
-nicestlog tools demo
+stoggertools tools demo
 
 # Run specific demo
-nicestlog tools demo basic
+stoggertools tools demo basic
 
 # Run all demos
-nicestlog tools demo --all
+stoggertools tools demo --all
 ```
 
 ### `tools i18n check` - Internationalization Check
@@ -217,22 +217,22 @@ Check translation completeness and quality.
 
 ```bash
 # Check translations in source directory
-nicestlog tools i18n check src
+stoggertools tools i18n check src
 
 # Check specific language
-nicestlog tools i18n check src --language de
+stoggertools tools i18n check src --language de
 
 # List missing translations
-nicestlog tools i18n check src --list-missing
+stoggertools tools i18n check src --list-missing
 
 # Fail on extra translations
-nicestlog tools i18n check src --fail-on-extra
+stoggertools tools i18n check src --fail-on-extra
 
 # Strict mode (fail on any missing)
-nicestlog tools i18n check src --strict
+stoggertools tools i18n check src --strict
 
 # Verbose output
-nicestlog tools i18n check src --verbose
+stoggertools tools i18n check src --verbose
 ```
 
 ## 🔄 Migration Workflow
@@ -240,13 +240,13 @@ nicestlog tools i18n check src --verbose
 ### Current (v3.x)
 ```bash
 # 1. Analyze project (safe, default behavior)
-nicestlog migrate .
+stoggertools migrate .
 
 # 2. Preview changes
-nicestlog migrate . --no-dry-run
+stoggertools migrate . --no-dry-run
 
 # 3. Apply changes
-nicestlog migrate . --no-dry-run
+stoggertools migrate . --no-dry-run
 ```
 
 ## 🎯 Key Benefits of Current Design
@@ -262,23 +262,23 @@ nicestlog migrate . --no-dry-run
 
 ```bash
 # Human-readable analysis
-nicestlog migrate .
+stoggertools migrate .
 
 # Machine-readable analysis
-nicestlog migrate . --json
+stoggertools migrate . --json
 ```
 
 ### Code Migration
 
 ```bash
 # Analyze first
-nicestlog migrate .
+stoggertools migrate .
 
 # Apply recommended changes
-nicestlog migrate . --no-dry-run
+stoggertools migrate . --no-dry-run
 
 # Specific type with interactive mode
-nicestlog migrate . --no-dry-run --type logging-to-structlog --interactive
+stoggertools migrate . --no-dry-run --type logging-to-structlog --interactive
 ```
 
 ## 🤖 Agent/Script Usage
@@ -287,7 +287,7 @@ nicestlog migrate . --no-dry-run --type logging-to-structlog --interactive
 
 ```bash
 # Get analysis data
-nicestlog migrate . --json > analysis.json
+stoggertools migrate . --json > analysis.json
 
 # Parse recommendations
 STRATEGY=$(cat analysis.json | jq -r '.recommendation.strategy')
@@ -298,10 +298,10 @@ STRATEGY=$(cat analysis.json | jq -r '.recommendation.strategy')
 ```bash
 #!/bin/bash
 # Agent workflow
-nicestlog migrate . --json > analysis.json
+stoggertools migrate . --json > analysis.json
 STRATEGY=$(cat analysis.json | jq -r '.recommendation.strategy')
 if [ "$STRATEGY" = "print-to-structlog" ]; then
-    nicestlog migrate . --no-dry-run --type print-to-structlog
+    stoggertools migrate . --no-dry-run --type print-to-structlog
 fi
 ```
 
@@ -331,10 +331,10 @@ fi
 If you see command not found errors, you might be using a very old version:
 ```bash
 # Check your version
-nicestlog --version
+stogger --version
 
 # Upgrade to latest
-pip install --upgrade nicestlog
+pip install --upgrade stogger
 ```
 
 ### Behavior differences
@@ -346,9 +346,9 @@ The current `migrate` command is safer by default:
 
 If you encounter issues:
 
-1. **Read the help**: `nicestlog --help` or `nicestlog <command> --help`
+1. **Read the help**: `stoggertools --help` or `stogger <command> --help`
 2. **Test safely**: Use commands without `--no-dry-run` to analyze first
-3. **Check documentation**: Updated guides at `nicestlog docs`
+3. **Check documentation**: Updated guides at `stogger docs`
 
 ## 🎉 Welcome to the Current Version!
 
@@ -358,4 +358,4 @@ The current CLI design is:
 - **Faster**: Quick analysis with `migrate`
 - **Agent-friendly**: Consistent JSON output
 
-Thank you for using nicestlog! 🚀
+Thank you for using stogger! 🚀

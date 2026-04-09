@@ -1,6 +1,6 @@
 # Migration Examples: Before and After
 
-This guide shows concrete examples of how nicestlog migration works with real code. Each example demonstrates the transformation from common logging patterns to nicestlog's structured approach.
+This guide shows concrete examples of how stogger migration works with real code. Each example demonstrates the transformation from common logging patterns to stogger's structured approach.
 
 ## 🔄 Print Statement Migration
 
@@ -25,7 +25,7 @@ def main():
     print(f"Result: {result}")
 ```
 
-### After: Structured Logging with nicestlog
+### After: Structured Logging with stogger
 ```python
 # new_app.py
 import structlog
@@ -71,10 +71,10 @@ def main():
 ### Migration Command
 ```bash
 # Analyze what would change
-nicestlog migrate . --type print-to-structlog
+stoggertools migrate . --type print-to-structlog
 
 # Apply the migration with backup
-nicestlog migrate . --do-migrate --type print-to-structlog --backup
+stoggertools migrate . --do-migrate --type print-to-structlog --backup
 ```
 
 ## 📊 Standard Logging Migration
@@ -115,14 +115,14 @@ class UserService:
         return 12345
 ```
 
-### After: Structured logging with nicestlog
+### After: Structured logging with stogger
 ```python
 # modern_service.py
 import structlog
-import nicestlog
+import stogger
 
-# Initialize nicestlog
-nicestlog.init_logging(
+# Initialize stogger
+stogger.init_logging(
     verbose=True,
     syslog_identifier="user-service",
     log_format="console"
@@ -193,10 +193,10 @@ class UserService:
 ### Migration Command
 ```bash
 # Interactive migration for review
-nicestlog migrate . --do-migrate --type logging-to-structlog --interactive
+stoggertools migrate . --do-migrate --type logging-to-structlog --interactive
 
 # Or automatic with backup
-nicestlog migrate . --do-migrate --type logging-to-structlog --backup
+stoggertools migrate . --do-migrate --type logging-to-structlog --backup
 ```
 
 ## 🎯 Eliot Integration Migration
@@ -237,15 +237,15 @@ def save_data(destination, data):
     pass
 ```
 
-### After: Eliot action tracing with nicestlog
+### After: Eliot action tracing with stogger
 ```python
 # modern_sync_service.py
 import structlog
-import nicestlog
-from nicestlog.eliot_integration import eliot_action, eliot_message
+import stogger
+from stogger_eliot import eliot_action, eliot_message
 
-# Initialize nicestlog with Eliot support
-nicestlog.init_logging(
+# Initialize stogger with Eliot support
+stogger.init_logging(
     verbose=True,
     syslog_identifier="sync-service",
     log_format="console"
@@ -361,10 +361,10 @@ def save_data(destination, data):
 ### Migration Command
 ```bash
 # Check for eliot integration opportunities
-nicestlog check . --pattern eliot
+stoggertools check . --pattern eliot
 
 # Apply eliot-style transformations
-nicestlog check . --fix --pattern action
+stoggertools check . --fix --pattern action
 ```
 
 ## 🔧 Other Logging Libraries
@@ -391,11 +391,11 @@ def handle_payment(amount, user_id):
         raise
 ```
 
-**After: nicestlog with Sentry integration**
+**After: stogger with Sentry integration**
 ```python
-# nicestlog_sentry_app.py
+# stogger_sentry_app.py
 import structlog
-import nicestlog
+import stogger
 import sentry_sdk
 from sentry_sdk.integrations.structlog import StructlogIntegration
 
@@ -405,8 +405,8 @@ sentry_sdk.init(
     integrations=[StructlogIntegration()]
 )
 
-# Initialize nicestlog
-nicestlog.init_logging(
+# Initialize stogger
+stogger.init_logging(
     verbose=True,
     syslog_identifier="payment-service"
 )
@@ -458,12 +458,12 @@ def handle_payment(amount, user_id):
 
 | Migration Type | Command | Use Case |
 |---|---|---|
-| **Print to Structlog** | `nicestlog migrate . --do-migrate --type print-to-structlog` | Convert print() statements |
-| **Logging to Structlog** | `nicestlog migrate . --do-migrate --type logging-to-structlog --interactive` | Convert standard logging |
-| **Format Strings** | `nicestlog migrate . --do-migrate --type format-strings` | Convert f-strings to structured |
-| **Analysis Only** | `nicestlog migrate .` | Analyze without changes |
-| **Interactive Mode** | `nicestlog migrate . --do-migrate --interactive` | Review each change |
-| **With Backup** | `nicestlog migrate . --do-migrate --backup` | Create backup files |
+| **Print to Structlog** | `stoggertools migrate . --do-migrate --type print-to-structlog` | Convert print() statements |
+| **Logging to Structlog** | `stoggertools migrate . --do-migrate --type logging-to-structlog --interactive` | Convert standard logging |
+| **Format Strings** | `stoggertools migrate . --do-migrate --type format-strings` | Convert f-strings to structured |
+| **Analysis Only** | `stoggertools migrate .` | Analyze without changes |
+| **Interactive Mode** | `stoggertools migrate . --do-migrate --interactive` | Review each change |
+| **With Backup** | `stoggertools migrate . --do-migrate --backup` | Create backup files |
 
 ## 🔍 Validation Commands
 
@@ -471,25 +471,25 @@ After migration, validate your changes:
 
 ```bash
 # Check code quality
-nicestlog check .
+stoggertools check .
 
 # Fix any remaining issues
-nicestlog check . --fix
+stoggertools check . --fix
 
 # Validate translations
-nicestlog tools i18n check src/
+stoggertools tools i18n check src/
 
 # Run demos to see results
-nicestlog tools demo
+stoggertools tools demo
 ```
 
 ## 📚 Next Steps
 
-1. **Initialize Configuration**: `nicestlog init .`
+1. **Initialize Configuration**: `stoggertools init .`
 2. **Choose Migration Type**: Based on your current logging approach
-3. **Run Analysis**: `nicestlog migrate .` to see what would change
+3. **Run Analysis**: `stoggertools migrate .` to see what would change
 4. **Apply Migration**: Add `--do-migrate` flag when ready
-5. **Validate Results**: Use `nicestlog check` and `nicestlog demo`
+5. **Validate Results**: Use `stogger check` and `stogger demo`
 
 For more examples and advanced patterns, see:
 - [Best Practices](best_practices.md)

@@ -6,28 +6,28 @@
 This module has moderate test coverage. Some features may not work as expected.
 :::
 
-The `nicestlog.cli` module provides the command-line interface for nicestlog.
+The `stogger.cli` module provides the command-line interface for stogger.
 
 ## Usage
 
 ```bash
 # Lint a file or directory
-nicestlog check src/my_module.py
+stoggertools check src/my_module.py
 
 # Migrate print statements to structured logging
-nicestlog migrate src/ --dry-run
+stoggertools migrate src/ --dry-run
 
-# Initialize nicestlog in a project
-nicestlog init
+# Initialize stogger in a project
+stoggertools init
 
 # Review log quality
-nicestlog tools review src/
+stoggertools tools review src/
 
 # Serve documentation
-nicestlog docs serve
+stoggertools docs serve
 
 # Check translations
-nicestlog i18n check
+stoggertools tools i18n check
 ```
 
 ## Main Commands
@@ -37,7 +37,7 @@ nicestlog i18n check
 Main linting command for analyzing Python files for logging issues.
 
 ```bash
-nicestlog check [PATH]
+stoggertools check [PATH]
 ```
 
 ### migrate
@@ -45,15 +45,15 @@ nicestlog check [PATH]
 Migrate print statements to structured logging.
 
 ```bash
-nicestlog migrate [PATH]
+stoggertools migrate [PATH]
 ```
 
 ### init
 
-Initialize nicestlog in a project.
+Initialize stogger in a project.
 
 ```bash
-nicestlog init
+stoggertools init
 ```
 
 ### docs
@@ -61,7 +61,7 @@ nicestlog init
 Documentation commands.
 
 ```bash
-nicestlog docs serve
+stoggertools docs serve
 ```
 
 ### tools
@@ -70,22 +70,22 @@ Utility commands for advanced features.
 
 ```bash
 # Review log quality
-nicestlog tools review [PATH]
+stoggertools tools review [PATH]
 
 # Advanced AST-based checks
-nicestlog tools check-advanced [PATH]
+stoggertools tools check-advanced [PATH]
 
 # View systemd journal
-nicestlog tools journal
+stoggertools tools journal
 
 # Launch web dashboard
-nicestlog tools dashboard
+stoggertools tools dashboard
 
 # Demo features
-nicestlog tools demo
+stoggertools tools demo
 
 # Generate systemd service file
-nicestlog tools generate-service
+stoggertools tools generate-service
 ```
 
 ### i18n
@@ -94,11 +94,11 @@ Internationalization commands.
 
 ```bash
 # Check translations
-nicestlog i18n check
+stoggertools tools i18n check
 ```
 
 ## API Reference
 
-```{autoapi} nicestlog.cli
+```{autoapi} stogger.cli
 :members:
 ```

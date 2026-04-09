@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Demo: PII Scrubbing in action with nicestlog.
+"""Demo: PII Scrubbing in action with stogger.
 
 Shows how sensitive data gets automatically redacted from logs.
 """
 
 import structlog
 
-import nicestlog
+import stogger
 
 
 def demo_pii_protection():
     """Demonstrate automatic PII protection."""
-    # Initialize nicestlog with PII scrubbing enabled (default)
-    nicestlog.init_logging(verbose=True, syslog_identifier="pii-demo")
+    # Initialize stogger with PII scrubbing enabled (default)
+    stogger.init_logging(verbose=True, syslog_identifier="pii-demo")
 
     log = structlog.get_logger("security")
 
@@ -75,7 +75,7 @@ def demo_custom_pii_config():
     print("=" * 60)
 
     # Create custom PII processor with different redaction text
-    custom_scrubber = nicestlog.create_pii_processor(
+    custom_scrubber = stogger.create_pii_processor(
         redaction_text="***HIDDEN***",
         custom_patterns={
             "employee_id": r"EMP\d{6}",  # Custom pattern for employee IDs

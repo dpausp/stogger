@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Demo: Beautiful Eliot action tracing with nicestlog.
+"""Demo: Beautiful Eliot action tracing with stogger.
 
 This shows how to use Eliot for request tracing with human-readable output
 instead of ugly JSON logs.
@@ -10,7 +10,7 @@ import time
 
 from eliot import log_message
 
-from nicestlog import log_action, log_call, setup_eliot_logging
+from stogger_eliot import log_action, log_call, setup_eliot_logging
 
 
 def simulate_api_request():

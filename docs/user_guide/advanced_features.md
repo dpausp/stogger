@@ -1,13 +1,13 @@
 # Advanced Features
 
-nicestlog provides powerful advanced features for sophisticated logging scenarios.
+stogger provides powerful advanced features for sophisticated logging scenarios.
 
 ## Live Log Editing
 
 Edit and transform logs in real-time:
 
 ```python
-from nicestlog.live_editor import LiveEditor  # module exists; experimental
+from stoggertools.live_editor import LiveEditor  # module exists; experimental
 
 editor = LiveEditor()
 editor.start_session("my_app.py")
@@ -21,7 +21,7 @@ editor.enable_auto_transform(rules=["event_style", "structured_data"])
 Comprehensive log analysis and review:
 
 ```python
-from nicestlog.log_reviewer import LogReviewer
+from stoggertools.log_reviewer import LogReviewer
 
 reviewer = LogReviewer()
 report = reviewer.analyze_codebase("src/")
@@ -35,7 +35,7 @@ print(f"Issues Found: {len(report.issues)}")
 Step-by-step code transformation:
 
 ```python
-from nicestlog.interactive_transformer import InteractiveTransformer
+from stoggertools.interactive_transformer import InteractiveTransformer
 
 transformer = InteractiveTransformer()
 transformer.transform_file("legacy_code.py", interactive=True)
@@ -61,7 +61,7 @@ class CustomProcessor:
         return record
 
 # Register processor
-nicestlog.add_processor(CustomProcessor())
+stogger.add_processor(CustomProcessor())
 ```
 
 ## Advanced Configuration
@@ -70,8 +70,8 @@ nicestlog.add_processor(CustomProcessor())
 
 ```python
 import os
-# For real usage, configure via nicestlog.init_logging and structlog.
-from nicestlog import init_logging as configure
+# For real usage, configure via stogger.init_logging and structlog.
+from stogger import init_logging as configure
 
 # Different configs per environment
 if os.getenv("ENV") == "production":
@@ -113,7 +113,7 @@ update_config({
 
 ```python
 import asyncio
-from nicestlog import get_async_logger
+from stogger import get_async_logger
 
 async def main():
     log = get_async_logger()
@@ -134,9 +134,9 @@ asyncio.run(main())
 ### Lazy Evaluation
 
 ```python
-from nicestlog import lazy
+from stogger import lazy
 
-log = nicestlog.get_logger()
+log = stogger.get_logger()
 
 # Expensive computation only happens if logged
 log.debug("expensive-data", 
@@ -148,7 +148,7 @@ log.debug("expensive-data",
 ### Metrics Collection
 
 ```python
-from nicestlog.metrics import MetricsCollector
+from stogger.metrics import MetricsCollector
 
 collector = MetricsCollector()
 
@@ -167,7 +167,7 @@ log.info("api-request",
 ### Health Checks
 
 ```python
-from nicestlog.health import HealthChecker
+from stogger.health import HealthChecker
 
 checker = HealthChecker()
 
@@ -183,7 +183,7 @@ print(f"Avg Response Time: {health.avg_response_time}ms")
 
 ```python
 import pytest
-from nicestlog.testing import LogCapture
+from stogger.testing import LogCapture
 
 def test_user_login():
     with LogCapture() as logs:
@@ -198,7 +198,7 @@ def test_user_login():
 ### Mock Loggers
 
 ```python
-from nicestlog.testing import MockLogger
+from stogger.testing import MockLogger
 
 def test_with_mock():
     with MockLogger() as mock_log:
@@ -213,7 +213,7 @@ def test_with_mock():
 ### Creating Plugins
 
 ```python
-from nicestlog.plugins import Plugin
+from stogger.plugins import Plugin
 
 class TimestampPlugin(Plugin):
     def process_record(self, record):
@@ -221,7 +221,7 @@ class TimestampPlugin(Plugin):
         return record
 
 # Register plugin
-nicestlog.register_plugin(TimestampPlugin())
+stogger.register_plugin(TimestampPlugin())
 ```
 
 ### Available Plugins
@@ -236,7 +236,7 @@ nicestlog.register_plugin(TimestampPlugin())
 ### Encryption
 
 ```python
-from nicestlog.security import EncryptedLogger
+from stogger.security import EncryptedLogger
 
 # Encrypt sensitive logs
 encrypted_log = EncryptedLogger(key="your-encryption-key")
@@ -246,7 +246,7 @@ encrypted_log.info("sensitive-operation", user_data=sensitive_data)
 ### Audit Trail
 
 ```python
-from nicestlog.audit import AuditLogger
+from stogger.audit import AuditLogger
 
 audit = AuditLogger()
 
@@ -262,7 +262,7 @@ audit.log_action("user-data-access",
 ### Anomaly Detection
 
 ```python
-from nicestlog.ml import AnomalyDetector
+from stogger.ml import AnomalyDetector
 
 detector = AnomalyDetector()
 detector.train_on_logs("logs/training/")
@@ -276,7 +276,7 @@ log.info("api-request",
 ### Log Classification
 
 ```python
-from nicestlog.ml import LogClassifier
+from stogger.ml import LogClassifier
 
 classifier = LogClassifier()
 
@@ -287,4 +287,4 @@ log.info("user-behavior",
          _auto_classify=True)  # Classified as "conversion"
 ```
 
-These advanced features make nicestlog a powerful tool for enterprise-grade logging and observability! 🚀
+These advanced features make stogger a powerful tool for enterprise-grade logging and observability! 🚀

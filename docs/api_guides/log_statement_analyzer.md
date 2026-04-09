@@ -5,13 +5,13 @@
 This module has limited test coverage. Use at your own risk. Contributions to improve test coverage are welcome.
 :::
 
-The `nicestlog.log_statement_analyzer` module provides AST-based analysis of log statements to detect common issues and patterns.
+The `stogger.log_statement_analyzer` module provides AST-based analysis of log statements to detect common issues and patterns.
 
 ## Basic Usage
 
 ```python
 from pathlib import Path
-from nicestlog.log_statement_analyzer import LogStatementAnalyzer
+from stogger.log_statement_analyzer import LogStatementAnalyzer
 
 analyzer = LogStatementAnalyzer(prefer_dash_case=True)
 analyzer.analyze_file(Path("src/module.py"))
@@ -25,7 +25,7 @@ for statement in analyzer.statements:
 AST visitor that analyzes log statements in Python files.
 
 ```python
-from nicestlog.log_statement_analyzer import LogStatementAnalyzer
+from stogger.log_statement_analyzer import LogStatementAnalyzer
 
 analyzer = LogStatementAnalyzer(
     prefer_dash_case=True,  # Enforce dash-case event IDs
@@ -84,6 +84,6 @@ class LogAnalysisResult:
 
 ## API Reference
 
-```{autoapi} nicestlog.log_statement_analyzer
+```{autoapi} stogger.log_statement_analyzer
 :members:
 ```

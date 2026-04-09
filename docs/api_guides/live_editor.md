@@ -5,12 +5,12 @@
 This module has limited test coverage. Use at your own risk. Contributions to improve test coverage are welcome.
 :::
 
-The `nicestlog.live_editor` module provides interactive in-terminal code editing for transformation proposals, with syntax highlighting, validation, and edit session recording for machine learning.
+The `stogger.live_editor` module provides interactive in-terminal code editing for transformation proposals, with syntax highlighting, validation, and edit session recording for machine learning.
 
 ## Basic Usage
 
 ```python
-from nicestlog.live_editor import LiveCodeEditor
+from stoggertools.live_editor import LiveCodeEditor
 
 editor = LiveCodeEditor(use_external_editor=False)
 
@@ -29,7 +29,7 @@ final_code, accepted, session = editor.edit_transformation(
 The main editor class for interactive transformation editing.
 
 ```python
-from nicestlog.live_editor import LiveCodeEditor
+from stoggertools.live_editor import LiveCodeEditor
 
 editor = LiveCodeEditor(
     use_external_editor=False,  # Use in-terminal editor
@@ -72,11 +72,11 @@ class EditSession:
 Requires `rich` for terminal UI:
 
 ```bash
-pip install nicestlog[cli]
+pip install stogger[cli]
 ```
 
 ## API Reference
 
-```{autoapi} nicestlog.live_editor
+```{autoapi} stogger.live_editor
 :members:
 ```

@@ -10,9 +10,9 @@ import tempfile
 
 import structlog
 
-# Initialize nicestlog for beautiful output
-import nicestlog
-from nicestlog.advanced_assistant import (
+# Initialize stogger for beautiful output
+import stogger
+from stogger.advanced_assistant import (
     AdvancedAssistant,
     ASTPattern,
     NodeType,
@@ -20,7 +20,7 @@ from nicestlog.advanced_assistant import (
     transform_python_file,
 )
 
-nicestlog.init_logging(verbose=True, syslog_identifier="advanced_assistant_demo")
+stogger.init_logging(verbose=True, syslog_identifier="advanced_assistant_demo")
 log = structlog.get_logger("demo")
 
 
@@ -201,11 +201,7 @@ def demo_custom_patterns():
 
     def is_todo_comment(node: ast.AST) -> bool:
         """Detect TODO comments in string literals."""
-        return (
-            isinstance(node, ast.Constant)
-            and isinstance(node.value, str)
-            and "TODO" in node.value.upper()
-        )
+        return isinstance(node, ast.Constant) and isinstance(node.value, str) and "TODO" in node.value.upper()
 
     def highlight_todo(node: ast.Constant) -> ast.Constant:
         """Add emphasis to TODO comments."""
@@ -322,9 +318,7 @@ class Class_{i}:
             analysis_duration=result.metrics.duration,
             nodes_analyzed=result.metrics.nodes_analyzed,
             nodes_transformed=result.metrics.nodes_transformed,
-            analysis_rate=result.metrics.nodes_analyzed / result.metrics.duration
-            if result.metrics.duration > 0
-            else 0,
+            analysis_rate=result.metrics.nodes_analyzed / result.metrics.duration if result.metrics.duration > 0 else 0,
             patterns_matched=dict(result.metrics.patterns_matched),
             complexity_score=result.analysis.complexity_score,
         )
