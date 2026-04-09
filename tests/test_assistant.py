@@ -1,7 +1,7 @@
 import re
 import textwrap
 
-from nicestlog.assistant import migrate_file
+from stoggertools.assistant import migrate_file
 
 
 def _norm(s: str):

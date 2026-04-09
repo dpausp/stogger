@@ -6,7 +6,7 @@ import tempfile
 
 import pytest
 
-from nicestlog.advanced_assistant import (
+from stoggertools.advanced_assistant import (
     AdvancedAssistant,
     AdvancedASTAnalyzer,
     AdvancedTransformer,

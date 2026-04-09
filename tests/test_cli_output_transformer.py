@@ -1,14 +1,14 @@
 """Tests for CLI Output to Structlog Transformer
 
 This module tests the AST transformation capabilities that convert CLI framework
-output functions to structured logging with nicestlog.
+output functions to structured logging with stogger.
 """
 
 import ast
 
 import pytest
 
-from nicestlog.cli_output_transformer import (
+from stoggertools.cli_output_transformer import (
     CLIOutputCall,
     CLIOutputToStructlogTransformer,
     analyze_cli_outputs_in_file,
@@ -98,9 +98,7 @@ class TestCLIOutputToStructlogTransformer:
         assert CLIOutputToStructlogTransformer.slugify("file.txt") == "file-txt"
         assert CLIOutputToStructlogTransformer.slugify("path/to/file") == "path-to-file"
         assert CLIOutputToStructlogTransformer.slugify("key:value") == "key-value"
-        assert (
-            CLIOutputToStructlogTransformer.slugify("a+b=c") == "a-bc"
-        )  # = is not in separator list
+        assert CLIOutputToStructlogTransformer.slugify("a+b=c") == "a-bc"  # = is not in separator list
 
     def test_derive_event_from_literal(self):
         """Test event name derivation from string literals."""
@@ -610,12 +608,8 @@ typer.echo("Hello")
         assert '"""Module docstring."""' in new_code
         # Imports should be added after docstring
         lines = new_code.split("\n")
-        docstring_line = next(
-            i for i, line in enumerate(lines) if "Module docstring" in line
-        )
-        import_line = next(
-            i for i, line in enumerate(lines) if "import structlog" in line
-        )
+        docstring_line = next(i for i, line in enumerate(lines) if "Module docstring" in line)
+        import_line = next(i for i, line in enumerate(lines) if "import structlog" in line)
         assert import_line > docstring_line
 
 

@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nicestlog.linter import (
+from stoggertools.linter import (
     LoggingStats,
     LoggingVisitor,
     analyze_file,

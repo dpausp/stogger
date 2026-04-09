@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from typer.testing import CliRunner
 
-from nicestlog import cli
+from stoggertools import cli
 
 runner = CliRunner()
 
@@ -45,8 +45,8 @@ def test_run_async_demo_behavior(monkeypatch, capsys):
         types.SimpleNamespace(sleep=_nosleep, time=lambda: next(times)),
     )
 
-    # mock nicestlog init
-    monkeypatch.setattr(cli.nicestlog, "init_logging", lambda **kwargs: None)
+    # mock stogger init
+    monkeypatch.setattr(cli.stogger, "init_logging", lambda **kwargs: None)
 
     # mock structlog logger
     mock_log = Mock()
@@ -59,10 +59,7 @@ def test_run_async_demo_behavior(monkeypatch, capsys):
     # Just verify the demo completed successfully
 
     # logger.info should be called in both loops
-    assert any(
-        call.args and call.args[0] in ("sync-message", "async-message")
-        for call in mock_log.info.call_args_list
-    )
+    assert any(call.args and call.args[0] in ("sync-message", "async-message") for call in mock_log.info.call_args_list)
 
 
 def test_run_complete_demo_smoke(monkeypatch, capsys):
@@ -70,7 +67,7 @@ def test_run_complete_demo_smoke(monkeypatch, capsys):
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep))
 
     # Prevent real logging initialization
-    monkeypatch.setattr(cli.nicestlog, "init_logging", lambda **kwargs: None)
+    monkeypatch.setattr(cli.stogger, "init_logging", lambda **kwargs: None)
 
     # Mock logger
     mock_log = Mock()

@@ -2,6 +2,70 @@ version = 1
 revision = 3
 requires-python = ">=3.13"
 
+[manifest]
+members = [
+    "stogger",
+    "stogger-eliot",
+    "stogger-systemd",
+    "stogger-web",
+    "stoggertools",
+]
+
+[manifest.dependency-groups]
+cli = [{ name = "typer", specifier = ">=0.16.1" }]
+dev = [
+    { name = "build", specifier = ">=1.4.2" },
+    { name = "doit", specifier = ">=0.37.0" },
+    { name = "furo", specifier = ">=2024.1.29" },
+    { name = "hatch", specifier = ">=1.16.5" },
+    { name = "linkify-it-py", specifier = ">=2.0.3" },
+    { name = "mdformat", specifier = ">=0.7.22" },
+    { name = "myst-parser", specifier = ">=2.0.0" },
+    { name = "pexpect", specifier = ">=4.9.0" },
+    { name = "pre-commit", specifier = ">=3.5.0" },
+    { name = "pytest", specifier = ">=9.0.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "radon", specifier = ">=6.0.1" },
+    { name = "ruff", specifier = ">=0.15.0" },
+    { name = "sphinx", specifier = ">=7.0.0" },
+    { name = "sphinx-autobuild", specifier = ">=2021.3.14" },
+    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
+    { name = "sphinx-design", specifier = ">=0.5.0" },
+    { name = "sphinx-notfound-page", specifier = ">=1.0.0" },
+    { name = "sphinxext-opengraph", specifier = ">=0.9.0" },
+    { name = "stoggertools", editable = "packages/stoggertools" },
+    { name = "tomli-w", specifier = ">=1.0.0" },
+    { name = "tox", specifier = ">=4.50.0" },
+    { name = "tox-uv-bare", specifier = ">=1.33.1" },
+    { name = "ty", specifier = ">=0.0.24" },
+    { name = "validate-pyproject", specifier = ">=0.24.1" },
+    { name = "vulture", specifier = ">=2.16" },
+]
+docs = [
+    { name = "furo", specifier = ">=2024.1.29" },
+    { name = "linkify-it-py", specifier = ">=2.0.3" },
+    { name = "myst-parser", specifier = ">=2.0.0" },
+    { name = "sphinx", specifier = ">=7.0.0" },
+    { name = "sphinx-autobuild", specifier = ">=2021.3.14" },
+    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
+    { name = "sphinx-design", specifier = ">=0.5.0" },
+    { name = "sphinx-notfound-page", specifier = ">=1.0.0" },
+    { name = "sphinxext-opengraph", specifier = ">=0.9.0" },
+]
+ipython = [{ name = "ipython", specifier = ">=9.4.0" }]
+lint = [
+    { name = "ruff", specifier = ">=0.15.0" },
+    { name = "ty", specifier = ">=0.0.24" },
+    { name = "vulture", specifier = ">=2.16" },
+]
+test = [
+    { name = "pexpect", specifier = ">=4.9.0" },
+    { name = "pytest", specifier = ">=9.0.0" },
+    { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-timeout", specifier = ">=2.4.0" },
+]
+
 [[package]]
 name = "accessible-pygments"
 version = "0.0.5"
@@ -830,160 +894,6 @@ wheels = [
 ]
 
 [[package]]
-name = "nicestlog"
-version = "0.3.5"
-source = { editable = "." }
-dependencies = [
-    { name = "structlog" },
-]
-
-[package.optional-dependencies]
-cli = [
-    { name = "click" },
-    { name = "colorama" },
-    { name = "rich" },
-    { name = "toml" },
-    { name = "typer" },
-]
-eliot = [
-    { name = "eliot" },
-]
-http = [
-    { name = "requests" },
-]
-web = [
-    { name = "flask" },
-]
-
-[package.dev-dependencies]
-cli = [
-    { name = "typer" },
-]
-dev = [
-    { name = "build" },
-    { name = "doit" },
-    { name = "furo" },
-    { name = "hatch" },
-    { name = "linkify-it-py" },
-    { name = "mdformat" },
-    { name = "myst-parser" },
-    { name = "nicestlog", extra = ["cli"] },
-    { name = "pexpect" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-timeout" },
-    { name = "radon" },
-    { name = "ruff" },
-    { name = "sphinx" },
-    { name = "sphinx-autobuild" },
-    { name = "sphinx-copybutton" },
-    { name = "sphinx-design" },
-    { name = "sphinx-notfound-page" },
-    { name = "sphinxext-opengraph" },
-    { name = "tomli-w" },
-    { name = "tox" },
-    { name = "tox-uv-bare" },
-    { name = "ty" },
-    { name = "validate-pyproject" },
-    { name = "vulture" },
-]
-docs = [
-    { name = "furo" },
-    { name = "linkify-it-py" },
-    { name = "myst-parser" },
-    { name = "sphinx" },
-    { name = "sphinx-autobuild" },
-    { name = "sphinx-copybutton" },
-    { name = "sphinx-design" },
-    { name = "sphinx-notfound-page" },
-    { name = "sphinxext-opengraph" },
-]
-ipython = [
-    { name = "ipython" },
-]
-lint = [
-    { name = "ruff" },
-    { name = "ty" },
-    { name = "vulture" },
-]
-test = [
-    { name = "pexpect" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-timeout" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", marker = "extra == 'cli'", specifier = ">=8.1.8" },
-    { name = "colorama", marker = "extra == 'cli'", specifier = ">=0.4.6" },
-    { name = "eliot", marker = "extra == 'eliot'", specifier = ">=1.17.5" },
-    { name = "flask", marker = "extra == 'web'", specifier = ">=3.1.3" },
-    { name = "requests", marker = "extra == 'http'", specifier = ">=2.33.0" },
-    { name = "rich", marker = "extra == 'cli'", specifier = ">=14.3.3" },
-    { name = "structlog", specifier = ">=25.4.0" },
-    { name = "toml", marker = "extra == 'cli'", specifier = ">=0.10.2" },
-    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.16.1" },
-]
-provides-extras = ["cli", "web", "http", "eliot"]
-
-[package.metadata.requires-dev]
-cli = [{ name = "typer", specifier = ">=0.16.1" }]
-dev = [
-    { name = "build", specifier = ">=1.4.2" },
-    { name = "doit", specifier = ">=0.37.0" },
-    { name = "furo", specifier = ">=2024.1.29" },
-    { name = "hatch", specifier = ">=1.16.5" },
-    { name = "linkify-it-py", specifier = ">=2.0.3" },
-    { name = "mdformat", specifier = ">=0.7.22" },
-    { name = "myst-parser", specifier = ">=2.0.0" },
-    { name = "nicestlog", extras = ["cli"], editable = "." },
-    { name = "pexpect", specifier = ">=4.9.0" },
-    { name = "pre-commit", specifier = ">=3.5.0" },
-    { name = "pytest", specifier = ">=9.0.0" },
-    { name = "pytest-cov", specifier = ">=6.0.0" },
-    { name = "pytest-timeout", specifier = ">=2.4.0" },
-    { name = "radon", specifier = ">=6.0.1" },
-    { name = "ruff", specifier = ">=0.15.0" },
-    { name = "sphinx", specifier = ">=7.0.0" },
-    { name = "sphinx-autobuild", specifier = ">=2021.3.14" },
-    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
-    { name = "sphinx-design", specifier = ">=0.5.0" },
-    { name = "sphinx-notfound-page", specifier = ">=1.0.0" },
-    { name = "sphinxext-opengraph", specifier = ">=0.9.0" },
-    { name = "tomli-w", specifier = ">=1.0.0" },
-    { name = "tox", specifier = ">=4.50.0" },
-    { name = "tox-uv-bare", specifier = ">=1.33.1" },
-    { name = "ty", specifier = ">=0.0.24" },
-    { name = "validate-pyproject", specifier = ">=0.24.1" },
-    { name = "vulture", specifier = ">=2.16" },
-]
-docs = [
-    { name = "furo", specifier = ">=2024.1.29" },
-    { name = "linkify-it-py", specifier = ">=2.0.3" },
-    { name = "myst-parser", specifier = ">=2.0.0" },
-    { name = "sphinx", specifier = ">=7.0.0" },
-    { name = "sphinx-autobuild", specifier = ">=2021.3.14" },
-    { name = "sphinx-copybutton", specifier = ">=0.5.2" },
-    { name = "sphinx-design", specifier = ">=0.5.0" },
-    { name = "sphinx-notfound-page", specifier = ">=1.0.0" },
-    { name = "sphinxext-opengraph", specifier = ">=0.9.0" },
-]
-ipython = [{ name = "ipython", specifier = ">=9.4.0" }]
-lint = [
-    { name = "ruff", specifier = ">=0.15.0" },
-    { name = "ty", specifier = ">=0.0.24" },
-    { name = "vulture", specifier = ">=2.16" },
-]
-test = [
-    { name = "pexpect", specifier = ">=4.9.0" },
-    { name = "pytest", specifier = ">=9.0.0" },
-    { name = "pytest-cov", specifier = ">=6.0.0" },
-    { name = "pytest-timeout", specifier = ">=2.4.0" },
-]
-
-[[package]]
 name = "nodeenv"
 version = "1.9.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1583,6 +1493,85 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/15/b9/cc3017f9a9c9b6e27c5106cc10cc7904653c3eec0729793aec10479dd669/starlette-0.47.3.tar.gz", hash = "sha256:6bc94f839cc176c4858894f1f8908f0ab79dfec1a6b8402f6da9be26ebea52e9", size = 2584144, upload-time = "2025-08-24T13:36:42.122Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/fd/901cfa59aaa5b30a99e16876f11abe38b59a1a2c51ffb3d7142bb6089069/starlette-0.47.3-py3-none-any.whl", hash = "sha256:89c0778ca62a76b826101e7c709e70680a1699ca7da6b44d38eb0a7e61fe4b51", size = 72991, upload-time = "2025-08-24T13:36:40.887Z" },
+]
+
+[[package]]
+name = "stogger"
+version = "1.0.0"
+source = { editable = "packages/stogger" }
+dependencies = [
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "structlog", specifier = ">=25.4.0" }]
+
+[[package]]
+name = "stogger-eliot"
+version = "1.0.0"
+source = { editable = "packages/stogger-eliot" }
+dependencies = [
+    { name = "eliot" },
+    { name = "stogger" },
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "eliot", specifier = ">=1.17.5" },
+    { name = "stogger", editable = "packages/stogger" },
+    { name = "structlog", specifier = ">=25.4.0" },
+]
+
+[[package]]
+name = "stogger-systemd"
+version = "1.0.0"
+source = { editable = "packages/stogger-systemd" }
+dependencies = [
+    { name = "stogger" },
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "stogger", editable = "packages/stogger" },
+    { name = "structlog", specifier = ">=25.4.0" },
+]
+
+[[package]]
+name = "stogger-web"
+version = "1.0.0"
+source = { editable = "packages/stogger-web" }
+dependencies = [
+    { name = "flask" },
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=3.1.3" },
+    { name = "structlog", specifier = ">=25.4.0" },
+]
+
+[[package]]
+name = "stoggertools"
+version = "1.0.0"
+source = { editable = "packages/stoggertools" }
+dependencies = [
+    { name = "rich" },
+    { name = "stogger" },
+    { name = "structlog" },
+    { name = "toml" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "rich", specifier = ">=14.3.3" },
+    { name = "stogger", editable = "packages/stogger" },
+    { name = "structlog", specifier = ">=25.4.0" },
+    { name = "toml", specifier = ">=0.10.2" },
+    { name = "typer", specifier = ">=0.16.1" },
 ]
 
 [[package]]

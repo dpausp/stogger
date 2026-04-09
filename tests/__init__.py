@@ -1,1 +1,1 @@
-# Tests for nicestlog
+# Tests for stogger

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nicestlog.systemd_integration import (
+from stogger_systemd.systemd_integration import (
     ServiceConfig,
     SystemdJournalHandler,
     create_systemd_service_file,
@@ -45,7 +45,7 @@ class TestDetectSystemdEnvironment:
 class TestSetupSystemdLogging:
     """Test cases for setup_systemd_logging function."""
 
-    @patch("nicestlog.systemd_integration.detect_systemd_environment")
+    @patch("stogger_systemd.systemd_integration.detect_systemd_environment")
     def test_setup_with_systemd_available(self, mock_detect):
         """Test setup when systemd is available."""
         mock_detect.return_value = {
@@ -58,7 +58,7 @@ class TestSetupSystemdLogging:
         # Should return a handler or True/False based on actual implementation
         assert result is not None
 
-    @patch("nicestlog.systemd_integration.detect_systemd_environment")
+    @patch("stogger_systemd.systemd_integration.detect_systemd_environment")
     def test_setup_without_systemd(self, mock_detect):
         """Test setup when systemd is not available."""
         mock_detect.return_value = {
@@ -70,7 +70,7 @@ class TestSetupSystemdLogging:
 
         assert result is False
 
-    @patch("nicestlog.systemd_integration.detect_systemd_environment")
+    @patch("stogger_systemd.systemd_integration.detect_systemd_environment")
     def test_setup_with_custom_identifier(self, mock_detect):
         """Test setup with custom syslog identifier."""
         mock_detect.return_value = {
@@ -132,14 +132,14 @@ class TestCreateSystemdServiceFile:
 class TestSystemdJournalHandler:
     """Test cases for SystemdJournalHandler class."""
 
-    @patch("nicestlog.systemd_integration.journal")
+    @patch("stogger_systemd.systemd_integration.journal")
     def test_handler_initialization(self, mock_journal):
         """Test handler initialization."""
         handler = SystemdJournalHandler(identifier="test-app")
 
         assert handler.identifier == "test-app"
 
-    @patch("nicestlog.systemd_integration.journal")
+    @patch("stogger_systemd.systemd_integration.journal")
     def test_emit_log_record(self, mock_journal):
         """Test emitting a log record."""
         handler = SystemdJournalHandler(identifier="test-app")
@@ -161,7 +161,7 @@ class TestSystemdJournalHandler:
         """Test handler behavior when systemd.journal is not available."""
         with patch.dict("sys.modules", {"systemd": None, "systemd.journal": None}):
             # This should not raise an exception during import
-            from nicestlog.systemd_integration import SystemdJournalHandler
+            from stogger_systemd.systemd_integration import SystemdJournalHandler
 
             # Handler should still be creatable but might not function
             handler = SystemdJournalHandler()

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from nicestlog.cli import app
+from stoggertools.cli import app
 
 # Check if Flask is available for dashboard tests
 try:
@@ -84,7 +84,7 @@ class TestInitConfigIntegration:
 
                 # Check that the pyproject.toml was updated
                 updated_content = pyproject_path.read_text()
-                assert "[tool.nicestlog]" in updated_content
+                assert "[tool.stogger]" in updated_content
                 assert "verbose = true" in updated_content
                 assert 'syslog_identifier = "myapp"' in updated_content
                 assert 'log_format = "json"' in updated_content
@@ -337,7 +337,7 @@ class TestJournalIntegration:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False)
+    @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False)
     def test_journal_no_systemd_dependency(self):
         """Test journal command when systemd is not available."""
         result = self.runner.invoke(app, ["tools", "journal"])
@@ -347,10 +347,10 @@ class TestJournalIntegration:
         error_output = result.output
         assert "systemd-python not available" in error_output
 
-    @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True)
-    @patch("nicestlog.journal_viewer.JournalViewer")
-    @patch("nicestlog.cli.SYSTEMD_AVAILABLE", True)
-    @patch("nicestlog.cli.run_journal_viewer")
+    @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True)
+    @patch("stogger_systemd.journal_viewer.JournalViewer")
+    @patch("stoggertools.cli.SYSTEMD_AVAILABLE", True)
+    @patch("stoggertools.cli.run_journal_viewer")
     def test_journal_with_systemd_available(self, mock_run_journal, mock_viewer_class):
         """Test journal command when systemd is available."""
         mock_viewer = MagicMock()
@@ -402,7 +402,7 @@ class TestReviewIntegration:
 """)
 
         # Mock the reviewer components
-        with patch("nicestlog.cli.run_log_reviewer") as mock_run_reviewer:
+        with patch("stoggertools.cli.run_log_reviewer") as mock_run_reviewer:
             result = self.runner.invoke(app, ["tools", "review", str(log_file)])
 
             # Should succeed
@@ -419,7 +419,7 @@ class TestReviewIntegration:
         log2.write_text("2024-01-01 10:00:01 ERROR Database connection failed\n")
 
         # Mock the reviewer components
-        with patch("nicestlog.cli.run_log_reviewer") as mock_run_reviewer:
+        with patch("stoggertools.cli.run_log_reviewer") as mock_run_reviewer:
             result = self.runner.invoke(
                 app,
                 [
@@ -441,7 +441,7 @@ class TestReviewIntegration:
         log_file = self.temp_path / "bad.log"
         log_file.write_text("Some poorly formatted log content\n")
 
-        with patch("nicestlog.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
+        with patch("stoggertools.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
             mock_reviewer = MagicMock()
             mock_reviewer_class.return_value = mock_reviewer
 
@@ -450,7 +450,7 @@ class TestReviewIntegration:
             mock_report.overall_score = 40.0  # Below default minimum of 70
             mock_reviewer.analyze_log_file.return_value = mock_report
 
-            with patch("nicestlog.log_reviewer.print_report"):
+            with patch("stoggertools.log_reviewer.print_report"):
                 result = self.runner.invoke(app, ["tools", "review", str(log_file)])
 
                 assert result.exit_code == 1  # Should fail due to low score
@@ -464,7 +464,7 @@ class TestDashboardIntegration:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    @patch("nicestlog.web_dashboard.run_dashboard")
+    @patch("stogger_web.web_dashboard.run_dashboard")
     def test_dashboard_starts_with_default_settings(self, mock_run_dashboard):
         """Test that dashboard starts with default settings."""
         # Mock the dashboard to avoid actually starting a web server
@@ -479,7 +479,7 @@ class TestDashboardIntegration:
             debug=False,
         )
 
-    @patch("nicestlog.web_dashboard.run_dashboard")
+    @patch("stoggertools.cli.run_dashboard")
     def test_dashboard_with_custom_settings(self, mock_run_dashboard):
         """Test dashboard with custom host, port, and debug mode."""
         mock_run_dashboard.return_value = None
@@ -503,7 +503,7 @@ class TestRealExecutionIntegration:
     def test_help_command_subprocess(self):
         """Test running the help command as a real subprocess."""
         result = subprocess.run(
-            [sys.executable, "-m", "nicestlog", "--help"],
+            [sys.executable, "-m", "stoggertools", "--help"],
             check=False,
             capture_output=True,
             text=True,
@@ -511,14 +511,14 @@ class TestRealExecutionIntegration:
         )
 
         assert result.returncode == 0
-        assert "Nicestlog utility" in result.stdout
+        assert "Stoggertools utility" in result.stdout
         # Typer uses "Commands" (with a different format than argparse)
         assert "Commands" in result.stdout or "init-config" in result.stdout
 
     def test_lint_help_subprocess(self):
         """Test running lint help as a real subprocess."""
         result = subprocess.run(
-            [sys.executable, "-m", "nicestlog", "check", "--help"],
+            [sys.executable, "-m", "stoggertools", "check", "--help"],
             check=False,
             capture_output=True,
             text=True,

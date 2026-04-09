@@ -17,10 +17,10 @@ class PexpectTestHelper:
     """Helper class for pexpect-based testing."""
 
     @staticmethod
-    def spawn_nicestlog_command(args, timeout=10):
-        """Spawn a nicestlog command with pexpect."""
-        # Use uv run to execute nicestlog
-        cmd = f"uv run python -m nicestlog {' '.join(args)}"
+    def spawn_stoggertools_command(args, timeout=10):
+        """Spawn a stoggertools command with pexpect."""
+        # Use uv run to execute stoggertools
+        cmd = f"uv run python -m stoggertools {' '.join(args)}"
         child = pexpect.spawn(cmd, timeout=timeout)
         child.logfile_read = sys.stdout.buffer  # Log output for debugging
         return child
@@ -44,7 +44,7 @@ class TestCliPexpectInteractive:
 
     def test_docs_interactive_valid_choice(self):
         """Test docs interactive mode with valid choice."""
-        child = PexpectTestHelper.spawn_nicestlog_command(["docs", "--interactive"])
+        child = PexpectTestHelper.spawn_stoggertools_command(["docs", "--interactive"])
 
         try:
             # Expect some kind of menu or prompt
@@ -69,7 +69,7 @@ class TestCliPexpectInteractive:
 
     def test_docs_interactive_invalid_choice(self):
         """Test docs interactive mode with invalid choice."""
-        child = PexpectTestHelper.spawn_nicestlog_command(["docs", "--interactive"])
+        child = PexpectTestHelper.spawn_stoggertools_command(["docs", "--interactive"])
 
         try:
             # Expect some kind of menu or prompt

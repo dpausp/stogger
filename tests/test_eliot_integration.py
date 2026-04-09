@@ -18,16 +18,16 @@ if "eliot" not in sys.modules:
 @pytest.fixture
 def mock_eliot_available():
     """Mock eliot being available."""
-    with patch("src.nicestlog.eliot_integration.ELIOT_AVAILABLE", True):
-        with patch("src.nicestlog.eliot_integration.start_action") as mock_start:
-            with patch("src.nicestlog.eliot_integration.log_message") as mock_log:
+    with patch("stogger_eliot.eliot_integration.ELIOT_AVAILABLE", True):
+        with patch("stogger_eliot.eliot_integration.start_action") as mock_start:
+            with patch("stogger_eliot.eliot_integration.log_message") as mock_log:
                 yield mock_start, mock_log
 
 
 @pytest.fixture
 def mock_eliot_unavailable():
     """Mock eliot being unavailable."""
-    with patch("src.nicestlog.eliot_integration.ELIOT_AVAILABLE", False):
+    with patch("stogger_eliot.eliot_integration.ELIOT_AVAILABLE", False):
         yield
 
 
@@ -36,7 +36,7 @@ class TestHumanReadableEliotDestination:
 
     def test_init_default_params(self):
         """Test initialization with default parameters."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         dest = HumanReadableEliotDestination()
         assert dest.file == sys.stdout
@@ -48,7 +48,7 @@ class TestHumanReadableEliotDestination:
 
     def test_init_custom_params(self):
         """Test initialization with custom parameters."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         custom_file = io.StringIO()
         dest = HumanReadableEliotDestination(
@@ -64,7 +64,7 @@ class TestHumanReadableEliotDestination:
 
     def test_call_with_non_dict(self):
         """Test calling with non-dict message (should be ignored)."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output)
@@ -78,7 +78,7 @@ class TestHumanReadableEliotDestination:
 
     def test_handle_action_start(self):
         """Test handling action start messages."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output, show_timestamps=False)
@@ -104,7 +104,7 @@ class TestHumanReadableEliotDestination:
 
     def test_handle_action_start_with_timestamps(self):
         """Test action start with timestamps enabled."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output, show_timestamps=True)
@@ -125,7 +125,7 @@ class TestHumanReadableEliotDestination:
 
     def test_handle_action_start_with_task_ids(self):
         """Test action start with task IDs shown."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(
@@ -148,7 +148,7 @@ class TestHumanReadableEliotDestination:
 
     def test_handle_action_success(self):
         """Test handling successful action completion."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output, show_timestamps=False)
@@ -180,7 +180,7 @@ class TestHumanReadableEliotDestination:
 
     def test_handle_action_failure(self):
         """Test handling failed actions."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output, show_timestamps=False)
@@ -212,7 +212,7 @@ class TestHumanReadableEliotDestination:
 
     def test_handle_regular_message(self):
         """Test handling regular log messages."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output, show_timestamps=False)
@@ -237,7 +237,7 @@ class TestHumanReadableEliotDestination:
 
     def test_nested_actions_indentation(self):
         """Test that nested actions are properly indented."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output, show_timestamps=False)
@@ -274,7 +274,7 @@ class TestHumanReadableEliotDestination:
 
     def test_format_timestamp_disabled(self):
         """Test timestamp formatting when disabled."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         dest = HumanReadableEliotDestination(show_timestamps=False)
         result = dest._format_timestamp(datetime.now().timestamp())
@@ -282,7 +282,7 @@ class TestHumanReadableEliotDestination:
 
     def test_format_timestamp_none(self):
         """Test timestamp formatting with None timestamp."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         dest = HumanReadableEliotDestination(show_timestamps=True)
         result = dest._format_timestamp(None)
@@ -290,7 +290,7 @@ class TestHumanReadableEliotDestination:
 
     def test_format_timestamp_enabled(self):
         """Test timestamp formatting when enabled."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         dest = HumanReadableEliotDestination(show_timestamps=True)
         # Use timezone-aware UTC datetime to avoid local timezone conversion
@@ -303,7 +303,7 @@ class TestHumanReadableEliotDestination:
 
     def test_cleanup_after_action_completion(self):
         """Test that action tracking is cleaned up after completion."""
-        from src.nicestlog.eliot_integration import HumanReadableEliotDestination
+        from stogger_eliot.eliot_integration import HumanReadableEliotDestination
 
         output = io.StringIO()
         dest = HumanReadableEliotDestination(file=output)
@@ -337,7 +337,7 @@ class TestSetupEliotLogging:
 
     def test_setup_eliot_unavailable(self, mock_eliot_unavailable):
         """Test setup when Eliot is unavailable."""
-        from src.nicestlog.eliot_integration import setup_eliot_logging
+        from stogger_eliot.eliot_integration import setup_eliot_logging
 
         with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
             result = setup_eliot_logging()
@@ -347,7 +347,7 @@ class TestSetupEliotLogging:
 
     def test_setup_eliot_human_readable(self, mock_eliot_available):
         """Test setup with human readable format."""
-        from src.nicestlog.eliot_integration import setup_eliot_logging
+        from stogger_eliot.eliot_integration import setup_eliot_logging
 
         with patch("eliot.add_destinations") as mock_add_dest:
             result = setup_eliot_logging(human_readable=True)
@@ -357,7 +357,7 @@ class TestSetupEliotLogging:
 
     def test_setup_eliot_json_format(self, mock_eliot_available):
         """Test setup with JSON format."""
-        from src.nicestlog.eliot_integration import setup_eliot_logging
+        from stogger_eliot.eliot_integration import setup_eliot_logging
 
         with patch("eliot.to_file") as mock_to_file:
             result = setup_eliot_logging(human_readable=False)
@@ -367,7 +367,7 @@ class TestSetupEliotLogging:
 
     def test_setup_eliot_custom_destination(self, mock_eliot_available):
         """Test setup with custom destination."""
-        from src.nicestlog.eliot_integration import setup_eliot_logging
+        from stogger_eliot.eliot_integration import setup_eliot_logging
 
         custom_file = io.StringIO()
         with patch("eliot.to_file") as mock_to_file:
@@ -382,7 +382,7 @@ class TestLogActionContextManager:
 
     def test_log_action_eliot_available(self, mock_eliot_available):
         """Test log_action when Eliot is available."""
-        from src.nicestlog.eliot_integration import log_action
+        from stogger_eliot.eliot_integration import log_action
 
         mock_start, mock_log = mock_eliot_available
         mock_action = MagicMock()
@@ -397,7 +397,7 @@ class TestLogActionContextManager:
     def test_log_action_eliot_unavailable(self, mock_eliot_unavailable):
         """Test log_action when Eliot is unavailable."""
         # Test the dummy implementation directly
-        import src.nicestlog.eliot_integration as eliot_mod
+        import stogger_eliot.eliot_integration as eliot_mod
 
         # Temporarily replace the function with the dummy version
         original_log_action = eliot_mod.log_action
@@ -422,7 +422,7 @@ class TestLogCallDecorator:
 
     def test_log_call_eliot_available(self, mock_eliot_available):
         """Test log_call decorator when Eliot is available."""
-        from src.nicestlog.eliot_integration import log_call
+        from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
         mock_action = MagicMock()
@@ -441,7 +441,7 @@ class TestLogCallDecorator:
 
     def test_log_call_auto_name(self, mock_eliot_available):
         """Test log_call decorator with automatic naming."""
-        from src.nicestlog.eliot_integration import log_call
+        from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
         mock_action = MagicMock()
@@ -460,7 +460,7 @@ class TestLogCallDecorator:
 
     def test_log_call_with_exception(self, mock_eliot_available):
         """Test log_call decorator when function raises exception."""
-        from src.nicestlog.eliot_integration import log_call
+        from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
         mock_action = MagicMock()
@@ -478,7 +478,7 @@ class TestLogCallDecorator:
 
     def test_log_call_no_return_value(self, mock_eliot_available):
         """Test log_call decorator when function returns None."""
-        from src.nicestlog.eliot_integration import log_call
+        from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
         mock_action = MagicMock()
@@ -497,8 +497,8 @@ class TestLogCallDecorator:
     def test_log_call_eliot_unavailable(self, mock_eliot_unavailable):
         """Test log_call decorator when Eliot is unavailable."""
         # When ELIOT_AVAILABLE is False, the dummy implementation should be used
-        with patch("src.nicestlog.eliot_integration.ELIOT_AVAILABLE", False):
-            from src.nicestlog.eliot_integration import log_call
+        with patch("stogger_eliot.eliot_integration.ELIOT_AVAILABLE", False):
+            from stogger_eliot.eliot_integration import log_call
 
             @log_call("test_action")
             def test_function(x):
@@ -514,7 +514,7 @@ class TestDemoFunction:
 
     def test_demo_eliot_unavailable(self, mock_eliot_unavailable):
         """Test demo when Eliot is unavailable."""
-        from src.nicestlog.eliot_integration import demo_eliot_integration
+        from stogger_eliot.eliot_integration import demo_eliot_integration
 
         # Demo runs without printing (uses structured logging)
         demo_eliot_integration()
@@ -522,14 +522,14 @@ class TestDemoFunction:
 
     def test_demo_eliot_available(self, mock_eliot_available):
         """Test demo when Eliot is available."""
-        from src.nicestlog.eliot_integration import demo_eliot_integration
+        from stogger_eliot.eliot_integration import demo_eliot_integration
 
         mock_start, mock_log = mock_eliot_available
         mock_action = MagicMock()
         mock_start.return_value.__enter__ = Mock(return_value=mock_action)
         mock_start.return_value.__exit__ = Mock(return_value=None)
 
-        with patch("src.nicestlog.eliot_integration.setup_eliot_logging") as mock_setup:
+        with patch("stogger_eliot.eliot_integration.setup_eliot_logging") as mock_setup:
             with patch("builtins.print") as mock_print:
                 demo_eliot_integration()
 
@@ -546,7 +546,7 @@ class TestColorImports:
 
     def test_color_constants_available(self):
         """Test that color constants are available."""
-        from src.nicestlog.eliot_integration import (
+        from stogger_eliot.eliot_integration import (
             BLUE,
             BRIGHT,
             CYAN,
@@ -579,6 +579,6 @@ class TestStandaloneColorImport:
         # The actual behavior depends on whether colorama is installed
         # and whether stdout is a TTY, but we can at least verify
         # the constants are defined
-        from src.nicestlog.eliot_integration import RESET_ALL
+        from stogger_eliot.eliot_integration import RESET_ALL
 
         assert isinstance(RESET_ALL, str)

@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nicestlog.config import NicestLogConfig
-from nicestlog.factory import (
+from stogger.config import NicestLogConfig
+from stogger.factory import (
     build_renderer,
     build_shared_processors,
     configure_stdlib_logging,
@@ -26,7 +26,7 @@ class TestBuildSharedProcessors:
         # Should contain basic processors
         assert len(processors) > 0
         # Check for expected processors
-        from nicestlog.core import add_pid, process_exc_info
+        from stogger.core import add_pid, process_exc_info
 
         assert add_pid in processors
         assert process_exc_info in processors
@@ -37,7 +37,7 @@ class TestBuildSharedProcessors:
         processors = build_shared_processors(config)
 
         # Should include add_caller_info when show_caller_info is True
-        from nicestlog.core import add_caller_info
+        from stogger.core import add_caller_info
 
         assert add_caller_info in processors
 
@@ -46,7 +46,7 @@ class TestBuildSharedProcessors:
         config = NicestLogConfig(show_caller_info=False)
         processors = build_shared_processors(config)
 
-        from nicestlog.core import add_caller_info
+        from stogger.core import add_caller_info
 
         # Based on the actual implementation, add_caller_info is always included
         assert add_caller_info in processors
@@ -56,7 +56,7 @@ class TestBuildSharedProcessors:
         config = NicestLogConfig()
         processors = build_shared_processors(config)
 
-        from nicestlog.core import add_pid
+        from stogger.core import add_pid
 
         assert add_pid in processors
 
@@ -71,7 +71,7 @@ class TestBuildSharedProcessors:
             processors = build_shared_processors(config)
 
             # Should include TranslationProcessor
-            from nicestlog.core import TranslationProcessor
+            from stogger.core import TranslationProcessor
 
             translation_processors = [
                 p for p in processors if isinstance(p, TranslationProcessor)
@@ -83,14 +83,14 @@ class TestBuildSharedProcessors:
         config = NicestLogConfig(translation_dir=None, language="en")
         processors = build_shared_processors(config)
 
-        from nicestlog.core import TranslationProcessor
+        from stogger.core import TranslationProcessor
 
         translation_processors = [
             p for p in processors if isinstance(p, TranslationProcessor)
         ]
         assert len(translation_processors) == 0
 
-    @patch("nicestlog.pii_scrubber.create_pii_processor")
+    @patch("stogger.pii_scrubber.create_pii_processor")
     def test_pii_processor_inclusion(self, mock_create_pii):
         """Test that PII processor is included when enabled."""
         mock_pii_processor = MagicMock()
@@ -120,7 +120,7 @@ class TestBuildRenderer:
         config = NicestLogConfig(log_format="console")
         renderer = build_renderer(config)
 
-        from nicestlog.core import ConsoleFileRenderer
+        from stogger.core import ConsoleFileRenderer
 
         assert isinstance(renderer, ConsoleFileRenderer)
 
@@ -129,7 +129,7 @@ class TestBuildRenderer:
         config = NicestLogConfig(log_format="json")
         renderer = build_renderer(config)
 
-        from nicestlog.core import JSONRenderer
+        from stogger.core import JSONRenderer
 
         assert isinstance(renderer, JSONRenderer)
 
@@ -142,7 +142,7 @@ class TestBuildRenderer:
         renderer_normal = build_renderer(config_normal)
 
         # Both should be ConsoleFileRenderer but with different min levels
-        from nicestlog.core import ConsoleFileRenderer
+        from stogger.core import ConsoleFileRenderer
 
         assert isinstance(renderer_verbose, ConsoleFileRenderer)
         assert isinstance(renderer_normal, ConsoleFileRenderer)

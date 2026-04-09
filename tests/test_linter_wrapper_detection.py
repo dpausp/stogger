@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import textwrap
 
-from nicestlog.linter import analyze_file
+from stoggertools.linter import analyze_file
 
 
 def test_wrapper_detection_simple_passthrough():

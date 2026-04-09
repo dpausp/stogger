@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from nicestlog.cli import app
+from stoggertools.cli import app
 
 # Check if Flask is available for dashboard tests
 try:
@@ -50,7 +50,7 @@ def test_function():
     return True
 """)
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
+        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
 
@@ -86,7 +86,7 @@ def complex_function(x):
     return "low"
 """)
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
+        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
 
@@ -116,7 +116,7 @@ def test():
     logging.warning("Something happened")
 """)
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
+        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
 
@@ -143,7 +143,7 @@ def test():
             assert result.exit_code == 0
             assert mock_pattern.enabled  # Pattern should be enabled
 
-    @patch("nicestlog.cli.InteractiveTransformer")
+    @patch("stoggertools.cli.InteractiveTransformer")
     def test_check_interactive_mode(self, mock_transformer_class, caplog):
         caplog.set_level(logging.INFO)
         """Test check command with --interactive flag."""
@@ -156,7 +156,7 @@ def test():
         mock_transformer = MagicMock()
         mock_transformer_class.return_value = mock_transformer
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
+        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
 
@@ -200,7 +200,7 @@ def test():
     return True
 """)
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
+        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
 
@@ -227,7 +227,7 @@ def test():
 print("This should be fixed")
 """)
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
+        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
 
@@ -246,7 +246,7 @@ print("This should be fixed")
             # Default migrate behavior is analysis only (dry-run)
             assert "Migration Results" in result.stdout or "Analysis" in result.stdout
 
-    @patch("nicestlog.cli.InteractiveTransformer")
+    @patch("stoggertools.cli.InteractiveTransformer")
     def test_fix_interactive_mode(self, mock_transformer_class):
         """Test fix command with --interactive flag."""
         test_file = self.temp_path / "interactive_fix.py"
@@ -272,7 +272,7 @@ import logging
 logging.info("test")
 """)
 
-        with patch("nicestlog.cli.AdvancedAssistant") as mock_assistant_class:
+        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
             mock_assistant = MagicMock()
             mock_assistant_class.return_value = mock_assistant
 
@@ -318,7 +318,7 @@ def hello():
 """)
 
         with patch(
-            "nicestlog.cli.analyze_project_for_agents",
+            "stoggertools.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             # Create a more complete mock that matches ProjectAnalysisResult structure
             mock_result = MagicMock()
@@ -377,7 +377,7 @@ print("Test migration")
         # Note: --dry-run is not a valid flag for migrate command in new structure
         # The default behavior is analysis only (safe), so we test that
         with patch(
-            "nicestlog.cli.analyze_project_for_agents",
+            "stoggertools.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -425,7 +425,7 @@ print("Test migration")
             assert "Apply migration:" in result.stdout
             assert "--no-dry-run" in result.stdout
 
-    @patch("nicestlog.cli.InteractiveTransformer")
+    @patch("stoggertools.cli.InteractiveTransformer")
     def test_migrate_interactive_mode(self, mock_transformer_class):
         """Test migrate command with --interactive flag (analysis mode)."""
         test_file = self.temp_path / "migrate_interactive.py"
@@ -437,7 +437,7 @@ print("Interactive migration test")
         mock_transformer_class.return_value = mock_transformer
 
         with patch(
-            "nicestlog.cli.analyze_project_for_agents",
+            "stoggertools.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -498,7 +498,7 @@ print("Interactive migration test")
         (test_dir / "file2.py").write_text('print("File 2")')
 
         with patch(
-            "nicestlog.cli.analyze_project_for_agents",
+            "stoggertools.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_dir)
@@ -558,7 +558,7 @@ print("Interactive migration test")
         test_file.write_text('print("Source file")')
 
         with patch(
-            "nicestlog.cli.analyze_project_for_agents",
+            "stoggertools.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -617,7 +617,7 @@ logging.info("Test message")
 """)
 
         with patch(
-            "nicestlog.cli.analyze_project_for_agents",
+            "stoggertools.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -687,7 +687,7 @@ def main():
 """)
 
         with patch(
-            "nicestlog.cli.analyze_project_for_agents",
+            "stoggertools.cli.analyze_project_for_agents",
         ) as mock_analyzer:
             mock_result = MagicMock()
             mock_result.project_path = str(test_file)
@@ -711,7 +711,7 @@ def main():
             mock_result.dependencies = mock_deps
 
             # Mock logging patterns with wrapper patterns
-            from nicestlog.project_analyzer import LoggingPattern
+            from stoggertools.project_analyzer import LoggingPattern
 
             mock_result.logging_patterns = [
                 LoggingPattern(
@@ -794,7 +794,7 @@ def test():
     log.info("test-message")
 """)
 
-        with patch("nicestlog.linter.lint_directory") as mock_lint:
+        with patch("stoggertools.linter.lint_directory") as mock_lint:
             mock_lint.return_value = True
 
             result = self.runner.invoke(app, ["check", str(test_file)])

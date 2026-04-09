@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from nicestlog import cli
+from stoggertools import cli
 
 
 def _nosleep(*args, **kwargs):
@@ -14,7 +14,7 @@ def test_run_demos_lists_when_no_args(capsys, monkeypatch):
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep))
     cli.run_demos(feature=None, all_features=False)
     out = capsys.readouterr().out
-    assert "Available nicestlog demos" in out
+    assert "Available stoggertools demos" in out
     assert "basic" in out
 
 
@@ -27,8 +27,8 @@ def test_run_demos_unknown_feature_exits(capsys, monkeypatch):
     assert "Unknown demo" in out
 
 
-@patch("nicestlog.cli.structlog.get_logger")
-@patch("nicestlog.cli.nicestlog.init_logging")
+@patch("stoggertools.cli.structlog.get_logger")
+@patch("stoggertools.cli.stogger.init_logging")
 def test_run_demos_basic_invokes_logging(
     mock_init_logging,
     mock_get_logger,

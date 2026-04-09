@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
-from nicestlog.cli import app
+from stoggertools.cli import app
 
 
 def test_docs_serve_help():
@@ -33,7 +33,7 @@ def test_docs_serve_no_docs_no_build():
                 assert "No HTML documentation found" in result.stdout
 
 
-@patch("nicestlog.cli.shutil.which")
+@patch("stoggertools.cli.shutil.which")
 @patch("pathlib.Path.exists")
 def test_docs_serve_build_docs(mock_exists, mock_which):
     """Test docs-serve building docs when they don't exist."""

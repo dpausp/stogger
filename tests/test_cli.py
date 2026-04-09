@@ -12,7 +12,7 @@ import textwrap
 import pytest
 from typer.testing import CliRunner
 
-from nicestlog.cli import (
+from stoggertools.cli import (
     app,
     generate_service_cmd,
     init_config,
@@ -20,8 +20,8 @@ from nicestlog.cli import (
     run_dashboard_cmd,
     run_journal_viewer,
 )
-from nicestlog.i18n import NicestlogTranslator
-from nicestlog import cli
+from stogger.i18n import NicestlogTranslator
+from stoggertools import cli
 
 # Check if Flask is available for dashboard tests
 try:
@@ -59,7 +59,7 @@ class TestInitConfig:
 
             mock_file.write.assert_called_once()
             written_content = mock_file.write.call_args[0][0]
-            assert "[tool.nicestlog]" in written_content
+            assert "[tool.stogger]" in written_content
             assert 'syslog_identifier = "test-app"' in written_content
 
     @patch("builtins.input")
@@ -77,7 +77,7 @@ class TestMainFunction:
 
     def test_main_requires_subcommand(self):
         """Test that main function requires a subcommand."""
-        with patch("sys.argv", ["nicestlog"]):
+        with patch("sys.argv", ["stoggertools"]):
             with pytest.raises(SystemExit):
                 main()
 
@@ -93,7 +93,7 @@ class TestTyperCliRunner:
         """Test the main help command."""
         result = self.runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert "Nicestlog utility" in result.stdout
+        assert "Stoggertools utility" in result.stdout
         assert "tools" in result.stdout
         assert "check" in result.stdout
         # dashboard is under tools subcommand, not main help
@@ -117,14 +117,14 @@ class TestDashboardCommand:
         assert "--port" in result.stdout
         assert "--debug" in result.stdout
 
-    @patch("nicestlog.cli.run_dashboard_cmd")
+    @patch("stoggertools.cli.run_dashboard_cmd")
     def test_dashboard_default_args(self, mock_dashboard):
         """Test dashboard command with default arguments."""
         result = self.runner.invoke(app, ["tools", "dashboard"])
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("127.0.0.1", 8080, debug=False)
 
-    @patch("nicestlog.cli.run_dashboard_cmd")
+    @patch("stoggertools.cli.run_dashboard_cmd")
     def test_dashboard_custom_args(self, mock_dashboard):
         """Test dashboard command with custom arguments."""
         result = self.runner.invoke(
@@ -134,7 +134,7 @@ class TestDashboardCommand:
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("0.0.0.0", 9000, debug=True)
 
-    @patch("nicestlog.cli.run_dashboard")
+    @patch("stoggertools.cli.run_dashboard")
     def test_run_dashboard_cmd_function(self, mock_run_dashboard):
         """Test the run_dashboard_cmd function directly."""
         run_dashboard_cmd("localhost", 3000, debug=True)
@@ -144,7 +144,7 @@ class TestDashboardCommand:
             debug=True,
         )
 
-    @patch("nicestlog.cli.FLASK_AVAILABLE_FOR_CLI", False)
+    @patch("stoggertools.cli.FLASK_AVAILABLE_FOR_CLI", False)
     def test_dashboard_command_hidden_when_flask_unavailable(self):
         """Test that dashboard command is hidden when Flask is not available."""
         # When Flask is not available, the dashboard command should not be registered
@@ -154,7 +154,7 @@ class TestDashboardCommand:
         # Note: This test may pass even with Flask available due to import timing
         # but demonstrates the intended behavior
 
-    @patch("nicestlog.cli.FLASK_AVAILABLE", False)
+    @patch("stoggertools.cli.FLASK_AVAILABLE", False)
     def test_run_dashboard_cmd_missing_flask(self):
         """Test run_dashboard_cmd function when Flask is missing."""
         import typer
@@ -164,7 +164,7 @@ class TestDashboardCommand:
 
         assert exc_info.value.exit_code == 1
 
-    @patch("nicestlog.cli.FLASK_AVAILABLE", False)
+    @patch("stoggertools.cli.FLASK_AVAILABLE", False)
     def test_run_dashboard_cmd_flask_not_available(self):
         """Test run_dashboard_cmd when Flask is not available in web_dashboard module."""
         import typer
@@ -193,7 +193,7 @@ class TestGenerateServiceCommand:
         assert "--working-dir" in result.stdout
         assert "--output" in result.stdout
 
-    @patch("nicestlog.cli.generate_service_cmd")
+    @patch("stoggertools.cli.generate_service_cmd")
     def test_generate_service_required_args(self, mock_generate):
         """Test tools generate-service command with required arguments."""
         result = self.runner.invoke(
@@ -209,7 +209,7 @@ class TestGenerateServiceCommand:
             None,
         )
 
-    @patch("nicestlog.cli.generate_service_cmd")
+    @patch("stoggertools.cli.generate_service_cmd")
     def test_generate_service_all_args(self, mock_generate):
         """Test tools generate-service command with all arguments."""
         result = self.runner.invoke(
@@ -244,8 +244,8 @@ class TestGenerateServiceCommand:
         error_output = result.output
         assert "Missing argument" in error_output or "required" in error_output.lower()
 
-    @patch("nicestlog.cli.create_systemd_service_file")
-    @patch("nicestlog.cli.console.print")
+    @patch("stoggertools.cli.create_systemd_service_file")
+    @patch("stoggertools.cli.console.print")
     def test_generate_service_cmd_function_stdout(
         self,
         mock_console_print,
@@ -264,9 +264,9 @@ class TestGenerateServiceCommand:
         assert call_args.working_directory is None
         mock_console_print.assert_called_with("[Unit]\nDescription=Test Service\n")
 
-    @patch("nicestlog.cli.create_systemd_service_file")
+    @patch("stoggertools.cli.create_systemd_service_file")
     @patch("pathlib.Path.open")
-    @patch("nicestlog.cli.log.info")
+    @patch("stoggertools.cli.log.info")
     def test_generate_service_cmd_function_file_output(
         self,
         mock_log_info,
@@ -318,14 +318,14 @@ class TestJournalCommand:
         assert "--since" in result.stdout
         assert "--level" in result.stdout
 
-    @patch("nicestlog.cli.run_journal_viewer")
+    @patch("stoggertools.cli.run_journal_viewer")
     def test_journal_default_args(self, mock_journal):
         """Test journal command with default arguments."""
         result = self.runner.invoke(app, ["tools", "journal"])
         assert result.exit_code == 0
         mock_journal.assert_called_once_with(None, 50, follow=False, since=None, level=None)
 
-    @patch("nicestlog.cli.run_journal_viewer")
+    @patch("stoggertools.cli.run_journal_viewer")
     def test_journal_custom_args(self, mock_journal):
         """Test journal command with custom arguments."""
         result = self.runner.invoke(
@@ -361,8 +361,8 @@ class TestJournalCommand:
         error_output = result.output
         assert "Invalid level 'invalid'" in error_output
 
-    @patch("nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False)
-    @patch("nicestlog.cli.console.print")
+    @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False)
+    @patch("stoggertools.cli.console.print")
     def test_run_journal_viewer_no_systemd(self, mock_console_print):
         """Test run_journal_viewer when systemd is not available."""
         with pytest.raises(SystemExit):
@@ -389,14 +389,14 @@ class TestReviewCommand:
         assert "--format" in result.stdout
         assert "--min-score" in result.stdout
 
-    @patch("nicestlog.cli.run_log_reviewer")
+    @patch("stoggertools.cli.run_log_reviewer")
     def test_review_required_args(self, mock_reviewer):
         """Test review command with required arguments."""
         result = self.runner.invoke(app, ["tools", "review", "/path/to/logs"])
         assert result.exit_code == 0
         mock_reviewer.assert_called_once_with("/path/to/logs", "text", 70.0)
 
-    @patch("nicestlog.cli.run_log_reviewer")
+    @patch("stoggertools.cli.run_log_reviewer")
     def test_review_custom_args(self, mock_reviewer):
         """Test review command with custom arguments."""
         result = self.runner.invoke(
@@ -634,7 +634,7 @@ class TestCliI18nFailOnExtra:
 
     def run_cli(self, args, cwd=None):
         """Helper to run CLI i18n check command."""
-        exe = [sys.executable, "-m", "nicestlog", "tools", "i18n", "check"]
+        exe = [sys.executable, "-m", "stoggertools", "tools", "i18n", "check"]
         return subprocess.run(
             exe + args,
             check=False,
@@ -697,7 +697,7 @@ class TestCliI18nCheck:
 
     def run_cli(self, args, cwd=None):
         """Helper to run CLI i18n check command."""
-        exe = [sys.executable, "-m", "nicestlog", "tools", "i18n", "check"]
+        exe = [sys.executable, "-m", "stoggertools", "tools", "i18n", "check"]
         return subprocess.run(
             exe + args,
             check=False,
@@ -729,7 +729,7 @@ class TestCliI18nCheck:
         (trans / "en.toml").write_text('event-a = "A"\n', encoding="utf-8")
 
         # list-missing should output event-b only (event-a present), and return 0 (not strict)
-        # Use -m nicestlog through current project by invoking python -m nicestlog within repo; in test env
+        # Use -m stoggertools through current project by invoking python -m stoggertools within repo; in test env
         r = self.run_cli(
             [str(src), "--translation-dir", str(trans), "-l", "en", "--list-missing"],
             cwd=str(Path.cwd()),
@@ -789,7 +789,7 @@ class TestCliI18nConfig:
         (proj / "pyproject.toml").write_text(
             textwrap.dedent(
                 f"""
-                [tool.nicestlog]
+                [tool.stogger]
                 translation_dir = "{trans.as_posix()}"
                 language = "en"
                 """,
@@ -825,7 +825,7 @@ class TestCliI18nConfig:
         (proj / "pyproject.toml").write_text(
             textwrap.dedent(
                 f"""
-                [tool.nicestlog]
+                [tool.stogger]
                 translation_dir = "{trans.as_posix()}"
                 language = "at"
                 """,
@@ -837,7 +837,7 @@ class TestCliI18nConfig:
         (trans / "en.toml").write_text('[setup]\nwelcome="EN"\n', encoding="utf-8")
         (trans / "at.toml").write_text('[setup]\nwelcome="AT"\n', encoding="utf-8")
 
-        # Capture args provided to nicestlog.init_logging
+        # Capture args provided to stogger.init_logging
         called = {"kwargs": None}
 
         def fake_init_logging(**kwargs):
@@ -849,7 +849,7 @@ class TestCliI18nConfig:
             "time",
             type("T", (), {"sleep": staticmethod(lambda *_: None)})(),
         )
-        monkeypatch.setattr(cli.nicestlog, "init_logging", fake_init_logging)
+        monkeypatch.setattr(cli.stogger, "init_logging", fake_init_logging)
 
         # Change into temp project and invoke CLI
         monkeypatch.chdir(proj)

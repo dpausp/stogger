@@ -1,15 +1,3 @@
-[project]
-name = "nicestlog"
-version = "0.3.5"
-description = "A sophisticated multi-target structured logging system built on structlog"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [ "structlog>=25.4.0",]
-
-[build-system]
-requires = [ "hatchling",]
-build-backend = "hatchling.build"
-
 [dependency-groups]
 lint = [
     "ruff>=0.15.0",
@@ -41,7 +29,7 @@ dev = [
     "doit>=0.37.0",
     "hatch>=1.16.5",
     "mdformat>=0.7.22",
-    "nicestlog[cli]",
+    "stoggertools",
     "pre-commit>=3.5.0",
     "radon>=6.0.1",
     "tomli-w>=1.0.0",
@@ -54,24 +42,15 @@ cli = [
     "typer>=0.16.1",
 ]
 
-[project.optional-dependencies]
-cli = [ "typer>=0.16.1", "rich>=14.3.3", "click>=8.1.8", "colorama>=0.4.6", "toml>=0.10.2",]
-web = [ "flask>=3.1.3",]
-http = [ "requests>=2.33.0",]
-eliot = [ "eliot>=1.17.5",]
+[tool.uv.workspace]
+members = ["packages/*"]
 
-[project.scripts]
-nicestlog = "nicestlog:main"
-
-[tool.nicestlog]
-verbose = false
-syslog_identifier = "test-app"
-log_format = "json"
-async_logging = false
-enable_structured_logging = true
-structured_format = "n"
-enable_performance_monitoring = true
-
+[tool.uv.sources]
+stogger = { workspace = true }
+stogger-systemd = { workspace = true }
+stogger-eliot = { workspace = true }
+stogger-web = { workspace = true }
+stoggertools = { workspace = true }
 
 [tool.ruff]
 line-length = 120
@@ -112,7 +91,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.coverage.run]
-source = [ "src",]
+source = [ "packages",]
 branch = true
 omit = [ "tests/*", ".venv/*",]
 
@@ -121,20 +100,6 @@ exclude_lines = [ "pragma: no cover", "def __repr__", "if self.debug:", "if sett
 show_missing = true
 skip_covered = false
 precision = 2
-
-[tool.uv.sources.nicestlog]
-workspace = true
-
-
-[tool.hatch.build.targets.wheel]
-packages = [ "src/nicestlog",]
-
-[tool.hatch.build.targets.sdist]
-include = [ "README.md", "docs/**",]
-
-[tool.hatch.build.targets.wheel.force-include]
-"README.md" = "nicestlog/_docs/README.md"
-docs = "nicestlog/_docs"
 
 [tool.tox]
 env_list = ["fix", "cov", "3.13"]
@@ -156,7 +121,7 @@ dependency_groups = ["test", "lint"]
 commands = [
     ["ruff", "check", "--fix"],
     ["ty", "check"],
-    ["vulture", "src/", "tests/", "--min-confidence=80"],
+    ["vulture", "packages/", "tests/", "--min-confidence=80"],
     ["ruff", "format"],
 ]
 
@@ -168,5 +133,5 @@ dependency_groups = ["test"]
 depends = ["fix"]
 description = "Tests with coverage"
 commands = [
-    ["pytest", "--cov=nicestlog", "--cov-report=term-missing", "--cov-report=html"],
+    ["pytest", "--cov=stogger", "--cov=stogger_systemd", "--cov=stogger_eliot", "--cov=stogger_web", "--cov=stoggertools", "--cov-report=term-missing", "--cov-report=html"],
 ]

@@ -7,8 +7,8 @@ import logging
 
 import pytest
 
-from nicestlog.config import NicestLogConfig
-from nicestlog.factory import build_shared_processors, configure_stdlib_logging
+from stogger.config import NicestLogConfig
+from stogger.factory import build_shared_processors, configure_stdlib_logging
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def create_pyproject_toml():
         pyproject_path = config_dir / "pyproject.toml"
         with open(pyproject_path, "w") as f:
             f.write("""
-[tool.nicestlog]
+[tool.stogger]
 verbose = true
 logdir = "/tmp/logs"
 syslog_identifier = "test-app"
@@ -59,7 +59,7 @@ def test_config_defaults_when_no_file():
             config = NicestLogConfig()
             assert config.verbose is False
             assert config.logdir is None
-            assert config.syslog_identifier == "nicestlog"
+            assert config.syslog_identifier == "stogger"
             assert config.language == "en"
 
 
@@ -72,10 +72,7 @@ def test_sync_logging_setup(mock_basic_config):
 
     mock_basic_config.assert_called_once()
     assert "handlers" in mock_basic_config.call_args.kwargs
-    assert any(
-        isinstance(h, logging.StreamHandler)
-        for h in mock_basic_config.call_args.kwargs["handlers"]
-    )
+    assert any(isinstance(h, logging.StreamHandler) for h in mock_basic_config.call_args.kwargs["handlers"])
 
 
 @patch("logging.handlers.QueueListener")
@@ -113,7 +110,7 @@ def test_config_src_dir_from_file():
         pyproject_path = config_dir / "pyproject.toml"
         with open(pyproject_path, "w") as f:
             f.write("""
-[tool.nicestlog]
+[tool.stogger]
 src_dir = "custom_src"
 """)
         with patch("pathlib.Path.cwd", return_value=config_dir):
@@ -128,7 +125,7 @@ def test_config_src_dir_kwargs_override():
         pyproject_path = config_dir / "pyproject.toml"
         with open(pyproject_path, "w") as f:
             f.write("""
-[tool.nicestlog]
+[tool.stogger]
 src_dir = "custom_src"
 """)
         with patch("pathlib.Path.cwd", return_value=config_dir):

@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
-from nicestlog.advanced_assistant import AdvancedAssistant
-from nicestlog.interactive_transformer import (
+from stoggertools.advanced_assistant import AdvancedAssistant
+from stoggertools.interactive_transformer import (
     InteractiveSession,
     InteractiveTransformer,
     TransformationProposal,
@@ -113,7 +113,7 @@ def test_function():
         finally:
             temp_file.unlink()
 
-    @patch("nicestlog.interactive_transformer.Prompt.ask")
+    @patch("stoggertools.interactive_transformer.Prompt.ask")
     def test_present_proposal_yes(self, mock_ask):
         """Test presenting a proposal and getting YES response."""
         mock_ask.return_value = "y"
@@ -138,7 +138,7 @@ def test_function():
         assert choice == UserChoice.YES
         mock_ask.assert_called_once()
 
-    @patch("nicestlog.interactive_transformer.Prompt.ask")
+    @patch("stoggertools.interactive_transformer.Prompt.ask")
     def test_present_proposal_no(self, mock_ask):
         """Test presenting a proposal and getting NO response."""
         mock_ask.return_value = "n"
@@ -162,7 +162,7 @@ def test_function():
 
         assert choice == UserChoice.NO
 
-    @patch("nicestlog.interactive_transformer.Prompt.ask")
+    @patch("stoggertools.interactive_transformer.Prompt.ask")
     def test_present_proposal_all(self, mock_ask):
         """Test presenting a proposal and getting ALL response."""
         mock_ask.return_value = "a"
@@ -186,7 +186,7 @@ def test_function():
 
         assert choice == UserChoice.ALL
 
-    @patch("nicestlog.interactive_transformer.Prompt.ask")
+    @patch("stoggertools.interactive_transformer.Prompt.ask")
     def test_present_proposal_quit(self, mock_ask):
         """Test presenting a proposal and getting QUIT response."""
         mock_ask.return_value = "q"
@@ -232,7 +232,7 @@ def test_function():
 
         assert choice == UserChoice.YES
 
-    @patch("nicestlog.interactive_transformer.Prompt.ask")
+    @patch("stoggertools.interactive_transformer.Prompt.ask")
     def test_transform_file_interactive_with_mocked_input(self, mock_ask):
         """Test interactive file transformation with mocked user input."""
         mock_ask.return_value = "y"  # Accept all changes
@@ -283,7 +283,7 @@ class TestConvenienceFunctions:
         assert transformer.context_lines == 5
         assert isinstance(transformer.assistant, AdvancedAssistant)
 
-    @patch("nicestlog.interactive_transformer.Prompt.ask")
+    @patch("stoggertools.interactive_transformer.Prompt.ask")
     def test_transform_file_interactive_convenience(self, mock_ask):
         """Test convenience function for file transformation."""
         mock_ask.return_value = "n"  # Reject all changes

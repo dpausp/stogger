@@ -1,0 +1,953 @@
+"""🔍 Project Analyzer for AI Agents.
+
+This module provides automated analysis of existing Python projects to determine
+the best nicestlog migration strategy and identify potential issues.
+"""
+
+import ast
+import fnmatch
+import json
+import re
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import structlog
+
+# Project complexity thresholds
+MIN_FILES_SIMPLE = 5
+MIN_LINES_SIMPLE = 500
+MIN_FILES_MEDIUM = 20
+MIN_LINES_MEDIUM = 2000
+MIN_CONFLICTING_FRAMEWORKS = 2
+MIN_HIGH_PRIORITY = 8
+MAX_HIGH_PRIORITY_PATTERNS = 50
+MAX_COMPLEXITY_THRESHOLD = 20
+
+from stogger.config import detect_project_structure
+
+log = structlog.get_logger(__name__)
+
+
+@dataclass
+class LoggingPattern:
+    """Represents a detected logging pattern in the codebase."""
+
+    pattern_type: str  # 'print', 'logging', 'structlog', 'cli_output', 'custom'
+    file_path: str
+    line_number: int
+    code_snippet: str
+    severity: str  # 'high', 'medium', 'low'
+    migration_priority: int  # 1-10, 10 being highest priority
+
+
+@dataclass
+class ProjectComplexity:
+    """Project complexity metrics."""
+
+    total_files: int
+    python_files: int
+    total_lines: int
+    average_complexity: float
+    max_complexity: float
+    complexity_category: str  # 'simple', 'medium', 'complex'
+
+
+@dataclass
+class DependencyAnalysis:
+    """Analysis of project dependencies related to logging."""
+
+    has_logging: bool
+    has_structlog: bool
+    has_other_logging: list[str]
+    dependency_conflicts: list[str]
+    package_manager: str  # 'pip', 'poetry', 'pipenv', 'uv'
+
+
+@dataclass
+class MigrationRecommendation:
+    """Recommended migration strategy for the project."""
+
+    strategy: str  # 'print-to-structlog', 'logging-to-structlog', 'enhancement', 'greenfield'
+    priority: str  # 'high', 'medium', 'low'
+    estimated_effort: str  # 'low', 'medium', 'high'
+    recommended_approach: str  # 'automatic', 'interactive', 'manual'
+    risk_level: str  # 'low', 'medium', 'high'
+    prerequisites: list[str]
+    steps: list[str]
+
+
+@dataclass
+class ProjectAnalysisResult:
+    """Complete analysis result for a project."""
+
+    project_path: str
+    analysis_timestamp: str
+    logging_patterns: list[LoggingPattern]
+    complexity: ProjectComplexity
+    dependencies: DependencyAnalysis
+    recommendation: MigrationRecommendation
+    warnings: list[str]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return asdict(self)
+
+    def to_json(self) -> str:
+        """Convert to JSON string."""
+        return json.dumps(self.to_dict(), indent=2, default=str)
+
+
+class ProjectAnalyzer:
+    """Analyzes Python projects for stogger migration opportunities."""
+
+    def __init__(self, *, verbose: bool = False) -> None:
+        self.verbose = verbose
+        self.log = structlog.get_logger("project_analyzer")
+
+        # Patterns to detect different logging approaches
+        self.print_patterns = [
+            r"print\s*\(",
+            r"sys\.stdout\.write",
+            r"sys\.stderr\.write",
+        ]
+
+        self.logging_patterns = [
+            r"logging\.",
+            r"logger\.",
+            r"log\.",
+            r"getLogger",
+        ]
+
+        self.structlog_patterns = [
+            r"structlog\.",
+            r"get_logger",
+            r"bind\(",
+        ]
+
+        # CLI framework output patterns
+        self.cli_output_patterns = [
+            r"typer\.echo\s*\(",
+            r"click\.echo\s*\(",
+            r"rich\.print\s*\(",
+            r"console\.print\s*\(",  # Rich Console instance
+            r"from rich import print",  # Rich print import
+            r"parser\.error\s*\(",  # argparse error output
+        ]
+
+        # Log wrapper patterns (functions that unnecessarily wrap logging calls)
+        self.wrapper_patterns = [
+            r"def\s+\w*log\w*\s*\(",  # Functions with 'log' in name
+            r"def\s+write_\w+\s*\(",  # write_something functions
+            r"def\s+emit_\w+\s*\(",  # emit_something functions
+        ]
+
+        # Known logging libraries
+        self.logging_libraries = {
+            "colorlog",
+            "rich",
+            "click",
+            "typer",
+            "flask",
+            "django",
+            "fastapi",
+            "tornado",
+        }
+
+        # Common ignore patterns (like .gitignore)
+        self.default_ignore_patterns = {
+            ".venv/*",
+            "venv/*",
+            "env/*",
+            ".env/*",
+            "__pycache__/*",
+            "*.pyc",
+            "*.pyo",
+            "*.pyd",
+            ".git/*",
+            ".svn/*",
+            ".hg/*",
+            "node_modules/*",
+            ".tox/*",
+            ".pytest_cache/*",
+            "build/*",
+            "dist/*",
+            "*.egg-info/*",
+            ".mypy_cache/*",
+            ".coverage",
+            "htmlcov/*",
+        }
+
+    def analyze_project(self, project_path: Path) -> ProjectAnalysisResult:
+        """Perform comprehensive analysis of a Python project."""
+        self.log.info(
+            "project-analysis-started",
+            _replace_msg="🔍 Starting analysis of project: {project_path}",
+            project_path=str(project_path),
+        )
+
+        if not project_path.exists():
+            msg = f"Project path does not exist: {project_path}"
+            raise ValueError(msg)
+
+        # Gather all analysis data
+        logging_patterns = self._analyze_logging_patterns(project_path)
+        complexity = self._analyze_complexity(project_path)
+        dependencies = self._analyze_dependencies(project_path)
+
+        # Generate recommendation based on analysis
+        recommendation = self._generate_recommendation(
+            logging_patterns,
+            complexity,
+            dependencies,
+        )
+
+        # Collect warnings
+        warnings = self._generate_warnings(logging_patterns, complexity, dependencies)
+
+        result = ProjectAnalysisResult(
+            project_path=str(project_path),
+            analysis_timestamp=self._get_timestamp(),
+            logging_patterns=logging_patterns,
+            complexity=complexity,
+            dependencies=dependencies,
+            recommendation=recommendation,
+            warnings=warnings,
+        )
+
+        self.log.info(
+            "project-analysis-completed",
+            _replace_msg="✅ Analysis completed for {project_path}",
+            project_path=str(project_path),
+            patterns_found=len(logging_patterns),
+            recommendation=recommendation.strategy,
+        )
+
+        return result
+
+    def _load_ignore_patterns(self, project_path: Path) -> set[str]:
+        """Load ignore patterns from .gitignore, .stoggerignore and defaults."""
+        ignore_patterns = set(self.default_ignore_patterns)
+
+        # Load .gitignore patterns
+        gitignore_path = project_path / ".gitignore"
+        if gitignore_path.exists():
+            try:
+                content = gitignore_path.read_text(encoding="utf-8")
+                for line in content.split("\n"):
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        # Convert gitignore patterns to glob patterns
+                        if line.endswith("/"):
+                            ignore_patterns.add(f"{line}*")
+                        else:
+                            ignore_patterns.add(line)
+                            ignore_patterns.add(f"{line}/*")
+            except (OSError, UnicodeDecodeError) as e:
+                self.log.warning(
+                    "gitignore-load-failed",
+                    _replace_msg="Failed to load .gitignore: {error}",
+                    error=str(e),
+                )
+
+        # Load .stoggerignore patterns (custom ignore file)
+        stogger_ignore = project_path / ".stoggerignore"
+        if stogger_ignore.exists():
+            try:
+                content = stogger_ignore.read_text(encoding="utf-8")
+                for line in content.split("\n"):
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        ignore_patterns.add(line)
+            except (OSError, UnicodeDecodeError) as e:
+                self.log.warning(
+                    "stoggerignore-load-failed",
+                    _replace_msg="Failed to load .stoggerignore: {error}",
+                    error=str(e),
+                )
+
+        return ignore_patterns
+
+    def _should_ignore_file(
+        self,
+        file_path: Path,
+        project_path: Path,
+        ignore_patterns: set[str],
+    ) -> bool:
+        """Check if a file should be ignored based on patterns."""
+        # Get relative path from project root
+        try:
+            rel_path = file_path.relative_to(project_path)
+        except ValueError:
+            return False
+
+        rel_path_str = str(rel_path)
+
+        # Check against all ignore patterns
+        for pattern in ignore_patterns:
+            if fnmatch.fnmatch(rel_path_str, pattern):
+                return True
+            # Also check parent directories
+            for parent in rel_path.parents:
+                if fnmatch.fnmatch(str(parent), pattern):
+                    return True
+
+        return False
+
+    def _get_python_files(self, project_path: Path) -> list[Path]:
+        """Get all Python files, respecting ignore patterns and project structure."""
+        ignore_patterns = self._load_ignore_patterns(project_path)
+        python_files = []
+
+        # Use project structure detection like check command does
+        try:
+            project_structure = detect_project_structure(project_path)
+
+            # Get Python files from source directories only (like check command)
+            for src_dir in project_structure.source_dirs:
+                src_path = project_path / src_dir
+                if src_path.exists():
+                    python_files.extend(
+                        py_file
+                        for py_file in src_path.rglob("*.py")
+                        if not self._should_ignore_file(py_file, project_path, ignore_patterns)
+                        and not project_structure.should_exclude_from_logging_analysis(py_file)
+                    )
+        except (AttributeError, ValueError):
+            # Fallback to original behavior if project structure detection fails
+            python_files.extend(
+                py_file
+                for py_file in project_path.rglob("*.py")
+                if not self._should_ignore_file(py_file, project_path, ignore_patterns)
+            )
+
+        if self.verbose:
+            total_py_files = len(list(project_path.rglob("*.py")))
+            ignored_count = total_py_files - len(python_files)
+            self.log.debug(
+                "file-filtering-complete",
+                _replace_msg="Found {total} Python files, ignored {ignored} files (scanning source dirs only)",
+                total=total_py_files,
+                ignored=ignored_count,
+                included=len(python_files),
+            )
+
+        return python_files
+
+    def _analyze_logging_patterns(self, project_path: Path) -> list[LoggingPattern]:
+        """Analyze the project for different logging patterns."""
+        patterns = []
+        python_files = self._get_python_files(project_path)
+
+        self.log.debug(
+            "analyzing-logging-patterns",
+            _replace_msg="Analyzing {file_count} Python files for logging patterns",
+            file_count=len(python_files),
+        )
+
+        for py_file in python_files:
+            try:
+                content = py_file.read_text(encoding="utf-8")
+                file_patterns = self._analyze_file_patterns(py_file, content)
+                patterns.extend(file_patterns)
+            except (OSError, UnicodeDecodeError, SyntaxError) as e:
+                self.log.warning(
+                    "file-analysis-failed",
+                    _replace_msg="Failed to analyze file {file}: {error}",
+                    file=str(py_file),
+                    error=str(e),
+                )
+
+        return patterns
+
+    def _analyze_file_patterns(
+        self,
+        file_path: Path,
+        content: str,
+    ) -> list[LoggingPattern]:
+        """Analyze a single file for logging patterns using AST analysis."""
+        patterns = []
+
+        try:
+            # Parse the file using AST to find only executable code
+            tree = ast.parse(content, filename=str(file_path))
+            patterns.extend(self._analyze_ast_tree(file_path, tree, content))
+        except SyntaxError:
+            # Fallback to line-by-line analysis if AST parsing fails
+            self.log.warning(
+                "ast-parsing-failed",
+                _replace_msg="AST parsing failed for {file}, falling back to line analysis",
+                file=str(file_path),
+            )
+            patterns.extend(self._analyze_file_patterns_fallback(file_path, content))
+
+        return patterns
+
+    def _analyze_ast_tree(
+        self,
+        file_path: Path,
+        tree: ast.AST,
+        content: str,
+    ) -> list[LoggingPattern]:
+        """Analyze AST tree for executable logging patterns."""
+        lines = content.split("\n")
+
+        class LoggingVisitor(ast.NodeVisitor):
+            def __init__(self, analyzer, file_path, lines) -> None:
+                self.analyzer = analyzer
+                self.file_path = file_path
+                self.lines = lines
+                self.patterns = []
+                # Track logger variables and their sources
+                self.logger_variables = {}  # var_name -> source ('structlog', 'logging', 'unknown')
+                self.current_scope = []  # For scope tracking (future enhancement)
+
+            def visit_Call(self, node: ast.Call) -> None:
+                """Visit function calls to detect logging patterns."""
+                line_num = node.lineno
+                line_content = self.lines[line_num - 1] if line_num <= len(self.lines) else ""
+
+                # Check for CLI framework output functions
+                if self._is_cli_output_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="cli_output",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="high",
+                            migration_priority=8,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Check for print statements
+                if self._is_print_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="print",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="high",
+                            migration_priority=9,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Check for structlog calls first (higher priority)
+                if self._is_structlog_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="structlog",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="low",
+                            migration_priority=1,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Check for standard logging calls
+                if self._is_logging_call(node):
+                    self.patterns.append(
+                        LoggingPattern(
+                            pattern_type="logging",
+                            file_path=str(self.file_path),
+                            line_number=line_num,
+                            code_snippet=line_content.strip(),
+                            severity="medium",
+                            migration_priority=6,
+                        ),
+                    )
+                    return  # Don't check for other patterns
+
+                # Continue visiting child nodes
+                self.generic_visit(node)
+
+            def visit_Assign(self, node: ast.Assign) -> None:
+                """Visit assignment statements to track logger variables."""
+                # Check if this is a logger assignment
+                if (
+                    len(node.targets) == 1
+                    and isinstance(node.targets[0], ast.Name)
+                    and isinstance(node.value, ast.Call)
+                ):
+                    var_name = node.targets[0].id
+                    call_node = node.value
+
+                    # Check if it's structlog.get_logger()
+                    if self._is_structlog_get_logger_call(call_node):
+                        self.logger_variables[var_name] = "structlog"
+                    # Check if it's logging.getLogger()
+                    elif self._is_logging_get_logger_call(call_node):
+                        self.logger_variables[var_name] = "logging"
+                    # Check if it's a direct import like 'log = logging.getLogger(...)'
+                    elif self._is_direct_logger_assignment(call_node):
+                        if "structlog" in self._get_full_func_name(call_node.func):
+                            self.logger_variables[var_name] = "structlog"
+                        elif "logging" in self._get_full_func_name(call_node.func):
+                            self.logger_variables[var_name] = "logging"
+
+                # Continue visiting child nodes
+                self.generic_visit(node)
+
+            def _is_cli_output_call(self, node: ast.Call) -> bool:
+                """Check if this is a CLI output call (typer.echo, click.echo, etc.)."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return func_name in {"typer.echo", "click.echo", "rich.print", "console.print"}
+
+            def _is_print_call(self, node: ast.Call) -> bool:
+                """Check if this is a print call."""
+                if isinstance(node.func, ast.Name) and node.func.id == "print":
+                    return True
+
+                # Check for sys.stdout.write, sys.stderr.write
+                if isinstance(node.func, ast.Attribute):
+                    func_name = self._get_full_func_name(node.func)
+                    return func_name in {"sys.stdout.write", "sys.stderr.write"}
+
+                return False
+
+            def _is_logging_call(self, node: ast.Call) -> bool:
+                """Check if this is a standard logging call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                # First check if it's a call on a tracked logging variable
+                if isinstance(node.func.value, ast.Name):
+                    var_name = node.func.value.id
+                    if var_name in self.logger_variables:
+                        # If it's tracked as structlog, it's not a logging call
+                        if self.logger_variables[var_name] == "structlog":
+                            return False
+                        # If it's tracked as logging, it is a logging call
+                        if self.logger_variables[var_name] == "logging":
+                            return True
+
+                func_name = self._get_full_func_name(node.func)
+                if not func_name:
+                    return False
+
+                # Check if it's a logging method call on a real logger
+                if "." in func_name:
+                    module_part, method_part = func_name.rsplit(".", 1)
+                    # Check if module is a logger variable or logging module
+                    if method_part in {"debug", "info", "warning", "error", "critical", "log"} and (
+                        module_part.startswith("log") or module_part == "logging"
+                    ):
+                        return True
+
+                return False
+
+            def _is_structlog_get_logger_call(self, node: ast.Call) -> bool:
+                """Check if this is structlog.get_logger() call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return func_name == "structlog.get_logger"
+
+            def _is_logging_get_logger_call(self, node: ast.Call) -> bool:
+                """Check if this is logging.getLogger() call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return func_name == "logging.getLogger"
+
+            def _is_direct_logger_assignment(self, node: ast.Call) -> bool:
+                """Check if this is a direct logger assignment like logging.getLogger()."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                func_name = self._get_full_func_name(node.func)
+                return "getLogger" in func_name or "get_logger" in func_name
+
+            def _is_structlog_call(self, node: ast.Call) -> bool:
+                """Check if this is a structlog call."""
+                if not isinstance(node.func, ast.Attribute):
+                    return False
+
+                # Check if it's a call on a tracked structlog variable
+                if isinstance(node.func.value, ast.Name):
+                    var_name = node.func.value.id
+                    if var_name in self.logger_variables and self.logger_variables[var_name] == "structlog":
+                        return True
+
+                func_name = self._get_full_func_name(node.func)
+                if not func_name:
+                    return False
+
+                # Check for structlog method calls
+                if "." in func_name:
+                    module_part, method_part = func_name.rsplit(".", 1)
+                    if method_part in {"debug", "info", "warning", "error", "critical", "log"} and (
+                        module_part.startswith("log") or "structlog" in module_part
+                    ):
+                        return True
+
+                # Check for structlog.get_logger()
+                return func_name == "structlog.get_logger"
+
+            def _get_full_func_name(self, node: ast.Attribute) -> str:
+                """Get the full function name from an attribute node."""
+                parts = []
+                current = node
+                while isinstance(current, ast.Attribute):
+                    parts.insert(0, current.attr)
+                    current = current.value
+
+                if isinstance(current, ast.Name):
+                    parts.insert(0, current.id)
+
+                return ".".join(parts)
+
+        visitor = LoggingVisitor(self, file_path, lines)
+        visitor.visit(tree)
+        return visitor.patterns
+
+    def _analyze_file_patterns_fallback(
+        self,
+        file_path: Path,
+        content: str,
+    ) -> list[LoggingPattern]:
+        """Fallback analysis using line-by-line regex (original implementation)."""
+        patterns = []
+        lines = content.split("\n")
+
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            # Check for CLI framework output functions first (higher priority)
+            cli_pattern_found = False
+            for pattern in self.cli_output_patterns:
+                if re.search(pattern, line):
+                    patterns.append(
+                        LoggingPattern(
+                            pattern_type="cli_output",
+                            file_path=str(file_path),
+                            line_number=line_num,
+                            code_snippet=line,
+                            severity="high",
+                            migration_priority=8,
+                        ),
+                    )
+                    cli_pattern_found = True
+                    break
+
+            # Check for print statements (but skip if CLI pattern already found)
+            if not cli_pattern_found:
+                patterns.extend(
+                    LoggingPattern(
+                        pattern_type="print",
+                        file_path=str(file_path),
+                        line_number=line_num,
+                        code_snippet=line,
+                        severity="high",
+                        migration_priority=9,
+                    )
+                    for pattern in self.print_patterns
+                    if re.search(pattern, line)
+                )
+
+            # Check for standard logging
+            patterns.extend(
+                LoggingPattern(
+                    pattern_type="logging",
+                    file_path=str(file_path),
+                    line_number=line_num,
+                    code_snippet=line,
+                    severity="medium",
+                    migration_priority=6,
+                )
+                for pattern in self.logging_patterns
+                if re.search(pattern, line) and "structlog" not in line
+            )
+
+            # Check for structlog (already good!)
+            patterns.extend(
+                LoggingPattern(
+                    pattern_type="structlog",
+                    file_path=str(file_path),
+                    line_number=line_num,
+                    code_snippet=line,
+                    severity="low",
+                    migration_priority=1,
+                )
+                for pattern in self.structlog_patterns
+                if re.search(pattern, line)
+            )
+
+        return patterns
+
+    def _analyze_complexity(self, project_path: Path) -> ProjectComplexity:
+        """Analyze project complexity metrics."""
+        python_files = self._get_python_files(project_path)
+        total_files = len(python_files)  # Only count Python files, not all files
+        total_lines = 0
+        complexities = []
+
+        for py_file in python_files:
+            try:
+                content = py_file.read_text(encoding="utf-8")
+                lines = len(content.split("\n"))
+                total_lines += lines
+
+                # Simple complexity metric based on AST
+                try:
+                    tree = ast.parse(content)
+                    complexity = self._calculate_ast_complexity(tree)
+                    complexities.append(complexity)
+                except SyntaxError:
+                    # Skip files with syntax errors
+                    pass
+
+            except (OSError, UnicodeDecodeError, SyntaxError, ValueError):
+                # Skip files that cannot be analyzed for complexity
+                continue
+
+        avg_complexity = sum(complexities) / len(complexities) if complexities else 0
+        max_complexity = max(complexities) if complexities else 0
+
+        # Categorize complexity
+        if len(python_files) < MIN_FILES_SIMPLE and total_lines < MIN_LINES_SIMPLE:
+            category = "simple"
+        elif len(python_files) < MIN_FILES_MEDIUM and total_lines < MIN_LINES_MEDIUM:
+            category = "medium"
+        else:
+            category = "complex"
+
+        return ProjectComplexity(
+            total_files=total_files,
+            python_files=len(python_files),
+            total_lines=total_lines,
+            average_complexity=avg_complexity,
+            max_complexity=max_complexity,
+            complexity_category=category,
+        )
+
+    def _calculate_ast_complexity(self, tree: ast.AST) -> float:
+        """Calculate a simple complexity score from AST."""
+        complexity = 0.0
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.If | ast.While | ast.For):
+                complexity += 1
+            elif isinstance(node, ast.FunctionDef):
+                complexity += 0.5
+            elif isinstance(node, ast.ClassDef):
+                complexity += 0.3
+
+        return complexity
+
+    def _analyze_dependencies(self, project_path: Path) -> DependencyAnalysis:
+        """Analyze project dependencies for logging-related packages."""
+        has_logging = False
+        has_structlog = False
+        other_logging = []
+        conflicts = []
+        package_manager = "unknown"
+
+        # Check different dependency files
+        dep_files = [
+            ("pyproject.toml", "poetry"),
+            ("requirements.txt", "pip"),
+            ("Pipfile", "pipenv"),
+            ("setup.py", "setuptools"),
+            ("setup.cfg", "setuptools"),
+        ]
+
+        for dep_file, manager in dep_files:
+            file_path = project_path / dep_file
+            if file_path.exists():
+                package_manager = manager
+                content = file_path.read_text(encoding="utf-8")
+
+                # Check for specific logging packages
+                if "structlog" in content:
+                    has_structlog = True
+
+                # Check for other logging libraries
+                other_logging.extend(lib for lib in self.logging_libraries if lib in content)
+
+                break
+
+        # Standard logging is always available in Python
+        has_logging = True
+
+        # Detect potential conflicts
+
+        if len(other_logging) > MIN_CONFLICTING_FRAMEWORKS:
+            conflicts.append(
+                f"Multiple logging frameworks detected: {', '.join(other_logging)}",
+            )
+
+        return DependencyAnalysis(
+            has_logging=has_logging,
+            has_structlog=has_structlog,
+            has_other_logging=other_logging,
+            dependency_conflicts=conflicts,
+            package_manager=package_manager,
+        )
+
+    def _generate_recommendation(
+        self,
+        patterns: list[LoggingPattern],
+        complexity: ProjectComplexity,
+        dependencies: DependencyAnalysis,
+    ) -> MigrationRecommendation:
+        """Generate migration recommendation based on analysis."""
+        # Count pattern types
+        print_count = len([p for p in patterns if p.pattern_type == "print"])
+        logging_count = len([p for p in patterns if p.pattern_type == "logging"])
+        structlog_count = len([p for p in patterns if p.pattern_type == "structlog"])
+        cli_output_count = len([p for p in patterns if p.pattern_type == "cli_output"])
+        len([p for p in patterns if p.pattern_type == "wrapper"])
+
+        # Determine strategy
+        if cli_output_count > 0:
+            strategy = "cli-outputs-to-structlog"
+            priority = "high"
+            effort = "medium" if complexity.complexity_category == "simple" else "high"
+        elif print_count > logging_count and print_count > 0:
+            strategy = "print-to-structlog"
+            priority = "high"
+            effort = "low" if complexity.complexity_category == "simple" else "medium"
+        elif logging_count > 0 and not dependencies.has_structlog:
+            strategy = "logging-to-structlog"
+            priority = "medium"
+            effort = "medium" if complexity.complexity_category != "complex" else "high"
+        elif structlog_count > 0:
+            strategy = "enhancement"
+            priority = "low"
+            effort = "low"
+        else:
+            strategy = "greenfield"
+            priority = "medium"
+            effort = "low"
+
+        # Determine approach
+        if complexity.complexity_category == "simple" and not dependencies.dependency_conflicts:
+            approach = "automatic"
+            risk = "low"
+        elif complexity.complexity_category == "medium":
+            approach = "interactive"
+            risk = "medium"
+        else:
+            approach = "manual"
+            risk = "high"
+
+        # Generate prerequisites and steps
+        prerequisites = []
+        steps = []
+
+        if dependencies.dependency_conflicts:
+            prerequisites.append("Resolve dependency conflicts")
+            risk = "high"
+
+        if not dependencies.has_structlog:
+            prerequisites.append("Add structlog dependency")
+
+        # Strategy-specific steps
+        if strategy == "cli-outputs-to-structlog":
+            steps = [
+                "1. Run: stoggertools migrate . --type cli-outputs-to-structlog --interactive",
+                "2. Validate changes",
+            ]
+        elif strategy == "print-to-structlog":
+            steps = [
+                "1. Run: stoggertools migrate . --no-dry-run --type print-to-structlog",
+                "2. Validate changes",
+            ]
+        elif strategy == "logging-to-structlog":
+            steps = [
+                "1. Run: stoggertools migrate . --type logging-to-structlog --interactive",
+                "2. Validate changes",
+            ]
+        elif strategy == "enhancement":
+            steps = [
+                "1. Run: stoggertools check . --fix",
+                "2. Enhance existing structured logging",
+            ]
+        else:  # greenfield
+            steps = [
+                "1. Initialize stogger configuration: stoggertools init .",
+                "2. Set up logging in main application entry point",
+                "3. Implement logging throughout codebase",
+            ]
+
+        return MigrationRecommendation(
+            strategy=strategy,
+            priority=priority,
+            estimated_effort=effort,
+            recommended_approach=approach,
+            risk_level=risk,
+            prerequisites=prerequisites,
+            steps=steps,
+        )
+
+    def _generate_warnings(
+        self,
+        patterns: list[LoggingPattern],
+        complexity: ProjectComplexity,
+        dependencies: DependencyAnalysis,
+    ) -> list[str]:
+        """Generate warnings based on analysis."""
+        warnings = []
+
+        if dependencies.dependency_conflicts:
+            warnings.extend(dependencies.dependency_conflicts)
+
+        if complexity.complexity_category == "complex":
+            warnings.append("Complex project - consider phased migration approach")
+
+        high_priority_patterns = [p for p in patterns if p.migration_priority >= MIN_HIGH_PRIORITY]
+        if len(high_priority_patterns) > MAX_HIGH_PRIORITY_PATTERNS:
+            warnings.append(
+                "Large number of high-priority patterns"
+                f" ({len(high_priority_patterns)}) - migration may be time-consuming",
+            )
+
+        if complexity.max_complexity > MAX_COMPLEXITY_THRESHOLD:
+            warnings.append("High complexity functions detected - review manually")
+
+        # Check for log wrapper anti-patterns
+        wrapper_patterns = [p for p in patterns if p.pattern_type == "wrapper"]
+        if wrapper_patterns:
+            warnings.append(
+                f"Log wrapper anti-patterns detected ({len(wrapper_patterns)} functions) - "
+                "consider using log.* calls directly instead of wrapper functions",
+            )
+
+        return warnings
+
+    def _get_timestamp(self) -> str:
+        """Get current timestamp as ISO string."""
+        return datetime.now(tz=UTC).isoformat()
+
+
+def analyze_project_for_agents(
+    project_path: str,
+    *,
+    verbose: bool = False,
+) -> ProjectAnalysisResult:
+    """Convenience function for AI agents to analyze a project.
+
+    Args:
+        project_path: Path to the project to analyze
+        verbose: Enable verbose logging
+
+    Returns:
+        ProjectAnalysisResult with comprehensive analysis
+
+    """
+    analyzer = ProjectAnalyzer(verbose=verbose)
+    return analyzer.analyze_project(Path(project_path))

@@ -14,8 +14,8 @@ import pytest
 import structlog
 
 # Import the modules we want to test
-from src.nicestlog.config import SimpleFormatSettings
-from src.nicestlog.core import (
+from stogger.config import SimpleFormatSettings
+from stogger.core import (
     JSONRenderer,
     ConsoleFileRenderer,
     TranslationProcessor,
@@ -158,7 +158,7 @@ class TestCoreEdgeCases:
         """Test that early logging initialization reduces uninitialized structlog messages."""
         # Test script that demonstrates early initialization
         test_script = """
-import nicestlog
+import stogger
 import structlog
 
 # This should show proper format from the start
@@ -166,7 +166,7 @@ log = structlog.get_logger('test')
 log.info('early-message', message='Should show early format')
 
 # Full initialization should work without issues
-nicestlog.init_logging(verbose=False)
+stogger.init_logging(verbose=False)
 log.info('after-full-init', message='Should show full format')
 """
 
@@ -176,7 +176,7 @@ log.info('after-full-init', message='Should show full format')
             check=False,
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent / "src",
+            cwd=Path(__file__).parent.parent,
         )
 
         # Check that it ran successfully
@@ -209,15 +209,15 @@ log.info('after-full-init', message='Should show full format')
         """Test that early logging fails gracefully if there are issues."""
         # Test that logging_initialized works
         test_script = """
-import nicestlog
+import stogger
 import structlog
 
 # Should be configured after import
-print("Configured:", nicestlog.logging_initialized())
+print("Configured:", stogger.logging_initialized())
 
 # Should still work after full init
-nicestlog.init_logging()
-print("Still configured:", nicestlog.logging_initialized())
+stogger.init_logging()
+print("Still configured:", stogger.logging_initialized())
 """
 
         result = subprocess.run(
@@ -225,7 +225,7 @@ print("Still configured:", nicestlog.logging_initialized())
             check=False,
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent / "src",
+            cwd=Path(__file__).parent.parent,
         )
 
         assert result.returncode == 0
@@ -239,11 +239,11 @@ print("Still configured:", nicestlog.logging_initialized())
         """Test that CLI commands don't show uninitialized structlog messages."""
         # Test a simple CLI command that would trigger logging
         result = subprocess.run(
-            [sys.executable, "-m", "nicestlog", "--help"],
+            [sys.executable, "-m", "stoggertools", "--help"],
             check=False,
             capture_output=True,
             text=True,
-            cwd=Path(__file__).parent.parent / "src",
+            cwd=Path(__file__).parent.parent,
         )
 
         # Should succeed

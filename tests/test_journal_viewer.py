@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from io import StringIO
 from unittest.mock import Mock, patch
 
-from src.nicestlog.core import init_logging
-from src.nicestlog.journal_viewer import JournalEntry, JournalQueryOptions, JournalViewer
+from stogger.core import init_logging
+from stogger_systemd.journal_viewer import JournalEntry, JournalQueryOptions, JournalViewer
 
 
 class TestJournalEntry:
@@ -43,7 +43,7 @@ class TestJournalViewer:
 
     def test_init_default_params(self):
         """Test initialization with default parameters."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             assert viewer.show_hostname is False
@@ -53,7 +53,7 @@ class TestJournalViewer:
 
     def test_init_custom_params(self):
         """Test initialization with custom parameters."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer(
                 show_hostname=True,
                 show_pid=False,
@@ -68,7 +68,7 @@ class TestJournalViewer:
 
     def test_init_systemd_unavailable(self):
         """Test initialization when systemd is unavailable."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False):
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                 init_logging()
                 JournalViewer()
@@ -97,7 +97,7 @@ class TestJournalViewer:
 
     def test_parse_journal_entry_basic(self):
         """Test parsing a basic journal entry."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             timestamp = datetime.now()
@@ -124,7 +124,7 @@ class TestJournalViewer:
 
     def test_parse_journal_entry_missing_fields(self):
         """Test parsing journal entry with missing fields."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             raw_entry = {"MESSAGE": "test message"}
@@ -139,7 +139,7 @@ class TestJournalViewer:
 
     def test_parse_journal_entry_alternative_fields(self):
         """Test parsing with alternative field names."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             raw_entry = {
@@ -156,8 +156,8 @@ class TestJournalViewer:
             assert entry.level == "error"  # Priority 3
 
     def test_parse_journal_entry_custom_fields(self):
-        """Test parsing custom nicestlog fields."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        """Test parsing custom stogger fields."""
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             raw_entry = {
@@ -175,7 +175,7 @@ class TestJournalViewer:
 
     def test_parse_journal_entry_invalid_json(self):
         """Test parsing custom fields with invalid JSON."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             raw_entry = {
@@ -190,7 +190,7 @@ class TestJournalViewer:
 
     def test_format_entry_basic(self):
         """Test basic entry formatting."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             timestamp = datetime(2023, 1, 1, 12, 30, 45, 123456)
@@ -215,7 +215,7 @@ class TestJournalViewer:
 
     def test_format_entry_with_hostname(self):
         """Test entry formatting with hostname shown."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer(show_hostname=True)
 
             timestamp = datetime.now()
@@ -235,7 +235,7 @@ class TestJournalViewer:
 
     def test_format_entry_without_service(self):
         """Test entry formatting without service shown."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer(show_service=False)
 
             timestamp = datetime.now()
@@ -255,7 +255,7 @@ class TestJournalViewer:
 
     def test_format_entry_without_pid(self):
         """Test entry formatting without PID shown."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer(show_pid=False)
 
             timestamp = datetime.now()
@@ -275,7 +275,7 @@ class TestJournalViewer:
 
     def test_format_entry_with_custom_fields(self):
         """Test entry formatting with custom fields."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             timestamp = datetime.now()
@@ -297,7 +297,7 @@ class TestJournalViewer:
 
     def test_format_entry_different_levels(self):
         """Test entry formatting with different log levels."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             timestamp = datetime.now()
@@ -325,7 +325,7 @@ class TestJournalViewer:
 
     def test_query_journal_systemd_unavailable(self):
         """Test query_journal when systemd is unavailable."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False):
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                 init_logging()
                 viewer = JournalViewer()
@@ -337,8 +337,8 @@ class TestJournalViewer:
 
     def test_query_journal_basic(self):
         """Test basic journal querying."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
-            with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
+            with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
                 mock_reader = Mock()
                 mock_journal.Reader.return_value = mock_reader
 
@@ -360,8 +360,8 @@ class TestJournalViewer:
 
     def test_query_journal_with_service_filter(self):
         """Test journal querying with service filter."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
-            with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
+            with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
                 mock_reader = Mock()
                 mock_journal.Reader.return_value = mock_reader
                 mock_reader.__iter__ = Mock(return_value=iter([]))
@@ -373,8 +373,8 @@ class TestJournalViewer:
 
     def test_query_journal_with_level_filter(self):
         """Test journal querying with level filter."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
-            with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
+            with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
                 mock_reader = Mock()
                 mock_journal.Reader.return_value = mock_reader
                 mock_reader.__iter__ = Mock(return_value=iter([]))
@@ -394,8 +394,8 @@ class TestJournalViewer:
 
     def test_query_journal_with_lines_limit(self):
         """Test journal querying with lines limit."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
-            with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
+            with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
                 mock_reader = Mock()
                 mock_journal.Reader.return_value = mock_reader
 
@@ -412,8 +412,8 @@ class TestJournalViewer:
 
     def test_query_journal_follow_mode(self):
         """Test journal querying in follow mode."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
-            with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
+            with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
                 mock_reader = Mock()
                 mock_journal.Reader.return_value = mock_reader
 
@@ -430,8 +430,8 @@ class TestJournalViewer:
 
     def test_query_journal_with_since(self):
         """Test journal querying with since parameter."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
-            with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
+            with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
                 mock_reader = Mock()
                 mock_journal.Reader.return_value = mock_reader
                 mock_reader.__iter__ = Mock(return_value=iter([]))
@@ -448,8 +448,8 @@ class TestJournalViewer:
 
     def test_query_journal_exception_handling(self):
         """Test journal querying exception handling."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
-            with patch("src.nicestlog.journal_viewer.journal") as mock_journal:
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
+            with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
                 mock_journal.Reader.side_effect = Exception("Journal error")
 
                 with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
@@ -462,11 +462,11 @@ class TestJournalViewer:
 
     def test_parse_time_string_relative_hours(self):
         """Test parsing relative time strings with hours."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("src.nicestlog.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("2 hours ago")
@@ -477,11 +477,11 @@ class TestJournalViewer:
 
     def test_parse_time_string_relative_minutes(self):
         """Test parsing relative time strings with minutes."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("src.nicestlog.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("30 minutes ago")
@@ -491,11 +491,11 @@ class TestJournalViewer:
 
     def test_parse_time_string_relative_days(self):
         """Test parsing relative time strings with days."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("src.nicestlog.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("3 days ago")
@@ -505,11 +505,11 @@ class TestJournalViewer:
 
     def test_parse_time_string_today(self):
         """Test parsing 'today' time string."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             now = datetime(2023, 5, 15, 14, 30, 0)
-            with patch("src.nicestlog.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("today")
@@ -519,11 +519,11 @@ class TestJournalViewer:
 
     def test_parse_time_string_yesterday(self):
         """Test parsing 'yesterday' time string."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             now = datetime(2023, 5, 15, 14, 30, 0)
-            with patch("src.nicestlog.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("yesterday")
@@ -533,7 +533,7 @@ class TestJournalViewer:
 
     def test_parse_time_string_iso_format(self):
         """Test parsing ISO format time strings."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             result = viewer.parse_time_string("2023-05-15 14:30:00")
@@ -543,7 +543,7 @@ class TestJournalViewer:
 
     def test_parse_time_string_iso_format_with_t(self):
         """Test parsing ISO format with T separator."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             result = viewer.parse_time_string("2023-05-15T14:30:00")
@@ -553,11 +553,11 @@ class TestJournalViewer:
 
     def test_parse_time_string_default_fallback(self):
         """Test parsing unknown time string falls back to 1 hour ago."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("src.nicestlog.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("invalid time string")
@@ -571,11 +571,11 @@ class TestMainFunction:
 
     def test_main_systemd_unavailable(self):
         """Test main function when systemd is unavailable."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", False):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False):
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                 with patch("sys.exit") as mock_exit:
                     init_logging()
-                    from src.nicestlog.journal_viewer import main
+                    from stogger_systemd.journal_viewer import main
 
                     main()
 
@@ -584,16 +584,16 @@ class TestMainFunction:
 
     def test_main_with_arguments(self):
         """Test main function with command line arguments."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer", "-u", "myservice", "-n", "10"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer",
+                    "stogger_systemd.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
                     mock_viewer.query_journal.return_value = []
 
-                    from src.nicestlog.journal_viewer import main
+                    from stogger_systemd.journal_viewer import main
 
                     main()
 
@@ -611,10 +611,10 @@ class TestMainFunction:
 
     def test_main_json_output(self):
         """Test main function with JSON output."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer", "--json"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer",
+                    "stogger_systemd.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
@@ -625,7 +625,7 @@ class TestMainFunction:
                     mock_viewer.query_journal.return_value = [mock_entry]
 
                     with patch("builtins.print") as mock_print:
-                        from src.nicestlog.journal_viewer import main
+                        from stogger_systemd.journal_viewer import main
 
                         main()
 
@@ -637,10 +637,10 @@ class TestMainFunction:
 
     def test_main_formatted_output(self):
         """Test main function with formatted output."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer",
+                    "stogger_systemd.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
@@ -651,7 +651,7 @@ class TestMainFunction:
                     mock_viewer.format_entry.return_value = "formatted entry"
 
                     with patch("builtins.print") as mock_print:
-                        from src.nicestlog.journal_viewer import main
+                        from stogger_systemd.journal_viewer import main
 
                         main()
 
@@ -662,10 +662,10 @@ class TestMainFunction:
 
     def test_main_keyboard_interrupt(self):
         """Test main function handling keyboard interrupt."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer",
+                    "stogger_systemd.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer = Mock()
                     mock_viewer_class.return_value = mock_viewer
@@ -674,7 +674,7 @@ class TestMainFunction:
                     with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                         with patch("sys.exit") as mock_exit:
                             init_logging()
-                            from src.nicestlog.journal_viewer import main
+                            from stogger_systemd.journal_viewer import main
 
                             main()
 
@@ -683,17 +683,17 @@ class TestMainFunction:
 
     def test_main_general_exception(self):
         """Test main function handling general exceptions."""
-        with patch("src.nicestlog.journal_viewer.SYSTEMD_AVAILABLE", True):
+        with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
-                    "src.nicestlog.journal_viewer.JournalViewer",
+                    "stogger_systemd.journal_viewer.JournalViewer",
                 ) as mock_viewer_class:
                     mock_viewer_class.side_effect = Exception("Test error")
 
                     with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
                         with patch("sys.exit") as mock_exit:
                             init_logging()
-                            from src.nicestlog.journal_viewer import main
+                            from stogger_systemd.journal_viewer import main
 
                             main()
 
@@ -706,7 +706,7 @@ class TestColorImports:
 
     def test_color_constants_available(self):
         """Test that color constants are available."""
-        from src.nicestlog.journal_viewer import (
+        from stogger_systemd.journal_viewer import (
             BLUE,
             BRIGHT,
             CYAN,
@@ -735,6 +735,6 @@ class TestSystemdAvailability:
 
     def test_systemd_available_constant(self):
         """Test that SYSTEMD_AVAILABLE constant is defined."""
-        from src.nicestlog.journal_viewer import SYSTEMD_AVAILABLE
+        from stogger_systemd.journal_viewer import SYSTEMD_AVAILABLE
 
         assert isinstance(SYSTEMD_AVAILABLE, bool)

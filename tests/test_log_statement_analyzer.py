@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 import tempfile
 
-from nicestlog.log_statement_analyzer import (
+from stoggertools.log_statement_analyzer import (
     LogAnalysisResult,
     LogStatement,
     LogStatementAnalyzer,

@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nicestlog.i18n import (
+from stogger.i18n import (
     NicestlogTranslator,
     demo_translations,
     get_translator,

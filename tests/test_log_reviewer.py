@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.nicestlog.core import init_logging
-from src.nicestlog.log_reviewer import LogQualityReport, LogQualityReviewer
+from stogger.core import init_logging
+from stoggertools.log_reviewer import LogQualityReport, LogQualityReviewer
 
 
 @pytest.mark.skip("Log reviewer is currently unsupported")
@@ -457,7 +457,7 @@ class TestCLIFunctions:
         )
 
         with patch("builtins.print") as mock_print:
-            from src.nicestlog.log_reviewer import print_report
+            from stoggertools.log_reviewer import print_report
 
             print_report(report, "text")
 
@@ -481,7 +481,7 @@ class TestCLIFunctions:
         )
 
         with patch("builtins.print") as mock_print:
-            from src.nicestlog.log_reviewer import print_report
+            from stoggertools.log_reviewer import print_report
 
             print_report(report, "json")
 
@@ -501,7 +501,7 @@ class TestCLIFunctions:
     def test_review_logs_cli_single_file(self, mock_is_dir, mock_is_file):
         """Test CLI with single file."""
         with patch(
-            "src.nicestlog.log_reviewer.LogQualityReviewer",
+            "stoggertools.log_reviewer.LogQualityReviewer",
         ) as mock_reviewer_class:
             mock_reviewer = Mock()
             mock_reviewer_class.return_value = mock_reviewer
@@ -517,8 +517,8 @@ class TestCLIFunctions:
             )
             mock_reviewer.analyze_log_file.return_value = mock_report
 
-            with patch("src.nicestlog.log_reviewer.print_report") as mock_print:
-                from src.nicestlog.log_reviewer import review_logs_cli
+            with patch("stoggertools.log_reviewer.print_report") as mock_print:
+                from stoggertools.log_reviewer import review_logs_cli
 
                 review_logs_cli()
 
@@ -531,7 +531,7 @@ class TestCLIFunctions:
     def test_review_logs_cli_low_score_exit(self, mock_is_dir, mock_is_file):
         """Test CLI exits with code 1 when score is below minimum."""
         with patch(
-            "src.nicestlog.log_reviewer.LogQualityReviewer",
+            "stoggertools.log_reviewer.LogQualityReviewer",
         ) as mock_reviewer_class:
             mock_reviewer = Mock()
             mock_reviewer_class.return_value = mock_reviewer
@@ -547,11 +547,11 @@ class TestCLIFunctions:
             )
             mock_reviewer.analyze_log_file.return_value = mock_report
 
-            with patch("src.nicestlog.log_reviewer.print_report"):
+            with patch("stoggertools.log_reviewer.print_report"):
                 with patch("sys.exit") as mock_exit:
                     mock_exit.side_effect = SystemExit(1)
 
-                    from src.nicestlog.log_reviewer import review_logs_cli
+                    from stoggertools.log_reviewer import review_logs_cli
 
                     with pytest.raises(SystemExit):
                         review_logs_cli()
@@ -564,7 +564,7 @@ class TestCLIFunctions:
     def test_review_logs_cli_directory(self, mock_is_dir, mock_is_file):
         """Test CLI with directory containing log files."""
         with patch(
-            "src.nicestlog.log_reviewer.LogQualityReviewer",
+            "stoggertools.log_reviewer.LogQualityReviewer",
         ) as mock_reviewer_class:
             mock_reviewer = Mock()
             mock_reviewer_class.return_value = mock_reviewer
@@ -589,9 +589,9 @@ class TestCLIFunctions:
                 )
                 mock_reviewer.analyze_log_file.return_value = mock_report
 
-                with patch("src.nicestlog.log_reviewer.print_report") as mock_print:
+                with patch("stoggertools.log_reviewer.print_report") as mock_print:
                     with patch("builtins.print"):
-                        from src.nicestlog.log_reviewer import review_logs_cli
+                        from stoggertools.log_reviewer import review_logs_cli
 
                         review_logs_cli()
 
@@ -611,7 +611,7 @@ class TestCLIFunctions:
                     mock_exit.side_effect = SystemExit(1)
 
                     init_logging()
-                    from src.nicestlog.log_reviewer import review_logs_cli
+                    from stoggertools.log_reviewer import review_logs_cli
 
                     with pytest.raises(SystemExit):
                         review_logs_cli()
@@ -629,7 +629,7 @@ class TestCLIFunctions:
                 mock_exit.side_effect = SystemExit(1)
 
                 init_logging()
-                from src.nicestlog.log_reviewer import review_logs_cli
+                from stoggertools.log_reviewer import review_logs_cli
 
                 with pytest.raises(SystemExit):
                     review_logs_cli()

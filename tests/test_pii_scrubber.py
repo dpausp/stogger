@@ -2,7 +2,7 @@
 
 import pytest
 
-from nicestlog.pii_scrubber import PIIScrubber, create_pii_processor
+from stogger.pii_scrubber import PIIScrubber, create_pii_processor
 
 
 class TestPIIScrubber:
@@ -540,7 +540,7 @@ class TestPIIScrubbingEdgeCases:
 
     def test_create_pii_processor_integration(self):
         """Test create_pii_processor function integration."""
-        from src.nicestlog.pii_scrubber import create_pii_processor
+        from stogger.pii_scrubber import create_pii_processor
 
         # Test with default settings
         processor = create_pii_processor()
@@ -562,7 +562,7 @@ class TestPIIScrubbingEdgeCases:
 
     def test_create_pii_processor_with_custom_settings(self):
         """Test create_pii_processor with custom settings."""
-        from src.nicestlog.pii_scrubber import create_pii_processor
+        from stogger.pii_scrubber import create_pii_processor
 
         # Test with custom redaction text
         processor = create_pii_processor(redaction_text="<HIDDEN>")
@@ -574,7 +574,7 @@ class TestPIIScrubbingEdgeCases:
 
     def test_create_pii_processor_with_custom_patterns(self):
         """Test create_pii_processor with custom patterns."""
-        from src.nicestlog.pii_scrubber import create_pii_processor
+        from stogger.pii_scrubber import create_pii_processor
 
         custom_patterns = {
             "custom_id": r"ID-\d{6}",
@@ -611,7 +611,7 @@ class TestPIIScrubbingEdgeCases:
 
     def test_processor_call_interface_edge_cases(self):
         """Test processor call interface with edge cases."""
-        from src.nicestlog.pii_scrubber import create_pii_processor
+        from stogger.pii_scrubber import create_pii_processor
 
         processor = create_pii_processor()
 

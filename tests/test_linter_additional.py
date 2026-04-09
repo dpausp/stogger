@@ -1,7 +1,7 @@
 from pathlib import Path
 import textwrap
 
-from nicestlog import linter
+from stoggertools import linter
 
 
 def _write(tmp: Path, name: str, content: str) -> Path:
