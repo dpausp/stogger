@@ -13,14 +13,19 @@ if "eliot" not in sys.modules:
     except ImportError:
         pytestmark = pytest.mark.skip(reason="eliot not installed")
 
+try:
+    from eliot import Action
+except ImportError:
+    Action = None  # type: ignore[assignment,misc]
+
 
 # Test both with and without eliot available
 @pytest.fixture
 def mock_eliot_available():
     """Mock eliot being available."""
     with patch("stogger_eliot.eliot_integration.ELIOT_AVAILABLE", True):
-        with patch("stogger_eliot.eliot_integration.start_action") as mock_start:
-            with patch("stogger_eliot.eliot_integration.log_message") as mock_log:
+        with patch("stogger_eliot.eliot_integration.start_action", autospec=True) as mock_start:
+            with patch("stogger_eliot.eliot_integration.log_message", autospec=True) as mock_log:
                 yield mock_start, mock_log
 
 
@@ -349,7 +354,7 @@ class TestSetupEliotLogging:
         """Test setup with human readable format."""
         from stogger_eliot.eliot_integration import setup_eliot_logging
 
-        with patch("eliot.add_destinations") as mock_add_dest:
+        with patch("eliot.add_destinations", autospec=True) as mock_add_dest:
             result = setup_eliot_logging(human_readable=True)
 
             assert result is True
@@ -359,7 +364,7 @@ class TestSetupEliotLogging:
         """Test setup with JSON format."""
         from stogger_eliot.eliot_integration import setup_eliot_logging
 
-        with patch("eliot.to_file") as mock_to_file:
+        with patch("eliot.to_file", autospec=True) as mock_to_file:
             result = setup_eliot_logging(human_readable=False)
 
             assert result is True
@@ -370,7 +375,7 @@ class TestSetupEliotLogging:
         from stogger_eliot.eliot_integration import setup_eliot_logging
 
         custom_file = io.StringIO()
-        with patch("eliot.to_file") as mock_to_file:
+        with patch("eliot.to_file", autospec=True) as mock_to_file:
             result = setup_eliot_logging(destination=custom_file, human_readable=False)
 
             assert result is True
@@ -385,9 +390,9 @@ class TestLogActionContextManager:
         from stogger_eliot.eliot_integration import log_action
 
         mock_start, mock_log = mock_eliot_available
-        mock_action = MagicMock()
-        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
-        mock_start.return_value.__exit__ = Mock(return_value=None)
+        mock_action = MagicMock(spec=Action)
+        mock_start.return_value.__enter__ = Mock(spec=Action.__enter__, return_value=mock_action)
+        mock_start.return_value.__exit__ = Mock(spec=Action.__exit__, return_value=None)
 
         with log_action("test_action", param1="value1") as action:
             assert action == mock_action
@@ -425,9 +430,9 @@ class TestLogCallDecorator:
         from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
-        mock_action = MagicMock()
-        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
-        mock_start.return_value.__exit__ = Mock(return_value=None)
+        mock_action = MagicMock(spec=Action)
+        mock_start.return_value.__enter__ = Mock(spec=Action.__enter__, return_value=mock_action)
+        mock_start.return_value.__exit__ = Mock(spec=Action.__exit__, return_value=None)
 
         @log_call("custom_action")
         def test_function(x, y):
@@ -444,9 +449,9 @@ class TestLogCallDecorator:
         from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
-        mock_action = MagicMock()
-        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
-        mock_start.return_value.__exit__ = Mock(return_value=None)
+        mock_action = MagicMock(spec=Action)
+        mock_start.return_value.__enter__ = Mock(spec=Action.__enter__, return_value=mock_action)
+        mock_start.return_value.__exit__ = Mock(spec=Action.__exit__, return_value=None)
 
         @log_call()
         def test_function():
@@ -463,9 +468,10 @@ class TestLogCallDecorator:
         from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
-        mock_action = MagicMock()
-        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
-        mock_start.return_value.__exit__ = Mock(return_value=None)
+        mock_action = MagicMock(spec=Action)
+        mock_action.add_failure_fields = MagicMock()
+        mock_start.return_value.__enter__ = Mock(spec=Action.__enter__, return_value=mock_action)
+        mock_start.return_value.__exit__ = Mock(spec=Action.__exit__, return_value=None)
 
         @log_call("failing_action")
         def failing_function():
@@ -481,9 +487,9 @@ class TestLogCallDecorator:
         from stogger_eliot.eliot_integration import log_call
 
         mock_start, mock_log = mock_eliot_available
-        mock_action = MagicMock()
-        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
-        mock_start.return_value.__exit__ = Mock(return_value=None)
+        mock_action = MagicMock(spec=Action)
+        mock_start.return_value.__enter__ = Mock(spec=Action.__enter__, return_value=mock_action)
+        mock_start.return_value.__exit__ = Mock(spec=Action.__exit__, return_value=None)
 
         @log_call("void_action")
         def void_function():
@@ -525,12 +531,12 @@ class TestDemoFunction:
         from stogger_eliot.eliot_integration import demo_eliot_integration
 
         mock_start, mock_log = mock_eliot_available
-        mock_action = MagicMock()
-        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
-        mock_start.return_value.__exit__ = Mock(return_value=None)
+        mock_action = MagicMock(spec=Action)
+        mock_start.return_value.__enter__ = Mock(spec=Action.__enter__, return_value=mock_action)
+        mock_start.return_value.__exit__ = Mock(spec=Action.__exit__, return_value=None)
 
-        with patch("stogger_eliot.eliot_integration.setup_eliot_logging") as mock_setup:
-            with patch("builtins.print") as mock_print:
+        with patch("stogger_eliot.eliot_integration.setup_eliot_logging", autospec=True) as mock_setup:
+            with patch("builtins.print", autospec=True) as mock_print:
                 demo_eliot_integration()
 
                 mock_setup.assert_called_once_with(

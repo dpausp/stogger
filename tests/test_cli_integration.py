@@ -3,17 +3,18 @@ These tests actually run the commands with real functionality.
 """
 
 import logging
-from pathlib import Path
 import os
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from typer.testing import CliRunner
-
+from stogger_systemd.journal_viewer import JournalViewer
 from stoggertools.cli import app
+from stoggertools.log_reviewer import LogQualityReport, LogQualityReviewer
+from typer.testing import CliRunner
 
 # Check if Flask is available for dashboard tests
 try:
@@ -61,7 +62,7 @@ class TestInitConfigIntegration:
         pyproject_path.write_text('[build-system]\nrequires = ["setuptools"]\n')
 
         # Mock the interactive input
-        with patch("builtins.input") as mock_input:
+        with patch("builtins.input", autospec=True) as mock_input:
             mock_input.side_effect = [
                 "y",  # verbose
                 "myapp",  # syslog_identifier
@@ -348,12 +349,12 @@ class TestJournalIntegration:
         assert "systemd-python not available" in error_output
 
     @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True)
-    @patch("stogger_systemd.journal_viewer.JournalViewer")
+    @patch("stogger_systemd.journal_viewer.JournalViewer", autospec=True)
     @patch("stoggertools.cli.SYSTEMD_AVAILABLE", True)
-    @patch("stoggertools.cli.run_journal_viewer")
+    @patch("stoggertools.cli.run_journal_viewer", autospec=True)
     def test_journal_with_systemd_available(self, mock_run_journal, mock_viewer_class):
         """Test journal command when systemd is available."""
-        mock_viewer = MagicMock()
+        mock_viewer = MagicMock(spec=JournalViewer)
         mock_viewer_class.return_value = mock_viewer
 
         # Mock journal entries
@@ -401,10 +402,8 @@ class TestReviewIntegration:
 2024-01-01 10:00:06 INFO Database connected successfully
 """)
 
-        # Mock the reviewer components
-        with patch("stoggertools.cli.run_log_reviewer") as mock_run_reviewer:
+        with patch("stoggertools.cli.run_log_reviewer", autospec=True) as mock_run_reviewer:
             result = self.runner.invoke(app, ["tools", "review", str(log_file)])
-
             # Should succeed
             assert result.exit_code == 0
             mock_run_reviewer.assert_called_once_with(str(log_file), "text", 70.0)
@@ -419,7 +418,7 @@ class TestReviewIntegration:
         log2.write_text("2024-01-01 10:00:01 ERROR Database connection failed\n")
 
         # Mock the reviewer components
-        with patch("stoggertools.cli.run_log_reviewer") as mock_run_reviewer:
+        with patch("stoggertools.cli.run_log_reviewer", autospec=True) as mock_run_reviewer:
             result = self.runner.invoke(
                 app,
                 [
@@ -441,16 +440,16 @@ class TestReviewIntegration:
         log_file = self.temp_path / "bad.log"
         log_file.write_text("Some poorly formatted log content\n")
 
-        with patch("stoggertools.log_reviewer.LogQualityReviewer") as mock_reviewer_class:
-            mock_reviewer = MagicMock()
+        with patch("stoggertools.log_reviewer.LogQualityReviewer", autospec=True) as mock_reviewer_class:
+            mock_reviewer = MagicMock(spec=LogQualityReviewer)
             mock_reviewer_class.return_value = mock_reviewer
 
             # Mock a report with low score
-            mock_report = MagicMock()
+            mock_report = MagicMock(spec=LogQualityReport)
             mock_report.overall_score = 40.0  # Below default minimum of 70
             mock_reviewer.analyze_log_file.return_value = mock_report
 
-            with patch("stoggertools.log_reviewer.print_report"):
+            with patch("stoggertools.log_reviewer.print_report", autospec=True):
                 result = self.runner.invoke(app, ["tools", "review", str(log_file)])
 
                 assert result.exit_code == 1  # Should fail due to low score
@@ -464,7 +463,7 @@ class TestDashboardIntegration:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    @patch("stogger_web.web_dashboard.run_dashboard")
+    @patch("stogger_web.web_dashboard.run_dashboard", autospec=True)
     def test_dashboard_starts_with_default_settings(self, mock_run_dashboard):
         """Test that dashboard starts with default settings."""
         # Mock the dashboard to avoid actually starting a web server
@@ -479,7 +478,7 @@ class TestDashboardIntegration:
             debug=False,
         )
 
-    @patch("stoggertools.cli.run_dashboard")
+    @patch("stoggertools.cli.run_dashboard", autospec=True)
     def test_dashboard_with_custom_settings(self, mock_run_dashboard):
         """Test dashboard with custom host, port, and debug mode."""
         mock_run_dashboard.return_value = None

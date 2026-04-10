@@ -3,13 +3,25 @@ Tests the new --ast, --interactive, --complexity, and --pattern options.
 """
 
 import logging
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from typer.testing import CliRunner
-
+from stoggertools.advanced_assistant import (
+    AdvancedAssistant,
+    ASTPattern,
+    CodeAnalysisResult,
+    TransformationResult,
+)
 from stoggertools.cli import app
+from stoggertools.interactive_transformer import InteractiveTransformer
+from stoggertools.project_analyzer import (
+    DependencyAnalysis,
+    MigrationRecommendation,
+    ProjectAnalysisResult,
+    ProjectComplexity,
+)
+from typer.testing import CliRunner
 
 # Check if Flask is available for dashboard tests
 try:
@@ -50,12 +62,12 @@ def test_function():
     return True
 """)
 
-        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
+        with patch("stoggertools.cli.AdvancedAssistant", autospec=True) as mock_assistant_class:
+            mock_assistant = MagicMock(spec=AdvancedAssistant)
             mock_assistant_class.return_value = mock_assistant
 
             # Mock analysis result
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=CodeAnalysisResult)
             mock_result.file_path = test_file
             mock_result.lines_of_code = 6
             mock_result.function_count = 1
@@ -86,11 +98,11 @@ def complex_function(x):
     return "low"
 """)
 
-        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
+        with patch("stoggertools.cli.AdvancedAssistant", autospec=True) as mock_assistant_class:
+            mock_assistant = MagicMock(spec=AdvancedAssistant)
             mock_assistant_class.return_value = mock_assistant
 
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=CodeAnalysisResult)
             mock_result.file_path = test_file
             mock_result.complexity_score = 8.5
             mock_result.potential_issues = []
@@ -116,17 +128,17 @@ def test():
     logging.warning("Something happened")
 """)
 
-        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
+        with patch("stoggertools.cli.AdvancedAssistant", autospec=True) as mock_assistant_class:
+            mock_assistant = MagicMock(spec=AdvancedAssistant)
             mock_assistant_class.return_value = mock_assistant
 
             # Mock patterns
-            mock_pattern = MagicMock()
+            mock_pattern = MagicMock(spec=ASTPattern)
             mock_pattern.name = "logging_quality"
             mock_pattern.enabled = False
             mock_assistant.patterns = [mock_pattern]
 
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=CodeAnalysisResult)
             mock_result.potential_issues = []
             mock_result.file_path = test_file
             mock_result.lines_of_code = 5
@@ -143,7 +155,7 @@ def test():
             assert result.exit_code == 0
             assert mock_pattern.enabled  # Pattern should be enabled
 
-    @patch("stoggertools.cli.InteractiveTransformer")
+    @patch("stoggertools.cli.InteractiveTransformer", autospec=True)
     def test_check_interactive_mode(self, mock_transformer_class, caplog):
         caplog.set_level(logging.INFO)
         """Test check command with --interactive flag."""
@@ -153,14 +165,14 @@ def test():
     print("Hello")
 """)
 
-        mock_transformer = MagicMock()
+        mock_transformer = MagicMock(spec=InteractiveTransformer)
         mock_transformer_class.return_value = mock_transformer
 
-        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
+        with patch("stoggertools.cli.AdvancedAssistant", autospec=True) as mock_assistant_class:
+            mock_assistant = MagicMock(spec=AdvancedAssistant)
             mock_assistant_class.return_value = mock_assistant
 
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=CodeAnalysisResult)
             mock_result.issues = ["print statement found"]
             mock_result.file_path = test_file
             mock_result.lines_of_code = 2
@@ -200,11 +212,11 @@ def test():
     return True
 """)
 
-        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
+        with patch("stoggertools.cli.AdvancedAssistant", autospec=True) as mock_assistant_class:
+            mock_assistant = MagicMock(spec=AdvancedAssistant)
             mock_assistant_class.return_value = mock_assistant
 
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=TransformationResult)
             mock_result.file_path = test_file
             mock_result.changes_made = True
             mock_result.changes_made = ["Converted print to log.info"]
@@ -227,11 +239,11 @@ def test():
 print("This should be fixed")
 """)
 
-        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
+        with patch("stoggertools.cli.AdvancedAssistant", autospec=True) as mock_assistant_class:
+            mock_assistant = MagicMock(spec=AdvancedAssistant)
             mock_assistant_class.return_value = mock_assistant
 
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=TransformationResult)
             mock_result.file_path = test_file
             mock_result.changes_made = True
             mock_result.changes_made = ["Convert print to structured log"]
@@ -246,7 +258,7 @@ print("This should be fixed")
             # Default migrate behavior is analysis only (dry-run)
             assert "Migration Results" in result.stdout or "Analysis" in result.stdout
 
-    @patch("stoggertools.cli.InteractiveTransformer")
+    @patch("stoggertools.cli.InteractiveTransformer", autospec=True)
     def test_fix_interactive_mode(self, mock_transformer_class):
         """Test fix command with --interactive flag."""
         test_file = self.temp_path / "interactive_fix.py"
@@ -255,7 +267,7 @@ def test():
     print("Interactive fix test")
 """)
 
-        mock_transformer = MagicMock()
+        mock_transformer = MagicMock(spec=InteractiveTransformer)
         mock_transformer_class.return_value = mock_transformer
 
         result = self.runner.invoke(app, ["migrate", str(test_file), "--interactive"])
@@ -272,17 +284,17 @@ import logging
 logging.info("test")
 """)
 
-        with patch("stoggertools.cli.AdvancedAssistant") as mock_assistant_class:
-            mock_assistant = MagicMock()
+        with patch("stoggertools.cli.AdvancedAssistant", autospec=True) as mock_assistant_class:
+            mock_assistant = MagicMock(spec=AdvancedAssistant)
             mock_assistant_class.return_value = mock_assistant
 
             # Mock patterns
-            mock_pattern = MagicMock()
+            mock_pattern = MagicMock(spec=ASTPattern)
             mock_pattern.name = "logging_calls"
             mock_pattern.enabled = False
             mock_assistant.patterns = [mock_pattern]
 
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=TransformationResult)
             mock_result.changes_made = False
             mock_result.changes_made = []
             mock_assistant.transform_file.return_value = mock_result
@@ -319,14 +331,15 @@ def hello():
 
         with patch(
             "stoggertools.cli.analyze_project_for_agents",
+            autospec=True,
         ) as mock_analyzer:
             # Create a more complete mock that matches ProjectAnalysisResult structure
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=ProjectAnalysisResult)
             mock_result.project_path = str(test_file)
             mock_result.to_json.return_value = '{"recommendations": ["Convert print statements"]}'
 
             # Mock the complexity object
-            mock_complexity = MagicMock()
+            mock_complexity = MagicMock(spec=ProjectComplexity)
             mock_complexity.total_files = 1
             mock_complexity.python_files = 1
             mock_complexity.total_lines = 4
@@ -334,7 +347,7 @@ def hello():
             mock_result.complexity = mock_complexity
 
             # Mock the dependencies object
-            mock_deps = MagicMock()
+            mock_deps = MagicMock(spec=DependencyAnalysis)
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
@@ -346,13 +359,14 @@ def hello():
             mock_result.logging_patterns = []
 
             # Mock recommendation
-            mock_rec = MagicMock()
+            mock_rec = MagicMock(spec=MigrationRecommendation)
             mock_rec.strategy = "print-to-structlog"
             mock_rec.priority = "high"
             mock_rec.estimated_effort = "low"
             mock_rec.recommended_approach = "automatic"
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
+            mock_rec.prerequisites = []
             mock_result.recommendation = mock_rec
 
             # Mock warnings
@@ -378,13 +392,14 @@ print("Test migration")
         # The default behavior is analysis only (safe), so we test that
         with patch(
             "stoggertools.cli.analyze_project_for_agents",
+            autospec=True,
         ) as mock_analyzer:
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=ProjectAnalysisResult)
             mock_result.project_path = str(test_file)
             mock_result.to_json.return_value = '{"recommendations": ["Convert print statements"]}'
 
             # Mock the complexity object
-            mock_complexity = MagicMock()
+            mock_complexity = MagicMock(spec=ProjectComplexity)
             mock_complexity.total_files = 1
             mock_complexity.python_files = 1
             mock_complexity.total_lines = 4
@@ -392,7 +407,7 @@ print("Test migration")
             mock_result.complexity = mock_complexity
 
             # Mock the dependencies object
-            mock_deps = MagicMock()
+            mock_deps = MagicMock(spec=DependencyAnalysis)
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
@@ -404,13 +419,14 @@ print("Test migration")
             mock_result.logging_patterns = []
 
             # Mock recommendation
-            mock_rec = MagicMock()
+            mock_rec = MagicMock(spec=MigrationRecommendation)
             mock_rec.strategy = "print-to-structlog"
             mock_rec.priority = "high"
             mock_rec.estimated_effort = "low"
             mock_rec.recommended_approach = "automatic"
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
+            mock_rec.prerequisites = []
             mock_result.recommendation = mock_rec
 
             # Mock warnings
@@ -425,7 +441,7 @@ print("Test migration")
             assert "Apply migration:" in result.stdout
             assert "--no-dry-run" in result.stdout
 
-    @patch("stoggertools.cli.InteractiveTransformer")
+    @patch("stoggertools.cli.InteractiveTransformer", autospec=True)
     def test_migrate_interactive_mode(self, mock_transformer_class):
         """Test migrate command with --interactive flag (analysis mode)."""
         test_file = self.temp_path / "migrate_interactive.py"
@@ -433,18 +449,19 @@ print("Test migration")
 print("Interactive migration test")
 """)
 
-        mock_transformer = MagicMock()
+        mock_transformer = MagicMock(spec=InteractiveTransformer)
         mock_transformer_class.return_value = mock_transformer
 
         with patch(
             "stoggertools.cli.analyze_project_for_agents",
+            autospec=True,
         ) as mock_analyzer:
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=ProjectAnalysisResult)
             mock_result.project_path = str(test_file)
             mock_result.to_json.return_value = '{"recommendations": ["Interactive migration available"]}'
 
             # Mock the complexity object
-            mock_complexity = MagicMock()
+            mock_complexity = MagicMock(spec=ProjectComplexity)
             mock_complexity.total_files = 1
             mock_complexity.python_files = 1
             mock_complexity.total_lines = 4
@@ -452,7 +469,7 @@ print("Interactive migration test")
             mock_result.complexity = mock_complexity
 
             # Mock the dependencies object
-            mock_deps = MagicMock()
+            mock_deps = MagicMock(spec=DependencyAnalysis)
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
@@ -464,13 +481,14 @@ print("Interactive migration test")
             mock_result.logging_patterns = []
 
             # Mock recommendation
-            mock_rec = MagicMock()
+            mock_rec = MagicMock(spec=MigrationRecommendation)
             mock_rec.strategy = "print-to-structlog"
             mock_rec.priority = "high"
             mock_rec.estimated_effort = "low"
             mock_rec.recommended_approach = "automatic"
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
+            mock_rec.prerequisites = []
             mock_result.recommendation = mock_rec
 
             # Mock warnings
@@ -499,13 +517,14 @@ print("Interactive migration test")
 
         with patch(
             "stoggertools.cli.analyze_project_for_agents",
+            autospec=True,
         ) as mock_analyzer:
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=ProjectAnalysisResult)
             mock_result.project_path = str(test_dir)
             mock_result.to_json.return_value = '{"recommendations": ["Convert print statements in multiple files"]}'
 
             # Mock the complexity object
-            mock_complexity = MagicMock()
+            mock_complexity = MagicMock(spec=ProjectComplexity)
             mock_complexity.total_files = 2
             mock_complexity.python_files = 2
             mock_complexity.total_lines = 8
@@ -513,7 +532,7 @@ print("Interactive migration test")
             mock_result.complexity = mock_complexity
 
             # Mock the dependencies object
-            mock_deps = MagicMock()
+            mock_deps = MagicMock(spec=DependencyAnalysis)
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
@@ -525,13 +544,14 @@ print("Interactive migration test")
             mock_result.logging_patterns = []
 
             # Mock recommendation
-            mock_rec = MagicMock()
+            mock_rec = MagicMock(spec=MigrationRecommendation)
             mock_rec.strategy = "print-to-structlog"
             mock_rec.priority = "high"
             mock_rec.estimated_effort = "low"
             mock_rec.recommended_approach = "automatic"
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
+            mock_rec.prerequisites = []
             mock_result.recommendation = mock_rec
 
             # Mock warnings
@@ -559,13 +579,14 @@ print("Interactive migration test")
 
         with patch(
             "stoggertools.cli.analyze_project_for_agents",
+            autospec=True,
         ) as mock_analyzer:
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=ProjectAnalysisResult)
             mock_result.project_path = str(test_file)
             mock_result.to_json.return_value = '{"recommendations": ["Convert print to structured logging"]}'
 
             # Mock the complexity object
-            mock_complexity = MagicMock()
+            mock_complexity = MagicMock(spec=ProjectComplexity)
             mock_complexity.total_files = 1
             mock_complexity.python_files = 1
             mock_complexity.total_lines = 4
@@ -573,7 +594,7 @@ print("Interactive migration test")
             mock_result.complexity = mock_complexity
 
             # Mock the dependencies object
-            mock_deps = MagicMock()
+            mock_deps = MagicMock(spec=DependencyAnalysis)
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = False
             mock_deps.has_structlog = False
@@ -585,13 +606,14 @@ print("Interactive migration test")
             mock_result.logging_patterns = []
 
             # Mock recommendation
-            mock_rec = MagicMock()
+            mock_rec = MagicMock(spec=MigrationRecommendation)
             mock_rec.strategy = "print-to-structlog"
             mock_rec.priority = "high"
             mock_rec.estimated_effort = "low"
             mock_rec.recommended_approach = "automatic"
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert print statements", "Add structlog imports"]
+            mock_rec.prerequisites = []
             mock_result.recommendation = mock_rec
 
             # Mock warnings
@@ -618,13 +640,14 @@ logging.info("Test message")
 
         with patch(
             "stoggertools.cli.analyze_project_for_agents",
+            autospec=True,
         ) as mock_analyzer:
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=ProjectAnalysisResult)
             mock_result.project_path = str(test_file)
             mock_result.to_json.return_value = '{"recommendations": ["Convert logging to structlog"]}'
 
             # Mock the complexity object
-            mock_complexity = MagicMock()
+            mock_complexity = MagicMock(spec=ProjectComplexity)
             mock_complexity.total_files = 1
             mock_complexity.python_files = 1
             mock_complexity.total_lines = 4
@@ -632,7 +655,7 @@ logging.info("Test message")
             mock_result.complexity = mock_complexity
 
             # Mock the dependencies object
-            mock_deps = MagicMock()
+            mock_deps = MagicMock(spec=DependencyAnalysis)
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = True
             mock_deps.has_structlog = False
@@ -644,13 +667,14 @@ logging.info("Test message")
             mock_result.logging_patterns = []
 
             # Mock recommendation
-            mock_rec = MagicMock()
+            mock_rec = MagicMock(spec=MigrationRecommendation)
             mock_rec.strategy = "logging-to-structlog"
             mock_rec.priority = "high"
             mock_rec.estimated_effort = "medium"
             mock_rec.recommended_approach = "automatic"
             mock_rec.risk_level = "low"
             mock_rec.steps = ["Convert logging calls", "Add structlog imports"]
+            mock_rec.prerequisites = []
             mock_result.recommendation = mock_rec
 
             # Mock warnings
@@ -688,13 +712,14 @@ def main():
 
         with patch(
             "stoggertools.cli.analyze_project_for_agents",
+            autospec=True,
         ) as mock_analyzer:
-            mock_result = MagicMock()
+            mock_result = MagicMock(spec=ProjectAnalysisResult)
             mock_result.project_path = str(test_file)
             mock_result.to_json.return_value = '{"recommendations": ["Convert wrapper functions to direct logging"]}'
 
             # Mock the complexity object
-            mock_complexity = MagicMock()
+            mock_complexity = MagicMock(spec=ProjectComplexity)
             mock_complexity.total_files = 1
             mock_complexity.python_files = 1
             mock_complexity.total_lines = 12
@@ -702,7 +727,7 @@ def main():
             mock_result.complexity = mock_complexity
 
             # Mock the dependencies object
-            mock_deps = MagicMock()
+            mock_deps = MagicMock(spec=DependencyAnalysis)
             mock_deps.package_manager = "pip"
             mock_deps.has_logging = True
             mock_deps.has_structlog = False
@@ -741,13 +766,14 @@ def main():
             ]
 
             # Mock recommendation
-            mock_rec = MagicMock()
+            mock_rec = MagicMock(spec=MigrationRecommendation)
             mock_rec.strategy = "logging-to-structlog"
             mock_rec.priority = "high"
             mock_rec.estimated_effort = "medium"
             mock_rec.recommended_approach = "manual"
             mock_rec.risk_level = "medium"
             mock_rec.steps = ["Remove wrapper functions", "Use direct logging calls"]
+            mock_rec.prerequisites = []
             mock_result.recommendation = mock_rec
 
             # Mock warnings including wrapper warning
@@ -794,7 +820,7 @@ def test():
     log.info("test-message")
 """)
 
-        with patch("stoggertools.linter.lint_directory") as mock_lint:
+        with patch("stoggertools.linter.lint_directory", autospec=True) as mock_lint:
             mock_lint.return_value = True
 
             result = self.runner.invoke(app, ["check", str(test_file)])

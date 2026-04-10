@@ -1,6 +1,7 @@
 """Tests for the docs-serve command."""
 
 import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
@@ -26,15 +27,15 @@ def test_docs_serve_no_docs_no_build():
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # Change to temp directory where no docs exist
-        with patch("os.getcwd", return_value=temp_dir):
-            with patch("pathlib.Path.exists", return_value=False):
+        with patch("os.getcwd", return_value=temp_dir, autospec=True):
+            with patch("pathlib.Path.exists", return_value=False, autospec=True):
                 result = runner.invoke(app, ["docs-serve", "--no-build", "--no-open"])
                 assert result.exit_code == 1
                 assert "No HTML documentation found" in result.stdout
 
 
-@patch("stoggertools.cli.shutil.which")
-@patch("pathlib.Path.exists")
+@patch("stoggertools.cli.shutil.which", autospec=True)
+@patch("pathlib.Path.exists", autospec=True)
 def test_docs_serve_build_docs(mock_exists, mock_which):
     """Test docs-serve building docs when they don't exist."""
     runner = CliRunner()
@@ -43,19 +44,19 @@ def test_docs_serve_build_docs(mock_exists, mock_which):
     mock_exists.side_effect = [False, True, True]  # First check fails, then succeeds
     mock_which.return_value = "/usr/bin/uv"
 
-    with patch("socketserver.TCPServer") as mock_server:
+    with patch("socketserver.TCPServer", autospec=True) as mock_server:
         mock_server.side_effect = KeyboardInterrupt()  # Simulate immediate stop
 
-        result = runner.invoke(app, ["docs-serve", "--no-open"])
+    result = runner.invoke(app, ["docs-serve", "--no-open"])
 
-        # Should have attempted to build
-        assert "Building HTML documentation" in result.stdout
+    # Should have attempted to build
+    assert "Building HTML documentation" in result.stdout
 
 
-@patch("webbrowser.open")
-@patch("socketserver.TCPServer")
-@patch("pathlib.Path.exists", return_value=True)
-@patch("pathlib.Path.is_dir", return_value=True)
+@patch("webbrowser.open", autospec=True)
+@patch("socketserver.TCPServer", autospec=True)
+@patch("pathlib.Path.exists", return_value=True, autospec=True)
+@patch("pathlib.Path.is_dir", return_value=True, autospec=True)
 def test_docs_serve_with_local_docs(
     mock_is_dir,
     mock_exists,
@@ -78,31 +79,32 @@ def test_docs_serve_port_in_use():
     """Test docs-serve when port is already in use."""
     runner = CliRunner()
 
-    with patch("pathlib.Path.exists", return_value=True):
-        with patch("pathlib.Path.is_dir", return_value=True):
-            with patch("socketserver.TCPServer") as mock_server:
-                # Simulate port already in use
-                mock_server.side_effect = OSError("Address already in use")
+    with patch("pathlib.Path.exists", return_value=True, autospec=True):
+        with patch("pathlib.Path.is_dir", return_value=True, autospec=True):
+            with patch("os.chdir"):
+                with patch("socketserver.TCPServer", autospec=True) as mock_server:
+                    # Simulate port already in use
+                    mock_server.side_effect = OSError("Address already in use")
 
-                result = runner.invoke(app, ["docs-serve", "--no-open"])
-                assert result.exit_code == 1
-                assert "already in use" in result.stdout
+                    result = runner.invoke(app, ["docs-serve", "--no-open"])
+                    assert result.exit_code == 1
+                    assert "already in use" in result.stdout
 
 
-@patch("importlib.resources.files")
-@patch("pathlib.Path.exists", return_value=False)
+@patch("importlib.resources.files", autospec=True)
+@patch("pathlib.Path.exists", return_value=False, autospec=True)
 def test_docs_serve_packaged_docs(mock_exists, mock_resources):
     """Test docs-serve finding packaged docs."""
     runner = CliRunner()
 
     # Mock packaged docs
-    mock_package_path = MagicMock()
+    mock_package_path = MagicMock(spec=Path)
     mock_package_path.is_dir.return_value = True
     mock_resources.return_value.joinpath.return_value = mock_package_path
 
-    with patch("tempfile.mkdtemp") as mock_temp:
-        with patch("shutil.copytree"):
-            with patch("socketserver.TCPServer") as mock_server:
+    with patch("tempfile.mkdtemp", autospec=True) as mock_temp:
+        with patch("shutil.copytree", autospec=True):
+            with patch("socketserver.TCPServer", autospec=True) as mock_server:
                 mock_temp.return_value = "/tmp/test_docs"
                 mock_server.side_effect = KeyboardInterrupt()
 

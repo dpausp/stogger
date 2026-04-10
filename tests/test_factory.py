@@ -1,6 +1,7 @@
 """Tests for the factory module functionality."""
 
 import logging
+from logging.handlers import QueueListener
 from pathlib import Path
 import tempfile
 from unittest.mock import MagicMock, patch
@@ -8,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from stogger.config import StoggerConfig
+from stogger.pii_scrubber import PIIScrubber
 from stogger.factory import (
     build_renderer,
     build_shared_processors,
@@ -86,10 +88,10 @@ class TestBuildSharedProcessors:
         translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
         assert len(translation_processors) == 0
 
-    @patch("stogger.pii_scrubber.create_pii_processor")
+    @patch("stogger.pii_scrubber.create_pii_processor", autospec=True)
     def test_pii_processor_inclusion(self, mock_create_pii):
         """Test that PII processor is included when enabled."""
-        mock_pii_processor = MagicMock()
+        mock_pii_processor = MagicMock(spec=PIIScrubber)
         mock_create_pii.return_value = mock_pii_processor
 
         config = StoggerConfig(enable_pii_scrubbing=True)
@@ -147,7 +149,7 @@ class TestBuildRenderer:
 class TestConfigureStdlibLogging:
     """Test cases for configure_stdlib_logging function."""
 
-    @patch("logging.basicConfig")
+    @patch("logging.basicConfig", autospec=True)
     def test_sync_logging_configuration(self, mock_basic_config):
         """Test synchronous logging configuration."""
         config = StoggerConfig(async_logging=False, log_to_console=True)
@@ -161,13 +163,13 @@ class TestConfigureStdlibLogging:
         assert "level" in call_kwargs
         assert "force" in call_kwargs
 
-    @patch("logging.handlers.QueueListener")
-    @patch("logging.getLogger")
+    @patch("logging.handlers.QueueListener", autospec=True)
+    @patch("logging.getLogger", autospec=True)
     def test_async_logging_configuration(self, mock_get_logger, mock_queue_listener):
         """Test asynchronous logging configuration."""
-        mock_root_logger = MagicMock()
+        mock_root_logger = MagicMock(spec=logging.Logger(""))  # noqa: LOG001
         mock_get_logger.return_value = mock_root_logger
-        mock_listener_instance = MagicMock()
+        mock_listener_instance = MagicMock(spec=QueueListener)
         mock_queue_listener.return_value = mock_listener_instance
 
         config = StoggerConfig(async_logging=True, log_to_console=True)
@@ -183,7 +185,7 @@ class TestConfigureStdlibLogging:
         added_handler = mock_root_logger.addHandler.call_args[0][0]
         assert isinstance(added_handler, logging.handlers.QueueHandler)
 
-    @patch("logging.basicConfig")
+    @patch("logging.basicConfig", autospec=True)
     def test_file_logging_configuration(self, mock_basic_config):
         """Test file logging configuration."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -200,7 +202,7 @@ class TestConfigureStdlibLogging:
             # Should have file handler
             assert any(isinstance(h, logging.FileHandler) for h in handlers)
 
-    @patch("logging.basicConfig")
+    @patch("logging.basicConfig", autospec=True)
     def test_both_console_and_file_logging(self, mock_basic_config):
         """Test configuration with both console and file logging."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -223,7 +225,7 @@ class TestConfigureStdlibLogging:
         config = StoggerConfig(verbose=True, log_to_console=True)
         processors = []
 
-        with patch("logging.basicConfig") as mock_basic_config:
+        with patch("logging.basicConfig", autospec=True) as mock_basic_config:
             configure_stdlib_logging(config, processors)
 
             call_kwargs = mock_basic_config.call_args.kwargs

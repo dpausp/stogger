@@ -1,17 +1,18 @@
 """Comprehensive tests for the CLI module functionality."""
 
+import io
 import logging
 import os
-from pathlib import Path
-from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock, Mock, mock_open, patch
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import MagicMock, Mock, mock_open, patch
 
 import pytest
-from typer.testing import CliRunner
-
+from stogger.i18n import NicestlogTranslator
+from stoggertools import cli
 from stoggertools.cli import (
     app,
     generate_service_cmd,
@@ -20,8 +21,7 @@ from stoggertools.cli import (
     run_dashboard_cmd,
     run_journal_viewer,
 )
-from stogger.i18n import NicestlogTranslator
-from stoggertools import cli
+from typer.testing import CliRunner
 
 # Check if Flask is available for dashboard tests
 try:
@@ -35,8 +35,8 @@ except ImportError:
 class TestInitConfig:
     """Test cases for init_config function."""
 
-    @patch("builtins.input")
-    @patch("pathlib.Path.exists")
+    @patch("builtins.input", autospec=True)
+    @patch("pathlib.Path.exists", autospec=True)
     def test_init_config_basic_flow(self, mock_exists, mock_input):
         """Test basic init_config flow."""
         mock_exists.return_value = True
@@ -51,8 +51,8 @@ class TestInitConfig:
             "y",  # append to file
         ]
 
-        with patch("pathlib.Path.open", create=True) as mock_open:
-            mock_file = MagicMock()
+        with patch("pathlib.Path.open", create=True, autospec=True) as mock_open:
+            mock_file = MagicMock(spec=io.TextIOWrapper)
             mock_open.return_value.__enter__.return_value = mock_file
 
             init_config()
@@ -62,8 +62,8 @@ class TestInitConfig:
             assert "[tool.stogger]" in written_content
             assert 'syslog_identifier = "test-app"' in written_content
 
-    @patch("builtins.input")
-    @patch("pathlib.Path.exists")
+    @patch("builtins.input", autospec=True)
+    @patch("pathlib.Path.exists", autospec=True)
     def test_init_config_no_pyproject(self, mock_exists, mock_input):
         """Test init_config when pyproject.toml doesn't exist."""
         mock_exists.return_value = False
@@ -117,14 +117,14 @@ class TestDashboardCommand:
         assert "--port" in result.stdout
         assert "--debug" in result.stdout
 
-    @patch("stoggertools.cli.run_dashboard_cmd")
+    @patch("stoggertools.cli.run_dashboard_cmd", autospec=True)
     def test_dashboard_default_args(self, mock_dashboard):
         """Test dashboard command with default arguments."""
         result = self.runner.invoke(app, ["tools", "dashboard"])
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("127.0.0.1", 8080, debug=False)
 
-    @patch("stoggertools.cli.run_dashboard_cmd")
+    @patch("stoggertools.cli.run_dashboard_cmd", autospec=True)
     def test_dashboard_custom_args(self, mock_dashboard):
         """Test dashboard command with custom arguments."""
         result = self.runner.invoke(
@@ -134,7 +134,7 @@ class TestDashboardCommand:
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("0.0.0.0", 9000, debug=True)
 
-    @patch("stoggertools.cli.run_dashboard")
+    @patch("stoggertools.cli.run_dashboard", autospec=True)
     def test_run_dashboard_cmd_function(self, mock_run_dashboard):
         """Test the run_dashboard_cmd function directly."""
         run_dashboard_cmd("localhost", 3000, debug=True)
@@ -193,7 +193,7 @@ class TestGenerateServiceCommand:
         assert "--working-dir" in result.stdout
         assert "--output" in result.stdout
 
-    @patch("stoggertools.cli.generate_service_cmd")
+    @patch("stoggertools.cli.generate_service_cmd", autospec=True)
     def test_generate_service_required_args(self, mock_generate):
         """Test tools generate-service command with required arguments."""
         result = self.runner.invoke(
@@ -209,7 +209,7 @@ class TestGenerateServiceCommand:
             None,
         )
 
-    @patch("stoggertools.cli.generate_service_cmd")
+    @patch("stoggertools.cli.generate_service_cmd", autospec=True)
     def test_generate_service_all_args(self, mock_generate):
         """Test tools generate-service command with all arguments."""
         result = self.runner.invoke(
@@ -244,8 +244,8 @@ class TestGenerateServiceCommand:
         error_output = result.output
         assert "Missing argument" in error_output or "required" in error_output.lower()
 
-    @patch("stoggertools.cli.create_systemd_service_file")
-    @patch("stoggertools.cli.console.print")
+    @patch("stoggertools.cli.create_systemd_service_file", autospec=True)
+    @patch("stoggertools.cli.console.print", autospec=True)
     def test_generate_service_cmd_function_stdout(
         self,
         mock_console_print,
@@ -264,9 +264,9 @@ class TestGenerateServiceCommand:
         assert call_args.working_directory is None
         mock_console_print.assert_called_with("[Unit]\nDescription=Test Service\n")
 
-    @patch("stoggertools.cli.create_systemd_service_file")
-    @patch("pathlib.Path.open")
-    @patch("stoggertools.cli.log.info")
+    @patch("stoggertools.cli.create_systemd_service_file", autospec=True)
+    @patch("pathlib.Path.open", autospec=True)
+    @patch("stoggertools.cli.log.info", autospec=True)
     def test_generate_service_cmd_function_file_output(
         self,
         mock_log_info,
@@ -275,7 +275,7 @@ class TestGenerateServiceCommand:
     ):
         """Test generate_service_cmd function with file output."""
         mock_create_service.return_value = "[Unit]\nDescription=Test Service\n"
-        mock_file.return_value.__enter__.return_value.write = Mock()
+        mock_file.return_value.__enter__.return_value.write = Mock(spec=io.TextIOWrapper.write)
 
         generate_service_cmd(
             "test-service",
@@ -291,7 +291,9 @@ class TestGenerateServiceCommand:
         assert call_args.exec_command == "/bin/test"
         assert call_args.user == "testuser"
         assert call_args.working_directory == "/opt/test"
-        mock_file.assert_called_once_with(mode="w", encoding="utf-8", errors=None, newline=None)
+        mock_file.assert_called_once_with(
+            Path("/tmp/test.service"), mode="w", encoding="utf-8", errors=None, newline=None
+        )
         mock_file.return_value.__enter__.return_value.write.assert_called_once_with(
             "[Unit]\nDescription=Test Service\n"
         )
@@ -318,14 +320,14 @@ class TestJournalCommand:
         assert "--since" in result.stdout
         assert "--level" in result.stdout
 
-    @patch("stoggertools.cli.run_journal_viewer")
+    @patch("stoggertools.cli.run_journal_viewer", autospec=True)
     def test_journal_default_args(self, mock_journal):
         """Test journal command with default arguments."""
         result = self.runner.invoke(app, ["tools", "journal"])
         assert result.exit_code == 0
         mock_journal.assert_called_once_with(None, 50, follow=False, since=None, level=None)
 
-    @patch("stoggertools.cli.run_journal_viewer")
+    @patch("stoggertools.cli.run_journal_viewer", autospec=True)
     def test_journal_custom_args(self, mock_journal):
         """Test journal command with custom arguments."""
         result = self.runner.invoke(
@@ -362,7 +364,7 @@ class TestJournalCommand:
         assert "Invalid level 'invalid'" in error_output
 
     @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False)
-    @patch("stoggertools.cli.console.print")
+    @patch("stoggertools.cli.console.print", autospec=True)
     def test_run_journal_viewer_no_systemd(self, mock_console_print):
         """Test run_journal_viewer when systemd is not available."""
         with pytest.raises(SystemExit):
@@ -389,14 +391,14 @@ class TestReviewCommand:
         assert "--format" in result.stdout
         assert "--min-score" in result.stdout
 
-    @patch("stoggertools.cli.run_log_reviewer")
+    @patch("stoggertools.cli.run_log_reviewer", autospec=True)
     def test_review_required_args(self, mock_reviewer):
         """Test review command with required arguments."""
         result = self.runner.invoke(app, ["tools", "review", "/path/to/logs"])
         assert result.exit_code == 0
         mock_reviewer.assert_called_once_with("/path/to/logs", "text", 70.0)
 
-    @patch("stoggertools.cli.run_log_reviewer")
+    @patch("stoggertools.cli.run_log_reviewer", autospec=True)
     def test_review_custom_args(self, mock_reviewer):
         """Test review command with custom arguments."""
         result = self.runner.invoke(

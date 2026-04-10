@@ -83,6 +83,7 @@ class TestLogQualityReviewer:
         with patch(
             "pathlib.Path.read_text",
             side_effect=FileNotFoundError("File not found"),
+            autospec=True,
         ):
             mock_path = Mock(spec=Path)
             report = reviewer.analyze_log_file(mock_path)
@@ -456,7 +457,7 @@ class TestCLIFunctions:
             },
         )
 
-        with patch("builtins.print") as mock_print:
+        with patch("builtins.print", autospec=True) as mock_print:
             from stoggertools.log_reviewer import print_report
 
             print_report(report, "text")
@@ -480,7 +481,7 @@ class TestCLIFunctions:
             stats={"total_lines": 50},
         )
 
-        with patch("builtins.print") as mock_print:
+        with patch("builtins.print", autospec=True) as mock_print:
             from stoggertools.log_reviewer import print_report
 
             print_report(report, "json")
@@ -496,14 +497,15 @@ class TestCLIFunctions:
             assert data["issues"] == ["Issue 1"]
 
     @patch("sys.argv", ["log_reviewer", "test.log"])
-    @patch("pathlib.Path.is_file", return_value=True)
-    @patch("pathlib.Path.is_dir", return_value=False)
+    @patch("pathlib.Path.is_file", return_value=True, autospec=True)
+    @patch("pathlib.Path.is_dir", return_value=False, autospec=True)
     def test_review_logs_cli_single_file(self, mock_is_dir, mock_is_file):
         """Test CLI with single file."""
         with patch(
             "stoggertools.log_reviewer.LogQualityReviewer",
+            autospec=True,
         ) as mock_reviewer_class:
-            mock_reviewer = Mock()
+            mock_reviewer = Mock(spec=LogQualityReviewer)
             mock_reviewer_class.return_value = mock_reviewer
 
             # Mock a good report
@@ -517,7 +519,7 @@ class TestCLIFunctions:
             )
             mock_reviewer.analyze_log_file.return_value = mock_report
 
-            with patch("stoggertools.log_reviewer.print_report") as mock_print:
+            with patch("stoggertools.log_reviewer.print_report", autospec=True) as mock_print:
                 from stoggertools.log_reviewer import review_logs_cli
 
                 review_logs_cli()
@@ -526,14 +528,15 @@ class TestCLIFunctions:
                 mock_print.assert_called_once_with(mock_report, "text")
 
     @patch("sys.argv", ["log_reviewer", "test.log", "--min-score", "90"])
-    @patch("pathlib.Path.is_file", return_value=True)
-    @patch("pathlib.Path.is_dir", return_value=False)
+    @patch("pathlib.Path.is_file", return_value=True, autospec=True)
+    @patch("pathlib.Path.is_dir", return_value=False, autospec=True)
     def test_review_logs_cli_low_score_exit(self, mock_is_dir, mock_is_file):
         """Test CLI exits with code 1 when score is below minimum."""
         with patch(
             "stoggertools.log_reviewer.LogQualityReviewer",
+            autospec=True,
         ) as mock_reviewer_class:
-            mock_reviewer = Mock()
+            mock_reviewer = Mock(spec=LogQualityReviewer)
             mock_reviewer_class.return_value = mock_reviewer
 
             # Mock a low score report
@@ -547,8 +550,8 @@ class TestCLIFunctions:
             )
             mock_reviewer.analyze_log_file.return_value = mock_report
 
-            with patch("stoggertools.log_reviewer.print_report"):
-                with patch("sys.exit") as mock_exit:
+            with patch("stoggertools.log_reviewer.print_report", autospec=True):
+                with patch("sys.exit", autospec=True) as mock_exit:
                     mock_exit.side_effect = SystemExit(1)
 
                     from stoggertools.log_reviewer import review_logs_cli
@@ -559,20 +562,21 @@ class TestCLIFunctions:
                     mock_exit.assert_called_once_with(1)
 
     @patch("sys.argv", ["log_reviewer", "logdir/"])
-    @patch("pathlib.Path.is_file", return_value=False)
-    @patch("pathlib.Path.is_dir", return_value=True)
+    @patch("pathlib.Path.is_file", return_value=False, autospec=True)
+    @patch("pathlib.Path.is_dir", return_value=True, autospec=True)
     def test_review_logs_cli_directory(self, mock_is_dir, mock_is_file):
         """Test CLI with directory containing log files."""
         with patch(
             "stoggertools.log_reviewer.LogQualityReviewer",
+            autospec=True,
         ) as mock_reviewer_class:
-            mock_reviewer = Mock()
+            mock_reviewer = Mock(spec=LogQualityReviewer)
             mock_reviewer_class.return_value = mock_reviewer
 
             # Mock log files in directory
-            mock_log_files = [Mock(name="test1.log"), Mock(name="test2.log")]
+            mock_log_files = [Mock(spec=Path, name="test1.log"), Mock(spec=Path, name="test2.log")]
 
-            with patch("pathlib.Path.glob") as mock_glob:
+            with patch("pathlib.Path.glob", autospec=True) as mock_glob:
                 mock_glob.side_effect = [
                     mock_log_files,
                     [],
@@ -589,8 +593,8 @@ class TestCLIFunctions:
                 )
                 mock_reviewer.analyze_log_file.return_value = mock_report
 
-                with patch("stoggertools.log_reviewer.print_report") as mock_print:
-                    with patch("builtins.print"):
+                with patch("stoggertools.log_reviewer.print_report", autospec=True) as mock_print:
+                    with patch("builtins.print", autospec=True):
                         from stoggertools.log_reviewer import review_logs_cli
 
                         review_logs_cli()
@@ -600,13 +604,13 @@ class TestCLIFunctions:
                         assert mock_print.call_count == 2
 
     @patch("sys.argv", ["log_reviewer", "empty_dir/"])
-    @patch("pathlib.Path.is_file", return_value=False)
-    @patch("pathlib.Path.is_dir", return_value=True)
+    @patch("pathlib.Path.is_file", return_value=False, autospec=True)
+    @patch("pathlib.Path.is_dir", return_value=True, autospec=True)
     def test_review_logs_cli_empty_directory(self, mock_is_dir, mock_is_file):
         """Test CLI with directory containing no log files."""
-        with patch("pathlib.Path.glob", return_value=[]):  # No files found
+        with patch("pathlib.Path.glob", return_value=[], autospec=True):  # No files found
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
-                with patch("sys.exit") as mock_exit:
+                with patch("sys.exit", autospec=True) as mock_exit:
                     # Make sys.exit actually raise SystemExit to stop execution
                     mock_exit.side_effect = SystemExit(1)
 
@@ -620,12 +624,12 @@ class TestCLIFunctions:
                     assert "Keine Log-Dateien gefunden" in mock_stderr.getvalue()
 
     @patch("sys.argv", ["log_reviewer", "nonexistent"])
-    @patch("pathlib.Path.is_file", return_value=False)
-    @patch("pathlib.Path.is_dir", return_value=False)
+    @patch("pathlib.Path.is_file", return_value=False, autospec=True)
+    @patch("pathlib.Path.is_dir", return_value=False, autospec=True)
     def test_review_logs_cli_nonexistent_path(self, mock_is_dir, mock_is_file):
         """Test CLI with nonexistent path."""
         with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
-            with patch("sys.exit") as mock_exit:
+            with patch("sys.exit", autospec=True) as mock_exit:
                 mock_exit.side_effect = SystemExit(1)
 
                 init_logging()

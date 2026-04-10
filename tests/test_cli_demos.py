@@ -2,7 +2,8 @@ import types
 from unittest.mock import Mock, patch
 
 import pytest
-
+import structlog
+import structlog.stdlib
 from stoggertools import cli
 
 
@@ -27,8 +28,8 @@ def test_run_demos_unknown_feature_exits(capsys, monkeypatch):
     assert "Unknown demo" in out
 
 
-@patch("stoggertools.cli.structlog.get_logger")
-@patch("stoggertools.cli.stogger.init_logging")
+@patch("stoggertools.cli.structlog.get_logger", autospec=True)
+@patch("stoggertools.cli.stogger.init_logging", autospec=True)
 def test_run_demos_basic_invokes_logging(
     mock_init_logging,
     mock_get_logger,
@@ -37,7 +38,7 @@ def test_run_demos_basic_invokes_logging(
     # Speed up header/separator sleeps
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=_nosleep))
 
-    mock_log = Mock()
+    mock_log = Mock(spec=structlog.stdlib.BoundLogger)
     mock_get_logger.return_value = mock_log
 
     cli.run_demos(feature="basic", all_features=False)

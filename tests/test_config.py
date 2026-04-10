@@ -25,7 +25,7 @@ logdir = "/tmp/logs"
 syslog_identifier = "test-app"
 language = "fr"
 """)
-        with patch("pathlib.Path.cwd", return_value=config_dir):
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
             yield
 
 
@@ -55,7 +55,7 @@ def test_config_kwargs_override_file(create_pyproject_toml):
 def test_config_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("pathlib.Path.cwd", return_value=Path(tmpdir)):
+        with patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
             config = StoggerConfig()
             assert config.verbose is False
             assert config.logdir is None
@@ -63,7 +63,7 @@ def test_config_defaults_when_no_file():
             assert config.language == "en"
 
 
-@patch("logging.basicConfig")
+@patch("logging.basicConfig", autospec=True)
 def test_sync_logging_setup(mock_basic_config):
     """Test that synchronous logging sets up basicConfig directly."""
     config = StoggerConfig(async_logging=False, log_to_console=True)
@@ -75,11 +75,11 @@ def test_sync_logging_setup(mock_basic_config):
     assert any(isinstance(h, logging.StreamHandler) for h in mock_basic_config.call_args.kwargs["handlers"])
 
 
-@patch("logging.handlers.QueueListener")
-@patch("logging.getLogger")
+@patch("logging.handlers.QueueListener", autospec=True)
+@patch("logging.getLogger", autospec=True)
 def test_async_logging_setup(mock_get_logger, mock_listener):
     """Test that asynchronous logging sets up a QueueListener."""
-    mock_root_logger = MagicMock()
+    mock_root_logger = MagicMock(spec=logging.Logger(""))  # noqa: LOG001
     mock_get_logger.return_value = mock_root_logger
 
     config = StoggerConfig(async_logging=True, log_to_console=True)
@@ -98,7 +98,7 @@ def test_async_logging_setup(mock_get_logger, mock_listener):
 def test_config_src_dir_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("pathlib.Path.cwd", return_value=Path(tmpdir)):
+        with patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
             config = StoggerConfig()
             assert config.src_dir == "src"  # Default source directory
 
@@ -113,7 +113,7 @@ def test_config_src_dir_from_file():
 [tool.stogger]
 src_dir = "custom_src"
 """)
-        with patch("pathlib.Path.cwd", return_value=config_dir):
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
             config = StoggerConfig()
             assert config.src_dir == "custom_src"
 
@@ -128,7 +128,7 @@ def test_config_src_dir_kwargs_override():
 [tool.stogger]
 src_dir = "custom_src"
 """)
-        with patch("pathlib.Path.cwd", return_value=config_dir):
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
             config = StoggerConfig(src_dir="override_src")
             assert config.src_dir == "override_src"
 

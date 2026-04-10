@@ -1,9 +1,10 @@
 import types
 from unittest.mock import Mock
 
-from typer.testing import CliRunner
-
+import structlog
+import structlog.stdlib
 from stoggertools import cli
+from typer.testing import CliRunner
 
 runner = CliRunner()
 
@@ -49,7 +50,7 @@ def test_run_async_demo_behavior(monkeypatch, capsys):
     monkeypatch.setattr(cli.stogger, "init_logging", lambda **kwargs: None)
 
     # mock structlog logger
-    mock_log = Mock()
+    mock_log = Mock(spec=structlog.stdlib.BoundLogger)
     monkeypatch.setattr(cli.structlog, "get_logger", lambda: mock_log)
 
     cli.run_async_demo()
@@ -70,7 +71,7 @@ def test_run_complete_demo_smoke(monkeypatch, capsys):
     monkeypatch.setattr(cli.stogger, "init_logging", lambda **kwargs: None)
 
     # Mock logger
-    mock_log = Mock()
+    mock_log = Mock(spec=structlog.stdlib.BoundLogger)
     monkeypatch.setattr(cli.structlog, "get_logger", lambda: mock_log)
 
     cli.run_complete_demo()

@@ -2,10 +2,23 @@
 
 from datetime import datetime, timedelta
 from io import StringIO
+from types import FunctionType
 from unittest.mock import Mock, patch
 
 from stogger.core import init_logging
 from stogger_systemd.journal_viewer import JournalEntry, JournalQueryOptions, JournalViewer
+
+
+class _JournalReaderStub:
+    """Minimal stub matching the systemd.journal.Reader interface for spec."""
+
+    def __iter__(self): ...
+    def seek_head(self): ...
+    def seek_tail(self): ...
+    def get_previous(self, n): ...
+    def add_match(self, *args, **kwargs): ...
+    def seek_realtime(self, time): ...
+    def wait(self): ...
 
 
 class TestJournalEntry:
@@ -101,7 +114,7 @@ class TestJournalViewer:
             viewer = JournalViewer()
 
             timestamp = datetime.now()
-            mock_timestamp = Mock()
+            mock_timestamp = Mock(spec=datetime)
             mock_timestamp.timestamp.return_value = timestamp.timestamp()
 
             raw_entry = {
@@ -339,7 +352,7 @@ class TestJournalViewer:
         """Test basic journal querying."""
         with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
-                mock_reader = Mock()
+                mock_reader = Mock(spec=_JournalReaderStub)
                 mock_journal.Reader.return_value = mock_reader
 
                 # Mock journal entries
@@ -347,7 +360,7 @@ class TestJournalViewer:
                     {"MESSAGE": "entry 1", "PRIORITY": 6},
                     {"MESSAGE": "entry 2", "PRIORITY": 4},
                 ]
-                mock_reader.__iter__ = Mock(return_value=iter(mock_entries))
+                mock_reader.__iter__ = Mock(spec=FunctionType, return_value=iter(mock_entries))
 
                 viewer = JournalViewer()
                 entries = list(viewer.query_journal())
@@ -362,9 +375,9 @@ class TestJournalViewer:
         """Test journal querying with service filter."""
         with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
-                mock_reader = Mock()
+                mock_reader = Mock(spec=_JournalReaderStub)
                 mock_journal.Reader.return_value = mock_reader
-                mock_reader.__iter__ = Mock(return_value=iter([]))
+                mock_reader.__iter__ = Mock(spec=FunctionType, return_value=iter([]))
 
                 viewer = JournalViewer()
                 list(viewer.query_journal(service="myservice"))
@@ -375,9 +388,9 @@ class TestJournalViewer:
         """Test journal querying with level filter."""
         with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
-                mock_reader = Mock()
+                mock_reader = Mock(spec=_JournalReaderStub)
                 mock_journal.Reader.return_value = mock_reader
-                mock_reader.__iter__ = Mock(return_value=iter([]))
+                mock_reader.__iter__ = Mock(spec=FunctionType, return_value=iter([]))
 
                 viewer = JournalViewer()
                 list(viewer.query_journal(level="error"))
@@ -396,12 +409,12 @@ class TestJournalViewer:
         """Test journal querying with lines limit."""
         with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
-                mock_reader = Mock()
+                mock_reader = Mock(spec=_JournalReaderStub)
                 mock_journal.Reader.return_value = mock_reader
 
                 # Mock many entries
                 mock_entries = [{"MESSAGE": f"entry {i}", "PRIORITY": 6} for i in range(100)]
-                mock_reader.__iter__ = Mock(return_value=iter(mock_entries))
+                mock_reader.__iter__ = Mock(spec=FunctionType, return_value=iter(mock_entries))
 
                 viewer = JournalViewer()
                 entries = list(viewer.query_journal(lines=5))
@@ -414,12 +427,12 @@ class TestJournalViewer:
         """Test journal querying in follow mode."""
         with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
-                mock_reader = Mock()
+                mock_reader = Mock(spec=_JournalReaderStub)
                 mock_journal.Reader.return_value = mock_reader
 
                 # Mock limited entries for follow mode
                 mock_entries = [{"MESSAGE": "entry 1", "PRIORITY": 6}]
-                mock_reader.__iter__ = Mock(return_value=iter(mock_entries))
+                mock_reader.__iter__ = Mock(spec=FunctionType, return_value=iter(mock_entries))
 
                 viewer = JournalViewer()
                 entries = list(viewer.query_journal(follow=True, lines=1))
@@ -432,12 +445,12 @@ class TestJournalViewer:
         """Test journal querying with since parameter."""
         with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True):
             with patch("stogger_systemd.journal_viewer.journal") as mock_journal:
-                mock_reader = Mock()
+                mock_reader = Mock(spec=_JournalReaderStub)
                 mock_journal.Reader.return_value = mock_reader
-                mock_reader.__iter__ = Mock(return_value=iter([]))
+                mock_reader.__iter__ = Mock(spec=FunctionType, return_value=iter([]))
 
                 viewer = JournalViewer()
-                with patch.object(viewer, "parse_time_string") as mock_parse:
+                with patch.object(viewer, "parse_time_string", autospec=True) as mock_parse:
                     mock_time = datetime.now()
                     mock_parse.return_value = mock_time
 
@@ -466,7 +479,7 @@ class TestJournalViewer:
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime", autospec=True) as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("2 hours ago")
@@ -481,7 +494,7 @@ class TestJournalViewer:
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime", autospec=True) as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("30 minutes ago")
@@ -495,7 +508,7 @@ class TestJournalViewer:
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime", autospec=True) as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("3 days ago")
@@ -509,7 +522,7 @@ class TestJournalViewer:
             viewer = JournalViewer()
 
             now = datetime(2023, 5, 15, 14, 30, 0)
-            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime", autospec=True) as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("today")
@@ -523,7 +536,7 @@ class TestJournalViewer:
             viewer = JournalViewer()
 
             now = datetime(2023, 5, 15, 14, 30, 0)
-            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime", autospec=True) as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("yesterday")
@@ -557,7 +570,7 @@ class TestJournalViewer:
             viewer = JournalViewer()
 
             now = datetime.now()
-            with patch("stogger_systemd.journal_viewer.datetime") as mock_dt:
+            with patch("stogger_systemd.journal_viewer.datetime", autospec=True) as mock_dt:
                 mock_dt.now.return_value = now
 
                 result = viewer.parse_time_string("invalid time string")
@@ -573,7 +586,7 @@ class TestMainFunction:
         """Test main function when systemd is unavailable."""
         with patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False):
             with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
-                with patch("sys.exit") as mock_exit:
+                with patch("sys.exit", autospec=True) as mock_exit:
                     init_logging()
                     from stogger_systemd.journal_viewer import main
 
@@ -588,8 +601,9 @@ class TestMainFunction:
             with patch("sys.argv", ["journal_viewer", "-u", "myservice", "-n", "10"]):
                 with patch(
                     "stogger_systemd.journal_viewer.JournalViewer",
+                    autospec=True,
                 ) as mock_viewer_class:
-                    mock_viewer = Mock()
+                    mock_viewer = Mock(spec=JournalViewer)
                     mock_viewer_class.return_value = mock_viewer
                     mock_viewer.query_journal.return_value = []
 
@@ -615,16 +629,17 @@ class TestMainFunction:
             with patch("sys.argv", ["journal_viewer", "--json"]):
                 with patch(
                     "stogger_systemd.journal_viewer.JournalViewer",
+                    autospec=True,
                 ) as mock_viewer_class:
-                    mock_viewer = Mock()
+                    mock_viewer = Mock(spec=JournalViewer)
                     mock_viewer_class.return_value = mock_viewer
 
                     # Mock journal entry
-                    mock_entry = Mock()
+                    mock_entry = Mock(spec=JournalEntry)
                     mock_entry.raw_entry = {"MESSAGE": "test"}
                     mock_viewer.query_journal.return_value = [mock_entry]
 
-                    with patch("builtins.print") as mock_print:
+                    with patch("builtins.print", autospec=True) as mock_print:
                         from stogger_systemd.journal_viewer import main
 
                         main()
@@ -641,16 +656,17 @@ class TestMainFunction:
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
                     "stogger_systemd.journal_viewer.JournalViewer",
+                    autospec=True,
                 ) as mock_viewer_class:
-                    mock_viewer = Mock()
+                    mock_viewer = Mock(spec=JournalViewer)
                     mock_viewer_class.return_value = mock_viewer
 
                     # Mock journal entry
-                    mock_entry = Mock()
+                    mock_entry = Mock(spec=JournalEntry)
                     mock_viewer.query_journal.return_value = [mock_entry]
                     mock_viewer.format_entry.return_value = "formatted entry"
 
-                    with patch("builtins.print") as mock_print:
+                    with patch("builtins.print", autospec=True) as mock_print:
                         from stogger_systemd.journal_viewer import main
 
                         main()
@@ -666,13 +682,14 @@ class TestMainFunction:
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
                     "stogger_systemd.journal_viewer.JournalViewer",
+                    autospec=True,
                 ) as mock_viewer_class:
-                    mock_viewer = Mock()
+                    mock_viewer = Mock(spec=JournalViewer)
                     mock_viewer_class.return_value = mock_viewer
                     mock_viewer.query_journal.side_effect = KeyboardInterrupt()
 
                     with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
-                        with patch("sys.exit") as mock_exit:
+                        with patch("sys.exit", autospec=True) as mock_exit:
                             init_logging()
                             from stogger_systemd.journal_viewer import main
 
@@ -687,11 +704,12 @@ class TestMainFunction:
             with patch("sys.argv", ["journal_viewer"]):
                 with patch(
                     "stogger_systemd.journal_viewer.JournalViewer",
+                    autospec=True,
                 ) as mock_viewer_class:
                     mock_viewer_class.side_effect = Exception("Test error")
 
                     with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
-                        with patch("sys.exit") as mock_exit:
+                        with patch("sys.exit", autospec=True) as mock_exit:
                             init_logging()
                             from stogger_systemd.journal_viewer import main
 
