@@ -979,8 +979,7 @@ def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> b
             for file_path, issue in all_level_issues:
                 if issue.category == "wrapper":
                     console.print(
-                        reason=issue.reason,
-                        _replace_msg=f"  {file_path}:{issue.line_no} - {issue.reason}",
+                        f"  {file_path}:{issue.line_no} - {issue.reason}",
                     )
 
     if output_format not in {"json", "toml"}:

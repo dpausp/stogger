@@ -1,0 +1,14 @@
+                                                                                
+ Usage: stoggertools init [OPTIONS] [PATH]                                      
+                                                                                
+ 🔧 Initialize stogger configuration.                                           
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   path      [PATH]  Project path to initialize [default: .]                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --template        TEXT  Configuration template                               │
+│ --force                 Overwrite existing config                            │
+│ --help                  Show this message and exit.                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

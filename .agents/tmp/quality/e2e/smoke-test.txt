@@ -1,0 +1,22 @@
+stoggertools CLI Smoke Test Summary
+====================================
+Date: 2026-04-10
+Working directory: /stogger
+
+Command                                                         Exit Code  Status
+-----------------------------------------------------------------------------------------------
+uv run stoggertools --help                                      0          PASS
+uv run stoggertools check --help                                0          PASS
+uv run stoggertools migrate --help                              0          PASS
+uv run stoggertools docs --help                                 0          PASS
+uv run stoggertools init --help                                 0          PASS
+uv run stoggertools tools --help                                0          PASS
+uv run stoggertools tools i18n --help                           0          PASS
+uv run stoggertools tools demo --help                           0          PASS
+uv run stoggertools check .                                     0          PASS
+uv run stoggertools migrate .                                   0          PASS
+uv run python -m stoggertools --help                            0          PASS
+uv run stoggertools tools demo                                  0          PASS
+
+TOTAL: 12 commands, 12 PASS, 0 FAIL, 0 CRASH
+Overall Result: PASS

@@ -1,0 +1,833 @@
+error[unresolved-import]: Cannot resolve imported module `mydevtools.task_helpers`
+  --> dodo.py:17:6
+   |
+15 | sys.path.insert(0, str(Path(__file__).parent / "vendor"))
+16 |
+17 | from mydevtools.task_helpers import (
+   |      ^^^^^^^^^^^^^^^^^^^^^^^
+18 |     clean_artifacts,
+19 |     create_uv_commands,
+   |
+info: Searched in the following paths during module resolution:
+info:   1. /stogger (first-party code)
+info:   2. vendored://stdlib (stdlib typeshed stubs vendored by ty)
+info:   3. /stogger/.venv/lib/python3.13/site-packages (site-packages)
+info:   4. /stogger/packages/stogger/src (editable install)
+info:   5. /stogger/packages/stogger-eliot/src (editable install)
+info:   ... and 4 more paths. Run with `-v` to see all paths.
+info: make sure your Python environment is properly configured: https://docs.astral.sh/ty/modules/#python-environment
+info: rule `unresolved-import` is enabled by default
+
+error[invalid-assignment]: Object of type `None` is not assignable to `def start_action(logger=None, action_type="", _serializers=None, **fields) -> Unknown`
+  --> packages/stogger-eliot/src/stogger_eliot/eliot_integration.py:17:5
+   |
+15 | except ImportError:
+16 |     ELIOT_AVAILABLE = False
+17 |     start_action = log_message = None
+   |     ------------                 ^^^^ Incompatible value of type `None`
+   |     |
+   |     Declared type `def start_action(logger=None, action_type="", _serializers=None, **fields) -> Unknown`
+18 |
+19 | from stogger._colors import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
+   |
+info: Implicit shadowing of function `start_action`, add an annotation to make it explicit if this is intentional
+info: rule `invalid-assignment` is enabled by default
+
+error[invalid-assignment]: Object of type `None` is not assignable to `def log_message(message_type, **fields) -> Unknown`
+  --> packages/stogger-eliot/src/stogger_eliot/eliot_integration.py:17:20
+   |
+15 | except ImportError:
+16 |     ELIOT_AVAILABLE = False
+17 |     start_action = log_message = None
+   |                    -----------   ^^^^ Incompatible value of type `None`
+   |                    |
+   |                    Declared type `def log_message(message_type, **fields) -> Unknown`
+18 |
+19 | from stogger._colors import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
+   |
+info: Implicit shadowing of function `log_message`, add an annotation to make it explicit if this is intentional
+info: rule `invalid-assignment` is enabled by default
+
+error[unresolved-import]: Cannot resolve imported module `systemd`
+  --> packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:37:10
+   |
+36 | try:
+37 |     from systemd import journal  # type: ignore[import-not-found]
+   |          ^^^^^^^
+38 |
+39 |     SYSTEMD_AVAILABLE = True
+   |
+info: Searched in the following paths during module resolution:
+info:   1. /stogger (first-party code)
+info:   2. vendored://stdlib (stdlib typeshed stubs vendored by ty)
+info:   3. /stogger/.venv/lib/python3.13/site-packages (site-packages)
+info:   4. /stogger/packages/stogger/src (editable install)
+info:   5. /stogger/packages/stogger-eliot/src (editable install)
+info:   ... and 4 more paths. Run with `-v` to see all paths.
+info: make sure your Python environment is properly configured: https://docs.astral.sh/ty/modules/#python-environment
+info: rule `unresolved-import` is enabled by default
+
+error[invalid-assignment]: Object of type `dict[str, str | Unknown | int]` is not assignable to `dict[str, str]`
+  --> packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:80:19
+   |
+78 |       }
+79 |
+80 |       LEVEL_COLORS: ClassVar[dict[str, str]] = {
+   |  ___________________------------------------___^
+   | |                   |
+   | |                   Declared type
+81 | |         "critical": RED,
+82 | |         "error": RED,
+83 | |         "warning": YELLOW,
+84 | |         "info": GREEN,
+85 | |         "debug": DIM,
+86 | |     }
+   | |_____^ Incompatible value of type `dict[str, str | Unknown | int]`
+87 |
+88 |       def __init__(
+   |
+info: rule `invalid-assignment` is enabled by default
+
+error[unresolved-attribute]: Attribute `Reader` is not defined on `None` in union `Unknown | None`
+   --> packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:278:17
+    |
+276 |         try:
+277 |             log.debug("creating-journal-reader")
+278 |             j = journal.Reader()
+    |                 ^^^^^^^^^^^^^^
+279 |
+280 |             # Add filters
+    |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-import]: Cannot resolve imported module `systemd`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:21:10
+   |
+20 | try:
+21 |     from systemd import (
+   |          ^^^^^^^
+22 |         daemon,  # type: ignore[import-not-found]
+23 |         journal,  # type: ignore[import-not-found]
+   |
+info: Searched in the following paths during module resolution:
+info:   1. /stogger (first-party code)
+info:   2. vendored://stdlib (stdlib typeshed stubs vendored by ty)
+info:   3. /stogger/.venv/lib/python3.13/site-packages (site-packages)
+info:   4. /stogger/packages/stogger/src (editable install)
+info:   5. /stogger/packages/stogger-eliot/src (editable install)
+info:   ... and 4 more paths. Run with `-v` to see all paths.
+info: make sure your Python environment is properly configured: https://docs.astral.sh/ty/modules/#python-environment
+info: rule `unresolved-import` is enabled by default
+
+error[unresolved-attribute]: Attribute `LOG_CRIT` is not defined on `None` in union `Unknown | None`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:38:21
+   |
+36 |     # Map Python log levels to systemd priorities
+37 |     PRIORITY_MAP: ClassVar[dict[str, int]] = {
+38 |         "critical": journal.LOG_CRIT if SYSTEMD_AVAILABLE else 2,
+   |                     ^^^^^^^^^^^^^^^^
+39 |         "error": journal.LOG_ERR if SYSTEMD_AVAILABLE else 3,
+40 |         "warning": journal.LOG_WARNING if SYSTEMD_AVAILABLE else 4,
+   |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `LOG_ERR` is not defined on `None` in union `Unknown | None`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:39:18
+   |
+37 |     PRIORITY_MAP: ClassVar[dict[str, int]] = {
+38 |         "critical": journal.LOG_CRIT if SYSTEMD_AVAILABLE else 2,
+39 |         "error": journal.LOG_ERR if SYSTEMD_AVAILABLE else 3,
+   |                  ^^^^^^^^^^^^^^^
+40 |         "warning": journal.LOG_WARNING if SYSTEMD_AVAILABLE else 4,
+41 |         "info": journal.LOG_INFO if SYSTEMD_AVAILABLE else 6,
+   |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `LOG_WARNING` is not defined on `None` in union `Unknown | None`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:40:20
+   |
+38 |         "critical": journal.LOG_CRIT if SYSTEMD_AVAILABLE else 2,
+39 |         "error": journal.LOG_ERR if SYSTEMD_AVAILABLE else 3,
+40 |         "warning": journal.LOG_WARNING if SYSTEMD_AVAILABLE else 4,
+   |                    ^^^^^^^^^^^^^^^^^^^
+41 |         "info": journal.LOG_INFO if SYSTEMD_AVAILABLE else 6,
+42 |         "debug": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+   |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `LOG_INFO` is not defined on `None` in union `Unknown | None`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:41:17
+   |
+39 |         "error": journal.LOG_ERR if SYSTEMD_AVAILABLE else 3,
+40 |         "warning": journal.LOG_WARNING if SYSTEMD_AVAILABLE else 4,
+41 |         "info": journal.LOG_INFO if SYSTEMD_AVAILABLE else 6,
+   |                 ^^^^^^^^^^^^^^^^
+42 |         "debug": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+43 |         "trace": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+   |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `LOG_DEBUG` is not defined on `None` in union `Unknown | None`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:42:18
+   |
+40 |         "warning": journal.LOG_WARNING if SYSTEMD_AVAILABLE else 4,
+41 |         "info": journal.LOG_INFO if SYSTEMD_AVAILABLE else 6,
+42 |         "debug": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+   |                  ^^^^^^^^^^^^^^^^^
+43 |         "trace": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+44 |     }
+   |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `LOG_DEBUG` is not defined on `None` in union `Unknown | None`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:43:18
+   |
+41 |         "info": journal.LOG_INFO if SYSTEMD_AVAILABLE else 6,
+42 |         "debug": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+43 |         "trace": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+   |                  ^^^^^^^^^^^^^^^^^
+44 |     }
+   |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `LOG_INFO` is not defined on `None` in union `Unknown | None`
+  --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:80:54
+   |
+78 |         journal_fields = {
+79 |             "MESSAGE": str(message),
+80 |             "PRIORITY": self.PRIORITY_MAP.get(level, journal.LOG_INFO),
+   |                                                      ^^^^^^^^^^^^^^^^
+81 |             "SYSLOG_IDENTIFIER": self.identifier,
+82 |             "LOGGER_NAME": logger_name,
+   |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `send` is not defined on `None` in union `Unknown | None`
+   --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:109:13
+    |
+107 |         # Send to journal
+108 |         with contextlib.suppress(Exception):
+109 |             journal.send(**journal_fields)
+    |             ^^^^^^^^^^^^
+110 |
+111 |         return event_dict
+    |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `Reader` is not defined on `None` in union `Unknown | None`
+   --> packages/stogger-systemd/src/stogger_systemd/systemd_integration.py:297:13
+    |
+296 |     try:
+297 |         j = journal.Reader()
+    |             ^^^^^^^^^^^^^^
+298 |
+299 |         # Add filters
+    |
+info: rule `unresolved-attribute` is enabled by default
+
+error[invalid-assignment]: Object of type `None` is not assignable to `<class 'Flask'>`
+  --> packages/stogger-web/src/stogger_web/web_dashboard.py:20:5
+   |
+18 |     FLASK_AVAILABLE = False
+19 |     # Create dummy classes for type hints when Flask is not available
+20 |     Flask = None
+   |     -----   ^^^^ Incompatible value of type `None`
+   |     |
+   |     Declared type `<class 'Flask'>`
+21 |     render_template_string = None
+22 |     request = None
+   |
+info: Implicit shadowing of class `Flask`, add an annotation to make it explicit if this is intentional
+info: rule `invalid-assignment` is enabled by default
+
+error[invalid-assignment]: Object of type `None` is not assignable to `def render_template_string(source: str, **context: Any) -> str`
+  --> packages/stogger-web/src/stogger_web/web_dashboard.py:21:5
+   |
+19 |     # Create dummy classes for type hints when Flask is not available
+20 |     Flask = None
+21 |     render_template_string = None
+   |     ----------------------   ^^^^ Incompatible value of type `None`
+   |     |
+   |     Declared type `def render_template_string(source: str, **context: Any) -> str`
+22 |     request = None
+   |
+info: Implicit shadowing of function `render_template_string`, add an annotation to make it explicit if this is intentional
+info: rule `invalid-assignment` is enabled by default
+
+error[invalid-assignment]: Object of type `None` is not assignable to `Request`
+  --> packages/stogger-web/src/stogger_web/web_dashboard.py:22:5
+   |
+20 |     Flask = None
+21 |     render_template_string = None
+22 |     request = None
+   |     -------   ^^^^ Incompatible value of type `None`
+   |     |
+   |     Declared type `Request`
+23 |
+24 | import structlog
+   |
+info: rule `invalid-assignment` is enabled by default
+
+error[invalid-assignment]: Object of type `None` is not assignable to `<module 'colorama'>`
+  --> packages/stogger/src/stogger/_colors.py:12:5
+   |
+10 |     import colorama
+11 | except ImportError:
+12 |     colorama = None  # type: ignore[assignment]
+   |     --------   ^^^^ Incompatible value of type `None`
+   |     |
+   |     Declared type `<module 'colorama'>`
+13 |
+14 | if sys.stdout.isatty() and colorama:
+   |
+info: rule `invalid-assignment` is enabled by default
+
+error[unresolved-import]: Cannot resolve imported module `systemd`
+  --> packages/stogger/src/stogger/core.py:19:10
+   |
+18 | try:
+19 |     from systemd import journal
+   |          ^^^^^^^
+20 | except ImportError:
+21 |     journal = None
+   |
+info: Searched in the following paths during module resolution:
+info:   1. /stogger (first-party code)
+info:   2. vendored://stdlib (stdlib typeshed stubs vendored by ty)
+info:   3. /stogger/.venv/lib/python3.13/site-packages (site-packages)
+info:   4. /stogger/packages/stogger/src (editable install)
+info:   5. /stogger/packages/stogger-eliot/src (editable install)
+info:   ... and 4 more paths. Run with `-v` to see all paths.
+info: make sure your Python environment is properly configured: https://docs.astral.sh/ty/modules/#python-environment
+info: rule `unresolved-import` is enabled by default
+
+error[unsupported-operator]: Unsupported `+=` operation
+   --> packages/stogger/src/stogger/core.py:169:13
+    |
+167 |         }
+168 |         for key in self._level_to_color:
+169 |             self._level_to_color[key] += BRIGHT
+    |             -------------------------^^^^------
+    |             |                            |
+    |             |                            Has type `Unknown | Literal[1, ""]`
+    |             Has type `int`
+170 |         self._longest_level = len(
+171 |             max(self._level_to_color.keys(), key=len),
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unsupported-operator]: Unsupported `+=` operation
+   --> packages/stogger/src/stogger/core.py:169:13
+    |
+167 |         }
+168 |         for key in self._level_to_color:
+169 |             self._level_to_color[key] += BRIGHT
+    |             -------------------------^^^^------
+    |             |                            |
+    |             |                            Has type `Unknown | Literal[1, ""]`
+    |             Has type `str`
+170 |         self._longest_level = len(
+171 |             max(self._level_to_color.keys(), key=len),
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unsupported-operator]: Unsupported `+` operation
+   --> packages/stogger/src/stogger/core.py:246:17
+    |
+244 |             write(
+245 |                 # can be a number if timestamp is UNIXy
+246 |                 DIM + str(ts) + RESET_ALL + " ",
+    |                 ---^^^-------
+    |                 |     |
+    |                 |     Has type `str`
+    |                 Has type `Unknown | Literal[2, ""]`
+247 |             )
+248 |         else:
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unsupported-operator]: Unsupported `+` operation
+   --> packages/stogger/src/stogger/core.py:250:19
+    |
+248 |         else:
+249 |             # Indicate missing timestamp explicitly for diagnostics/tests
+250 |             write(DIM + "notimestamp" + RESET_ALL + " ")
+    |                   ---^^^-------------
+    |                   |     |
+    |                   |     Has type `Literal["notimestamp"]`
+    |                   Has type `Unknown | Literal[2, ""]`
+251 |
+252 |         # Handle PID based on settings
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unsupported-operator]: Unsupported `+` operation
+   --> packages/stogger/src/stogger/core.py:255:19
+    |
+253 |         pid = event_dict.pop("pid", None)
+254 |         if self.show_pid and pid is not None:
+255 |             write("[" + DIM + str(pid) + RESET_ALL + "] ")
+    |                   ---^^^---
+    |                   |     |
+    |                   |     Has type `Unknown | Literal[2, ""]`
+    |                   Has type `Literal["["]`
+256 |
+257 |         level = event_dict.pop("level", None)
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unsupported-operator]: Unsupported `+` operation
+   --> packages/stogger/src/stogger/core.py:267:19
+    |
+265 |         logger_name = event_dict.pop("logger", "root")
+266 |         if logger_name and self.show_logger_brackets:
+267 |             write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
+    |                   ---^^^----
+    |                   |     |
+    |                   |     Has type `Unknown | Literal[34, ""]`
+    |                   Has type `Literal["["]`
+268 |
+269 |         cmd_output_line = event_dict.pop("cmd_output_line", None)
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unsupported-operator]: Unsupported `+` operation
+   --> packages/stogger/src/stogger/core.py:287:19
+    |
+286 |         if cmd_output_line is not None:
+287 |             write(DIM + "> " + cmd_output_line + RESET_ALL)
+    |                   ---^^^----
+    |                   |     |
+    |                   |     Has type `Literal["> "]`
+    |                   Has type `Unknown | Literal[2, ""]`
+288 |
+289 |         if output is not None:
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unsupported-operator]: Unsupported `+` operation
+   --> packages/stogger/src/stogger/core.py:293:19
+    |
+292 |         if stdout is not None:
+293 |             write("\n" + DIM + prefix("out", "\n" + stdout + "\n") + RESET_ALL)
+    |                   ----^^^---
+    |                   |      |
+    |                   |      Has type `Unknown | Literal[2, ""]`
+    |                   Has type `Literal["\n"]`
+294 |
+295 |         if stderr is not None:
+    |
+info: rule `unsupported-operator` is enabled by default
+
+error[unresolved-attribute]: Object of type `str` has no attribute `_find_first_app_frame_and_name`
+   --> packages/stogger/src/stogger/core.py:339:25
+    |
+338 | def add_caller_info(_, __, event_dict):
+339 |     frame, module_str = structlog._frames._find_first_app_frame_and_name(
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+340 |         additional_ignores=[__name__],
+341 |     )
+    |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Attribute `send` is not defined on `None` in union `Unknown | None`
+   --> packages/stogger/src/stogger/core.py:590:9
+    |
+589 |     def msg(self, message) -> None:
+590 |         journal.send(**message)
+    |         ^^^^^^^^^^^^
+    |
+info: rule `unresolved-attribute` is enabled by default
+
+error[invalid-argument-type]: Argument to bound method `__call__` is incorrect
+   --> packages/stogger/src/stogger/core.py:659:17
+    |
+657 |             kv = kv_renderer(
+658 |                 None,
+659 |                 None,
+    |                 ^^^^ Expected `str`, found `None`
+660 |                 {k: v for k, v in event_dict.items() if k not in KEYS_TO_SKIP_IN_JOURNAL_MESSAGE},
+661 |             )
+    |
+info: Method defined here
+   --> .venv/lib/python3.13/site-packages/structlog/processors.py:114:9
+    |
+112 |             self._repr = _repr
+113 |
+114 |     def __call__(
+    |         ^^^^^^^^
+115 |         self, _: WrappedLogger, __: str, event_dict: EventDict
+    |                                 ------- Parameter declared here
+116 |     ) -> str:
+117 |         return " ".join(
+    |
+info: rule `invalid-argument-type` is enabled by default
+
+error[no-matching-overload]: No overload of bound method `get` matches arguments
+   --> packages/stogger/src/stogger/core.py:672:34
+    |
+670 |           event_dict = {k.upper(): self.dump_for_journal(v) for k, v in event_dict.items()}
+671 |
+672 |           event_dict["PRIORITY"] = JOURNAL_LEVELS.get(
+    |  __________________________________^
+673 | |             event_dict.get("LEVEL"),
+674 | |             syslog.LOG_INFO,
+675 | |         )
+    | |_________^
+676 |           event_dict["SYSLOG_FACILITY"] = self.syslog_facility
+677 |           event_dict["SYSLOG_IDENTIFIER"] = self.syslog_identifier
+    |
+info: First overload defined here
+    --> stdlib/builtins.pyi:3015:9
+     |
+3013 |     # Positional-only in dict, but not in MutableMapping
+3014 |     @overload  # type: ignore[override]
+3015 |     def get(self, key: _KT, default: None = None, /) -> _VT | None:
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3016 |         """Return the value for key if key is in the dictionary, else default."""
+     |
+info: Possible overloads for bound method `get`:
+info:   (self, key: _KT@dict, default: None = None, /) -> _VT@dict | None
+info:   (self, key: _KT@dict, default: _VT@dict, /) -> _VT@dict
+info:   [_T](self, key: _KT@dict, default: _T, /) -> _VT@dict | _T
+info: rule `no-matching-overload` is enabled by default
+
+error[invalid-argument-type]: Argument to bound method `append` is incorrect
+  --> packages/stogger/src/stogger/factory.py:86:13
+   |
+84 |       else:
+85 |           processors.append(
+86 | /             ConsoleFileRenderer(
+87 | |                 min_level="debug" if config.verbose else "info",
+88 | |                 show_caller_info=config.show_caller_info,
+89 | |             ),
+   | |_____________^ Expected `((logger: Any, method_name: str, event_dict: MutableMapping[str, Any]) -> MutableMapping[str, Any]) | TimeStamper | ((_, __, event_dict) -> Unknown)`, found `ConsoleFileRenderer`
+90 |           )
+91 |           # Add SelectRenderedString to convert dict output to string for PrintLogger
+   |
+info: Method defined here
+    --> stdlib/builtins.pyi:2843:9
+     |
+2841 |         """Return a shallow copy of the list."""
+2842 |
+2843 |     def append(self, object: _T, /) -> None:
+     |         ^^^^^^       ---------- Parameter declared here
+2844 |         """Append object to the end of the list."""
+     |
+info: rule `invalid-argument-type` is enabled by default
+
+error[invalid-assignment]: Object of type `object` is not assignable to `list[str]`
+   --> packages/stogger/src/stogger/i18n_check.py:208:14
+    |
+206 |         )
+207 |
+208 |     missing: list[str] = report.get("missing_keys", [])  # type: ignore[assignment]
+    |              ---------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Incompatible value of type `object`
+    |              |
+    |              Declared type
+209 |     extra: list[str] = report.get("extra_keys", [])  # type: ignore[assignment]
+210 |     required_cnt = len(report.get("required_keys", []))  # type: ignore[arg-type]
+    |
+info: rule `invalid-assignment` is enabled by default
+
+error[invalid-assignment]: Object of type `object` is not assignable to `list[str]`
+   --> packages/stogger/src/stogger/i18n_check.py:209:12
+    |
+208 |     missing: list[str] = report.get("missing_keys", [])  # type: ignore[assignment]
+209 |     extra: list[str] = report.get("extra_keys", [])  # type: ignore[assignment]
+    |            ---------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Incompatible value of type `object`
+    |            |
+    |            Declared type
+210 |     required_cnt = len(report.get("required_keys", []))  # type: ignore[arg-type]
+211 |     present_cnt = len(report.get("translation_keys", []))  # type: ignore[arg-type]
+    |
+info: rule `invalid-assignment` is enabled by default
+
+error[invalid-argument-type]: Argument to function `len` is incorrect
+   --> packages/stogger/src/stogger/i18n_check.py:210:24
+    |
+208 |     missing: list[str] = report.get("missing_keys", [])  # type: ignore[assignment]
+209 |     extra: list[str] = report.get("extra_keys", [])  # type: ignore[assignment]
+210 |     required_cnt = len(report.get("required_keys", []))  # type: ignore[arg-type]
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Expected `Sized`, found `object`
+211 |     present_cnt = len(report.get("translation_keys", []))  # type: ignore[arg-type]
+    |
+info: Function defined here
+    --> stdlib/builtins.pyi:3777:5
+     |
+3775 |     """
+3776 |
+3777 | def len(obj: Sized, /) -> int:
+     |     ^^^ ---------- Parameter declared here
+3778 |     """Return the number of items in a container."""
+     |
+info: rule `invalid-argument-type` is enabled by default
+
+error[invalid-argument-type]: Argument to function `len` is incorrect
+   --> packages/stogger/src/stogger/i18n_check.py:211:23
+    |
+209 |     extra: list[str] = report.get("extra_keys", [])  # type: ignore[assignment]
+210 |     required_cnt = len(report.get("required_keys", []))  # type: ignore[arg-type]
+211 |     present_cnt = len(report.get("translation_keys", []))  # type: ignore[arg-type]
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Expected `Sized`, found `object`
+212 |
+213 |     lines = []
+    |
+info: Function defined here
+    --> stdlib/builtins.pyi:3777:5
+     |
+3775 |     """
+3776 |
+3777 | def len(obj: Sized, /) -> int:
+     |     ^^^ ---------- Parameter declared here
+3778 |     """Return the number of items in a container."""
+     |
+info: rule `invalid-argument-type` is enabled by default
+
+error[invalid-assignment]: Object of type `object` is not assignable to `dict[str, list[str]]`
+   --> packages/stogger/src/stogger/i18n_check.py:226:14
+    |
+224 |         lines.append("\n❗ Missing keys:")
+225 |         # Grouped by level for better insight
+226 |         mbl: dict[str, list[str]] = report.get("missing_by_level", {})  # type: ignore[assignment]
+    |              --------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Incompatible value of type `object`
+    |              |
+    |              Declared type
+227 |         for level in ["INFO", "WARNING", "ERROR", "CRITICAL"]:
+228 |             keys = mbl.get(level, []) if isinstance(mbl, dict) else []
+    |
+info: rule `invalid-assignment` is enabled by default
+
+error[invalid-return-type]: Return type does not match returned value
+   --> packages/stoggertools/src/stoggertools/advanced_assistant.py:456:16
+    |
+454 |         )
+455 |
+456 |         return transformed_tree  # type: ignore[return-value]
+    |                ^^^^^^^^^^^^^^^^ expected `Module`, found `AST`
+457 |
+458 |     def visit(self, node: ast.AST) -> ast.AST:
+    |
+   ::: packages/stoggertools/src/stoggertools/advanced_assistant.py:428:46
+    |
+426 |         )
+427 |
+428 |     def transform(self, tree: ast.Module) -> ast.Module:
+    |                                              ---------- Expected `Module` because of return type
+429 |         """Apply all transformations to the AST."""
+430 |         log.debug(
+    |
+info: rule `invalid-return-type` is enabled by default
+
+error[invalid-argument-type]: Argument is incorrect
+   --> packages/stoggertools/src/stoggertools/advanced_assistant.py:587:17
+    |
+585 |                 node_type=NodeType.CALL,
+586 |                 matcher=is_print_call,
+587 |                 transformer=transform_print_to_log,  # type: ignore[arg-type]
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Expected `((AST, /) -> AST) | None`, found `def transform_print_to_log(node: Call) -> Call`
+588 |                 priority=10,
+589 |             ),
+    |
+info: rule `invalid-argument-type` is enabled by default
+
+error[invalid-argument-type]: Argument is incorrect
+   --> packages/stoggertools/src/stoggertools/advanced_assistant.py:618:17
+    |
+616 |                 node_type=NodeType.FUNCTION_DEF,
+617 |                 matcher=is_function_without_docstring,
+618 |                 transformer=add_docstring,  # type: ignore[arg-type]
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^ Expected `((AST, /) -> AST) | None`, found `def add_docstring(node: FunctionDef) -> FunctionDef`
+619 |                 priority=5,
+620 |                 enabled=False,  # Disabled by default
+    |
+info: rule `invalid-argument-type` is enabled by default
+
+error[unresolved-attribute]: Object of type `expr` has no attribute `value`
+   --> packages/stoggertools/src/stoggertools/assistant.py:125:24
+    |
+123 |         lit_first = bool(node.args) and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
+124 |         if lit_first:
+125 |             original = node.args[0].value  # type: ignore[attr-defined]
+    |                        ^^^^^^^^^^^^^^^^^^
+126 |             remaining_args = node.args[1:]
+127 |             placeholders = [f"{{a{i}}}" for i in range(len(remaining_args))]
+    |
+info: rule `unresolved-attribute` is enabled by default
+
+error[unresolved-attribute]: Object of type `TransformationResult & ~AlwaysFalsy` has no attribute `to_dict`
+    --> packages/stoggertools/src/stoggertools/cli.py:2181:16
+     |
+2179 |     log.debug(
+2180 |         "migrate-single-file-interactive-completed",
+2181 |         result=result.to_dict() if result else None,  # type: ignore[union-attr]
+     |                ^^^^^^^^^^^^^^
+2182 |         _replace_msg=f"Interactive transformation completed: {result}",
+2183 |     )
+     |
+info: rule `unresolved-attribute` is enabled by default
+
+error[invalid-return-type]: Return type does not match returned value
+    --> packages/stoggertools/src/stoggertools/cli.py:2447:6
+     |
+2445 |     dry_run: bool,
+2446 |     force: bool,
+2447 | ) -> MigrationResultProtocol:
+     |      ----------------------- Expected `MigrationResultProtocol` because of return type
+2448 |     """Migrate all Python files in a directory recursively."""
+2449 |     # For print-to-structlog, use existing directory migration
+2450 |     if config["handler"] == "migrate_print_to_structlog":
+2451 |         return migrate_directory(source, target, dry_run)  # type: ignore[return-value]
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `MigrationResultProtocol`, found `MigrationResult`
+2452 |
+2453 |     # For CLI outputs migration, use custom directory migration
+     |
+info: rule `invalid-return-type` is enabled by default
+
+error[too-many-positional-arguments]: Too many positional arguments to function `migrate_directory`: expected 2, got 3
+    --> packages/stoggertools/src/stoggertools/cli.py:2451:50
+     |
+2449 |     # For print-to-structlog, use existing directory migration
+2450 |     if config["handler"] == "migrate_print_to_structlog":
+2451 |         return migrate_directory(source, target, dry_run)  # type: ignore[return-value]
+     |                                                  ^^^^^^^
+2452 |
+2453 |     # For CLI outputs migration, use custom directory migration
+     |
+info: Function signature here
+   --> packages/stoggertools/src/stoggertools/assistant.py:205:5
+    |
+205 |   def migrate_directory(
+    |  _____^
+206 | |     input_dir: Path,
+207 | |     output_dir: Path | None,
+208 | |     *,
+209 | |     dry_run: bool = True,
+210 | | ) -> MigrationResult:
+    | |____________________^
+211 |       """Migrate Python files under input_dir. Writes to output_dir if provided, else in-place."""
+212 |       result = MigrationResult()
+    |
+info: rule `too-many-positional-arguments` is enabled by default
+
+error[unknown-argument]: Argument `reason` does not match any known parameter of bound method `print`
+   --> packages/stoggertools/src/stoggertools/linter.py:982:25
+    |
+980 |                 if issue.category == "wrapper":
+981 |                     console.print(
+982 |                         reason=issue.reason,
+    |                         ^^^^^^^^^^^^^^^^^^^
+983 |                         _replace_msg=f"  {file_path}:{issue.line_no} - {issue.reason}",
+984 |                     )
+    |
+info: Method signature here
+    --> .venv/lib/python3.13/site-packages/rich/console.py:1648:9
+     |
+1646 |           )
+1647 |
+1648 |       def print(
+     |  _________^
+1649 | |         self,
+1650 | |         *objects: Any,
+1651 | |         sep: str = " ",
+1652 | |         end: str = "\n",
+1653 | |         style: Optional[Union[str, Style]] = None,
+1654 | |         justify: Optional[JustifyMethod] = None,
+1655 | |         overflow: Optional[OverflowMethod] = None,
+1656 | |         no_wrap: Optional[bool] = None,
+1657 | |         emoji: Optional[bool] = None,
+1658 | |         markup: Optional[bool] = None,
+1659 | |         highlight: Optional[bool] = None,
+1660 | |         width: Optional[int] = None,
+1661 | |         height: Optional[int] = None,
+1662 | |         crop: bool = True,
+1663 | |         soft_wrap: Optional[bool] = None,
+1664 | |         new_line_start: bool = False,
+1665 | |     ) -> None:
+     | |_____________^
+1666 |           """Print to the console.
+     |
+info: rule `unknown-argument` is enabled by default
+
+error[unknown-argument]: Argument `_replace_msg` does not match any known parameter of bound method `print`
+   --> packages/stoggertools/src/stoggertools/linter.py:983:25
+    |
+981 |                     console.print(
+982 |                         reason=issue.reason,
+983 |                         _replace_msg=f"  {file_path}:{issue.line_no} - {issue.reason}",
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+984 |                     )
+    |
+info: Method signature here
+    --> .venv/lib/python3.13/site-packages/rich/console.py:1648:9
+     |
+1646 |           )
+1647 |
+1648 |       def print(
+     |  _________^
+1649 | |         self,
+1650 | |         *objects: Any,
+1651 | |         sep: str = " ",
+1652 | |         end: str = "\n",
+1653 | |         style: Optional[Union[str, Style]] = None,
+1654 | |         justify: Optional[JustifyMethod] = None,
+1655 | |         overflow: Optional[OverflowMethod] = None,
+1656 | |         no_wrap: Optional[bool] = None,
+1657 | |         emoji: Optional[bool] = None,
+1658 | |         markup: Optional[bool] = None,
+1659 | |         highlight: Optional[bool] = None,
+1660 | |         width: Optional[int] = None,
+1661 | |         height: Optional[int] = None,
+1662 | |         crop: bool = True,
+1663 | |         soft_wrap: Optional[bool] = None,
+1664 | |         new_line_start: bool = False,
+1665 | |     ) -> None:
+     | |_____________^
+1666 |           """Print to the console.
+     |
+info: rule `unknown-argument` is enabled by default
+
+error[invalid-argument-type]: Argument to bound method `_get_full_func_name` is incorrect
+   --> packages/stoggertools/src/stoggertools/project_analyzer.py:489:68
+    |
+487 |                     # Check if it's a direct import like 'log = logging.getLogger(...)'
+488 |                     elif self._is_direct_logger_assignment(call_node):
+489 |                         if "structlog" in self._get_full_func_name(call_node.func):
+    |                                                                    ^^^^^^^^^^^^^^ Expected `Attribute`, found `expr`
+490 |                             self.logger_variables[var_name] = "structlog"
+491 |                         elif "logging" in self._get_full_func_name(call_node.func):
+    |
+info: Method defined here
+   --> packages/stoggertools/src/stoggertools/project_analyzer.py:598:17
+    |
+596 |                 return func_name == "structlog.get_logger"
+597 |
+598 |             def _get_full_func_name(self, node: ast.Attribute) -> str:
+    |                 ^^^^^^^^^^^^^^^^^^^       ------------------- Parameter declared here
+599 |                 """Get the full function name from an attribute node."""
+600 |                 parts = []
+    |
+info: rule `invalid-argument-type` is enabled by default
+
+error[invalid-argument-type]: Argument to bound method `_get_full_func_name` is incorrect
+   --> packages/stoggertools/src/stoggertools/project_analyzer.py:491:68
+    |
+489 |                         if "structlog" in self._get_full_func_name(call_node.func):
+490 |                             self.logger_variables[var_name] = "structlog"
+491 |                         elif "logging" in self._get_full_func_name(call_node.func):
+    |                                                                    ^^^^^^^^^^^^^^ Expected `Attribute`, found `expr`
+492 |                             self.logger_variables[var_name] = "logging"
+    |
+info: Method defined here
+   --> packages/stoggertools/src/stoggertools/project_analyzer.py:598:17
+    |
+596 |                 return func_name == "structlog.get_logger"
+597 |
+598 |             def _get_full_func_name(self, node: ast.Attribute) -> str:
+    |                 ^^^^^^^^^^^^^^^^^^^       ------------------- Parameter declared here
+599 |                 """Get the full function name from an attribute node."""
+600 |                 parts = []
+    |
+info: rule `invalid-argument-type` is enabled by default
+
+Found 50 diagnostics

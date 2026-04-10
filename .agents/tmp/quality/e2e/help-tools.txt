@@ -1,0 +1,19 @@
+                                                                                
+ Usage: stoggertools tools [OPTIONS] COMMAND [ARGS]...                          
+                                                                                
+ 🛠️ Low-level utilities and advanced tools                                      
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ generate-service  🔧 Generate systemd service file.                          │
+│ check-advanced    🔬 Advanced check with all options for complexity analysi… │
+│                   and AST patterns.                                          │
+│ review            📝 Review log quality and provide suggestions.             │
+│ journal           📖 Beautiful systemd journal viewer.                       │
+│ dashboard         🌐 Start the web dashboard.                                │
+│ demo              🎬 Run interactive demos.                                  │
+│ i18n              Internationalization utilities                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

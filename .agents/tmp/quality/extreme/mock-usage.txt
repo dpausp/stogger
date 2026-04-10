@@ -1,0 +1,148 @@
+tests/test_cli.py:7:from unittest.mock import MagicMock, Mock, mock_open, patch
+tests/test_cli.py:55:            mock_file = MagicMock()
+tests/test_cli.py:278:        mock_file.return_value.__enter__.return_value.write = Mock()
+tests/test_cli_ast_integration.py:8:from unittest.mock import MagicMock, patch
+tests/test_cli_ast_integration.py:54:            mock_assistant = MagicMock()
+tests/test_cli_ast_integration.py:58:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:90:            mock_assistant = MagicMock()
+tests/test_cli_ast_integration.py:93:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:120:            mock_assistant = MagicMock()
+tests/test_cli_ast_integration.py:124:            mock_pattern = MagicMock()
+tests/test_cli_ast_integration.py:129:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:156:        mock_transformer = MagicMock()
+tests/test_cli_ast_integration.py:160:            mock_assistant = MagicMock()
+tests/test_cli_ast_integration.py:163:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:204:            mock_assistant = MagicMock()
+tests/test_cli_ast_integration.py:207:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:231:            mock_assistant = MagicMock()
+tests/test_cli_ast_integration.py:234:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:258:        mock_transformer = MagicMock()
+tests/test_cli_ast_integration.py:276:            mock_assistant = MagicMock()
+tests/test_cli_ast_integration.py:280:            mock_pattern = MagicMock()
+tests/test_cli_ast_integration.py:285:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:324:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:329:            mock_complexity = MagicMock()
+tests/test_cli_ast_integration.py:337:            mock_deps = MagicMock()
+tests/test_cli_ast_integration.py:349:            mock_rec = MagicMock()
+tests/test_cli_ast_integration.py:382:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:387:            mock_complexity = MagicMock()
+tests/test_cli_ast_integration.py:395:            mock_deps = MagicMock()
+tests/test_cli_ast_integration.py:407:            mock_rec = MagicMock()
+tests/test_cli_ast_integration.py:436:        mock_transformer = MagicMock()
+tests/test_cli_ast_integration.py:442:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:447:            mock_complexity = MagicMock()
+tests/test_cli_ast_integration.py:455:            mock_deps = MagicMock()
+tests/test_cli_ast_integration.py:467:            mock_rec = MagicMock()
+tests/test_cli_ast_integration.py:503:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:508:            mock_complexity = MagicMock()
+tests/test_cli_ast_integration.py:516:            mock_deps = MagicMock()
+tests/test_cli_ast_integration.py:528:            mock_rec = MagicMock()
+tests/test_cli_ast_integration.py:563:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:568:            mock_complexity = MagicMock()
+tests/test_cli_ast_integration.py:576:            mock_deps = MagicMock()
+tests/test_cli_ast_integration.py:588:            mock_rec = MagicMock()
+tests/test_cli_ast_integration.py:622:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:627:            mock_complexity = MagicMock()
+tests/test_cli_ast_integration.py:635:            mock_deps = MagicMock()
+tests/test_cli_ast_integration.py:647:            mock_rec = MagicMock()
+tests/test_cli_ast_integration.py:692:            mock_result = MagicMock()
+tests/test_cli_ast_integration.py:697:            mock_complexity = MagicMock()
+tests/test_cli_ast_integration.py:705:            mock_deps = MagicMock()
+tests/test_cli_ast_integration.py:744:            mock_rec = MagicMock()
+tests/test_cli_demos.py:40:    mock_log = Mock()
+tests/test_cli_integration.py:11:from unittest.mock import MagicMock, patch
+tests/test_cli_integration.py:356:        mock_viewer = MagicMock()
+tests/test_cli_integration.py:445:            mock_reviewer = MagicMock()
+tests/test_cli_integration.py:449:            mock_report = MagicMock()
+tests/test_cli_more_demos.py:52:    mock_log = Mock()
+tests/test_cli_more_demos.py:73:    mock_log = Mock()
+tests/test_config.py:5:from unittest.mock import MagicMock, patch
+tests/test_config.py:82:    mock_root_logger = MagicMock()
+tests/test_core.py:11:from unittest.mock import MagicMock, patch
+tests/test_docs_serve.py:4:from unittest.mock import MagicMock, patch
+tests/test_docs_serve.py:99:    mock_package_path = MagicMock()
+tests/test_eliot_integration.py:6:from unittest.mock import MagicMock, Mock, patch
+tests/test_eliot_integration.py:388:        mock_action = MagicMock()
+tests/test_eliot_integration.py:389:        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
+tests/test_eliot_integration.py:390:        mock_start.return_value.__exit__ = Mock(return_value=None)
+tests/test_eliot_integration.py:428:        mock_action = MagicMock()
+tests/test_eliot_integration.py:429:        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
+tests/test_eliot_integration.py:430:        mock_start.return_value.__exit__ = Mock(return_value=None)
+tests/test_eliot_integration.py:447:        mock_action = MagicMock()
+tests/test_eliot_integration.py:448:        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
+tests/test_eliot_integration.py:449:        mock_start.return_value.__exit__ = Mock(return_value=None)
+tests/test_eliot_integration.py:466:        mock_action = MagicMock()
+tests/test_eliot_integration.py:467:        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
+tests/test_eliot_integration.py:468:        mock_start.return_value.__exit__ = Mock(return_value=None)
+tests/test_eliot_integration.py:484:        mock_action = MagicMock()
+tests/test_eliot_integration.py:485:        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
+tests/test_eliot_integration.py:486:        mock_start.return_value.__exit__ = Mock(return_value=None)
+tests/test_eliot_integration.py:528:        mock_action = MagicMock()
+tests/test_eliot_integration.py:529:        mock_start.return_value.__enter__ = Mock(return_value=mock_action)
+tests/test_eliot_integration.py:530:        mock_start.return_value.__exit__ = Mock(return_value=None)
+tests/test_factory.py:6:from unittest.mock import MagicMock, patch
+tests/test_factory.py:92:        mock_pii_processor = MagicMock()
+tests/test_factory.py:168:        mock_root_logger = MagicMock()
+tests/test_factory.py:170:        mock_listener_instance = MagicMock()
+tests/test_journal_viewer.py:104:            mock_timestamp = Mock()
+tests/test_journal_viewer.py:342:                mock_reader = Mock()
+tests/test_journal_viewer.py:350:                mock_reader.__iter__ = Mock(return_value=iter(mock_entries))
+tests/test_journal_viewer.py:365:                mock_reader = Mock()
+tests/test_journal_viewer.py:367:                mock_reader.__iter__ = Mock(return_value=iter([]))
+tests/test_journal_viewer.py:378:                mock_reader = Mock()
+tests/test_journal_viewer.py:380:                mock_reader.__iter__ = Mock(return_value=iter([]))
+tests/test_journal_viewer.py:399:                mock_reader = Mock()
+tests/test_journal_viewer.py:404:                mock_reader.__iter__ = Mock(return_value=iter(mock_entries))
+tests/test_journal_viewer.py:417:                mock_reader = Mock()
+tests/test_journal_viewer.py:422:                mock_reader.__iter__ = Mock(return_value=iter(mock_entries))
+tests/test_journal_viewer.py:435:                mock_reader = Mock()
+tests/test_journal_viewer.py:437:                mock_reader.__iter__ = Mock(return_value=iter([]))
+tests/test_journal_viewer.py:592:                    mock_viewer = Mock()
+tests/test_journal_viewer.py:619:                    mock_viewer = Mock()
+tests/test_journal_viewer.py:623:                    mock_entry = Mock()
+tests/test_journal_viewer.py:645:                    mock_viewer = Mock()
+tests/test_journal_viewer.py:649:                    mock_entry = Mock()
+tests/test_journal_viewer.py:670:                    mock_viewer = Mock()
+tests/test_log_reviewer.py:69:        mock_path = Mock(spec=Path)
+tests/test_log_reviewer.py:87:            mock_path = Mock(spec=Path)
+tests/test_log_reviewer.py:506:            mock_reviewer = Mock()
+tests/test_log_reviewer.py:536:            mock_reviewer = Mock()
+tests/test_log_reviewer.py:569:            mock_reviewer = Mock()
+tests/test_log_reviewer.py:573:            mock_log_files = [Mock(name="test1.log"), Mock(name="test2.log")]
+tests/test_systemd_integration.py:4:from unittest.mock import MagicMock, patch
+grep: tests/__pycache__/test_core.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_cli.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_cli_ast_integration.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_cli_ast_integration.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_docs_serve.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_cli_integration.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_eliot_integration.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_cli.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_factory.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_cli.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_config.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_cli_ast_integration.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_core.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_docs_serve.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_eliot_integration.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_cli_integration.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_factory.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_systemd_integration.cpython-313-pytest-8.3.5.pyc: binary file matches
+grep: tests/__pycache__/test_cli_integration.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_config.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_systemd_integration.cpython-313-pytest-8.4.1.pyc: binary file matches
+grep: tests/__pycache__/test_config.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_core.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_docs_serve.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_eliot_integration.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_factory.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_systemd_integration.cpython-313.pyc: binary file matches
+grep: tests/__pycache__/test_cli.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_cli_ast_integration.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_cli_integration.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_config.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_core.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_docs_serve.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_eliot_integration.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_factory.cpython-313-pytest-9.0.2.pyc: binary file matches
+grep: tests/__pycache__/test_systemd_integration.cpython-313-pytest-9.0.2.pyc: binary file matches

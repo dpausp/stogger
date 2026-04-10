@@ -106,7 +106,7 @@ env_list = ["fix", "cov", "3.13"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
-package = "wheel"
+package = "skip"
 runner = "uv-venv-lock-runner"
 dependency_groups = ["test"]
 depends = ["fix"]
@@ -127,7 +127,7 @@ commands = [
 
 [tool.tox.env.cov]
 base_python = ["3.13"]
-package = "wheel"
+package = "skip"
 runner = "uv-venv-lock-runner"
 dependency_groups = ["test"]
 depends = ["fix"]

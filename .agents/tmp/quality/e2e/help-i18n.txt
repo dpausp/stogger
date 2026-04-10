@@ -1,0 +1,12 @@
+                                                                                
+ Usage: stoggertools tools i18n [OPTIONS] COMMAND [ARGS]...                     
+                                                                                
+ Internationalization utilities                                                 
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ check  🌍 Check translation completeness and quality.                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

@@ -1,0 +1,22 @@
+                                                                                
+ Usage: python -m stoggertools [OPTIONS] COMMAND [ARGS]...                      
+                                                                                
+ Stoggertools utility.                                                          
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --version                     Show version and exit                          │
+│ --install-completion          Install completion for the current shell.      │
+│ --show-completion             Show completion for the current shell, to copy │
+│                               it or customize the installation.              │
+│ --help                        Show this message and exit.                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ docs        📚 Show documentation and examples.                              │
+│ docs-serve  🌐 Serve HTML documentation in browser.                          │
+│ init        🔧 Initialize stogger configuration.                             │
+│ check       🔍 Check code for logging best practices with AST analysis by    │
+│             default.                                                         │
+│ migrate     🔄 Analyze project and migrate code.                             │
+│ tools       🛠️ Low-level utilities and advanced tools                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

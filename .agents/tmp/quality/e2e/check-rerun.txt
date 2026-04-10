@@ -1,0 +1,5 @@
+project-structure-detected-from-pyproject
+2026-04-10T15:59:08.961643 I project-structure-detected-from-pyproject path='pyproject.toml'
+Project Context
+2026-04-10T15:59:08.961941 I check-project-context          Project Context
+Configuration:

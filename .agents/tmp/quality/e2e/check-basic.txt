@@ -1,0 +1,173 @@
+project-structure-detected-from-pyproject
+2026-04-10T13:14:08.496687 I project-structure-detected-from-pyproject path='pyproject.toml'
+Project Context
+2026-04-10T13:14:08.497012 I check-project-context          Project Context
+Configuration:
+2026-04-10T13:14:08.497146 I check-configuration            Configuration:
+Project Root: . (pyproject.toml)
+2026-04-10T13:14:08.497232 I check-project-root             Project Root: . (pyproject.toml)
+Source Directories: . (pyproject.toml)
+2026-04-10T13:14:08.497316 I check-source-dirs              Source Directories: . (pyproject.toml)
+Test Directories: tests (pyproject.toml)
+2026-04-10T13:14:08.497423 I check-test-dirs                Test Directories: tests (pyproject.toml)
+Analysis Scope:
+2026-04-10T13:14:08.497508 I check-analysis-scope           Analysis Scope:
+  • Logging analysis: Source directories only (.)
+2026-04-10T13:14:08.497585 I check-logging-analysis           • Logging analysis: Source directories only (.)
+  • Excluded from logging: Tests and other patterns
+2026-04-10T13:14:08.497669 I check-excluded-logging           • Excluded from logging: Tests and other patterns
+  • Code coverage: All Python files (including tests)
+2026-04-10T13:14:08.497739 I check-code-coverage              • Code coverage: All Python files (including tests)
+Mode: 🔬 AST analysis
+2026-04-10T13:14:08.497818 I check-mode-info                Mode: 🔬 AST analysis
+Running AST analysis...
+2026-04-10T13:14:08.497904 I check-ast-analysis-start       Running AST analysis...
+gitignore-loaded
+2026-04-10T13:14:08.504378 I gitignore-loaded               count=16 gitignore_path='.gitignore'
+Analyzing 76 Python files (respecting .gitignore)
+2026-04-10T13:14:10.318468 I check-files-analyzed           Analyzing 76 Python files (respecting .gitignore)
+
+Unified Code Quality Analysis
+2026-04-10T13:14:11.838052 I check-unified-analysis         Unified Code Quality Analysis
+MODULE                                                               LINES  
+FUNCS  CLASSES  LOGS  COVERAGE  ISSUES  SUMMARY           
+--------------------------------------------------------------------------------
+------------------------------------------------------
+syntax_check.py                                                         17      
+0        0     0      0.0%  E1      Too little logging
+test_integration.py                                                     83      
+0        0     0      0.0%  E2      Too little logging
+build_docs.py                                                           51      
+2        0     0      0.0%  E2      Too little logging
+dodo.py                                                                392     
+63        0     0      0.0%  E2      Too little logging
+scripts/analyze_coverage.py                                            111      
+5        0     0      0.0%  E2      Too little logging
+packages/stoggertools/src/stoggertools/cli.py                         2409    
+105       15    43      1.8%  E1 W1   Too little logging
+packages/stoggertools/src/stoggertools/assistant.py                    207     
+12        2     0      0.0%  E2      Too little logging
+packages/stoggertools/src/stoggertools/advanced_assistant.py           679     
+32        8    16      2.4%  E1 W2   Too little logging
+packages/stoggertools/src/stoggertools/interactive_transformer.py      552     
+21        5     6      1.1%  E2 W1   Too little logging
+packages/stoggertools/src/stoggertools/live_editor.py                  346     
+12        2     4      1.2%  E1      Too little logging
+packages/stoggertools/src/stoggertools/linter.py                       789     
+18        4     6      0.8%  E1 W3   Too little logging
+packages/stoggertools/src/stoggertools/log_statement_analyzer.py       424     
+14        4     1      0.2%  E2      Too little logging
+packages/stoggertools/src/stoggertools/log_reviewer.py                 287     
+15        2     0      0.0%  E2      Too little logging
+packages/stoggertools/src/stoggertools/project_analyzer.py             749     
+29        7     5      0.7%  E2      Too little logging
+packages/stoggertools/src/stoggertools/cli_output_transformer.py       406     
+22        2     0      0.0%  E2      Too little logging
+packages/stoggertools/src/stoggertools/__main__.py                       4      
+0        0     0      0.0%  E1      Too little logging
+packages/stoggertools/src/stoggertools/__init__.py                      81      
+0        0     0      0.0%  E1      Too little logging
+packages/stogger-web/src/stogger_web/web_dashboard.py                  414     
+11        1     0      0.0%  E2      Too little logging
+packages/stogger-web/src/stogger_web/__init__.py                        19      
+0        0     0      0.0%  E1      Too little logging
+packages/stogger-eliot/src/stogger_eliot/eliot_integration.py          223     
+21        3     0      0.0%  E2      Too little logging
+packages/stogger-eliot/src/stogger_eliot/__init__.py                     5      
+0        0     0      0.0%  E1      Too little logging
+packages/stogger-systemd/src/stogger_systemd/systemd_integration.py    288      
+8        2     2      0.7%  E2      Too little logging
+packages/stogger-systemd/src/stogger_systemd/journal_viewer.py         466      
+6        3     6      1.3%  E1 W6   Too little logging
+packages/stogger-systemd/src/stogger_systemd/__init__.py                15      
+0        0     0      0.0%  E1      Too little logging
+packages/stogger/src/stogger/_regexes.py                                11      
+0        0     0      0.0%  E1      Too little logging
+packages/stogger/src/stogger/config.py                                 314     
+10        3     3      1.0%  E1 W3   Too little logging
+packages/stogger/src/stogger/factory.py                                176      
+4        0     4      2.3%  E1 W1   Too little logging
+packages/stogger/src/stogger/pii_scrubber.py                           196      
+8        1     0      0.0%  E2      Too little logging
+packages/stogger/src/stogger/gitignore_utils.py                         74      
+3        0     1      1.4%  E1      Too little logging
+packages/stogger/src/stogger/i18n.py                                   158     
+13        1     7      4.4%  E1 W1   Too little logging
+packages/stogger/src/stogger/i18n_check.py                             203      
+7        0     0      0.0%  E2      Too little logging
+packages/stogger/src/stogger/core.py                                   654     
+42       13     6      0.9%  E2      Too little logging
+packages/stogger/src/stogger/_colors.py                                 22      
+0        0     0      0.0%  E1      Too little logging
+packages/stogger/src/stogger/__init__.py                                61      
+0        0     0      0.0%  E1      Too little logging
+.tox/cov/bin/activate_this.py                                           27      
+0        0     0      0.0%  E1      Too little logging
+.tox/cov/lib/python3.13/site-packages/_virtualenv.py                    65      
+0        0     0      0.0%  E2      Too little logging
+.tox/3.13/bin/activate_this.py                                          27      
+0        0     0      0.0%  E1      Too little logging
+.tox/3.13/lib/python3.13/site-packages/_virtualenv.py                   65      
+0        0     0      0.0%  E2      Too little logging
+.tox/fix/bin/activate_this.py                                           27      
+0        0     0      0.0%  E1      Too little logging
+.tox/fix/lib/python3.13/site-packages/_virtualenv.py                    65      
+0        0     0      0.0%  E2      Too little logging
+vendor/mydevtools/__init__.py                                            6      
+0        0     0      0.0%  E1      Too little logging
+vendor/mydevtools/task_helpers.py                                     3121     
+63        0    36      1.2%  E1      Too little logging
+
+ISSUE LEGEND
+E# = Errors (critical issues requiring attention)
+W# = Warnings (suggestions for improvement)
+🔧 LOGGING LEVEL ISSUES DETECTED
+  packages/stoggertools/src/stoggertools/cli.py:698 - Internal library operation
+should be debug level to avoid spamming users
+  packages/stoggertools/src/stoggertools/advanced_assistant.py:751 - Inside 
+except: log.exception() already includes the exception and traceback; remove 
+redundant error=str(e)
+  packages/stoggertools/src/stoggertools/advanced_assistant.py:825 - Inside 
+except: log.exception() already includes the exception and traceback; remove 
+redundant error=str(e)
+  packages/stoggertools/src/stoggertools/interactive_transformer.py:263 - Inside
+except: log.exception() already includes the exception and traceback; remove 
+redundant error=str(e)
+  packages/stoggertools/src/stoggertools/linter.py:213 - Inside except: 
+log.exception() already includes the exception and traceback; remove redundant 
+error=str(e)
+  packages/stoggertools/src/stoggertools/linter.py:261 - Inside except: 
+log.exception() already includes the exception and traceback; remove redundant 
+error=str(e)
+  packages/stoggertools/src/stoggertools/linter.py:522 - Inside except: 
+log.exception() already includes the exception and traceback; remove redundant 
+error=str(e)
+  packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:366 - Inside 
+except: log.exception() already includes the exception and traceback; remove 
+redundant error=str(e)
+  packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:359 - 
+Completion messages for internal operations should be debug level
+  packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:525 - Inside 
+except: log.exception() already includes the exception and traceback; remove 
+redundant error=str(e)
+  packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:567 - Inside 
+except: log.exception() already includes the exception and traceback; remove 
+redundant error=str(e)
+  packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:535 - Internal 
+library operation should be debug level to avoid spamming users
+  packages/stogger-systemd/src/stogger_systemd/journal_viewer.py:557 - 
+Completion messages for internal operations should be debug level
+  packages/stogger/src/stogger/config.py:117 - Inside except: log.exception() 
+already includes the exception and traceback; remove redundant error=str(e)
+  packages/stogger/src/stogger/config.py:111 - Internal library operation should
+be debug level to avoid spamming users
+  packages/stogger/src/stogger/config.py:158 - Inside except: log.exception() 
+already includes the exception and traceback; remove redundant error=str(e)
+  packages/stogger/src/stogger/i18n.py:114 - Inside except: log.exception() 
+already includes the exception and traceback; remove redundant error=str(e)
+❌ 42 files have logging issues
+2026-04-10T13:14:12.621474 I linter-issues-found            ❌ 42 files have logging issues
+76 files checked - no issues found!
+2026-04-10T13:14:12.622023 I check-no-issues-found          76 files checked - no issues found!
+All checks passed!
+2026-04-10T13:14:12.622322 I check-all-passed               All checks passed!

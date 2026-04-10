@@ -1,0 +1,39 @@
+                                                                                
+ Usage: stoggertools migrate [OPTIONS] [PATH]                                   
+                                                                                
+ 🔄 Analyze project and migrate code.                                           
+                                                                                
+ Default behavior: Dry-run preview (safe, shows what would change)              
+                                                                                
+ Examples:                                                                      
+    stoggertools migrate                                   # Dry-run preview of 
+ current project                                                                
+    stoggertools migrate /path/to/project                  # Dry-run preview of 
+ specific project                                                               
+    stoggertools migrate . --json                          # Agent analysis     
+ output                                                                         
+    stoggertools migrate . --no-dry-run                    # Actually apply     
+ changes                                                                        
+    stoggertools migrate . --no-dry-run --type logging-to-structlog  # Specific 
+ migration                                                                      
+    stoggertools migrate . --no-dry-run --interactive      # Interactive        
+ migration                                                                      
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   path      [PATH]  Path to migrate [default: .]                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --output         -o      TEXT  Output file or directory                      │
+│ --dry-run                      Show what would be changed                    │
+│ --no-dry-run                   Actually apply changes                        │
+│ --type                   TEXT  Migration type [default: print-to-structlog]  │
+│ --no-ast                       Skip AST analysis                             │
+│ --pattern                TEXT  Pattern to match                              │
+│ --interactive    -i            Interactive mode                              │
+│ --verbose        -v            Enable verbose output                         │
+│ --check-imports                Check import statements                       │
+│ --force                        Force migration even if issues are found      │
+│ --json                         Output in JSON format                         │
+│ --help                         Show this message and exit.                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

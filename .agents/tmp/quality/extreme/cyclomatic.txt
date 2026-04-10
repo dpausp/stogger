@@ -1,0 +1,66 @@
+packages/stogger/src/stogger/config.py
+    F 166:0 _detect_from_pyproject - C
+    F 254:0 _detect_from_heuristics - C
+packages/stogger/src/stogger/factory.py
+    F 124:0 configure_stdlib_logging - C
+    F 26:0 build_shared_processors - C
+packages/stogger/src/stogger/i18n_check.py
+    F 56:0 scan_translation_keys - C
+    F 197:0 format_report - C
+packages/stogger/src/stogger/core.py
+    M 174:4 ConsoleFileRenderer.__call__ - D
+    C 99:0 ConsoleFileRenderer - C
+    F 440:0 init_logging - C
+packages/stogger-systemd/src/stogger_systemd/systemd_integration.py
+    F 275:0 query_journal_logs - C
+packages/stogger-systemd/src/stogger_systemd/journal_viewer.py
+    M 232:4 JournalViewer.query_journal - D
+    M 373:4 JournalViewer.parse_time_string - C
+    C 62:0 JournalViewer - C
+packages/stoggertools/src/stoggertools/cli.py
+    F 2224:0 migrate_single_file - E
+    F 1820:0 run_demos - C
+    F 2815:0 _display_project_analysis - C
+    F 244:0 i18n_check - C
+    F 2948:0 _serve_html_docs - C
+    F 1616:0 _display_with_pager - C
+    F 1514:0 _show_markdown_files - C
+    F 1738:0 run_log_reviewer - C
+    F 2561:0 migrate_directory_with_handler - C
+    F 316:0 init_config - C
+packages/stoggertools/src/stoggertools/assistant.py
+    M 105:4 PrintToStructlogTransformer.visit_call_build_print - C
+    F 205:0 migrate_directory - C
+packages/stoggertools/src/stoggertools/advanced_assistant.py
+    M 296:4 AdvancedASTAnalyzer._function_has_logging_calls - C
+    M 770:4 AdvancedAssistant.transform_directory - C
+packages/stoggertools/src/stoggertools/interactive_transformer.py
+    M 117:4 InteractiveTransformer.transform_file_interactive - C
+    M 557:4 InteractiveTransformer._show_session_summary - C
+packages/stoggertools/src/stoggertools/live_editor.py
+    M 337:4 LiveCodeEditor.get_learning_insights - C
+packages/stoggertools/src/stoggertools/linter.py
+    F 619:0 lint_directory - F
+    M 418:4 LoggingVisitor._is_likely_wrapper - C
+    M 343:4 LoggingVisitor._analyze_log_wrapper - C
+    M 160:4 LoggingVisitor._analyze_except_logging - C
+packages/stoggertools/src/stoggertools/log_statement_analyzer.py
+    M 263:4 LogStatementAnalyzer._detect_issues - F
+    M 142:4 LogStatementAnalyzer._is_log_call - C
+    F 457:0 analyze_file - C
+    M 176:4 LogStatementAnalyzer._parse_log_statement - C
+packages/stoggertools/src/stoggertools/log_reviewer.py
+    M 232:4 LogQualityReviewer._calculate_quality_score - C
+    M 80:4 LogQualityReviewer._analyze_log_lines - C
+packages/stoggertools/src/stoggertools/project_analyzer.py
+    M 801:4 ProjectAnalyzer._generate_recommendation - D
+    M 615:4 ProjectAnalyzer._analyze_file_patterns_fallback - C
+    M 229:4 ProjectAnalyzer._load_ignore_patterns - C
+packages/stoggertools/src/stoggertools/cli_output_transformer.py
+    M 131:4 CLIOutputToStructlogTransformer.detect_cli_output_call - D
+    M 182:4 CLIOutputToStructlogTransformer._analyze_typer_echo - C
+    M 355:4 CLIOutputToStructlogTransformer._transform_cli_call_to_structlog - C
+    M 103:4 CLIOutputToStructlogTransformer.visit_Assign - C
+
+434 blocks (classes, functions, methods) analyzed.
+Average complexity: A (4.965437788018433)

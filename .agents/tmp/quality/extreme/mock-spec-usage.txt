@@ -1,0 +1,2 @@
+tests/test_log_reviewer.py:69:        mock_path = Mock(spec=Path)
+tests/test_log_reviewer.py:87:            mock_path = Mock(spec=Path)

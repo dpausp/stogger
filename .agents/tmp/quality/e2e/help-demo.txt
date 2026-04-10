@@ -1,0 +1,13 @@
+                                                                                
+ Usage: stoggertools tools demo [OPTIONS] [FEATURE]                             
+                                                                                
+ 🎬 Run interactive demos.                                                      
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   feature      [FEATURE]  Demo specific feature                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --all           Demo all features                                            │
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

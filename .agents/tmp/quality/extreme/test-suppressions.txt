@@ -1,0 +1,7 @@
+tests/test_cli.py:103:@pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
+tests/test_cli_ast_integration.py:806:    @pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
+tests/test_cli_integration.py:459:@pytest.mark.skipif(not FLASK_AVAILABLE, reason="Flask is not installed")
+tests/test_eliot_integration.py:14:        pytestmark = pytest.mark.skip(reason="eliot not installed")
+tests/test_log_reviewer.py:14:@pytest.mark.skip("Log reviewer is currently unsupported")
+tests/test_log_reviewer.py:37:@pytest.mark.skip("Log reviewer is currently unsupported")
+tests/test_log_reviewer.py:437:@pytest.mark.skip("Log reviewer is currently unsupported")

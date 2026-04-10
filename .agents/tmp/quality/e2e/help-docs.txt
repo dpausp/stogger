@@ -1,0 +1,12 @@
+                                                                                
+ Usage: stoggertools docs [OPTIONS]                                             
+                                                                                
+ 📚 Show documentation and examples.                                            
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --interactive  -i            Interactive docs browser                        │
+│ --feature      -f      TEXT  Show docs for specific feature                  │
+│ --pager        -p            Use pager for displaying docs                   │
+│ --help                       Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

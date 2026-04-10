@@ -1,0 +1,12 @@
+fix: venv> /nicestlog/.venv/bin/uv venv -p /nicestlog/.venv/bin/python3 --allow-existing '--prompt=stogger[fix]' --python-preference system /stogger/.tox/fix
+fix: Could not detect project name
+3.13: venv> /nicestlog/.venv/bin/uv venv -p cpython3.13 --allow-existing '--prompt=stogger[3.13]' --python-preference system /stogger/.tox/3.13
+3.13: Could not detect project name
+cov: venv> /nicestlog/.venv/bin/uv venv -p cpython3.13 --allow-existing '--prompt=stogger[cov]' --python-preference system /stogger/.tox/cov
+cov: Could not detect project name
+[K⠋ [0/3][K⠙ [1/3] fix[K⠹ [1/3] fix[Kfix: FAIL ✖ in 0.29 seconds
+[K⠸ [2/3] 3.13 | cov[K⠼ [2/3] 3.13 | cov[K⠴ [2/3] 3.13 | cov[K⠦ [2/3] 3.13 | cov[K⠧ [2/3] 3.13 | cov[K⠇ [2/3] 3.13 | cov[K⠏ [2/3] 3.13 | cov[K⠋ [2/3] 3.13 | cov[K3.13: FAIL ✖ in 0.75 seconds
+[K[K  fix: FAIL code 1 (0.29 seconds)
+  cov: FAIL code 1 (0.75 seconds)
+  3.13: FAIL code 1 (0.75 seconds)
+  evaluation failed :( (1.22 seconds)

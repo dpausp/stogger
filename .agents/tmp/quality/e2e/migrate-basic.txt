@@ -1,0 +1,66 @@
+🔍 Starting analysis of project: {project_path}
+2026-04-10T13:14:08.634811 I project-analysis-started       🔍 Starting analysis of project: .
+project-structure-detected-from-pyproject
+2026-04-10T13:14:08.640870 I project-structure-detected-from-pyproject path='pyproject.toml'
+project-structure-detected-from-pyproject
+2026-04-10T13:14:10.696470 I project-structure-detected-from-pyproject path='pyproject.toml'
+✅ Analysis completed for {project_path}
+2026-04-10T13:14:12.227962 I project-analysis-completed     ✅ Analysis completed for .
+
+🔍 Project Analysis: .
+  📊 Project Overview   
+┏━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ Metric       ┃ Value ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━┩
+│ Python Files │    36 │
+│ Total Lines  │ 18163 │
+└──────────────┴───────┘
+   🔍 Logging Patterns Summary   
+┏━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┓
+┃ Type       ┃ Count ┃ Priority ┃
+┡━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━┩
+│ Print      │    20 │     High │
+│ Cli_Output │   559 │      Low │
+│ Structlog  │   452 │      Low │
+│ Logging    │     3 │   Medium │
+└────────────┴───────┴──────────┘
+
+💡 Use --verbose to see all 1034 matches with file locations
+    📦 Dependencies Analysis     
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Package          ┃ Status     ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ Standard Logging │ ✅ Present │
+│ Structlog        │ ❌ Missing │
+│ Other Logging    │ typer      │
+└──────────────────┴────────────┘
+╭─── 🎯 Migration Recommendation ────╮
+│ Strategy: cli-outputs-to-structlog │
+│ Priority: high                     │
+│ Effort: high                       │
+│ Approach: manual                   │
+│ Risk: high                         │
+╰────────────────────────────────────╯
+
+📋 Recommended Steps:
+  1. Run: stoggertools migrate . --type cli-outputs-to-structlog --interactive
+  2. Validate changes
+
+⚠️ Warnings:
+  • Complex project - consider phased migration approach
+  • Large number of high-priority patterns (579) - migration may be 
+time-consuming
+  • High complexity functions detected - review manually
+
+🎯 Next Steps & Guidance
+🔄 CLI Output Migration:
+   1. Run interactive migration: stoggertools migrate . --type 
+cli-outputs-to-structlog --interactive
+   2. Validate results: stoggertools check .
+
+⚠️  Review changes carefully before applying
+
+📋 Prerequisites:
+   • Add structlog dependency
+
+💡 Need help? Run: stoggertools --help

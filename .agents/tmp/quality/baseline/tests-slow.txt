@@ -1,0 +1,4 @@
+tests/test_cli_pexpect.py::TestCliPexpectInteractive::test_docs_interactive_valid_choice
+tests/test_cli_pexpect.py::TestCliPexpectInteractive::test_docs_interactive_invalid_choice
+
+2/516 tests collected (514 deselected) in 0.81s

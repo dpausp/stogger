@@ -1,0 +1,5 @@
+🎬 Available stoggertools demos:
+  • basic - Basic structured logging with console output
+  • i18n - Internationalization and message translations
+  • pii - PII scrubbing and data protection
+  • eliot - Eliot integration for action tracing

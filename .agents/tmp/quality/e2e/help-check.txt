@@ -1,0 +1,27 @@
+                                                                                
+ Usage: stoggertools check [OPTIONS] [PATH]                                     
+                                                                                
+ 🔍 Check code for logging best practices with AST analysis by default.         
+                                                                                
+ Examples:                                                                      
+   stoggertools check file.py                    # Basic linting + AST analysis 
+   stoggertools check file.py --fix              # Fix with AST transforms      
+   stoggertools check file.py --interactive      # Interactive mode             
+   stoggertools check file.py --dry-run --fix    # Preview fixes                
+                                                                                
+ For advanced options, use: stoggertools tools check-advanced                   
+                                                                                
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   path      [PATH]  Path to check [default: .]                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --fix                        Auto-fix issues                                 │
+│ --interactive  -i            Interactive mode                                │
+│ --dry-run                    Show what would be fixed                        │
+│ --no-ast                     Disable AST analysis                            │
+│ --complexity                 Enable complexity analysis                      │
+│ --pattern      -p      TEXT  Specific AST patterns to check                  │
+│ --verbose      -v            Enable verbose output                           │
+│ --help                       Show this message and exit.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
