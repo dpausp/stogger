@@ -15,11 +15,6 @@ from typing import ClassVar
 
 import structlog
 
-try:
-    from systemd import journal
-except ImportError:
-    journal = None
-
 # Import the default settings object
 from .config import _default_simple_format_settings
 
@@ -146,12 +141,7 @@ class ConsoleFileRenderer:
         self.timestamp_format = settings.timestamp_format
 
         if sys.stdout.isatty():
-            try:
-                import colorama
-
-                colorama.init()
-            except ImportError:
-                pass
+            pass
 
         self._level_to_color = {
             "alert": RED,
@@ -437,48 +427,32 @@ def log_to_stdlib(_logger, _name, event_dict):
     return event_dict
 
 
-def init_logging(*args, **kwargs) -> None:
-    """Initialize logging with the new reference-style signature.
+def init_logging(
+    *,
+    logdir: str | None = None,
+    log_cmd_output: bool = False,
+    log_to_console: bool = True,
+    syslog_identifier: str = "stogger",
+    translation_dir: str | None = None,
+    language: str | None = None,
+) -> None:
+    """Initialize logging with keyword-only arguments.
 
-    New signature (reference-style):
-        init_logging(verbose, logdir=None, log_cmd_output=False, log_to_console=True,
-                     syslog_identifier="stogger", show_caller_info=False)
+    Args:
+        logdir: Directory path for log files.
+        log_cmd_output: Whether to enable command output logging.
+        log_to_console: Whether to log to console (stderr).
+        syslog_identifier: Identifier for syslog/journal entries.
+        translation_dir: Directory path for translation files.
+        language: Language code for i18n.
+
     """
-    # Argument position constants
-    ARG_POS_LOGDIR = 1
-    ARG_POS_LOG_CMD_OUTPUT = 2
-    ARG_POS_LOG_TO_CONSOLE = 3
-    ARG_POS_SYSLOG_IDENTIFIER = 4
-    ARG_POS_SHOW_CALLER_INFO = 5
+    if translation_dir or language:
+        from .i18n import init_i18n
 
-    # Handle positional and keyword args
-    if len(args) >= 1:
-        args[0]
-        logdir = args[ARG_POS_LOGDIR] if len(args) > ARG_POS_LOGDIR else kwargs.get("logdir")
-        log_cmd_output = (
-            args[ARG_POS_LOG_CMD_OUTPUT] if len(args) > ARG_POS_LOG_CMD_OUTPUT else kwargs.get("log_cmd_output", False)
-        )
-        log_to_console = (
-            args[ARG_POS_LOG_TO_CONSOLE] if len(args) > ARG_POS_LOG_TO_CONSOLE else kwargs.get("log_to_console", True)
-        )
-        syslog_identifier = (
-            args[ARG_POS_SYSLOG_IDENTIFIER]
-            if len(args) > ARG_POS_SYSLOG_IDENTIFIER
-            else kwargs.get("syslog_identifier", "stogger")
-        )
-        (
-            args[ARG_POS_SHOW_CALLER_INFO]
-            if len(args) > ARG_POS_SHOW_CALLER_INFO
-            else kwargs.get("show_caller_info", False)
-        )
-    else:
-        # All keyword arguments for new style
-        kwargs.get("verbose", False)
-        logdir = kwargs.get("logdir")
-        log_cmd_output = kwargs.get("log_cmd_output", False)
-        log_to_console = kwargs.get("log_to_console", True)
-        syslog_identifier = kwargs.get("syslog_identifier", "stogger")
-        kwargs.get("show_caller_info", False)
+        init_i18n(language=language or "en")
+
+    logdir = Path(logdir) if logdir else None
 
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(syslog_identifier, syslog.LOG_LOCAL1),
@@ -510,13 +484,11 @@ def init_logging(*args, **kwargs) -> None:
         else:
             loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
             context["logdir"] = logdir
-    if journal:
-        loggers["journal"] = JournalLoggerFactory()
 
-    # If the journal module is available and stdout is connected to journal, we
-    # shouldn't log to console because output would be duplicated in the journal.
+    # If stdout is connected to journal, we shouldn't log to console because
+    # output would be duplicated in the journal.
     if log_to_console:
-        if journal and os.environ.get("JOURNAL_STREAM"):
+        if os.environ.get("JOURNAL_STREAM"):
             pid = os.getpid()
             # S603/S607: systemctl is a system command, using full path would be better but systemctl is in PATH
             subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)
@@ -576,31 +548,12 @@ def init_early_logging() -> None:
         )
 
 
-class DummyJournalLogger:
-    """Dummy journal logger when systemd is not available."""
-
-    def msg(self, message) -> None:
-        pass
-
-
-class JournalLogger:
-    """Logger that sends messages to systemd journal."""
-
-    def msg(self, message) -> None:
-        journal.send(**message)
-
-
 class JournalLoggerFactory:
     """Factory for creating journal loggers."""
 
-    def __init__(self) -> None:
-        if journal is None:
-            pass
-
     def __call__(self, *_args):
-        if journal is None:
-            return DummyJournalLogger()
-        return JournalLogger()
+        # systemd journal integration belongs in stogger-systemd package
+        return None
 
 
 JOURNAL_LEVELS = {

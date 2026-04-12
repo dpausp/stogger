@@ -1,7 +1,6 @@
 """Core structured logging for Python applications."""
 
 __all__ = [
-    "JournalLogger",
     "JournalLoggerFactory",
     "MultiOptimisticLogger",
     "MultiOptimisticLoggerFactory",
@@ -23,9 +22,6 @@ __all__ = [
 ]
 
 from .config import StoggerConfig as StoggerConfig
-from .core import (
-    JournalLogger as JournalLogger,
-)
 from .core import (
     JournalLoggerFactory as JournalLoggerFactory,
 )

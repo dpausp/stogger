@@ -64,9 +64,11 @@ def another_function():
 
     def test_lint_directory_empty(self):
         """Test linting empty directory."""
+        from stoggertools.linter import LintOptions
+
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("builtins.print"):
-                result = lint_directory(Path(tmpdir))
+                result = lint_directory(Path(tmpdir), LintOptions())
                 assert isinstance(result, bool)
 
     def _write(self, tmp: Path, name: str, content: str) -> Path:
@@ -87,10 +89,7 @@ def another_function():
         """
         p = self._write(tmp_path, "a.py", code)
         stats, issues = analyze_file(p)
-        assert any(
-            iss.category == "except_logging" and iss.suggested_level == "exception"
-            for iss in issues
-        )
+        assert any(iss.category == "except_logging" and iss.suggested_level == "exception" for iss in issues)
 
     def test_linter_accepts_log_exception_without_error_field(self, tmp_path: Path):
         code = """
@@ -106,10 +105,7 @@ def another_function():
         p = self._write(tmp_path, "b.py", code)
         stats, issues = analyze_file(p)
         # Should not flag anything for except_logging category
-        assert not any(
-            iss.category == "except_logging" and iss.current_level == "exception"
-            for iss in issues
-        )
+        assert not any(iss.category == "except_logging" and iss.current_level == "exception" for iss in issues)
 
     def test_linter_flags_log_error_without_exc_info_in_except(self, tmp_path: Path):
         code = """
@@ -124,10 +120,7 @@ def another_function():
         """
         p = self._write(tmp_path, "c.py", code)
         stats, issues = analyze_file(p)
-        assert any(
-            iss.category == "except_logging" and iss.current_level == "error"
-            for iss in issues
-        )
+        assert any(iss.category == "except_logging" and iss.current_level == "error" for iss in issues)
 
 
 if __name__ == "__main__":

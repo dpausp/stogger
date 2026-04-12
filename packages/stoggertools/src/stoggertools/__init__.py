@@ -5,7 +5,6 @@ Re-exports the full stogger core API plus all stoggertools public symbols.
 
 __all__ = [
     # Re-exported from stogger
-    "JournalLogger",
     "JournalLoggerFactory",
     "MultiOptimisticLogger",
     "MultiOptimisticLoggerFactory",
@@ -38,7 +37,6 @@ __all__ = [
 ]
 
 from stogger import (
-    JournalLogger,
     JournalLoggerFactory,
     MultiOptimisticLogger,
     MultiOptimisticLoggerFactory,

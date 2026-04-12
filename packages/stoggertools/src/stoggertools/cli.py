@@ -14,7 +14,6 @@ import subprocess
 import sys
 import time
 import tomllib
-from collections.abc import Callable
 from importlib import resources
 from pathlib import Path
 from typing import Annotated, Any, Protocol, cast
@@ -33,14 +32,6 @@ from stogger import init_early_logging
 # Initialize early logging to ensure structlog is configured before logger creation
 init_early_logging()
 
-try:
-    from stogger_web import FLASK_AVAILABLE, run_dashboard
-except ImportError:
-    run_dashboard: Callable[..., None] | None = None  # type: ignore[assignment]
-    FLASK_AVAILABLE = False
-
-from stogger_systemd.journal_viewer import SYSTEMD_AVAILABLE, JournalQueryOptions, JournalViewer
-from stogger_systemd.systemd_integration import create_systemd_service_file
 
 from .linter import LintOptions
 from .log_reviewer import LogQualityReviewer, print_report
@@ -499,7 +490,7 @@ def check(
 
 def _run_check_command(options: CheckOptions) -> None:
     """Execute the check command with given options."""
-    stogger.init_logging(verbose=options.verbose)
+    stogger.init_logging(syslog_identifier="stoggertools")
     log = structlog.get_logger()
 
     path_obj = Path(options.path)
@@ -676,12 +667,12 @@ def _display_ast_issues(ast_issues, log) -> None:
     if ast_issues and _has_ast_issues(ast_issues):
         log.info("check-ast-issues-found", _replace_msg="AST Issues Found:")
         for result in ast_issues:
-            if result.issues:
+            if result.potential_issues:
                 log.info(
                     "check-file-issues",
                     file=result.file_path.name,
-                    issues=result.issues,
-                    _replace_msg=f"  {result.file_path.name}: {', '.join(result.issues)}",
+                    issues=result.potential_issues,
+                    _replace_msg=f"  {result.file_path.name}: {', '.join(result.potential_issues)}",
                 )
 
 
@@ -796,7 +787,7 @@ def _display_detailed_analysis(result: CodeAnalysisResult, show_complexity: bool
 
 def _display_compact_analysis(result: CodeAnalysisResult, log) -> None:
     """Display compact analysis summary."""
-    issue_count = len(result.issues) if result.issues else 0
+    issue_count = len(result.potential_issues) if result.potential_issues else 0
     status = "❌" if issue_count > 0 else "✅"
     log.info(
         "check-file-status",
@@ -808,15 +799,15 @@ def _display_compact_analysis(result: CodeAnalysisResult, log) -> None:
 
 def _display_analysis_issues(result: CodeAnalysisResult, verbose: bool, log) -> None:
     """Display issues found during analysis."""
-    if not result.issues:
+    if not result.potential_issues:
         if verbose:
             log.info("check-no-issues", _replace_msg="No AST issues found!")
         return
 
     if verbose:
-        _display_verbose_issues(result.issues, log)
+        _display_verbose_issues(result.potential_issues, log)
     else:
-        _display_compact_issues(result.issues, log)
+        _display_compact_issues(result.potential_issues, log)
 
 
 def _display_verbose_issues(issues: list[str], log) -> None:
@@ -935,10 +926,10 @@ def _extract_ast_metrics(
             "classes": result.class_count,
             "complexity": result.complexity_score if show_complexity else None,
         }
-        total_ast_issues += len(result.issues)
-        if result.issues:
+        total_ast_issues += len(result.potential_issues)
+        if result.potential_issues:
             all_ast_insights.extend(
-                [f"  • {result.file_path.name}: {issue}" for issue in result.issues],
+                [f"  • {result.file_path.name}: {issue}" for issue in result.potential_issues],
             )
 
     return ast_metrics, total_ast_issues, all_ast_insights
@@ -1069,7 +1060,7 @@ def _display_check_directory_analysis(
         total_loc += result.lines_of_code
         total_functions += result.function_count
         total_classes += result.class_count
-        total_issues += len(result.issues)
+        total_issues += len(result.potential_issues)
 
         row = [
             result.file_path.name,
@@ -1081,7 +1072,7 @@ def _display_check_directory_analysis(
         if show_complexity:
             row.append(f"{result.complexity_score:.1f}")
 
-        row.append(str(len(result.issues)))
+        row.append(str(len(result.potential_issues)))
         table.add_row(*row)
 
     # Add totals row
@@ -1104,7 +1095,7 @@ def _display_check_directory_analysis(
 def _has_ast_issues(ast_issues) -> bool:
     """Check if AST analysis found any issues."""
     if isinstance(ast_issues, list):
-        return any(len(result.issues) > 0 for result in ast_issues)
+        return any(len(result.potential_issues) > 0 for result in ast_issues)
     return len(ast_issues.issues) > 0
 
 
@@ -1276,13 +1267,13 @@ def _display_analysis_result(result: CodeAnalysisResult) -> None:
     console.print(metrics_table)
 
     # Issues found
-    if result.issues:
+    if result.potential_issues:
         issues_table = Table(title="⚠️ Issues Found")
         issues_table.add_column("Type", style="red")
         issues_table.add_column("Line", style="yellow", justify="right")
         issues_table.add_column("Description", style="white")
 
-        for i, issue in enumerate(result.issues):
+        for i, issue in enumerate(result.potential_issues):
             issues_table.add_row("Issue", str(i + 1), issue)
 
         console.print(issues_table)
@@ -1340,7 +1331,7 @@ def _display_directory_analysis(results: list[CodeAnalysisResult]) -> None:
         total_loc += result.lines_of_code
         total_functions += result.function_count
         total_classes += result.class_count
-        total_issues += len(result.issues)
+        total_issues += len(result.potential_issues)
 
         summary_table.add_row(
             result.file_path.name,
@@ -1348,7 +1339,7 @@ def _display_directory_analysis(results: list[CodeAnalysisResult]) -> None:
             str(result.function_count),
             str(result.class_count),
             f"{result.complexity_score:.1f}",
-            str(len(result.issues)),
+            str(len(result.potential_issues)),
         )
 
     # Add totals row
@@ -1458,9 +1449,7 @@ def migrate(
         # Default behavior: Dry-run preview
         # CRITICAL FIX: Initialize logging before analysis (embarrassing for a logging tool!)
         stogger.init_logging(
-            verbose=options.verbose,
             syslog_identifier="stoggertools-migrate",
-            log_format="console",
         )
 
         try:
@@ -1675,28 +1664,9 @@ def _display_with_pager(content: str) -> None:
 
 def run_dashboard_cmd(host: str = "127.0.0.1", port: int = 8080, *, debug: bool = False) -> None:
     """Run the web dashboard."""
-    if not FLASK_AVAILABLE or run_dashboard is None:
-        typer.echo(
-            "❌ Flask is not installed. The web dashboard requires Flask.\n"
-            "Install it with:\n"
-            "  pip install stogger-web\n"
-            "or\n"
-            "  pip install flask>=3.0.3",
-            err=True,
-        )
-        raise typer.Exit(1) from None
-    try:
-        run_dashboard(host=host, port=port, debug=debug)
-    except ImportError:
-        typer.echo(
-            "❌ Flask is not installed. The web dashboard requires Flask.\n"
-            "Install it with:\n"
-            "  pip install stogger-web\n"
-            "or\n"
-            "  pip install flask>=3.0.3",
-            err=True,
-        )
-        raise typer.Exit(1) from None
+    from stogger_web import run_dashboard
+
+    run_dashboard(host=host, port=port, debug=debug)
 
 
 def run_journal_viewer(
@@ -1708,10 +1678,7 @@ def run_journal_viewer(
     level: str | None = None,
 ) -> None:
     """Run the journal viewer."""
-    # Check if systemd is available
-    if not SYSTEMD_AVAILABLE:
-        console.print("[red]Error:[/red] systemd-python not available")
-        sys.exit(1)
+    from stogger_systemd.journal_viewer import JournalQueryOptions, JournalViewer
 
     viewer = JournalViewer()
 
@@ -1802,6 +1769,8 @@ def generate_service_cmd(
     output_file: str | None = None,
 ) -> None:
     """Generate systemd service file."""
+    from stogger_systemd.systemd_integration import create_systemd_service_file
+
     config = ServiceConfig(
         service_name=service_name,
         exec_command=exec_command,
@@ -1889,7 +1858,7 @@ def run_basic_demo() -> None:
     )
 
     # Initialize with console output
-    stogger.init_logging(verbose=True, syslog_identifier="demo")
+    stogger.init_logging(syslog_identifier="demo")
     log = structlog.get_logger()
 
     log.info(
@@ -1941,19 +1910,17 @@ def run_i18n_demo() -> None:
     print_demo_header("Internationalization (i18n)", "Multi-language log messages")
 
     # Load config to optionally honor translation_dir and language from pyproject.toml
-    if StoggerConfig is None:
-        logger.warning("Config module not available")
-        cfg = None
-    else:
-        cfg = StoggerConfig()
+    init_kwargs: dict[str, Any] = {"syslog_identifier": "i18n-demo"}
+    if StoggerConfig is not None:
+        try:
+            cfg = StoggerConfig()
+            if getattr(cfg, "translation_dir", None):
+                init_kwargs["translation_dir"] = str(cfg.translation_dir)
+            if getattr(cfg, "language", None):
+                init_kwargs["language"] = cfg.language
+        except (FileNotFoundError, ValueError):
+            pass
 
-    init_kwargs = {"verbose": True, "syslog_identifier": "i18n-demo"}
-    if cfg and cfg.translation_dir:
-        init_kwargs["translation_dir"] = str(cfg.translation_dir)
-    if cfg and cfg.language:
-        init_kwargs["language"] = cfg.language
-
-    # Ensure stogger is initialized so structlog output uses our renderers
     stogger.init_logging(**init_kwargs)
     log = structlog.get_logger()
 
@@ -1966,7 +1933,7 @@ def run_pii_demo() -> None:
     """Demonstrate PII scrubbing features."""
     print_demo_header("PII Scrubbing", "Automatic removal of sensitive data")
 
-    stogger.init_logging(verbose=True, syslog_identifier="pii-demo")
+    stogger.init_logging(syslog_identifier="pii-demo")
     log = structlog.get_logger()
 
     log.info(
@@ -1995,7 +1962,7 @@ def run_systemd_demo() -> None:
 def run_async_demo() -> None:
     """Demonstrate async logging."""
     # Initialize logging
-    stogger.init_logging(verbose=True, syslog_identifier="async-demo")
+    stogger.init_logging(syslog_identifier="async-demo")
     log = structlog.get_logger()
 
     # Simulate sync logging
@@ -2017,7 +1984,7 @@ def run_async_demo() -> None:
 def run_complete_demo() -> None:
     """Demonstrate complete application example."""
     # Initialize logging
-    stogger.init_logging(verbose=True, syslog_identifier="complete-demo")
+    stogger.init_logging(syslog_identifier="complete-demo")
     log = structlog.get_logger()
 
     # Simulate application lifecycle

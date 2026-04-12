@@ -23,17 +23,9 @@ except ImportError:
 @pytest.fixture
 def mock_eliot_available():
     """Mock eliot being available."""
-    with patch("stogger_eliot.eliot_integration.ELIOT_AVAILABLE", True):
-        with patch("stogger_eliot.eliot_integration.start_action", autospec=True) as mock_start:
-            with patch("stogger_eliot.eliot_integration.log_message", autospec=True) as mock_log:
-                yield mock_start, mock_log
-
-
-@pytest.fixture
-def mock_eliot_unavailable():
-    """Mock eliot being unavailable."""
-    with patch("stogger_eliot.eliot_integration.ELIOT_AVAILABLE", False):
-        yield
+    with patch("stogger_eliot.eliot_integration.start_action", autospec=True) as mock_start:
+        with patch("stogger_eliot.eliot_integration.log_message", autospec=True) as mock_log:
+            yield mock_start, mock_log
 
 
 class TestHumanReadableEliotDestination:
@@ -340,16 +332,6 @@ class TestHumanReadableEliotDestination:
 class TestSetupEliotLogging:
     """Test the setup_eliot_logging function."""
 
-    def test_setup_eliot_unavailable(self, mock_eliot_unavailable):
-        """Test setup when Eliot is unavailable."""
-        from stogger_eliot.eliot_integration import setup_eliot_logging
-
-        with patch("sys.stderr", new_callable=io.StringIO) as mock_stderr:
-            result = setup_eliot_logging()
-
-            assert result is False
-            # No warning message expected (uses structured logging)
-
     def test_setup_eliot_human_readable(self, mock_eliot_available):
         """Test setup with human readable format."""
         from stogger_eliot.eliot_integration import setup_eliot_logging
@@ -398,28 +380,6 @@ class TestLogActionContextManager:
             assert action == mock_action
 
         mock_start.assert_called_once_with(action_type="test_action", param1="value1")
-
-    def test_log_action_eliot_unavailable(self, mock_eliot_unavailable):
-        """Test log_action when Eliot is unavailable."""
-        # Test the dummy implementation directly
-        import stogger_eliot.eliot_integration as eliot_mod
-
-        # Temporarily replace the function with the dummy version
-        original_log_action = eliot_mod.log_action
-        eliot_mod.log_action = (
-            eliot_mod.log_action.__wrapped__ if hasattr(eliot_mod.log_action, "__wrapped__") else original_log_action
-        )
-
-        # Get the dummy implementation from the else block
-        from contextlib import contextmanager
-
-        @contextmanager
-        def dummy_log_action(action_name: str, **kwargs):
-            yield None
-
-        # Should not raise an exception and return None
-        with dummy_log_action("test_action", param1="value1") as action:
-            assert action is None
 
 
 class TestLogCallDecorator:
@@ -500,31 +460,9 @@ class TestLogCallDecorator:
         # Should not call add_success_fields for None return
         mock_action.add_success_fields.assert_not_called()
 
-    def test_log_call_eliot_unavailable(self, mock_eliot_unavailable):
-        """Test log_call decorator when Eliot is unavailable."""
-        # When ELIOT_AVAILABLE is False, the dummy implementation should be used
-        with patch("stogger_eliot.eliot_integration.ELIOT_AVAILABLE", False):
-            from stogger_eliot.eliot_integration import log_call
-
-            @log_call("test_action")
-            def test_function(x):
-                return x * 2
-
-            # Should work normally without logging
-            result = test_function(5)
-            assert result == 10
-
 
 class TestDemoFunction:
     """Test the demo_eliot_integration function."""
-
-    def test_demo_eliot_unavailable(self, mock_eliot_unavailable):
-        """Test demo when Eliot is unavailable."""
-        from stogger_eliot.eliot_integration import demo_eliot_integration
-
-        # Demo runs without printing (uses structured logging)
-        demo_eliot_integration()
-        # Just verify it completes without error
 
     def test_demo_eliot_available(self, mock_eliot_available):
         """Test demo when Eliot is available."""

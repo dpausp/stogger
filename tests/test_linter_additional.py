@@ -102,7 +102,7 @@ def test_lint_directory_reports_and_aggregates(tmp_path: Path, capsys):
     """,
     )
 
-    success = linter.lint_directory(tmp_path, min_coverage=5.0, max_coverage=15.0)
+    success = linter.lint_directory(tmp_path, linter.LintOptions(min_coverage=5.0, max_coverage=15.0))
     out = capsys.readouterr().out
 
     # Linter runs without printing analysis messages (uses structured logging)

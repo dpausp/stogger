@@ -12,6 +12,7 @@ from stoggertools.log_statement_analyzer import (
     LogAnalysisResult,
     LogStatement,
     LogStatementAnalyzer,
+    LogStatementOptions,
     analyze_file,
     print_analysis_summary,
 )
@@ -87,48 +88,56 @@ class TestElementCounting:
 
         # Test warning threshold (5+ elements)
         issues_5 = analyzer._detect_issues(
-            method="info",
-            args=["'a-b-c-d-e'"],
-            kwargs={},
-            magic_args=set(),
-            event_id="a-b-c-d-e",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="info",
+                args=["'a-b-c-d-e'"],
+                kwargs={},
+                magic_args=set(),
+                event_id="a-b-c-d-e",
+                event_id_format="dash-case",
+            ),
         )
         assert any("event_id_many_elements" in issue for issue in issues_5)
         assert any("5>=5, warning" in issue for issue in issues_5)
 
         # Test error threshold (7+ elements)
         issues_7 = analyzer._detect_issues(
-            method="info",
-            args=["'a-b-c-d-e-f-g'"],
-            kwargs={},
-            magic_args=set(),
-            event_id="a-b-c-d-e-f-g",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="info",
+                args=["'a-b-c-d-e-f-g'"],
+                kwargs={},
+                magic_args=set(),
+                event_id="a-b-c-d-e-f-g",
+                event_id_format="dash-case",
+            ),
         )
         assert any("event_id_too_many_elements" in issue for issue in issues_7)
         assert any("7>=7, wtf!" in issue for issue in issues_7)
 
         # Test the problematic case
         issues_10 = analyzer._detect_issues(
-            method="debug",
-            args=["'debug-logging-is-enabled-check-logs-above-for-http-details'"],
-            kwargs={},
-            magic_args=set(),
-            event_id="debug-logging-is-enabled-check-logs-above-for-http-details",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="debug",
+                args=["'debug-logging-is-enabled-check-logs-above-for-http-details'"],
+                kwargs={},
+                magic_args=set(),
+                event_id="debug-logging-is-enabled-check-logs-above-for-http-details",
+                event_id_format="dash-case",
+            ),
         )
         assert any("event_id_too_many_elements" in issue for issue in issues_10)
         assert any("10>=7, wtf!" in issue for issue in issues_10)
 
         # Test that short event IDs don't trigger issues
         issues_short = analyzer._detect_issues(
-            method="info",
-            args=["'user-login'"],
-            kwargs={},
-            magic_args=set(),
-            event_id="user-login",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="info",
+                args=["'user-login'"],
+                kwargs={},
+                magic_args=set(),
+                event_id="user-login",
+                event_id_format="dash-case",
+            ),
         )
         element_issues = [
             issue
@@ -367,12 +376,14 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         issues = analyzer._detect_issues(
-            method="info",
-            args=[],
-            kwargs={},
-            magic_args=set(),
-            event_id=None,
-            event_id_format="none",
+            LogStatementOptions(
+                method="info",
+                args=[],
+                kwargs={},
+                magic_args=set(),
+                event_id=None,
+                event_id_format="none",
+            ),
         )
 
         assert "missing_event_id" in issues
@@ -383,13 +394,15 @@ my_log = get_logger()
 
         # Test snake_case when dash-case preferred
         issues = analyzer._detect_issues(
-            method="info",
-            args=["'user_login'"],
-            kwargs={"user_id": "123"},
-            magic_args=set(),
-            event_id="user_login",
-            event_id_format="snake_case",
-            prefer_dash_case=True,
+            LogStatementOptions(
+                method="info",
+                args=["'user_login'"],
+                kwargs={"user_id": "123"},
+                magic_args=set(),
+                event_id="user_login",
+                event_id_format="snake_case",
+                prefer_dash_case=True,
+            ),
         )
 
         assert any("event_id_not_dash_case" in issue for issue in issues)
@@ -400,12 +413,14 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         issues = analyzer._detect_issues(
-            method="info",
-            args=["'simple message'"],
-            kwargs={},
-            magic_args=set(),
-            event_id="simple message",
-            event_id_format="invalid",
+            LogStatementOptions(
+                method="info",
+                args=["'simple message'"],
+                kwargs={},
+                magic_args=set(),
+                event_id="simple message",
+                event_id_format="invalid",
+            ),
         )
 
         assert "single_string_argument" in issues
@@ -415,12 +430,14 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         issues = analyzer._detect_issues(
-            method="info",
-            args=["f'user-{user_id}-login'"],
-            kwargs={},
-            magic_args=set(),
-            event_id="user-{user_id}-login",
-            event_id_format="invalid",
+            LogStatementOptions(
+                method="info",
+                args=["f'user-{user_id}-login'"],
+                kwargs={},
+                magic_args=set(),
+                event_id="user-{user_id}-login",
+                event_id_format="invalid",
+            ),
         )
 
         assert "fstring_in_event_id" in issues
@@ -430,12 +447,14 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         issues = analyzer._detect_issues(
-            method="debug",
-            args=["'debug-event'"],
-            kwargs={},
-            magic_args={"_replace_msg"},
-            event_id="debug-event",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="debug",
+                args=["'debug-event'"],
+                kwargs={},
+                magic_args={"_replace_msg"},
+                event_id="debug-event",
+                event_id_format="dash-case",
+            ),
         )
 
         assert "debug_with_replace_msg" in issues
@@ -447,12 +466,14 @@ my_log = get_logger()
         many_kwargs = {f"arg{i}": f"value{i}" for i in range(10)}
 
         issues = analyzer._detect_issues(
-            method="info",
-            args=["'complex-event'"],
-            kwargs=many_kwargs,
-            magic_args=set(),
-            event_id="complex-event",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="info",
+                args=["'complex-event'"],
+                kwargs=many_kwargs,
+                magic_args=set(),
+                event_id="complex-event",
+                event_id_format="dash-case",
+            ),
         )
 
         assert any("too_many_kwargs" in issue for issue in issues)
@@ -462,12 +483,14 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         issues = analyzer._detect_issues(
-            method="info",
-            args=["'user-login'"],
-            kwargs={},
-            magic_args=set(),
-            event_id="user-login",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="info",
+                args=["'user-login'"],
+                kwargs={},
+                magic_args=set(),
+                event_id="user-login",
+                event_id_format="dash-case",
+            ),
         )
 
         assert "no_structured_data" in issues
@@ -478,24 +501,28 @@ my_log = get_logger()
 
         # Debug level with error event
         issues = analyzer._detect_issues(
-            method="debug",
-            args=["'critical-error-occurred'"],
-            kwargs={"error_code": "500"},
-            magic_args=set(),
-            event_id="critical-error-occurred",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="debug",
+                args=["'critical-error-occurred'"],
+                kwargs={"error_code": "500"},
+                magic_args=set(),
+                event_id="critical-error-occurred",
+                event_id_format="dash-case",
+            ),
         )
 
         assert "debug_for_error_event" in issues
 
         # Error level with debug event
         issues = analyzer._detect_issues(
-            method="error",
-            args=["'debug-info-collected'"],
-            kwargs={"data": "test"},
-            magic_args=set(),
-            event_id="debug-info-collected",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="error",
+                args=["'debug-info-collected'"],
+                kwargs={"data": "test"},
+                magic_args=set(),
+                event_id="debug-info-collected",
+                event_id_format="dash-case",
+            ),
         )
 
         assert "error_level_for_info_event" in issues
@@ -505,12 +532,14 @@ my_log = get_logger()
         analyzer = LogStatementAnalyzer()
 
         issues = analyzer._detect_issues(
-            method="info",
-            args=["'user-authenticated'"],
-            kwargs={"password": "secret123", "api_key": "abc123"},
-            magic_args=set(),
-            event_id="user-authenticated",
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="info",
+                args=["'user-authenticated'"],
+                kwargs={"password": "secret123", "api_key": "abc123"},
+                magic_args=set(),
+                event_id="user-authenticated",
+                event_id_format="dash-case",
+            ),
         )
 
         secret_issues = [issue for issue in issues if "potential_secret_leak" in issue]
@@ -525,12 +554,14 @@ my_log = get_logger()
         long_event_id = "this-is-a-very-long-event-id-that-exceeds-fifty-characters-and-should-trigger-warning"
 
         issues = analyzer._detect_issues(
-            method="info",
-            args=[f"'{long_event_id}'"],
-            kwargs={"data": "test"},
-            magic_args=set(),
-            event_id=long_event_id,
-            event_id_format="dash-case",
+            LogStatementOptions(
+                method="info",
+                args=[f"'{long_event_id}'"],
+                kwargs={"data": "test"},
+                magic_args=set(),
+                event_id=long_event_id,
+                event_id_format="dash-case",
+            ),
         )
 
         assert any("event_id_too_long" in issue for issue in issues)

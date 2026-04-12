@@ -8,14 +8,7 @@ from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Any, TextIO
 
-try:
-    from eliot import log_message, start_action  # type: ignore[import-untyped]
-
-    ELIOT_AVAILABLE = True
-except ImportError:
-    ELIOT_AVAILABLE = False
-    start_action = log_message = None
-
+from eliot import log_message, start_action  # type: ignore[import-untyped]
 from stogger._colors import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
 
 
@@ -205,12 +198,9 @@ def setup_eliot_logging(
         show_task_ids: Show Eliot task IDs (useful for debugging)
 
     Returns:
-        True if Eliot was successfully configured, False if not available
+        True if Eliot was successfully configured.
 
     """
-    if not ELIOT_AVAILABLE:
-        return False
-
     from eliot import add_destinations, to_file
 
     if human_readable:
@@ -228,72 +218,52 @@ def setup_eliot_logging(
 
 
 # Convenience decorators and context managers
-if ELIOT_AVAILABLE:
+class _ActionContext:
+    def __init__(self, action_name: str, **kwargs) -> None:
+        self._cm = start_action(action_type=action_name, **kwargs)
 
-    class _ActionContext:
-        def __init__(self, action_name: str, **kwargs) -> None:
-            self._cm = start_action(action_type=action_name, **kwargs)
+    def __enter__(self):
+        return self._cm.__enter__()
 
-        def __enter__(self):
-            return self._cm.__enter__()
+    def __exit__(self, exc_type, exc, tb):
+        return self._cm.__exit__(exc_type, exc, tb)
 
-        def __exit__(self, exc_type, exc, tb):
-            return self._cm.__exit__(exc_type, exc, tb)
 
-    def log_action(action_name: str, **kwargs):
-        """Return a context manager for logging an action with stogger formatting."""
-        return _ActionContext(action_name, **kwargs)
+def log_action(action_name: str, **kwargs):
+    """Return a context manager for logging an action with stogger formatting."""
+    return _ActionContext(action_name, **kwargs)
 
-    def log_call(action_name: str | None = None, **action_kwargs):
-        """Decorator to log function calls as Eliot actions."""
 
-        def decorator(func):
-            nonlocal action_name
-            if action_name is None:
-                action_name = f"{func.__module__}.{func.__name__}"
+def log_call(action_name: str | None = None, **action_kwargs):
+    """Decorator to log function calls as Eliot actions."""
 
-            def wrapper(*args, **kwargs):
-                with start_action(action_type=action_name, **action_kwargs) as action:
-                    try:
-                        result = func(*args, **kwargs)
-                        if result is not None:
-                            action.add_success_fields(result=result)
-                    except Exception as exc:
-                        # Record failure fields for easier debugging and tests
-                        with suppress(Exception):
-                            action.add_failure_fields(exception=str(exc))
-                        raise
-                    else:
-                        return result
+    def decorator(func):
+        nonlocal action_name
+        if action_name is None:
+            action_name = f"{func.__module__}.{func.__name__}"
 
-            return wrapper
+        def wrapper(*args, **kwargs):
+            with start_action(action_type=action_name, **action_kwargs) as action:
+                try:
+                    result = func(*args, **kwargs)
+                    if result is not None:
+                        action.add_success_fields(result=result)
+                except Exception as exc:
+                    # Record failure fields for easier debugging and tests
+                    with suppress(Exception):
+                        action.add_failure_fields(exception=str(exc))
+                    raise
+                else:
+                    return result
 
-        return decorator
-else:
-    # Dummy implementations when Eliot is not available
-    class _DummyActionContext:
-        def __enter__(self):
-            return None
+        return wrapper
 
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-    def log_action(_action_name: str, **_kwargs):
-        return _DummyActionContext()
-
-    def log_call(_action_name: str | None = None, **_action_kwargs):
-        def decorator(func):
-            return func
-
-        return decorator
+    return decorator
 
 
 # Example usage functions
 def demo_eliot_integration() -> None:
     """Demonstrate Eliot integration with beautiful output."""
-    if not ELIOT_AVAILABLE:
-        return
-
     setup_eliot_logging(human_readable=True, show_timestamps=True)
 
     with log_action("user_request", user_id=123, endpoint="/api/data"):

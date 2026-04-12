@@ -12,7 +12,7 @@ import stogger
 def demo_pii_protection():
     """Demonstrate automatic PII protection."""
     # Initialize stogger with PII scrubbing enabled (default)
-    stogger.init_logging(verbose=True, syslog_identifier="pii-demo")
+    stogger.init_logging(syslog_identifier="pii-demo")
 
     log = structlog.get_logger("security")
 

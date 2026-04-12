@@ -10,18 +10,8 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
-try:
-    from flask import Flask, render_template_string, request
-
-    FLASK_AVAILABLE = True
-except ImportError:
-    FLASK_AVAILABLE = False
-    # Create dummy classes for type hints when Flask is not available
-    Flask = None
-    render_template_string = None
-    request = None
-
 import structlog
+from flask import Flask, render_template_string, request
 
 # Simple in-memory log storage
 MAX_RECENT_LOGS = 500
@@ -301,11 +291,6 @@ LOG_ENTRY_TEMPLATE = """
 
 def create_dashboard_app():
     """Create the Flask dashboard app."""
-    if not FLASK_AVAILABLE:
-        msg = "Flask is not installed. Install it with: pip install stogger-web or pip install flask>=3.0.3"
-        raise ImportError(
-            msg,
-        )
     app = Flask(__name__)
 
     @app.route("/")
@@ -420,17 +405,6 @@ def setup_web_logging():
 
 def run_dashboard(host="127.0.0.1", port=8080, *, debug=False) -> None:
     """Run the web dashboard."""
-    if not FLASK_AVAILABLE:
-        msg = (
-            "Flask is not installed. To use the web dashboard, install it with:\n"
-            "  pip install stogger-web\n"
-            "or\n"
-            "  pip install flask>=3.0.3"
-        )
-        raise ImportError(
-            msg,
-        )
-
     app = create_dashboard_app()
     app.run(host=host, port=port, debug=debug, threaded=True)
 

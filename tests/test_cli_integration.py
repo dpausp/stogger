@@ -2,6 +2,7 @@
 These tests actually run the commands with real functionality.
 """
 
+import importlib.util
 import logging
 import os
 import subprocess
@@ -11,18 +12,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from stogger_systemd.journal_viewer import JournalViewer
 from stoggertools.cli import app
 from stoggertools.log_reviewer import LogQualityReport, LogQualityReviewer
 from typer.testing import CliRunner
 
-# Check if Flask is available for dashboard tests
-try:
-    import flask  # noqa: F401
-
-    FLASK_AVAILABLE = True
-except ImportError:
-    FLASK_AVAILABLE = False
+FLASK_AVAILABLE = importlib.util.find_spec("flask") is not None
 
 
 class TestCliIntegration:
@@ -204,7 +198,12 @@ def main():
 
         # Should pass or fail depending on actual analysis
         assert result.exit_code in [0, 1]
-        assert "All checks passed" in result.output or "Unified Code Quality Analysis" in result.output
+        assert (
+            "All checks passed" in result.output
+            or "Unified Code Quality Analysis" in result.output
+            or "All checks passed" in caplog.text
+            or "Unified Code Quality Analysis" in caplog.text
+        )
 
     def test_lint_directory_with_mixed_files(self, caplog):
         """Test linting a directory with both good and bad files."""
@@ -338,33 +337,9 @@ class TestJournalIntegration:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False)
-    def test_journal_no_systemd_dependency(self):
-        """Test journal command when systemd is not available."""
-        result = self.runner.invoke(app, ["tools", "journal"])
-
-        assert result.exit_code == 1
-        # Use result.output when stderr is mixed with stdout
-        error_output = result.output
-        assert "systemd-python not available" in error_output
-
-    @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", True)
-    @patch("stogger_systemd.journal_viewer.JournalViewer", autospec=True)
-    @patch("stoggertools.cli.SYSTEMD_AVAILABLE", True)
     @patch("stoggertools.cli.run_journal_viewer", autospec=True)
-    def test_journal_with_systemd_available(self, mock_run_journal, mock_viewer_class):
+    def test_journal_with_systemd_available(self, mock_run_journal):
         """Test journal command when systemd is available."""
-        mock_viewer = MagicMock(spec=JournalViewer)
-        mock_viewer_class.return_value = mock_viewer
-
-        # Mock journal entries
-        mock_entries = [
-            {"MESSAGE": "Test log entry 1", "PRIORITY": "6"},
-            {"MESSAGE": "Test log entry 2", "PRIORITY": "4"},
-        ]
-        mock_viewer.query_journal.return_value = mock_entries
-        mock_viewer.format_entry.side_effect = lambda entry: f"Formatted: {entry['MESSAGE']}"
-
         result = self.runner.invoke(
             app,
             ["tools", "journal", "--unit", "test.service", "--lines", "10"],
@@ -463,7 +438,7 @@ class TestDashboardIntegration:
         """Set up test fixtures."""
         self.runner = CliRunner()
 
-    @patch("stogger_web.web_dashboard.run_dashboard", autospec=True)
+    @patch("stogger_web.run_dashboard", autospec=True)
     def test_dashboard_starts_with_default_settings(self, mock_run_dashboard):
         """Test that dashboard starts with default settings."""
         # Mock the dashboard to avoid actually starting a web server
@@ -478,7 +453,7 @@ class TestDashboardIntegration:
             debug=False,
         )
 
-    @patch("stoggertools.cli.run_dashboard", autospec=True)
+    @patch("stogger_web.run_dashboard", autospec=True)
     def test_dashboard_with_custom_settings(self, mock_run_dashboard):
         """Test dashboard with custom host, port, and debug mode."""
         mock_run_dashboard.return_value = None

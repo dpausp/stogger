@@ -10,7 +10,7 @@ import stogger
 
 def main():
     # Initialize stogger
-    stogger.init_logging(verbose=True, syslog_identifier="short_demo")
+    stogger.init_logging(syslog_identifier="short_demo")
 
     # Get logger with short, clean name
     log = structlog.get_logger("demo")

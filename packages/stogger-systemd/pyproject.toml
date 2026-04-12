@@ -2,7 +2,7 @@
 name = "stogger-systemd"
 version = "1.0.0"
 requires-python = ">=3.13"
-dependencies = ["structlog>=25.4.0", "stogger"]
+dependencies = ["structlog>=25.4.0", "stogger", "python-systemd; sys_platform == 'linux'"]
 
 [build-system]
 requires = ["hatchling"]

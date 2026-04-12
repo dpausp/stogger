@@ -9,7 +9,7 @@ import time
 import structlog
 
 import stogger
-from stogger_systemd.journal_viewer import SYSTEMD_AVAILABLE, JournalViewer
+from stogger_systemd.journal_viewer import JournalQueryOptions, JournalViewer
 
 
 def generate_test_logs():
@@ -18,9 +18,7 @@ def generate_test_logs():
 
     # Setup stogger with systemd integration
     stogger.init_logging(
-        verbose=True,
         syslog_identifier="journal-viewer-demo",
-        enable_systemd=True,
     )
 
     log = structlog.get_logger("demo")
@@ -75,11 +73,6 @@ def generate_test_logs():
 
 def demo_journal_viewer():
     """Demonstrate the journal viewer capabilities."""
-    if not SYSTEMD_AVAILABLE:
-        print("⚠️  systemd-python not available - showing mock demo")
-        show_mock_output()
-        return
-
     print("\n🔍 Journal Viewer Demo")
     print("=" * 60)
 
@@ -92,9 +85,11 @@ def demo_journal_viewer():
     try:
         count = 0
         for entry in viewer.query_journal(
-            service="journal-viewer-demo",
-            lines=10,
-            since="5 minutes ago",
+            JournalQueryOptions(
+                service="journal-viewer-demo",
+                lines=10,
+                since="5 minutes ago",
+            ),
         ):
             print(viewer.format_entry(entry))
             count += 1

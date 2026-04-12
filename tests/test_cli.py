@@ -1,14 +1,14 @@
 """Comprehensive tests for the CLI module functionality."""
 
+import importlib.util
 import io
 import logging
-import os
 import subprocess
 import sys
 import textwrap
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import MagicMock, Mock, mock_open, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from stogger.i18n import NicestlogTranslator
@@ -19,17 +19,10 @@ from stoggertools.cli import (
     init_config,
     main,
     run_dashboard_cmd,
-    run_journal_viewer,
 )
 from typer.testing import CliRunner
 
-# Check if Flask is available for dashboard tests
-try:
-    import flask  # noqa: F401
-
-    FLASK_AVAILABLE = True
-except ImportError:
-    FLASK_AVAILABLE = False
+FLASK_AVAILABLE = importlib.util.find_spec("flask") is not None
 
 
 class TestInitConfig:
@@ -77,9 +70,8 @@ class TestMainFunction:
 
     def test_main_requires_subcommand(self):
         """Test that main function requires a subcommand."""
-        with patch("sys.argv", ["stoggertools"]):
-            with pytest.raises(SystemExit):
-                main()
+        with patch("sys.argv", ["stoggertools"]), pytest.raises(SystemExit):
+            main()
 
 
 class TestTyperCliRunner:
@@ -134,7 +126,7 @@ class TestDashboardCommand:
         assert result.exit_code == 0
         mock_dashboard.assert_called_once_with("0.0.0.0", 9000, debug=True)
 
-    @patch("stoggertools.cli.run_dashboard", autospec=True)
+    @patch("stogger_web.run_dashboard", autospec=True)
     def test_run_dashboard_cmd_function(self, mock_run_dashboard):
         """Test the run_dashboard_cmd function directly."""
         run_dashboard_cmd("localhost", 3000, debug=True)
@@ -143,36 +135,6 @@ class TestDashboardCommand:
             port=3000,
             debug=True,
         )
-
-    @patch("stoggertools.cli.FLASK_AVAILABLE_FOR_CLI", False)
-    def test_dashboard_command_hidden_when_flask_unavailable(self):
-        """Test that dashboard command is hidden when Flask is not available."""
-        # When Flask is not available, the dashboard command should not be registered
-        result = self.runner.invoke(app, ["--help"])
-        assert result.exit_code == 0
-        # The command should not appear in help when Flask is unavailable
-        # Note: This test may pass even with Flask available due to import timing
-        # but demonstrates the intended behavior
-
-    @patch("stoggertools.cli.FLASK_AVAILABLE", False)
-    def test_run_dashboard_cmd_missing_flask(self):
-        """Test run_dashboard_cmd function when Flask is missing."""
-        import typer
-
-        with pytest.raises(typer.Exit) as exc_info:
-            run_dashboard_cmd("localhost", 3000, debug=True)
-
-        assert exc_info.value.exit_code == 1
-
-    @patch("stoggertools.cli.FLASK_AVAILABLE", False)
-    def test_run_dashboard_cmd_flask_not_available(self):
-        """Test run_dashboard_cmd when Flask is not available in web_dashboard module."""
-        import typer
-
-        with pytest.raises(typer.Exit) as exc_info:
-            run_dashboard_cmd("localhost", 3000, debug=True)
-
-        assert exc_info.value.exit_code == 1
 
 
 class TestGenerateServiceCommand:
@@ -244,7 +206,7 @@ class TestGenerateServiceCommand:
         error_output = result.output
         assert "Missing argument" in error_output or "required" in error_output.lower()
 
-    @patch("stoggertools.cli.create_systemd_service_file", autospec=True)
+    @patch("stogger_systemd.systemd_integration.create_systemd_service_file", autospec=True)
     @patch("stoggertools.cli.console.print", autospec=True)
     def test_generate_service_cmd_function_stdout(
         self,
@@ -264,7 +226,7 @@ class TestGenerateServiceCommand:
         assert call_args.working_directory is None
         mock_console_print.assert_called_with("[Unit]\nDescription=Test Service\n")
 
-    @patch("stoggertools.cli.create_systemd_service_file", autospec=True)
+    @patch("stogger_systemd.systemd_integration.create_systemd_service_file", autospec=True)
     @patch("pathlib.Path.open", autospec=True)
     @patch("stoggertools.cli.log.info", autospec=True)
     def test_generate_service_cmd_function_file_output(
@@ -362,18 +324,6 @@ class TestJournalCommand:
         # Use result.output when stderr is mixed with stdout
         error_output = result.output
         assert "Invalid level 'invalid'" in error_output
-
-    @patch("stogger_systemd.journal_viewer.SYSTEMD_AVAILABLE", False)
-    @patch("stoggertools.cli.console.print", autospec=True)
-    def test_run_journal_viewer_no_systemd(self, mock_console_print):
-        """Test run_journal_viewer when systemd is not available."""
-        with pytest.raises(SystemExit):
-            run_journal_viewer()
-
-        # Check that error message was printed
-        mock_console_print.assert_called()
-        call_args = mock_console_print.call_args[0][0]
-        assert "systemd-python not available" in call_args
 
 
 class TestReviewCommand:

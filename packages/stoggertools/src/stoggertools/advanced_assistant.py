@@ -99,11 +99,6 @@ class CodeAnalysisResult:
         """Count of class definitions."""
         return self.node_counts.get("ClassDef", 0)
 
-    @property
-    def issues(self) -> list[str]:
-        """Alias for potential_issues for CLI compatibility."""
-        return self.potential_issues
-
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {

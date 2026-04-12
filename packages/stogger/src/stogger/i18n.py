@@ -220,6 +220,6 @@ if __name__ == "__main__":
     # Setup logging for demo
     import stogger
 
-    stogger.init_logging(verbose=True)
+    stogger.init_logging()
 
     demo_translations()

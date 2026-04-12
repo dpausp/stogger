@@ -17,9 +17,6 @@ import structlog
 # Get a logger for this module
 log = structlog.get_logger(__name__)
 
-# Keep a reference to the real datetime class for type checks when tests patch the module symbol
-_REAL_DATETIME = datetime
-
 
 @dataclass
 class JournalQueryOptions:
@@ -32,15 +29,6 @@ class JournalQueryOptions:
     lines: int | None = None
     follow: bool = False
 
-
-try:
-    from systemd import journal  # type: ignore[import-not-found]
-
-    SYSTEMD_AVAILABLE = True
-    log.debug("systemd-journal-available", module="systemd.journal")
-except ImportError:
-    SYSTEMD_AVAILABLE = False
-    journal = None
 
 from stogger._colors import BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
 
@@ -115,16 +103,10 @@ class JournalViewer:
         self.show_service = show_service
         self.max_width = max_width
 
-        if not SYSTEMD_AVAILABLE:
-            log.error(
-                "systemd-unavailable-during-init",
-                _replace_msg="❌ Cannot initialize journal viewer - systemd-python not available",
-            )
-        else:
-            log.debug(
-                "journal-viewer-initialized",
-                _replace_msg="✅ Journal viewer ready",
-            )
+        log.debug(
+            "journal-viewer-initialized",
+            _replace_msg="✅ Journal viewer ready",
+        )
 
     def parse_journal_entry(self, entry: dict[str, Any]) -> JournalEntry:
         """Parse a raw journal entry into structured format."""
@@ -229,33 +211,17 @@ class JournalViewer:
 
         return " ".join(parts)
 
-    def query_journal(self, options_or_service=None, **kwargs) -> Iterator[JournalEntry]:
+    def query_journal(self, options: JournalQueryOptions) -> Iterator[JournalEntry]:
         """Query systemd journal and yield formatted entries.
 
         Args:
-            service: Filter by service/identifier
-            since: Start time (e.g., "1 hour ago", "2023-01-01 10:00")
-            until: End time
-            level: Minimum log level
-            lines: Maximum number of lines
-            follow: Follow new entries (like tail -f)
+            options: JournalQueryOptions with query parameters.
 
         """
-        # Handle backward compatibility: if first arg is not JournalQueryOptions, treat as old signature
-        if not isinstance(options_or_service, JournalQueryOptions):
-            # Old signature: query_journal(service, since=None, until=None, level=None, lines=10, follow=False)
-            # Also handle keyword arguments for backward compatibility
-            service = options_or_service if options_or_service is not None else kwargs.get("service")
-            options = JournalQueryOptions(
-                service=service,
-                since=kwargs.get("since"),
-                until=kwargs.get("until"),
-                level=kwargs.get("level"),
-                lines=kwargs.get("lines"),
-                follow=kwargs.get("follow", False),
-            )
-        else:
-            options = options_or_service
+        if not isinstance(options, JournalQueryOptions):
+            msg = f"Expected JournalQueryOptions, got {type(options).__name__}"
+            raise TypeError(msg)
+
         log.debug(
             "starting-journal-query",
             service=options.service,
@@ -266,14 +232,9 @@ class JournalViewer:
             follow=options.follow,
         )
 
-        if not SYSTEMD_AVAILABLE:
-            log.error(
-                "journal-query-failed-no-systemd",
-                _replace_msg="❌ Cannot query journal - systemd-python not available",
-            )
-            return
-
         try:
+            from systemd import journal  # type: ignore[import-not-found]
+
             log.debug("creating-journal-reader")
             j = journal.Reader()
 
@@ -397,24 +358,14 @@ class JournalViewer:
 
         # Absolute times
         if time_str == "today":
-            # Use replace to avoid issues when datetime is patched in tests
-            today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            if not isinstance(today, _REAL_DATETIME):
-                today = _REAL_DATETIME.fromtimestamp(today.timestamp())
-            return today
+            return now.replace(hour=0, minute=0, second=0, microsecond=0)
         if time_str == "yesterday":
             yesterday = now - timedelta(days=1)
-            y0 = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
-            if not isinstance(y0, _REAL_DATETIME):
-                y0 = _REAL_DATETIME.fromtimestamp(y0.timestamp())
-            return y0
+            return yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
 
         # Try to parse ISO format
         try:
             parsed = datetime.fromisoformat(time_str.replace("T", " "))
-            # If datetime was patched in tests, ensure we return a real datetime instance
-            if not isinstance(parsed, _REAL_DATETIME):
-                parsed = _REAL_DATETIME.fromisoformat(time_str.replace("T", " "))
         except (ValueError, TypeError) as e:
             log.warning(
                 "time-parse-failed",
@@ -427,9 +378,6 @@ class JournalViewer:
 
         # Default to 1 hour ago
         result = now - timedelta(hours=1)
-        # Ensure result is a real datetime if datetime is patched
-        if not isinstance(result, _REAL_DATETIME):
-            result = _REAL_DATETIME.fromtimestamp(result.timestamp())
         log.debug("parsed-time-result", original=time_str, result=result)
         return result
 
@@ -502,14 +450,6 @@ def main() -> None:
     )
 
     args, _unknown = parser.parse_known_args()
-
-    if not SYSTEMD_AVAILABLE:
-        log.error(
-            "main-systemd-unavailable",
-            _replace_msg="❌ Cannot start journal viewer - systemd-python not available",
-        )
-        sys.exit(1)
-        return
 
     try:
         viewer = JournalViewer(

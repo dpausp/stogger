@@ -616,25 +616,16 @@ def check_logging_quality(
     return issues
 
 
-def lint_directory(directory: Path, options_or_min_coverage=None, **kwargs) -> bool:
+def lint_directory(directory: Path, options: LintOptions) -> bool:
     """Lint all Python files in a directory and its subdirectories.
 
     Uses smart project structure detection to exclude tests from logging analysis.
     """
-    console = Console()
+    if not isinstance(options, LintOptions):
+        msg = f"Expected LintOptions, got {type(options).__name__}"
+        raise TypeError(msg)
 
-    # Handle backward compatibility
-    if isinstance(options_or_min_coverage, LintOptions):
-        options = options_or_min_coverage
-    else:
-        # Old signature: lint_directory(directory, min_coverage=5.0, max_coverage=15.0, ...)
-        min_coverage = options_or_min_coverage or 5.0
-        max_coverage = kwargs.get("max_coverage", 15.0)
-        options = LintOptions(
-            min_coverage=min_coverage,
-            max_coverage=max_coverage,
-            project_structure=kwargs.get("project_structure"),
-        )
+    console = Console()
 
     # Use project structure detection if provided, otherwise fall back to legacy method
     if options.project_structure:

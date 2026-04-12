@@ -20,7 +20,7 @@ from stogger.advanced_assistant import (
     transform_python_file,
 )
 
-stogger.init_logging(verbose=True, syslog_identifier="advanced_assistant_demo")
+stogger.init_logging(syslog_identifier="advanced_assistant_demo")
 log = structlog.get_logger("demo")
 
 

@@ -260,58 +260,12 @@ class LogStatementAnalyzer(ast.NodeVisitor):
 
         return "invalid"
 
-    def _detect_issues(self, options_or_method=None, *args, **kwargs) -> list[str]:
+    def _detect_issues(self, options: LogStatementOptions) -> list[str]:
         """Detect common issues in log statements.
 
         This includes validation for overly long event IDs with too many elements.
         Event IDs with 5+ elements trigger a warning, 7+ elements trigger an error.
-
-        Supports both old signature (individual parameters) and new signature (LogStatementOptions).
         """
-        # Handle backward compatibility
-        if isinstance(options_or_method, LogStatementOptions):
-            # New signature: _detect_issues(LogStatementOptions)
-            options = options_or_method
-        elif options_or_method is not None and not isinstance(options_or_method, str):
-            method = options_or_method
-            args_list = args[0] if args else []
-            kwargs_dict = args[1] if len(args) > 1 else {}
-            magic_args_set = args[2] if len(args) > 2 else set()
-            event_id = args[3] if len(args) > 3 else None
-            event_id_format = args[4] if len(args) > 4 else "none"
-            prefer_dash_case = args[5] if len(args) > 5 else True
-
-            # Create LogStatementOptions for consistent processing
-            options = LogStatementOptions(
-                method=method,
-                args=args_list,
-                kwargs=kwargs_dict,
-                magic_args=magic_args_set,
-                event_id=event_id,
-                event_id_format=event_id_format,
-                prefer_dash_case=prefer_dash_case,
-            )
-        else:
-            # Old signature with keyword args: _detect_issues(method="info", args=[], ...)
-            method = kwargs.get("method", options_or_method or "info")
-            args_list = kwargs.get("args", [])
-            kwargs_dict = kwargs.get("kwargs", {})
-            magic_args_set = kwargs.get("magic_args", set())
-            event_id = kwargs.get("event_id")
-            event_id_format = kwargs.get("event_id_format", "none")
-            prefer_dash_case = kwargs.get("prefer_dash_case", True)
-
-            # Create LogStatementOptions for consistent processing
-            options = LogStatementOptions(
-                method=method,
-                args=args_list,
-                kwargs=kwargs_dict,
-                magic_args=magic_args_set,
-                event_id=event_id,
-                event_id_format=event_id_format,
-                prefer_dash_case=prefer_dash_case,
-            )
-
         issues = []
 
         # Check for missing event ID

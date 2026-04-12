@@ -15,7 +15,6 @@ members = [
 cli = [{ name = "typer", specifier = ">=0.16.1" }]
 dev = [
     { name = "build", specifier = ">=1.4.2" },
-    { name = "doit", specifier = ">=0.37.0" },
     { name = "furo", specifier = ">=2024.1.29" },
     { name = "hatch", specifier = ">=1.16.5" },
     { name = "linkify-it-py", specifier = ">=2.0.3" },
@@ -418,15 +417,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ae/ed/aefcc8cd0ba62a0560c3c18c33925362d46c6075480bfa4df87b28e169a9/docutils-0.21.2.tar.gz", hash = "sha256:3a6b18732edf182daa3cd12775bbb338cf5691468f91eeeb109deff6ebfa986f", size = 2204444, upload-time = "2024-04-23T18:57:18.24Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/d7/9322c609343d929e75e7e5e6255e614fcc67572cfd083959cdef3b7aad79/docutils-0.21.2-py3-none-any.whl", hash = "sha256:dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2", size = 587408, upload-time = "2024-04-23T18:57:14.835Z" },
-]
-
-[[package]]
-name = "doit"
-version = "0.37.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/35/f6/3a817d438799bda4d4e5fd136175cf7c328c074fadc1422dec3b374907e7/doit-0.37.0.tar.gz", hash = "sha256:d3c72e0e46a8fa1ddabea8f830762402dee090caf33c30c2295ac7010db8f09c", size = 1450967, upload-time = "2026-02-09T07:02:15.578Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/38/3d6dcbf8379cb86d71a2325210ca3469a33767d8254b74d8c343db26ce87/doit-0.37.0-py3-none-any.whl", hash = "sha256:a9f181566aa90faac515e276f85e6526019554ed7e13c12cf9dc094ffecf3e1b", size = 85780, upload-time = "2026-02-09T07:02:10.155Z" },
 ]
 
 [[package]]
@@ -1143,6 +1133,12 @@ wheels = [
 ]
 
 [[package]]
+name = "python-systemd"
+version = "0.0.9"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/44/e7929071efeb905acc6165fabbf704e57f9a61a448ec420718a0c511cffc/python-systemd-0.0.9.tar.gz", hash = "sha256:c01352a24518a6d89f90ceb94e384b0ef0385ea5b3b2d6963f8262d9c00f2fc7", size = 13605, upload-time = "2015-01-31T07:22:12.827Z" }
+
+[[package]]
 name = "pywin32-ctypes"
 version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1528,12 +1524,14 @@ name = "stogger-systemd"
 version = "1.0.0"
 source = { editable = "packages/stogger-systemd" }
 dependencies = [
+    { name = "python-systemd", marker = "sys_platform == 'linux'" },
     { name = "stogger" },
     { name = "structlog" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "python-systemd", marker = "sys_platform == 'linux'" },
     { name = "stogger", editable = "packages/stogger" },
     { name = "structlog", specifier = ">=25.4.0" },
 ]

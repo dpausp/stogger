@@ -1,6 +1,7 @@
 """Tests for systemd integration functionality."""
 
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,14 +21,20 @@ class TestDetectSystemdEnvironment:
     @patch.dict(os.environ, {"JOURNAL_STREAM": "8:12345"}, clear=False)
     def test_systemd_detected_with_journal_stream(self):
         """Test systemd detection when JOURNAL_STREAM is present."""
-        result = detect_systemd_environment()
+        mock_daemon = MagicMock()
+        mock_daemon.booted.return_value = 0
+        with patch.dict(sys.modules, {"systemd.daemon": mock_daemon}):
+            result = detect_systemd_environment()
         assert isinstance(result, dict)
         assert result["journal_stream"] == "8:12345"
 
     @patch.dict(os.environ, {"SYSTEMD_EXEC_PID": "12345"}, clear=False)
     def test_systemd_detected_with_systemd_exec_pid(self):
         """Test systemd detection when SYSTEMD_EXEC_PID is present."""
-        result = detect_systemd_environment()
+        mock_daemon = MagicMock()
+        mock_daemon.booted.return_value = "test.service"
+        with patch.dict(sys.modules, {"systemd.daemon": mock_daemon}):
+            result = detect_systemd_environment()
         assert isinstance(result, dict)
         assert result["running_under_systemd"] is True
         assert result["systemd_exec_pid"] == "12345"
@@ -37,7 +44,10 @@ class TestDetectSystemdEnvironment:
     def test_systemd_not_detected(self, mock_exists):
         """Test when systemd is not detected."""
         mock_exists.return_value = False
-        result = detect_systemd_environment()
+        mock_daemon = MagicMock()
+        mock_daemon.booted.return_value = 0
+        with patch.dict(sys.modules, {"systemd.daemon": mock_daemon}):
+            result = detect_systemd_environment()
         assert isinstance(result, dict)
         assert result["running_under_systemd"] is False
 
@@ -132,40 +142,32 @@ class TestCreateSystemdServiceFile:
 class TestSystemdJournalHandler:
     """Test cases for SystemdJournalHandler class."""
 
-    @patch("stogger_systemd.systemd_integration.journal")
-    def test_handler_initialization(self, mock_journal):
+    def test_handler_initialization(self):
         """Test handler initialization."""
         handler = SystemdJournalHandler(identifier="test-app")
 
         assert handler.identifier == "test-app"
 
-    @patch("stogger_systemd.systemd_integration.journal")
-    def test_emit_log_record(self, mock_journal):
+    def test_emit_log_record(self):
         """Test emitting a log record."""
-        handler = SystemdJournalHandler(identifier="test-app")
+        mock_journal_mod = MagicMock()
+        with patch.dict(sys.modules, {"systemd.journal": mock_journal_mod}):
+            handler = SystemdJournalHandler(identifier="test-app")
 
-        # Create a mock event dict
-        event_dict = {
-            "level": "info",
-            "event": "Test message",
-            "logger": "test.logger",
-            "timestamp": "2023-01-01T12:00:00",
-        }
+            # Create a mock event dict
+            event_dict = {
+                "level": "info",
+                "event": "Test message",
+                "logger": "test.logger",
+                "timestamp": "2023-01-01T12:00:00",
+            }
 
-        result = handler(None, None, event_dict)
+            result = handler(None, None, event_dict)
 
-        # Should return the event_dict unchanged
-        assert result == event_dict
-
-    def test_handler_without_systemd_journal(self):
-        """Test handler behavior when systemd.journal is not available."""
-        with patch.dict("sys.modules", {"systemd": None, "systemd.journal": None}):
-            # This should not raise an exception during import
-            from stogger_systemd.systemd_integration import SystemdJournalHandler
-
-            # Handler should still be creatable but might not function
-            handler = SystemdJournalHandler()
-            assert handler is not None
+            # Should return the event_dict unchanged
+            assert result == event_dict
+            # journal.send should have been called
+            mock_journal_mod.send.assert_called()
 
 
 if __name__ == "__main__":

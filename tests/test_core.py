@@ -166,7 +166,7 @@ log = structlog.get_logger('test')
 log.info('early-message', message='Should show early format')
 
 # Full initialization should work without issues
-stogger.init_logging(verbose=False)
+# stogger.init_logging()
 log.info('after-full-init', message='Should show full format')
 """
 

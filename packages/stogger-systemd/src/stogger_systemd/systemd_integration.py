@@ -17,30 +17,19 @@ import structlog
 
 logger = structlog.get_logger()
 
-try:
-    from systemd import (
-        daemon,  # type: ignore[import-not-found]
-        journal,  # type: ignore[import-not-found]
-    )
-
-    SYSTEMD_AVAILABLE = True
-except ImportError:
-    SYSTEMD_AVAILABLE = False
-    journal = None
-    daemon = None
-
 
 class SystemdJournalHandler:
     """Advanced systemd journal handler with proper field mapping and priorities."""
 
     # Map Python log levels to systemd priorities
+    # Values: 0=emerg, 1=alert, 2=crit, 3=err, 4=warning, 5=notice, 6=info, 7=debug
     PRIORITY_MAP: ClassVar[dict[str, int]] = {
-        "critical": journal.LOG_CRIT if SYSTEMD_AVAILABLE else 2,
-        "error": journal.LOG_ERR if SYSTEMD_AVAILABLE else 3,
-        "warning": journal.LOG_WARNING if SYSTEMD_AVAILABLE else 4,
-        "info": journal.LOG_INFO if SYSTEMD_AVAILABLE else 6,
-        "debug": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
-        "trace": journal.LOG_DEBUG if SYSTEMD_AVAILABLE else 7,
+        "critical": 2,
+        "error": 3,
+        "warning": 4,
+        "info": 6,
+        "debug": 7,
+        "trace": 7,
     }
 
     def __init__(
@@ -60,14 +49,8 @@ class SystemdJournalHandler:
         self.hostname = socket.gethostname()
         self.pid = os.getpid()
 
-        if not SYSTEMD_AVAILABLE:
-            pass
-
     def __call__(self, _, __, event_dict):
         """Process log event and send to systemd journal."""
-        if not SYSTEMD_AVAILABLE:
-            return event_dict
-
         # Extract standard fields
         message = event_dict.get("event", "")
         level = event_dict.get("level", "info")
@@ -77,7 +60,7 @@ class SystemdJournalHandler:
         # Build journal fields (systemd uses uppercase field names)
         journal_fields = {
             "MESSAGE": str(message),
-            "PRIORITY": self.PRIORITY_MAP.get(level, journal.LOG_INFO),
+            "PRIORITY": self.PRIORITY_MAP.get(level, 6),
             "SYSLOG_IDENTIFIER": self.identifier,
             "LOGGER_NAME": logger_name,
             "PYTHON_MODULE": logger_name,
@@ -106,6 +89,8 @@ class SystemdJournalHandler:
 
         # Send to journal
         with contextlib.suppress(Exception):
+            from systemd import journal  # type: ignore[import-not-found]
+
             journal.send(**journal_fields)
 
         return event_dict
@@ -115,7 +100,7 @@ def detect_systemd_environment() -> dict[str, Any]:
     """Detect if we're running under systemd and gather environment info."""
     info: dict[str, Any] = {
         "running_under_systemd": False,
-        "journal_available": SYSTEMD_AVAILABLE,
+        "journal_available": True,
         "service_name": None,
         "unit_name": None,
         "invocation_id": None,
@@ -136,13 +121,13 @@ def detect_systemd_environment() -> dict[str, Any]:
     info["journal_stream"] = journal_stream
 
     # Try to get unit name from systemd environment
-    if SYSTEMD_AVAILABLE and daemon is not None:
-        # Use systemd library to get unit information if available
-        unit_name = daemon.booted()
-        if unit_name:
-            info["unit_name"] = unit_name
-            if unit_name.endswith(".service"):
-                info["service_name"] = unit_name[:-8]  # Remove .service suffix
+    from systemd import daemon  # type: ignore[import-not-found]
+
+    unit_name = daemon.booted()
+    if unit_name:
+        info["unit_name"] = unit_name
+        if unit_name.endswith(".service"):
+            info["service_name"] = unit_name[:-8]  # Remove .service suffix
 
     return info
 
@@ -171,15 +156,9 @@ def setup_systemd_logging(
     """
     env_info = detect_systemd_environment()
 
-    # If we don't appear to be running under systemd and journal isn't available,
-    # don't configure anything.
-    if not (env_info.get("running_under_systemd") or env_info.get("journal_available")):
+    # If we don't appear to be running under systemd, don't configure anything.
+    if not env_info.get("running_under_systemd"):
         return False
-
-    # If systemd-python isn't available, warn but still install a no-op handler so
-    # tests and processor wiring continue to work.
-    if not SYSTEMD_AVAILABLE:
-        pass
 
     # Use detected service name if no identifier provided
     if not identifier and env_info.get("service_name"):
@@ -290,10 +269,9 @@ def query_journal_logs(
         List of log entries as dictionaries
 
     """
-    if not SYSTEMD_AVAILABLE:
-        return []
-
     try:
+        from systemd import journal  # type: ignore[import-not-found]
+
         j = journal.Reader()
 
         # Add filters
@@ -366,32 +344,31 @@ def demo_systemd_integration() -> None:
     # Check environment
     detect_systemd_environment()
 
-    if SYSTEMD_AVAILABLE:
-        # Setup systemd logging
-        setup_systemd_logging(identifier="stogger-demo")
+    # Setup systemd logging
+    setup_systemd_logging(identifier="stogger-demo")
 
-        # Create logger and test
-        log = structlog.get_logger("systemd_demo")
+    # Create logger and test
+    log = structlog.get_logger("systemd_demo")
 
-        log.info(
-            "systemd_integration_test",
-            component="demo",
-            test_data={"key": "value"},
-            user_id=12345,
-        )
+    log.info(
+        "systemd_integration_test",
+        component="demo",
+        test_data={"key": "value"},
+        user_id=12345,
+    )
 
-        log.warning("test_warning", message="This is a test warning for systemd")
+    log.warning("test_warning", message="This is a test warning for systemd")
 
-        log.error(
-            "test_error",
-            error_code=500,
-            details="Test error for systemd journal",
-        )
+    log.error(
+        "test_error",
+        error_code=500,
+        details="Test error for systemd journal",
+    )
 
-        # Query recent logs
-        recent_logs = query_journal_logs(service_name="stogger-demo", lines=5)
-        for entry in recent_logs:
-            datetime.fromtimestamp(entry["timestamp"], tz=UTC).strftime("%H:%M:%S")
+    # Query recent logs
+    recent_logs = query_journal_logs(service_name="stogger-demo", lines=5)
+    for entry in recent_logs:
+        datetime.fromtimestamp(entry["timestamp"], tz=UTC).strftime("%H:%M:%S")
 
     # Generate service file example
     config = ServiceConfig(
