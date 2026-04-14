@@ -23,7 +23,7 @@ extensions = [
     # Type hints in documentation
     "sphinx_autodoc_typehints",
     # AI-friendly output (llms.txt)
-    "sphinx_llm.txt",
+    "sphinx_llms_txt",
     # UX enhancements
     "sphinx_copybutton",
     "sphinx_design",
