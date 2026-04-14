@@ -1558,7 +1558,6 @@ wheels = [
 
 [[package]]
 name = "stogger"
-version = "1.0.0"
 source = { editable = "packages/stogger" }
 dependencies = [
     { name = "structlog" },
@@ -1569,7 +1568,6 @@ requires-dist = [{ name = "structlog", specifier = ">=25.4.0" }]
 
 [[package]]
 name = "stogger-eliot"
-version = "1.0.0"
 source = { editable = "packages/stogger-eliot" }
 dependencies = [
     { name = "eliot" },
@@ -1586,7 +1584,6 @@ requires-dist = [
 
 [[package]]
 name = "stogger-systemd"
-version = "1.0.0"
 source = { editable = "packages/stogger-systemd" }
 dependencies = [
     { name = "python-systemd", marker = "sys_platform == 'linux'" },
@@ -1603,7 +1600,6 @@ requires-dist = [
 
 [[package]]
 name = "stogger-web"
-version = "1.0.0"
 source = { editable = "packages/stogger-web" }
 dependencies = [
     { name = "flask" },
@@ -1618,7 +1614,6 @@ requires-dist = [
 
 [[package]]
 name = "stoggertools"
-version = "1.0.0"
 source = { editable = "packages/stoggertools" }
 dependencies = [
     { name = "rich" },
