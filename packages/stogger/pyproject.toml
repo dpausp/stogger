@@ -10,6 +10,7 @@ dependencies = ["structlog>=25.4.0"]
 
 [tool.hatch.version]
 source = "vcs"
+root = "../.."
 fallback-version = "0.0.0"
 
 [tool.hatch.build.targets.wheel]
