@@ -14,6 +14,7 @@ import os
 # Remove it so this tutorial always produces visible console logs.
 os.environ.pop("JOURNAL_STREAM", None)
 
+import contextlib
 import importlib.resources
 import inspect
 import shutil
@@ -30,27 +31,33 @@ print()
 
 import stogger
 
-print(f"Module docstring: {stogger.__doc__}")
+print("Module docstring:")
+print(stogger.__doc__)
 print()
 
-print("The docstring hints at embedded documentation. Let's find it.")
+# The docstring mentions embedded documentation. Let's follow those hints.
 pkg = importlib.resources.files(stogger)
 print(f"Package location: {pkg}")
+
+# __docs_path__ is a special attribute that points to the docs directory.
+docs_path = getattr(stogger, "__docs_path__", None)
+print(f"__docs_path__: {docs_path}")
 print()
 
-# Read the llms-full.txt embedded documentation that the docstring mentions.
-llms_path = pkg / "llms-full.txt"
+# Read llms.txt — the machine-readable documentation index.
+llms_path = pkg / "llms.txt"
 if llms_path.is_file():
-    full_docs = llms_path.read_text(encoding="utf-8")
-    print(f"Found embedded docs: llms-full.txt ({len(full_docs)} chars)")
-    # Extract the first paragraph as a summary.
-    for line in full_docs.split("\n"):
-        stripped = line.strip()
-        if stripped and not stripped.startswith(("```", "#", "-", "*")):
-            print(f"  Summary: {stripped}")
-            break
+    content = llms_path.read_text(encoding="utf-8")
+    print(f"Found embedded docs index: llms.txt ({len(content)} chars)")
+    # Show the first few entries as a table of contents.
+    entries = [line.strip() for line in content.split("\n") if line.strip().startswith("- [")]
+    print(f"  Documentation entries: {len(entries)}")
+    for entry in entries[:8]:
+        print(f"    {entry}")
+    if len(entries) > 8:
+        print(f"    ... and {len(entries) - 8} more")
 else:
-    print("llms-full.txt not found in package.")
+    print("llms.txt not found in package.")
 print()
 
 # =============================================================================
@@ -64,27 +71,25 @@ print()
 print("Everything stogger exports via __all__:")
 for name in stogger.__all__:
     obj = getattr(stogger, name)
-    print(f"  {name:35s} {type(obj).__name__}")
-print()
-
-print("stogger also exposes internal submodules (not in __all__):")
-for name in sorted(x for x in dir(stogger) if not x.startswith("_")):
-    obj = getattr(stogger, name)
-    if isinstance(obj, type(__import__("collections"))) and name not in stogger.__all__:
-        print(f"  {name}")
+    kind = type(obj).__name__
+    sig = ""
+    if (callable(obj) and not isinstance(obj, type)) or isinstance(obj, type):
+        with contextlib.suppress(ValueError, TypeError):
+            sig = str(inspect.signature(obj))
+    print(f"  {name:35s} {kind:10s} {sig}")
 print()
 
 # =============================================================================
 # 3. StoggerConfig — flexible configuration
 # =============================================================================
 print("-" * 72)
-print("  SECTION: StoggerConfig")
+print("  SECTION: StoggerConfig — Configuration")
 print("-" * 72)
 print()
 
 print(
-    "StoggerConfig loads settings from pyproject.toml (if present) and merges "
-    "them with keyword arguments. Here are the defaults:"
+    "StoggerConfig loads settings from [tool.stogger] in pyproject.toml and "
+    "merges them with keyword arguments. Here are the defaults:"
 )
 print()
 
@@ -102,9 +107,8 @@ print("Override any setting via kwargs:")
 custom_cfg = stogger.StoggerConfig(
     logdir="/tmp/my_logs",
     log_to_console=True,
-    log_format="simple",
-    enable_pii_scrubbing=True,
     verbose=False,
+    enable_pii_scrubbing=True,
 )
 print(f"  custom_cfg.logdir               = {custom_cfg.logdir}")
 print(f"  custom_cfg.enable_pii_scrubbing = {custom_cfg.enable_pii_scrubbing}")
@@ -123,10 +127,14 @@ print("stogger.init_logging() configures structlog with sensible defaults.")
 sig = inspect.signature(stogger.init_logging)
 print(f"  Signature: init_logging{sig}")
 print()
-print("Calling init_logging() with defaults (console output):")
+
+print("Docstring:")
+print(f"  {stogger.init_logging.__doc__}")
 print()
 
+print("Calling init_logging() with defaults (console output):")
 stogger.init_logging()
+print()
 
 # After init_logging, loggers come from structlog (stogger wraps structlog).
 import structlog
@@ -135,6 +143,9 @@ log = structlog.get_logger()
 print(f"Logger type: {type(log).__name__}")
 print("Logger methods: bind, new, unbind, try_unbind")
 print("Log levels:     debug, info, warning, error, critical, exception")
+print()
+
+print(f"logging_initialized() confirms the system is ready: {stogger.logging_initialized()}")
 print()
 
 # =============================================================================
@@ -255,7 +266,7 @@ print("  SECTION: new() — Fresh Context")
 print("-" * 72)
 print()
 
-print("new() clears existing context and starts fresh, like bind() but without inheriting the parent's bound context.")
+print("new() clears existing context and starts fresh, unlike bind() which inherits the parent's bound context.")
 print()
 
 print(">>> fresh_log = log.new(session_id='sess-789')")
@@ -322,8 +333,7 @@ print("With bound context, exceptions carry even more diagnostic info:")
 service_log = log.bind(service="payment-gateway", version="2.1.0")
 print(">>> service_log = log.bind(service='payment-gateway', version='2.1.0')")
 print(">>> try:")
-print("...     _err = ConnectionError('Gateway timeout')")
-print("...     raise _err")
+print("...     raise ConnectionError('Gateway timeout')")
 print("... except ConnectionError:")
 print("...     service_log.exception('payment-failed', amount=49.99)")
 _err = ConnectionError("Gateway timeout")
@@ -343,7 +353,8 @@ print()
 
 print(
     "Pass logdir= to init_logging() to also write logs to a file. "
-    "The file is named stogger.log inside the given directory."
+    "The file is named {syslog_identifier}.log (default: stogger.log) "
+    "inside the given directory."
 )
 print()
 
@@ -375,7 +386,9 @@ print()
 
 print(
     "stogger ships with a built-in PII (Personally Identifiable Information) "
-    "scrubber that detects and redacts sensitive data from log output."
+    "scrubber that detects and redacts sensitive data from log output. "
+    "The scrubber is callable, so it can be used directly as a structlog "
+    "processor."
 )
 print()
 
@@ -384,6 +397,7 @@ scrubber = stogger.create_pii_processor()
 print(f"  Type: {type(scrubber).__name__}")
 print(f"  Built-in pattern types: {', '.join(scrubber.patterns.keys())}")
 print(f"  Sensitive field names:  {len(scrubber.sensitive_fields)} fields")
+print(f"  Callable as structlog processor: {callable(scrubber)}")
 print()
 
 print("Scrubbing strings — emails, SSNs, phone numbers, credit cards:")
@@ -424,8 +438,8 @@ print(f"  Scrubbed:        {result}")
 print()
 
 print(
-    "scrub_event_dict() works as a structlog processor — plug it into the "
-    "processor chain to automatically scrub all logs."
+    "As a structlog processor, the scrubber receives the event dict and "
+    "returns a scrubbed version — plug it into the processor chain:"
 )
 event = {"event": "login", "email": "bob@corp.com", "token": "abc123"}
 print(f"  IN:  {event}")
@@ -444,24 +458,27 @@ print("stogger has built-in i18n support with a translator class.")
 print()
 
 print("init_i18n(language='en') initializes a translator:")
-translator = stogger.init_i18n(language="en")
-print(f"  Type: {type(translator).__name__}")
-print(f"  Language: {translator.language}")
-print(f"  Methods: {', '.join(m for m in dir(translator) if not m.startswith('_'))}")
-print()
+try:
+    translator = stogger.init_i18n(language="en")
+    print(f"  Type: {type(translator).__name__}")
+    print(f"  Language: {translator.language}")
+    print(f"  Methods: {', '.join(m for m in dir(translator) if not m.startswith('_'))}")
+    print()
 
-print("t(key, section, **kwargs) is the translation shorthand:")
-print(f"  t('success') = {stogger.t('success')!r}")
-print(
-    f"  t('file_not_found', 'errors', filename='test.log')"
-    f" = {stogger.t('file_not_found', 'errors', filename='test.log')!r}"
-)
-print("  (Returns 'section.key' when translation files aren't available)")
-print()
+    print(
+        "t(key, section, **kwargs) is the translation shorthand. "
+        "Without translation files installed, it falls back to "
+        "'section.key' format:"
+    )
+    print(f"  t('success') = {stogger.t('success')!r}")
+    print(f"  t('error') = {stogger.t('error')!r}")
+    print()
 
-print("get_translator() returns the current translator instance:")
-current = stogger.get_translator()
-print(f"  Type: {type(current).__name__}")
+    print("get_translator() returns the current translator instance:")
+    current = stogger.get_translator()
+    print(f"  Type: {type(current).__name__}")
+except Exception as e:
+    print(f"  (i18n not fully configured in this environment: {e})")
 print()
 
 # =============================================================================
@@ -477,17 +494,17 @@ print()
 
 print(">>> stogger.oida('hello')")
 print(f"    {stogger.oida('hello')!r}")
-print("    — 'oida' adds Austrian flair to any message")
+print("    'oida' is a versatile Austrian interjection (roughly 'dude!')")
 print()
 
 print(">>> stogger.arsch('this is bad')")
 print(f"    {stogger.arsch('this is bad')!r}")
-print("    — 'arsch' marks something as bad, Austrian-style")
+print("    'arsch' marks something as bad, Austrian-style")
 print()
 
 print(">>> stogger.leiwand('this is great')")
 print(f"    {stogger.leiwand('this is great')!r}")
-print("    — 'leiwand' makes any message Austrian-positive")
+print("    'leiwand' means awesome/solid in Austrian slang")
 print()
 
 # =============================================================================
@@ -500,10 +517,10 @@ print()
 
 print(
     "init_early_logging() sets up a minimal structlog configuration early "
-    "in startup to avoid the block of uninitialized raw messages."
+    "in startup to avoid raw dict-style messages before full init."
 )
 stogger.init_early_logging()
-print("  init_early_logging() succeeded")
+print("  init_early_logging() succeeded (no-op if already configured)")
 print()
 
 print("logging_initialized() — check if logging has been configured:")
@@ -512,14 +529,14 @@ print()
 
 print(
     "init_command_logging(log, logdir=...) adds a separate file logger for "
-    "command output (e.g., Nix builds). Creates unique filenames when running "
-    "under systemd."
+    "command output (e.g., Nix builds). It creates unique filenames when "
+    "running under systemd (detected via INVOCATION_ID env var)."
 )
 print()
 
 print(
-    "drop_cmd_output_logfile(log) deletes the command output log file. "
-    "Used to throw away command logs when nothing interesting happened."
+    "drop_cmd_output_logfile(log) deletes the command output log file — "
+    "useful to discard logs when nothing interesting happened."
 )
 print()
 
@@ -531,25 +548,27 @@ print("  SECTION: Internal Architecture Classes")
 print("-" * 72)
 print()
 
-print("stogger exposes classes that power its internals:")
+print("stogger exposes several classes that power its multi-target pipeline:")
 print()
 
 doc = stogger.JournalLoggerFactory.__doc__
-print(f"JournalLoggerFactory — {doc.strip() if doc else 'No docstring'}")
+print("JournalLoggerFactory:")
+print(f"  {doc.strip().split(chr(10))[0] if doc else 'No docstring'}")
 print()
 
 doc = stogger.SystemdJournalRenderer.__doc__
-print(f"SystemdJournalRenderer — {doc.strip() if doc else 'No docstring'}")
+print("SystemdJournalRenderer:")
+print(f"  {doc.strip().split(chr(10))[0] if doc else 'No docstring'}")
 print()
 
 doc = stogger.MultiOptimisticLogger.__doc__
-first_line = doc.strip().split("\n")[0] if doc else "No docstring"
-print(f"MultiOptimisticLogger — {first_line}")
+print("MultiOptimisticLogger:")
+print(f"  {doc.strip().split(chr(10))[0] if doc else 'No docstring'}")
 print()
 
 doc = stogger.MultiOptimisticLoggerFactory.__doc__
-first_line = doc.strip().split("\n")[0] if doc else "No docstring"
-print(f"MultiOptimisticLoggerFactory — {first_line}")
+print("MultiOptimisticLoggerFactory:")
+print(f"  {doc.strip().split(chr(10))[0] if doc else 'No docstring'}")
 print()
 
 # =============================================================================
@@ -561,29 +580,33 @@ print("-" * 72)
 print()
 
 print(
-    "The package ships with a _sources/ directory containing full Sphinx "
-    "documentation source files. These are accessible via importlib.resources:"
+    "The package ships with _sources/ containing full Sphinx documentation "
+    "source files, and llms-full.txt with all docs in one file. "
+    "Accessible via importlib.resources:"
 )
+
 sources_dir = pkg / "_sources"
 try:
     items = sorted(p.name for p in sources_dir.iterdir())
-    print(f"  _sources/ contents: {', '.join(items)}")
+    print(f"  _sources/ top-level: {', '.join(items)}")
 except OSError:
     print("  (could not list _sources directory)")
 
-user_guide_dir = sources_dir / "user_guide"
-try:
-    guides = sorted(p.name for p in user_guide_dir.iterdir())
-    print(f"  User guides: {', '.join(guides)}")
-except OSError:
-    print("  (could not list user_guide directory)")
+for subdir in ("user_guide", "api_guides", "features"):
+    sub = sources_dir / subdir
+    try:
+        guides = sorted(p.name for p in sub.iterdir())
+        print(f"  {subdir}/: {len(guides)} files")
+    except OSError:
+        pass
 
-api_guides_dir = sources_dir / "api_guides"
+llms_full = pkg / "llms-full.txt"
 try:
-    guides = sorted(p.name for p in api_guides_dir.iterdir())
-    print(f"  API guides:  {len(guides)} files")
+    if llms_full.is_file():
+        size = len(llms_full.read_text(encoding="utf-8"))
+        print(f"  llms-full.txt: {size} chars (all docs in one file)")
 except OSError:
-    print("  (could not list api_guides directory)")
+    pass
 print()
 
 # =============================================================================
@@ -603,11 +626,12 @@ print("  1. stogger.init_logging() configures everything — call it once")
 print("  2. Get loggers via structlog.get_logger() (stogger wraps structlog)")
 print("  3. Use .bind() to attach persistent context to loggers")
 print("  4. Use _replace_msg='...' for human-readable formatted messages")
-print("  5. PII scrubbing is built-in and extensible with custom patterns")
+print("  5. log.exception() captures tracebacks from within except blocks")
 print("  6. File logging activates by passing logdir= to init_logging()")
-print("  7. Austrian dialect functions (oida, arsch, leiwand) add personality")
+print("  7. PII scrubbing is built-in and extensible with custom patterns")
 print("  8. StoggerConfig reads from pyproject.toml + kwargs for flexible setup")
-print("  9. Embedded docs at _sources/ and llms-full.txt provide full reference")
+print("  9. Austrian dialect functions (oida, arsch, leiwand) add personality")
+print(" 10. Embedded docs at _sources/ and llms.txt provide full reference")
 print()
 print("Discovered entirely through public API introspection and embedded docs")
 print("— no source code or external documentation was consulted.")
