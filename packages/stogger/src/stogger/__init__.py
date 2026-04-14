@@ -1,4 +1,10 @@
-"""Core structured logging for Python applications."""
+"""Opinionated structured logging built on structlog.
+
+Docs embedded in this package: llms.txt (index, ~50 entries), _sources/ (individual markdown files).
+llms-full.txt contains ALL docs in one file but is VERY large (~8000+ lines) — prefer reading
+individual files from _sources/ instead.
+CLI tools: install stoggertools for ``stoggertools docs`` and ``stoggertools docs-serve``.
+"""
 
 __all__ = [
     "JournalLoggerFactory",
@@ -20,6 +26,8 @@ __all__ = [
     "oida",
     "t",
 ]
+
+from pathlib import Path
 
 from .config import StoggerConfig as StoggerConfig
 from .core import (
@@ -57,3 +65,5 @@ from .i18n import oida as oida
 from .i18n import t as t
 from .pii_scrubber import create_pii_processor as create_pii_processor
 from .pii_scrubber import demo_pii_scrubbing as demo_pii_scrubbing
+
+__docs_path__ = Path(__file__).parent

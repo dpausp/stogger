@@ -1,6 +1,34 @@
-"""PII (Personally Identifiable Information) Scrubber for stogger.
+r"""PII (Personally Identifiable Information) Scrubber for stogger.
 
-Automatically detects and redacts sensitive information from log messages.
+Automatically detects and redacts sensitive information from log messages
+and structured event dictionaries. Usable as a structlog processor or
+standalone scrubber.
+
+Default regex patterns detect: email addresses, phone numbers, SSNs,
+credit card numbers, IPv4 addresses, password/secret assignments,
+API keys/tokens, JWT tokens, and UUIDs.
+
+Default sensitive field names include: password, token, api_key, email,
+phone_number, ssn, credit_card, address, and many more (case-insensitive
+matching).
+
+Usage as structlog processor::
+
+    import structlog
+    from stogger.pii_scrubber import create_pii_processor
+
+    config = structlog.get_config()
+    config["processors"].insert(-1, create_pii_processor())
+
+Usage standalone::
+
+    from stogger.pii_scrubber import PIIScrubber
+
+    scrubber = PIIScrubber(
+        custom_patterns={"zip": r"\\b\\d{5}(-\\d{4})?\\b"},
+        sensitive_fields=["favorite_color"],
+    )
+    clean = scrubber.scrub_string("user@corp.io lives at 90210")
 """
 
 import re
@@ -8,7 +36,16 @@ from typing import Any
 
 
 class PIIScrubber:
-    """Scrubs PII from log messages using regex patterns and field name detection."""
+    """Detects and redacts PII from strings, dicts, and structlog event dicts.
+
+    Combines regex-based pattern matching with field-name detection. Any
+    dictionary key matching a known sensitive field name is redacted regardless
+    of value. String values are scanned for patterns like email, phone, SSN,
+    credit card, IP, password assignments, API keys, JWTs, and UUIDs.
+
+    The instance is callable and can be inserted directly into a structlog
+    processor chain.
+    """
 
     def __init__(
         self,
@@ -16,12 +53,15 @@ class PIIScrubber:
         sensitive_fields: list[str] | None = None,
         redaction_text: str = "[REDACTED]",
     ) -> None:
-        """Initialize PII scrubber.
+        """Initialize PII scrubber with optional custom patterns and fields.
 
         Args:
-            custom_patterns: Additional regex patterns {name: pattern}
-            sensitive_fields: Field names that should always be redacted
-            redaction_text: Text to replace sensitive data with
+            custom_patterns: Additional regex patterns as ``{name: pattern}``.
+                Merged with built-in patterns. Names matching a built-in
+                pattern name override it.
+            sensitive_fields: Extra field names whose values should always be
+                redacted. Added to the built-in set (case-insensitive).
+            redaction_text: Replacement text for redacted values.
 
         """
         self.redaction_text = redaction_text
@@ -81,7 +121,19 @@ class PIIScrubber:
             self.sensitive_fields.update(f.lower() for f in sensitive_fields)
 
     def scrub_string(self, text: str) -> str:
-        """Scrub PII from a string."""
+        """Scrub PII from a plain string using all compiled regex patterns.
+
+        Password/secret assignment patterns preserve the field name in output
+        (e.g. ``password=secret`` → ``password=[REDACTED]``). All other
+        patterns replace the entire match with ``redaction_text``.
+
+        Args:
+            text: Input string to scan for PII.
+
+        Returns:
+            String with detected PII replaced by the redaction text.
+
+        """
         if not isinstance(text, str):
             return text
 
@@ -99,7 +151,20 @@ class PIIScrubber:
         return result
 
     def scrub_dict(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Scrub PII from dictionary values and sensitive field names."""
+        """Scrub PII from a dictionary, recursing into nested dicts and lists.
+
+        Values under keys matching ``sensitive_fields`` are unconditionally
+        redacted. String values are regex-scanned via ``scrub_string``.
+        Nested dicts and lists are processed recursively.
+
+        Args:
+            data: Dictionary to scrub. Not modified in-place; a new dict is
+                returned.
+
+        Returns:
+            New dictionary with PII redacted.
+
+        """
         if not isinstance(data, dict):
             return data
 
@@ -120,7 +185,15 @@ class PIIScrubber:
         return scrubbed
 
     def scrub_list(self, data: list[Any]) -> list[Any]:
-        """Scrub PII from list items."""
+        """Scrub PII from a list, recursing into nested dicts and lists.
+
+        Args:
+            data: List to scrub. Not modified in-place.
+
+        Returns:
+            New list with PII redacted in string/dict/list items.
+
+        """
         if not isinstance(data, list):
             return data
 
@@ -140,7 +213,20 @@ class PIIScrubber:
     def scrub_event_dict(self, event_dict: dict[str, Any]) -> dict[str, Any]:
         """Scrub PII from a structlog event dictionary.
 
-        This is the main method used as a structlog processor.
+        Primary entry point when used as a structlog processor. The
+        ``"event"`` message is always scrubbed. System fields
+        ``timestamp``, ``level``, and ``logger`` are left untouched.
+        All other fields are scrubbed via field-name matching and
+        regex scanning.
+
+        The dict is modified in-place and returned.
+
+        Args:
+            event_dict: Structlog event dictionary to scrub.
+
+        Returns:
+            The same event_dict with PII redacted.
+
         """
         # Scrub the main event message
         if "event" in event_dict and isinstance(event_dict["event"], str):
@@ -163,7 +249,10 @@ class PIIScrubber:
         return event_dict
 
     def __call__(self, _, __, event_dict):
-        """Make the scrubber callable as a structlog processor."""
+        """Make the scrubber usable as a structlog processor.
+
+        Delegates to :meth:`scrub_event_dict`.
+        """
         return self.scrub_event_dict(event_dict)
 
 
@@ -173,7 +262,24 @@ def create_pii_processor(
     sensitive_fields: list[str] | None = None,
     redaction_text: str = "[REDACTED]",
 ) -> PIIScrubber:
-    """Create a PII scrubber processor for structlog."""
+    """Create a PIIScrubber configured as a structlog processor.
+
+    Convenience factory that returns a ``PIIScrubber`` instance. Because
+    the instance is callable, it can be inserted directly into a structlog
+    processor chain.
+
+    Args:
+        custom_patterns: Additional regex patterns as ``{name: pattern}``.
+            Merged with built-in patterns. Names matching a built-in
+            pattern name override it.
+        sensitive_fields: Extra field names whose values should always be
+            redacted. Added to the built-in set (case-insensitive).
+        redaction_text: Replacement text for redacted values.
+
+    Returns:
+        A configured :class:`PIIScrubber` instance.
+
+    """
     return PIIScrubber(
         custom_patterns=custom_patterns,
         sensitive_fields=sensitive_fields,
@@ -183,7 +289,11 @@ def create_pii_processor(
 
 # Demo and testing
 def demo_pii_scrubbing() -> None:
-    """Demonstrate PII scrubbing capabilities."""
+    """Run built-in test cases demonstrating default PII detection.
+
+    Covers email, phone, password, API key, credit card, IP address,
+    and JWT redaction on both strings and nested dictionaries.
+    """
     scrubber = PIIScrubber()
 
     # Test data with various PII

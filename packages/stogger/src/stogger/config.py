@@ -11,7 +11,17 @@ import structlog
 
 @dataclass
 class ProjectStructure:
-    """Detected project structure information."""
+    """Detected project layout used for source and test discovery.
+
+    Attributes:
+        source_dirs: Relative paths to source directories (e.g. ``["src"]``).
+        test_dirs: Relative paths to test directories (e.g. ``["tests"]``).
+        exclude_patterns: Glob patterns for files excluded from logging analysis.
+        detection_source: How the structure was determined — ``"pyproject.toml"``,
+            ``"heuristics"``, or ``"defaults"``.
+        project_root: Absolute path to the project root directory.
+
+    """
 
     source_dirs: list[str]
     test_dirs: list[str]
@@ -20,15 +30,38 @@ class ProjectStructure:
     project_root: Path
 
     def get_source_paths(self) -> list[Path]:
-        """Get absolute paths for source directories."""
+        """Resolve source directories to absolute paths.
+
+        Returns:
+            List of absolute Paths joining ``project_root`` with each
+            entry in ``source_dirs``.
+
+        """
         return [self.project_root / src_dir for src_dir in self.source_dirs]
 
     def get_test_paths(self) -> list[Path]:
-        """Get absolute paths for test directories."""
+        """Resolve test directories to absolute paths.
+
+        Returns:
+            List of absolute Paths joining ``project_root`` with each
+            entry in ``test_dirs``.
+
+        """
         return [self.project_root / test_dir for test_dir in self.test_dirs]
 
     def should_exclude_from_logging_analysis(self, file_path: Path) -> bool:
-        """Check if a file should be excluded from logging analysis."""
+        """Check whether a file should be excluded from logging analysis.
+
+        Files inside ``test_dirs`` or matching any ``exclude_patterns`` glob are
+        excluded. Files outside ``project_root`` are always excluded.
+
+        Args:
+            file_path: Absolute path to the file to check.
+
+        Returns:
+            ``True`` if the file should be excluded.
+
+        """
         try:
             rel_path = file_path.relative_to(self.project_root)
             rel_path_str = str(rel_path)
@@ -46,8 +79,44 @@ class ProjectStructure:
 
 
 class StoggerConfig:
-    """Manages stogger configuration by merging pyproject.toml settings
-    with keyword arguments.
+    """Central configuration for stogger, merged from ``[tool.stogger]`` in
+    ``pyproject.toml`` and keyword arguments passed at construction.
+
+    Key attributes (with defaults):
+
+    Attributes:
+        verbose (bool): Enable verbose output. Default ``False``.
+        logdir (Path | None): Directory for log files. Default ``None``.
+        log_cmd_output (bool): Log subprocess command output. Default ``False``.
+        log_to_console (bool): Also log to the console. Default ``True``.
+        syslog_identifier (str): Identifier for syslog/systemd journal.
+            Default ``"stogger"``.
+        show_caller_info (bool): Include caller file/line in log output.
+            Default ``False``.
+        translation_dir (Path | None): Directory containing message
+            translations. Default ``None``.
+        language (str): Language code for log messages. Default ``"en"``.
+        log_format (str): Output format — ``"simple"`` or ``"json"``.
+            Default ``"simple"``.
+        async_logging (bool): Use asynchronous log writing. Default ``False``.
+        enable_pii_scrubbing (bool): Scrub PII from log messages.
+            Default ``True``.
+        pii_redaction_text (str): Replacement text for redacted PII.
+            Default ``"[REDACTED]"``.
+        enable_systemd (bool): Enable systemd/journal integration.
+            Default ``True``.
+        systemd_facility (str | None): Syslog facility for systemd output.
+            Default ``None``.
+        src_dir (str): Primary source directory name. Default ``"src"``.
+        ast_respect_gitignore (bool): Honor ``.gitignore`` during AST
+            analysis. Default ``True``.
+        ast_max_parameters (int): Max parameters before flagging a function.
+            Default ``8``.
+        ast_logging_focus (bool): Focus AST analysis on logging patterns.
+            Default ``True``.
+        ast_enabled_patterns (list | None): Specific AST patterns to enable.
+            ``None`` enables all. Default ``None``.
+
     """
 
     def __init__(self, **kwargs: Any) -> None:
@@ -91,7 +160,13 @@ class StoggerConfig:
         )
 
     def _load_config(self) -> dict[str, Any]:
-        """Loads stogger config from pyproject.toml."""
+        """Load ``[tool.stogger]`` settings from ``pyproject.toml`` in cwd.
+
+        Returns:
+            Dictionary of configuration values, or an empty dict when the
+            file is missing or cannot be parsed.
+
+        """
         log = structlog.get_logger(__name__)
 
         pyproject_path = Path.cwd() / "pyproject.toml"
@@ -391,9 +466,17 @@ def _create_default_structure_with_tests(
 
 @dataclass
 class SimpleFormatSettings:
-    """Settings for simple console formatting.
+    """Configuration for the simple console log renderer.
 
-    This class provides a way to configure the ConsoleFileRenderer with common formatting options.
+    Attributes:
+        min_level: Minimum log level to display. Default ``"info"``.
+        show_logger_brackets: Wrap logger name in brackets. Default ``False``.
+        show_pid: Include process ID in output. Default ``False``.
+        show_code_info: Include file name and line number. Default ``False``.
+        timestamp_format: Timestamp style — ``"iso"`` or ``"relative"``.
+            Default ``"iso"``.
+        pad_event_width: Minimum width for the event column. Default ``30``.
+
     """
 
     min_level: str = "info"

@@ -436,15 +436,27 @@ def init_logging(
     translation_dir: str | None = None,
     language: str | None = None,
 ) -> None:
-    """Initialize logging with keyword-only arguments.
+    """Initialize full structured logging with console, file, and journal targets.
+
+    Configures structlog with a multi-target rendering pipeline: systemd journal,
+    optional command output file, and a colorized console/file renderer. Sets up
+    processors for PID, log level, exception formatting, timestamps, and caller info.
 
     Args:
-        logdir: Directory path for log files.
-        log_cmd_output: Whether to enable command output logging.
-        log_to_console: Whether to log to console (stderr).
-        syslog_identifier: Identifier for syslog/journal entries.
-        translation_dir: Directory path for translation files.
-        language: Language code for i18n.
+        logdir: Directory for log files. A ``{syslog_identifier}.log`` file is created
+            here when writable. Required if ``log_cmd_output`` is True.
+        log_cmd_output: Enable separate command output logging to a dedicated file
+            in ``logdir``. Requires ``logdir`` to be set.
+        log_to_console: Log to stderr. Disabled automatically when running under
+            systemd journal (detected via ``JOURNAL_STREAM`` env var).
+        syslog_identifier: Identifier string for syslog/journal entries. Also used
+            as the main log file name (``{syslog_identifier}.log``).
+        translation_dir: Directory containing translation files for i18n.
+        language: ISO language code for message translations (e.g. ``"de"``).
+            Defaults to ``"en"`` when ``translation_dir`` is provided.
+
+    Raises:
+        ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
 
     """
     if translation_dir or language:
@@ -512,11 +524,12 @@ def init_logging(
 
 
 def init_early_logging() -> None:
-    """Initialize minimal logging format early to reduce uninitialized structlog messages.
+    """Initialize minimal structured logging before full setup.
 
-    This sets up a basic structlog configuration with minimal dependencies
-    to avoid the block of uninitialized messages at startup. Falls back
-    gracefully if initialization fails.
+    Configures a lightweight structlog pipeline (timestamp, level, console renderer)
+    so that early startup messages are properly formatted instead of appearing as
+    raw dicts. No-op if structlog is already configured. Errors during setup are
+    suppressed silently to avoid crashing during early initialization.
     """
     if structlog.is_configured():
         return  # Already configured
@@ -549,7 +562,13 @@ def init_early_logging() -> None:
 
 
 class JournalLoggerFactory:
-    """Factory for creating journal loggers."""
+    """Stub factory for systemd journal logger integration.
+
+    Returns ``None`` by default. Actual systemd journal support is provided by
+    the ``stogger-systemd`` package, which replaces this factory with a real
+    journal writer. Use this as a placeholder so logging pipelines work without
+    the systemd extra installed.
+    """
 
     def __call__(self, *_args):
         # systemd journal integration belongs in stogger-systemd package
@@ -585,7 +604,18 @@ KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
 
 
 class SystemdJournalRenderer:
-    """Renderer for systemd journal output."""
+    """Render structlog events as systemd journal fields.
+
+    Transforms event dicts into journal-compatible key-value pairs with
+    uppercased field names, syslog priority/facility, and a human-readable
+    message string. Strings are kept un-JSON-encoded to preserve line breaks
+    in ``journalctl`` output.
+
+    Args:
+        syslog_identifier: Identifier string for SYSLOG_IDENTIFIER field.
+        syslog_facility: Syslog facility code (default: ``syslog.LOG_LOCAL0``).
+
+    """
 
     def __init__(self, syslog_identifier, syslog_facility=syslog.LOG_LOCAL0) -> None:
         self.syslog_identifier = syslog_identifier
@@ -693,8 +723,16 @@ class MultiRenderer:
 
 
 class MultiOptimisticLoggerFactory:
-    """A logger factory that creates MultiOptimisticLogger instances.
-    Stores context and sub-logger factories.
+    """Factory that creates ``MultiOptimisticLogger`` instances.
+
+    Holds shared context (e.g. ``logdir``) and a dict of sub-logger factories
+    (e.g. ``"console"`` → ``PrintLoggerFactory``, ``"file"`` → ``PrintLoggerFactory``).
+    Each factory is called once per ``MultiOptimisticLogger`` instantiation.
+
+    Args:
+        context: Shared context dict available to all created loggers.
+        factories: Dict mapping target names to structlog logger factory callables.
+
     """
 
     def __init__(self, context, factories) -> None:
@@ -707,11 +745,17 @@ class MultiOptimisticLoggerFactory:
 
 
 class MultiOptimisticLogger:
-    """A logger which distributes messages to multiple loggers.
-    It's initialized with a logger dict where the keys are the logger names
-    which correspond to the keyword arguments given to the msg method.
-    If the logger's name is not present in the arguments, the logger is skipped.
-    Errors in sub loggers are ignored silently.
+    """Distribute log messages to multiple sub-loggers by target name.
+
+    Receives a dict of rendered outputs keyed by target name (e.g. ``"console"``,
+    ``"file"``, ``"journal"``) and dispatches each to the corresponding
+    sub-logger. Targets not present in the message are skipped. Errors in
+    individual sub-loggers are caught and reported to stdlib logging to prevent
+    one failing target from affecting others.
+
+    Args:
+        loggers: Dict mapping target names to structlog logger instances.
+
     """
 
     def __init__(self, loggers) -> None:
@@ -736,13 +780,18 @@ class MultiOptimisticLogger:
 
 
 def init_command_logging(log, logdir=None) -> None:
-    """Adds a cmd_output_file logger factory to an already configured
-    MultiOptimisticLoggerFactory, used for logging Nix command output to a
-    separate file.
-    Overwrites existing log files. If called from a systemd unit, the file
-    name will be made unique by adding the time and systemd invocation ID.
+    """Add a command output file logger to the active multi-logger factory.
 
-    Other factory types are ignored.
+    Opens (or overwrites) a dedicated log file for capturing subprocess command
+    output separately from the main log. When running under systemd (detected
+    via ``INVOCATION_ID`` env var), the filename includes a timestamp and
+    invocation ID for uniqueness.
+
+    Args:
+        log: A structlog BoundLogger instance (typically from ``structlog.get_logger()``).
+        logdir: Directory for the command output file. Falls back to the
+            ``logdir`` stored in the current ``MultiOptimisticLoggerFactory`` context.
+
     """
     logger_factory = structlog.get_config()["logger_factory"]
 
@@ -782,9 +831,19 @@ def init_command_logging(log, logdir=None) -> None:
 
 
 def drop_cmd_output_logfile(log) -> None:
-    """Deletes the log file used by the cmd_output_file logger.
-    Used to throw away the command log file if nothing interesting has
-    happened.
+    """Close and delete the command output log file.
+
+    Removes the file created by ``init_command_logging``. Use this when no
+    meaningful command output was produced to avoid leaving empty log files.
+
+    Args:
+        log: A structlog BoundLogger instance for diagnostic messages.
+
+    Raises:
+        KeyError: If the ``cmd_output_file`` factory is not present in the
+            active ``MultiOptimisticLoggerFactory`` (i.e. ``init_command_logging``
+            was never called).
+
     """
     logger_factory = structlog.get_config()["logger_factory"]
 
@@ -817,4 +876,11 @@ def drop_cmd_output_logfile(log) -> None:
 
 
 def logging_initialized():
+    """Check whether structured logging has been configured.
+
+    Returns:
+        True if ``init_logging`` or ``init_early_logging`` has been called
+        successfully, False otherwise.
+
+    """
     return structlog.is_configured()

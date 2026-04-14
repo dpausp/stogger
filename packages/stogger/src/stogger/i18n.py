@@ -16,10 +16,17 @@ log = structlog.get_logger(__name__)
 
 
 class NicestlogTranslator:
-    """Translator for stogger with dialect support.
+    """Translation engine that loads localized strings from TOML files.
 
-    Supports proper Austrian, Swiss German, and other regional variants
-    because logging should be in your native language!
+    Looks up keys in ``{language}.toml`` under a ``translations/`` directory,
+    falling back to ``en.toml`` when a key is missing. Use :func:`init_i18n`
+    or :func:`get_translator` instead of instantiating this class directly.
+
+    Attributes:
+        language: Current BCP-47-ish language code (e.g. ``"en"``, ``"at"``).
+        translations: Dict loaded from the requested language TOML.
+        fallback_translations: Dict loaded from ``en.toml``.
+
     """
 
     def __init__(self, language: str = "en") -> None:
@@ -156,7 +163,17 @@ _translator: NicestlogTranslator | None = None
 
 
 def init_i18n(language: str = "en") -> NicestlogTranslator:
-    """Initialize internationalization."""
+    """Create the global translator and store it for later :func:`get_translator` calls.
+
+    Args:
+        language: Language code matching a TOML file in the translations
+            directory (e.g. ``"en"``, ``"at"``, ``"ch"``).  Defaults to ``"en"``.
+
+    Returns:
+        The newly created :class:`NicestlogTranslator` instance (also stored
+        as the module-level singleton).
+
+    """
     global _translator
 
     log.debug("initializing-i18n", language=language)
@@ -165,7 +182,12 @@ def init_i18n(language: str = "en") -> NicestlogTranslator:
 
 
 def get_translator() -> NicestlogTranslator:
-    """Get current translator instance."""
+    """Return the module-level translator, auto-initializing with English if needed.
+
+    Returns:
+        The current :class:`NicestlogTranslator` singleton.
+
+    """
     global _translator
 
     if _translator is None:
@@ -176,11 +198,24 @@ def get_translator() -> NicestlogTranslator:
 
 
 def t(key: str, section: str = "general", **kwargs) -> str:
-    """Shorthand for translation.
+    """Look up a translated string by *key* and *section* using the global translator.
 
-    Usage:
-        t("success")  # -> "Success!"
-        t("file_not_found", "errors", filename="test.log")  # -> "File test.log not found!"
+    This is the primary i18n helper — a short, memorable name for everyday use.
+
+    Args:
+        key: Translation key inside *section* (e.g. ``"success"``).
+        section: Top-level section in the TOML file (default ``"general"``).
+        **kwargs: Variables passed to :meth:`str.format` on the translated template.
+
+    Returns:
+        The translated and formatted string.  Falls back to English, then to
+        ``"{section}.{key}"`` if neither language contains the key.
+
+    Examples::
+
+        t("success")                                    # "Success!"
+        t("file_not_found", "errors", filename="x.log") # "File x.log not found!"
+
     """
     return get_translator().get(key, section, **kwargs)
 
@@ -193,17 +228,50 @@ def set_language(language: str) -> None:
 
 # Austrian shortcuts for fun
 def oida(message: str) -> str:
-    """Add Austrian flair to any message."""
+    """Prepend an emphatic Austrian exclamation to *message*.
+
+    **Fun helper** — not part of the core i18n API.  ``"oida"`` is a versatile
+    Austrian interjection roughly equivalent to "dude!" or "wow!".
+
+    Args:
+        message: Any string to prefix.
+
+    Returns:
+        ``"Oida, {message}!"``
+
+    """
     return f"Oida, {message}!"
 
 
 def leiwand(message: str) -> str:
-    """Make any message sound Austrian-positive."""
+    """Append Austrian approval to *message*.
+
+    **Fun helper** — not part of the core i18n API.  ``"leiwand"`` means
+    "awesome" / "solid" in Austrian slang.
+
+    Args:
+        message: Any string to suffix.
+
+    Returns:
+        ``"{message} - leiwand!"``
+
+    """
     return f"{message} - leiwand!"
 
 
 def arsch(message: str) -> str:
-    """Austrian way to say something is bad."""
+    """Append Austrian disapproval to *message*.
+
+    **Fun helper** — not part of the core i18n API.  Roughly translates to
+    "that's terrible" in Austrian dialect.
+
+    Args:
+        message: Any string to suffix.
+
+    Returns:
+        ``"{message} - des is arsch!"``
+
+    """
     return f"{message} - des is arsch!"
 
 
