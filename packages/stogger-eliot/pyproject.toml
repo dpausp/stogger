@@ -10,8 +10,8 @@ dependencies = ["structlog>=25.4.0", "stogger", "eliot>=1.17.5"]
 
 [tool.hatch.version]
 source = "vcs"
-root = "../.."
 fallback-version = "0.0.0"
+raw-options.root = "../.."
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/stogger_eliot"]
