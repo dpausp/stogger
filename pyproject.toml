@@ -108,7 +108,7 @@ skip_covered = false
 precision = 2
 
 [tool.tox]
-env_list = ["fix", "cov", "docs", "3.13"]
+env_list = ["fix", "cov", "docs", "build", "3.13"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
@@ -156,4 +156,14 @@ commands_pre = [
 commands = [
     ["pytest", "-m", "docs", "tests/test_docs_e2e.py"],
     ["sphinx-build", "-b", "html", "docs", "docs/_build/html"],
+]
+
+[tool.tox.env.build]
+skip_install = true
+depends = ["docs"]
+description = "Build package with embedded documentation"
+dependency_groups = ["docs"]
+commands = [
+    ["python", "scripts/build_docs_for_package.py"],
+    ["uv", "build", { replace = "posargs", extend = true }],
 ]
