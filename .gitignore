@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Coverage files
+.coverage
+.coverage.*
+htmlcov/
+
+# doit cache
+.doit.db*
+
+# Virtual environments
+.venv
+
+# direnv
+.direnv
+
+# Environment / secrets
+.env
+.env.*
+
+# Ad-hoc test scripts (root level only)
+/test_*.py
+
+# Nix
+result
+
+# Generated Sphinx docs embedded in package
+packages/stogger/src/stogger/_sources/
+packages/stogger/src/stogger/llms-full.txt
+packages/stogger/src/stogger/llms.txt
+

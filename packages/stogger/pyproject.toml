@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "stogger"
+dynamic = ["version"]
+requires-python = ">=3.13"
+dependencies = ["structlog>=25.4.0"]
+
+[tool.hatch.version]
+source = "vcs"
+tag-pattern = "^(?P<version>\\d{4}\\.\\d{1,2}\\.\\d{1,2})$"
+fallback-version = "0.0.0"
+raw-options.root = "../.."
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stogger"]
