@@ -17,8 +17,8 @@ tag-pattern = "^(?P<version>\\d{4}\\.\\d{1,2}\\.\\d{1,2})$"
 fallback-version = "0.0.0"
 raw-options.root = "."
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/stogger"]
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
 
 [dependency-groups]
 lint = [
