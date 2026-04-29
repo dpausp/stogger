@@ -7,7 +7,20 @@ Exercises: init_logging -> structlog.get_logger -> log statements -> console out
 No mocks. Real structlog pipeline.
 """
 
+import logging
+
+import pytest
 import structlog
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_root_logging():
+    """Close and remove all root logger handlers after each E2E test."""
+    yield
+    root = logging.getLogger()
+    for handler in root.handlers[:]:
+        handler.close()
+        root.removeHandler(handler)
 
 
 def test_single_module_app_console_and_file(tmp_path, capsys, monkeypatch):
