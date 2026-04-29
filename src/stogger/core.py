@@ -528,7 +528,7 @@ def init_logging(
     # output would be duplicated in the journal.
     if log_to_console:
         if os.environ.get("JOURNAL_STREAM"):
-            print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)
+            print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
             pid = os.getpid()
             # S603/S607: systemctl is a system command, using full path would be better but systemctl is in PATH
             subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)
