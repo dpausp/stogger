@@ -1,13 +1,31 @@
 """Tests for the StoggerConfig class."""
 
-from pathlib import Path
-import tempfile
-from unittest.mock import MagicMock, patch
+import importlib
 import logging
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from stogger.config import StoggerConfig
+from stogger._colors import (
+    BACKRED,
+    BLUE,
+    BRIGHT,
+    CYAN,
+    DIM,
+    GREEN,
+    MAGENTA,
+    RED,
+    RESET_ALL,
+    YELLOW,
+)
+from stogger._regexes import DEBUG_WITH_REPLACE, EVENT_WITH_REPLACE, INFO_EVENT, MSG_KEY
+from stogger.config import (
+    ProjectStructure,
+    StoggerConfig,
+    detect_project_structure,
+)
 from stogger.factory import build_shared_processors, configure_stdlib_logging
 
 
@@ -132,6 +150,296 @@ src_dir = "custom_src"
             config = StoggerConfig(src_dir="override_src")
             assert config.src_dir == "override_src"
 
+
+
+
+# ---------------------------------------------------------------------------
+# Quick-win module coverage tests
+# ---------------------------------------------------------------------------
+
+
+def test_colors_import():
+    """Import color constants and verify they are strings."""
+    for constant in (RESET_ALL, BRIGHT, DIM, RED, BACKRED, BLUE, CYAN, MAGENTA, YELLOW, GREEN):
+        assert isinstance(constant, str)
+
+
+def test_regexes_import():
+    """Import compiled regex patterns and verify they exist."""
+    for pattern in (EVENT_WITH_REPLACE, MSG_KEY, INFO_EVENT, DEBUG_WITH_REPLACE):
+        assert hasattr(pattern, "pattern")
+
+
+# ---------------------------------------------------------------------------
+# ProjectStructure method tests
+# ---------------------------------------------------------------------------
+
+
+def test_project_structure_get_source_paths():
+    """get_source_paths resolves source dirs to absolute paths."""
+    ps = ProjectStructure(
+        source_dirs=["src", "lib"],
+        test_dirs=[],
+        exclude_patterns=[],
+        detection_source="test",
+        project_root=Path("/project"),
+    )
+    paths = ps.get_source_paths()
+    assert paths == [Path("/project/src"), Path("/project/lib")]
+
+
+def test_project_structure_get_test_paths():
+    """get_test_paths resolves test dirs to absolute paths."""
+    ps = ProjectStructure(
+        source_dirs=[],
+        test_dirs=["tests", "test"],
+        exclude_patterns=[],
+        detection_source="test",
+        project_root=Path("/project"),
+    )
+    paths = ps.get_test_paths()
+    assert paths == [Path("/project/tests"), Path("/project/test")]
+
+
+def test_should_exclude_test_dir_file():
+    """Files inside test directories are excluded."""
+    ps = ProjectStructure(
+        source_dirs=["src"],
+        test_dirs=["tests"],
+        exclude_patterns=[],
+        detection_source="test",
+        project_root=Path("/project"),
+    )
+    assert ps.should_exclude_from_logging_analysis(Path("/project/tests/test_foo.py")) is True
+
+
+def test_should_exclude_pattern_match():
+    """Files matching exclude patterns are excluded."""
+    ps = ProjectStructure(
+        source_dirs=["src"],
+        test_dirs=[],
+        exclude_patterns=["*.pyc"],
+        detection_source="test",
+        project_root=Path("/project"),
+    )
+    assert ps.should_exclude_from_logging_analysis(Path("/project/foo.pyc")) is True
+
+
+def test_should_exclude_outside_root():
+    """Files outside project root are excluded."""
+    ps = ProjectStructure(
+        source_dirs=["src"],
+        test_dirs=[],
+        exclude_patterns=[],
+        detection_source="test",
+        project_root=Path("/project"),
+    )
+    assert ps.should_exclude_from_logging_analysis(Path("/other/foo.py")) is True
+
+
+def test_should_not_exclude_normal_file():
+    """Normal source files are not excluded."""
+    ps = ProjectStructure(
+        source_dirs=["src"],
+        test_dirs=["tests"],
+        exclude_patterns=["*.pyc"],
+        detection_source="test",
+        project_root=Path("/project"),
+    )
+    assert ps.should_exclude_from_logging_analysis(Path("/project/src/main.py")) is False
+
+
+# ---------------------------------------------------------------------------
+# StoggerConfig error path
+# ---------------------------------------------------------------------------
+
+
+def test_load_config_invalid_toml():
+    """Invalid TOML in pyproject.toml causes _load_config to return {} — defaults used."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        pyproject_path = config_dir / "pyproject.toml"
+        pyproject_path.write_text("this is not valid toml {{{{")
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            config = StoggerConfig()
+            assert config.verbose is False
+            assert config.syslog_identifier == "stogger"
+
+
+# ---------------------------------------------------------------------------
+# Detection subsystem tests
+# ---------------------------------------------------------------------------
+
+
+def test_detect_from_stogger_section():
+    """detect_project_structure with [tool.stogger] src_dir returns pyproject.toml source."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        (root / "tests").mkdir()
+        (root / "pyproject.toml").write_text('[tool.stogger]\nsrc_dir = "src"\n')
+        result = detect_project_structure(root)
+        assert result.detection_source == "pyproject.toml"
+        assert "src" in result.source_dirs
+        assert "tests" in result.test_dirs
+
+
+def test_detect_from_hatch_section():
+    """detect_project_structure with [tool.hatch] packages returns pyproject.toml source."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        (root / "tests").mkdir()
+        (root / "pyproject.toml").write_text(
+            '[tool.hatch.build.targets.wheel]\npackages = ["src/pkg"]\n'
+        )
+        result = detect_project_structure(root)
+        assert result.detection_source == "pyproject.toml"
+        assert "src" in result.source_dirs
+
+
+def test_detect_from_pytest_section():
+    """detect_project_structure with [tool.pytest.ini_options] testpaths returns structure."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        (root / "tests").mkdir()
+        (root / "pyproject.toml").write_text(
+            '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
+        )
+        result = detect_project_structure(root)
+        assert result.detection_source == "pyproject.toml"
+        assert "tests" in result.test_dirs
+
+
+def test_detect_fallback_to_heuristics():
+    """No pyproject.toml, but src/ and tests/ exist → heuristics detection."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        (root / "tests").mkdir()
+        result = detect_project_structure(root)
+        assert result.detection_source == "heuristics"
+        assert "src" in result.source_dirs
+        assert "tests" in result.test_dirs
+
+
+def test_detect_heuristics_no_src():
+    """No src/ dir, but .py files in root → source_dirs=['.'] via heuristics."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "my_module.py").touch()
+        result = detect_project_structure(root)
+        assert result.detection_source == "heuristics"
+        assert "." in result.source_dirs
+
+
+def test_detect_heuristics_nothing_found():
+    """No pyproject.toml, no src, no python files → raises ValueError."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        with pytest.raises(ValueError, match="Could not determine project structure"):
+            detect_project_structure(root)
+
+
+def test_detect_pyproject_invalid_toml():
+    """Invalid TOML in pyproject.toml falls back to heuristics."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        (root / "pyproject.toml").write_text("this is not valid toml {{{{")
+        result = detect_project_structure(root)
+        assert result.detection_source == "heuristics"
+
+
+def test_detect_no_stogger_section():
+    """Valid pyproject.toml but no [tool.stogger/hatch/pytest] → falls back to heuristics."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        (root / "pyproject.toml").write_text('[project]\nname = "myproject"\n')
+        result = detect_project_structure(root)
+        assert result.detection_source == "heuristics"
+
+
+def test_colors_tty_branch():
+    """Reload _colors with mocked isatty to cover the colorama branch."""
+    import stogger._colors as colors_mod
+
+    with patch.object(
+        __import__("sys").stdout, "isatty", return_value=True
+    ):
+        importlib.reload(colors_mod)
+        assert isinstance(colors_mod.RESET_ALL, str)
+        assert len(colors_mod.RESET_ALL) > 0  # colorama ANSI codes are non-empty
+        assert isinstance(colors_mod.RED, str)
+        assert len(colors_mod.RED) > 0
+
+    # Restore original module state (isatty=False in test env → empty strings)
+    importlib.reload(colors_mod)
+
+
+def test_detect_with_project_root_none():
+    """detect_project_structure(project_root=None) uses Path.cwd()."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        with patch("pathlib.Path.cwd", return_value=root, autospec=True):
+            result = detect_project_structure(None)
+            assert result.detection_source == "heuristics"
+            assert "src" in result.source_dirs
+
+
+def test_detect_stogger_with_exclude_patterns():
+    """[tool.stogger] exclude patterns starting with 'tests' populate test_dirs."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        (root / "src" / "pkg").mkdir()
+        (root / "src" / "pkg" / "__init__.py").touch()
+        (root / "tests").mkdir()
+        (root / "pyproject.toml").write_text(
+            '[tool.stogger]\nsrc_dir = "src"\nexclude = ["tests/**", "docs/**"]\n'
+        )
+        result = detect_project_structure(root)
+        assert result.detection_source == "pyproject.toml"
+        assert "tests" in result.test_dirs
+        assert "tests/**" in result.exclude_patterns
+        assert "docs/**" in result.exclude_patterns
+
+
+def test_probe_hatch_no_packages():
+    """Hatch config with empty packages list returns None."""
+    from stogger.config import _probe_hatch_section
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        result = _probe_hatch_section({"build": {"targets": {"wheel": {"packages": []}}}}, root)
+        assert result is None
+
+
+def test_probe_pytest_no_testpaths():
+    """Pytest config with no testpaths returns None."""
+    from stogger.config import _probe_pytest_section
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        result = _probe_pytest_section({"ini_options": {}}, root)
+        assert result is None
 
 if __name__ == "__main__":
     pytest.main([__file__])
