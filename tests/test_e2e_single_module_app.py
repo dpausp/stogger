@@ -22,6 +22,16 @@ def _cleanup_root_logging():
         handler.close()
         root.removeHandler(handler)
 
+    # Close file handles opened by structlog's PrintLoggerFactory
+    config = structlog.get_config()
+    factory = config.get("logger_factory")
+    if hasattr(factory, "factories"):
+        for _name, sub_factory in factory.factories.items():
+            if hasattr(sub_factory, "_file"):
+                sub_factory._file.close()
+
+    structlog.reset_defaults()
+
 
 def test_single_module_app_console_and_file(tmp_path, capsys, monkeypatch):
     """A minimal app initializes stogger, logs events, and output arrives at console + file."""
