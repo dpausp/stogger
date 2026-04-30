@@ -75,7 +75,7 @@ def test_sync_logging_setup(mock_basic_config):
     assert any(isinstance(h, logging.StreamHandler) for h in mock_basic_config.call_args.kwargs["handlers"])
 
 
-@patch("logging.handlers.QueueListener", autospec=True)
+@patch("stogger.factory.QueueListener", autospec=True)
 @patch("logging.getLogger", autospec=True)
 def test_async_logging_setup(mock_get_logger, mock_listener):
     """Test that asynchronous logging sets up a QueueListener."""

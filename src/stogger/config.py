@@ -248,6 +248,132 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         raise ValueError(msg) from e
 
 
+def _probe_stogger_section(stogger_config: dict, project_root: Path) -> ProjectStructure | None:
+    """Probe ``[tool.stogger]`` section for project structure.
+
+    Args:
+        stogger_config: Parsed ``[tool.stogger]`` dictionary.
+        project_root: Absolute path to the project root.
+
+    Returns:
+        ProjectStructure if the section is present, else None.
+
+    """
+    if not stogger_config:
+        return None
+
+    log = structlog.get_logger(__name__)
+    log.debug("probing-stogger-section", src_dir=stogger_config.get("src_dir", "src"))
+
+    src_dir = stogger_config.get("src_dir", "src")
+    exclude_patterns = stogger_config.get("exclude", [])
+
+    # Detect source directories
+    source_dirs = [src_dir] if (project_root / src_dir).exists() else []
+
+    # Detect test directories from exclude patterns and common locations
+    test_dirs = []
+    for pattern in exclude_patterns:
+        if pattern.startswith("tests"):
+            test_dir = pattern.split("/")[0]
+            if (project_root / test_dir).exists():
+                test_dirs.append(test_dir)
+
+    # Add common test directories if they exist
+    for test_dir in ["tests", "test"]:
+        if (project_root / test_dir).exists() and test_dir not in test_dirs:
+            test_dirs.append(test_dir)
+
+    # Default exclude patterns
+    default_excludes = [
+        "docs/**",
+        "examples/**",
+        ".venv/**",
+        "venv/**",
+        "build/**",
+        "dist/**",
+        "*.egg-info/**",
+        "__pycache__/**",
+        ".git/**",
+    ]
+
+    # Merge configured excludes with defaults
+    all_excludes = list(set(exclude_patterns + default_excludes))
+
+    return ProjectStructure(
+        source_dirs=source_dirs,
+        test_dirs=test_dirs,
+        exclude_patterns=all_excludes,
+        detection_source="pyproject.toml",
+        project_root=project_root,
+    )
+
+
+def _probe_hatch_section(hatch_config: dict, project_root: Path) -> ProjectStructure | None:
+    """Probe ``[tool.hatch]`` section for project structure.
+
+    Args:
+        hatch_config: Parsed ``[tool.hatch]`` dictionary.
+        project_root: Absolute path to the project root.
+
+    Returns:
+        ProjectStructure if a Hatch wheel package source is found, else None.
+
+    """
+    if not hatch_config:
+        return None
+
+    log = structlog.get_logger(__name__)
+    log.debug("probing-hatch-section", has_build="build" in hatch_config)
+
+    build_config = hatch_config.get("build", {})
+    wheel_config = build_config.get("targets", {}).get("wheel", {})
+    packages = wheel_config.get("packages", [])
+
+    if packages:
+        # Extract source directory from packages
+        for package in packages:
+            if "/" in package:
+                src_dir = package.split("/")[0]
+                if (project_root / src_dir).exists():
+                    return _create_default_structure_with_src(
+                        project_root,
+                        src_dir,
+                        "pyproject.toml",
+                    )
+
+    return None
+
+
+def _probe_pytest_section(pytest_config: dict, project_root: Path) -> ProjectStructure | None:
+    """Probe ``[tool.pytest]`` section for project structure.
+
+    Args:
+        pytest_config: Parsed ``[tool.pytest]`` dictionary.
+        project_root: Absolute path to the project root.
+
+    Returns:
+        ProjectStructure if pytest testpaths are found, else None.
+
+    """
+    if not pytest_config:
+        return None
+
+    log = structlog.get_logger(__name__)
+    log.debug("probing-pytest-section", has_ini_options="ini_options" in pytest_config)
+
+    testpaths = pytest_config.get("ini_options", {}).get("testpaths", [])
+    if testpaths:
+        test_dirs = [path for path in testpaths if (project_root / path).exists()]
+        return _create_default_structure_with_tests(
+            project_root,
+            test_dirs,
+            "pyproject.toml",
+        )
+
+    return None
+
+
 def _detect_from_pyproject(
     project_root: Path,
     pyproject_path: Path,
@@ -258,82 +384,19 @@ def _detect_from_pyproject(
     with pyproject_path.open("rb") as f:
         config = tomllib.load(f)
 
-    # Check stogger configuration
-    stogger_config = config.get("tool", {}).get("stogger", {})
-    if stogger_config:
-        src_dir = stogger_config.get("src_dir", "src")
-        exclude_patterns = stogger_config.get("exclude", [])
+    tool_config = config.get("tool", {})
 
-        # Detect source directories
-        source_dirs = [src_dir] if (project_root / src_dir).exists() else []
+    result = _probe_stogger_section(tool_config.get("stogger", {}), project_root)
+    if result:
+        return result
 
-        # Detect test directories from exclude patterns and common locations
-        test_dirs = []
-        for pattern in exclude_patterns:
-            if pattern.startswith("tests"):
-                test_dir = pattern.split("/")[0]
-                if (project_root / test_dir).exists():
-                    test_dirs.append(test_dir)
+    result = _probe_hatch_section(tool_config.get("hatch", {}), project_root)
+    if result:
+        return result
 
-        # Add common test directories if they exist
-        for test_dir in ["tests", "test"]:
-            if (project_root / test_dir).exists() and test_dir not in test_dirs:
-                test_dirs.append(test_dir)
-
-        # Default exclude patterns
-        default_excludes = [
-            "docs/**",
-            "examples/**",
-            ".venv/**",
-            "venv/**",
-            "build/**",
-            "dist/**",
-            "*.egg-info/**",
-            "__pycache__/**",
-            ".git/**",
-        ]
-
-        # Merge configured excludes with defaults
-        all_excludes = list(set(exclude_patterns + default_excludes))
-
-        return ProjectStructure(
-            source_dirs=source_dirs,
-            test_dirs=test_dirs,
-            exclude_patterns=all_excludes,
-            detection_source="pyproject.toml",
-            project_root=project_root,
-        )
-
-    # Check hatch configuration for source directory
-    hatch_config = config.get("tool", {}).get("hatch", {})
-    if hatch_config:
-        build_config = hatch_config.get("build", {})
-        wheel_config = build_config.get("targets", {}).get("wheel", {})
-        packages = wheel_config.get("packages", [])
-
-        if packages:
-            # Extract source directory from packages
-            for package in packages:
-                if "/" in package:
-                    src_dir = package.split("/")[0]
-                    if (project_root / src_dir).exists():
-                        return _create_default_structure_with_src(
-                            project_root,
-                            src_dir,
-                            "pyproject.toml",
-                        )
-
-    # Check pytest configuration for test directories
-    pytest_config = config.get("tool", {}).get("pytest", {})
-    if pytest_config:
-        testpaths = pytest_config.get("ini_options", {}).get("testpaths", [])
-        if testpaths:
-            test_dirs = [path for path in testpaths if (project_root / path).exists()]
-            return _create_default_structure_with_tests(
-                project_root,
-                test_dirs,
-                "pyproject.toml",
-            )
+    result = _probe_pytest_section(tool_config.get("pytest", {}), project_root)
+    if result:
+        return result
 
     return None
 

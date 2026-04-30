@@ -160,27 +160,82 @@ class ConsoleFileRenderer:
             max(self._level_to_color.keys(), key=len),
         )
 
+    def _resolve_level_name(self, method_name, event_dict):
+        """Resolve log level from method_name or fall back to event_dict['level']."""
+        if isinstance(method_name, str):
+            return method_name.lower()
+        lvl = event_dict.get("level")
+        if isinstance(lvl, str):
+            return lvl.lower()
+        return None
+
+    def _should_drop_by_level(self, level_name, _log_settings):
+        """Check if event should be dropped based on level filtering."""
+        if level_name is None:
+            return False
+        try:
+            return self.LEVELS.index(level_name) > self.min_level
+        except ValueError:
+            return False
+
+    def _strip_internal_fields(self, event_dict):
+        """Pop known internal keys from event_dict (mutates in place)."""
+        if not self.show_caller_info:
+            event_dict.pop("code_file", None)
+            event_dict.pop("code_func", None)
+            event_dict.pop("code_lineno", None)
+            event_dict.pop("code_module", None)
+        event_dict.pop("_from_structlog", None)
+        event_dict.pop("_original_event", None)
+        event_dict.pop("_record", None)
+        event_dict.pop("_translated_msg", None)
+        event_dict.pop("_log_settings", None)
+
+    def _format_timestamp(self, ts, _log_settings):
+        """Format timestamp with format variant handling."""
+        if ts is not None:
+            if self.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
+                ts = str(ts)[:-1]
+            return DIM + str(ts) + RESET_ALL + " "
+        return DIM + "notimestamp" + RESET_ALL + " "
+
+    def _render_output_sections(self, event_dict, write_fn):
+        """Render output sections: cmd_output, output, stdout, stderr, stack, traceback."""
+        cmd_output_line = event_dict.pop("cmd_output_line", None)
+        output = event_dict.pop("_output", None)
+        stdout = event_dict.pop("stdout", None)
+        stderr = event_dict.pop("stderr", None)
+        stack = event_dict.pop("stack", None)
+        exception_traceback = event_dict.pop("exception_traceback", None)
+
+        if cmd_output_line is not None:
+            write_fn(DIM + "> " + cmd_output_line + RESET_ALL)
+
+        if output is not None:
+            write_fn("\n" + prefix("", "\n" + output + "\n") + RESET_ALL)
+
+        if stdout is not None:
+            write_fn("\n" + DIM + prefix("out", "\n" + stdout + "\n") + RESET_ALL)
+
+        if stderr is not None:
+            write_fn("\n" + prefix("err", "\n" + stderr + "\n") + RESET_ALL)
+
+        if stack is not None:
+            write_fn("\n" + prefix("stack", stack))
+            if exception_traceback is not None:
+                write_fn("\n" + "=" * 79 + "\n")
+
+        if exception_traceback is not None:
+            write_fn("\n" + prefix("exception", exception_traceback))
+
     def __call__(self, _, method_name, event_dict):
         log_settings = event_dict.pop("_log_settings", {})
         if log_settings.get("console_ignore", False):
             return None
 
-        # Determine level name for filtering; fall back to event_dict['level'] when method_name is provided
-        level_name = None
-        if isinstance(method_name, str):
-            level_name = method_name.lower()
-        else:
-            lvl = event_dict.get("level")
-            if isinstance(lvl, str):
-                level_name = lvl.lower()
-        # Apply level filtering early to avoid unnecessary work
-        if level_name is not None:
-            try:
-                if self.LEVELS.index(level_name) > self.min_level:
-                    raise structlog.DropEvent
-            except ValueError:
-                # Unknown level, do not drop
-                pass
+        level_name = self._resolve_level_name(method_name, event_dict)
+        if self._should_drop_by_level(level_name, log_settings):
+            raise structlog.DropEvent
 
         console_io = io.StringIO()
         log_io = io.StringIO()
@@ -210,35 +265,11 @@ class ConsoleFileRenderer:
         else:
             formatted_replace_msg = None
 
-        # Handle code information based on settings
-        if not self.show_caller_info:
-            event_dict.pop("code_file", None)
-            event_dict.pop("code_func", None)
-            event_dict.pop("code_lineno", None)
-            event_dict.pop("code_module", None)
+        self._strip_internal_fields(event_dict)
 
-        # Remove internal structlog fields
-        event_dict.pop("_from_structlog", None)
-        event_dict.pop("_original_event", None)
-        event_dict.pop("_record", None)
-        event_dict.pop("_translated_msg", None)
-        event_dict.pop("_log_settings", None)
-
-        # Format timestamp based on settings
         ts = event_dict.pop("timestamp", None)
-        if ts is not None:
-            # Apply timestamp formatting based on settings
-            if self.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
-                ts = str(ts)[:-1]
-            write(
-                # can be a number if timestamp is UNIXy
-                DIM + str(ts) + RESET_ALL + " ",
-            )
-        else:
-            # Indicate missing timestamp explicitly for diagnostics/tests
-            write(DIM + "notimestamp" + RESET_ALL + " ")
+        write(self._format_timestamp(ts, log_settings))
 
-        # Handle PID based on settings
         pid = event_dict.pop("pid", None)
         if self.show_pid and pid is not None:
             write("[" + DIM + str(pid) + RESET_ALL + "] ")
@@ -250,17 +281,9 @@ class ConsoleFileRenderer:
         event = event_dict.pop("event")
         write(BRIGHT + _pad(event, self.pad_event) + RESET_ALL + " ")
 
-        # Handle logger brackets based on settings
         logger_name = event_dict.pop("logger", "root")
         if logger_name and self.show_logger_brackets:
             write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
-
-        cmd_output_line = event_dict.pop("cmd_output_line", None)
-        output = event_dict.pop("_output", None)
-        stdout = event_dict.pop("stdout", None)
-        stderr = event_dict.pop("stderr", None)
-        stack = event_dict.pop("stack", None)
-        exception_traceback = event_dict.pop("exception_traceback", None)
 
         if formatted_replace_msg:
             write(formatted_replace_msg)
@@ -272,35 +295,7 @@ class ConsoleFileRenderer:
                 ),
             )
 
-        if cmd_output_line is not None:
-            write(DIM + "> " + cmd_output_line + RESET_ALL)
-
-        if output is not None:
-            write("\n" + prefix("", "\n" + output + "\n") + RESET_ALL)
-
-        if stdout is not None:
-            write("\n" + DIM + prefix("out", "\n" + stdout + "\n") + RESET_ALL)
-
-        if stderr is not None:
-            write("\n" + prefix("err", "\n" + stderr + "\n") + RESET_ALL)
-
-        if stack is not None:
-            write("\n" + prefix("stack", stack))
-            if exception_traceback is not None:
-                write("\n" + "=" * 79 + "\n")
-
-        if exception_traceback is not None:
-            write("\n" + prefix("exception", exception_traceback))
-
-        # Filter according to the -v switch when outputting to the console.
-        # Level filtering is applied at the start of this function.
-        # For safety, if method_name is present and below threshold, drop now.
-        if isinstance(method_name, str):
-            try:
-                if self.LEVELS.index(method_name.lower()) > self.min_level:
-                    raise structlog.DropEvent
-            except ValueError:
-                pass
+        self._render_output_sections(event_dict, write)
 
         return {"console": console_io.getvalue(), "file": log_io.getvalue()}
 
@@ -325,7 +320,7 @@ def add_pid(_, __, event_dict):
 
 
 def add_caller_info(_, __, event_dict):
-    frame, module_str = structlog._frames._find_first_app_frame_and_name(  # ty: ignore[unresolved-attribute]
+    frame, module_str = structlog._frames._find_first_app_frame_and_name(  # ty: ignore[unresolved-attribute]  # noqa: SLF001
         additional_ignores=[__name__],
     )
     event_dict["code_file"] = frame.f_code.co_filename
@@ -353,7 +348,7 @@ def format_exc_info(_logger, _name, event_dict):
     exc_info = event_dict.pop("exc_info", None)
     if exc_info is not None:
         exception_class = exc_info[0]
-        formatted_traceback = structlog.processors._format_exception(exc_info)
+        formatted_traceback = structlog.processors._format_exception(exc_info)  # noqa: SLF001
         event_dict["exception_traceback"] = formatted_traceback
         event_dict["exception_msg"] = str(exc_info[1])
         event_dict["exception_class"] = exception_class.__module__ + "." + exception_class.__name__
@@ -445,14 +440,14 @@ def log_to_stdlib(_logger, _name, event_dict):
 
     # Log to standard logging - only pass standard parameters
     if exc_info:
-        logging.log(logging_level, msg, exc_info=exc_info)
+        logging.log(logging_level, msg, exc_info=exc_info)  # noqa: LOG015
     else:
-        logging.log(logging_level, msg)
+        logging.log(logging_level, msg)  # noqa: LOG015
 
     return event_dict
 
 
-def init_logging(
+def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     *,
     logdir: str | Path | None = None,
     log_cmd_output: bool = False,
@@ -530,8 +525,7 @@ def init_logging(
         if os.environ.get("JOURNAL_STREAM"):
             print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
             pid = os.getpid()
-            # S603/S607: systemctl is a system command, using full path would be better but systemctl is in PATH
-            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)
+            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603, S607
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
@@ -743,9 +737,7 @@ class MultiRenderer:
                 messages = renderer(logger, method_name, event_dict.copy())
                 merged_messages.update(messages)
             except Exception:
-                import logging as _stdlib_logging
-
-                _stdlib_logging.getLogger(__name__).exception("Renderer failed, using fallback")
+                logging.getLogger(__name__).exception("Renderer failed, using fallback")
 
         return merged_messages
 
@@ -799,9 +791,7 @@ class MultiOptimisticLogger:
                 if line:
                     logger.msg(line)
             except Exception:
-                import logging as _stdlib_logging
-
-                _stdlib_logging.getLogger(__name__).exception("Renderer failed, using fallback")
+                logging.getLogger(__name__).exception("Renderer failed, using fallback")
 
     def __getattr__(self, name):
         return self.msg
@@ -891,7 +881,7 @@ def drop_cmd_output_logfile(log) -> None:
         )
         raise
 
-    cmd_log_file = cmd_output_file_factory._file
+    cmd_log_file = cmd_output_file_factory._file  # noqa: SLF001
 
     log.debug(
         "logging-cmd-output-drop",

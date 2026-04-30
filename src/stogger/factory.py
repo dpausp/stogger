@@ -3,6 +3,8 @@
 import atexit
 import logging
 import tomllib
+from logging.handlers import QueueHandler, QueueListener
+from pathlib import Path
 from queue import Queue
 from typing import Any
 
@@ -108,6 +110,76 @@ def build_renderer(config: StoggerConfig) -> Any:
     return renderer
 
 
+def _create_file_handler(logdir: str | Path, syslog_identifier: str) -> logging.FileHandler | None:
+    """Attempts to create log directory and file handler. Returns None on failure."""
+    try:
+        logdir = Path(logdir)
+        logdir.mkdir(parents=True, exist_ok=True)
+        log_file = logdir / f"{syslog_identifier}.log"
+        log.debug("creating-file-handler", log_file=str(log_file))
+        file_handler = logging.FileHandler(log_file)
+        log.debug("file-logging-enabled", log_file=str(log_file))
+        return file_handler
+    except (OSError, PermissionError):
+        log.exception("file-logging-setup-failed", logdir=str(logdir))
+        return None
+
+
+def _assign_formatters(
+    handlers: list[logging.Handler],
+    console_formatter: logging.Formatter,
+    file_formatter: logging.Formatter | None,
+) -> None:
+    """Assigns the correct formatter to each handler based on handler type."""
+    log.debug("assigning-formatters", handler_count=len(handlers))
+    for handler in handlers:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(
+            handler,
+            logging.FileHandler,
+        ):
+            handler.setFormatter(console_formatter)
+        elif isinstance(handler, logging.FileHandler):
+            handler.setFormatter(file_formatter)
+        else:
+            handler.setFormatter(console_formatter)
+
+
+def _configure_async_logging(handlers: list[logging.Handler]) -> None:
+    """Sets up QueueHandler/QueueListener with atexit cleanup."""
+    log.debug("enabling-async-logging", handler_count=len(handlers))
+    log_queue: Queue = Queue(-1)
+    queue_handler = QueueHandler(log_queue)
+
+    log.debug("starting-queue-listener", handler_count=len(handlers))
+    listener = QueueListener(log_queue, *handlers)
+    listener.start()
+
+    # Register cleanup handler to stop listener on exit
+    def cleanup_listener() -> None:
+        log.debug("stopping-queue-listener", reason="atexit")
+        listener.stop()
+
+    atexit.register(cleanup_listener)
+    root_logger = logging.getLogger()
+    root_logger.addHandler(queue_handler)
+    root_logger.setLevel(logging.DEBUG)
+    for handler in list(root_logger.handlers):
+        if handler is not queue_handler:
+            root_logger.removeHandler(handler)
+    log.debug("async-logging-configured", handler_count=len(handlers))
+
+
+def _configure_sync_logging(handlers: list[logging.Handler]) -> None:
+    """Configures synchronous logging via basicConfig."""
+    log.debug("configuring-sync-logging", handler_count=len(handlers))
+    logging.basicConfig(
+        level=logging.DEBUG,
+        handlers=handlers,
+        force=True,  # Override existing config
+    )
+    log.debug("sync-logging-configured", handler_count=len(handlers))
+
+
 def configure_stdlib_logging(config: StoggerConfig, processors: list[Any]) -> None:
     """Configures the standard Python logging library."""
     log.debug(
@@ -131,26 +203,19 @@ def configure_stdlib_logging(config: StoggerConfig, processors: list[Any]) -> No
         processors=[renderer, SelectRenderedString("file")],
     )
 
-    console_handlers: list[logging.Handler] = []
-    file_handlers: list[logging.Handler] = []
-
-    if config.logdir:
-        try:
-            config.logdir.mkdir(parents=True, exist_ok=True)
-            log_file = config.logdir / f"{config.syslog_identifier}.log"
-            log.debug("creating-file-handler", log_file=str(log_file))
-            file_handler = logging.FileHandler(log_file)
-            file_handlers.append(file_handler)
-            log.debug("file-logging-enabled", log_file=str(log_file))
-        except (OSError, PermissionError):
-            log.exception("file-logging-setup-failed", logdir=str(config.logdir))
+    handlers: list[logging.Handler] = []
 
     if config.log_to_console:
         log.debug("creating-console-handler", handler_type="console")
-        console_handlers.append(logging.StreamHandler())
+        handlers.append(logging.StreamHandler())
         log.debug("console-logging-enabled", handler_type="console")
 
-    if not console_handlers and not file_handlers:
+    if config.logdir:
+        file_handler = _create_file_handler(config.logdir, config.syslog_identifier)
+        if file_handler is not None:
+            handlers.append(file_handler)
+
+    if not handlers:
         log.warning(
             "no-logging-handlers-configured",
             reason="no-console-no-file",
@@ -158,50 +223,11 @@ def configure_stdlib_logging(config: StoggerConfig, processors: list[Any]) -> No
         )
         return
 
-    # Prepare combined handler list and assign formatters before activation
-    all_handlers = console_handlers + file_handlers
-    for handler in all_handlers:
-        if isinstance(handler, logging.StreamHandler) and not isinstance(
-            handler,
-            logging.FileHandler,
-        ):
-            handler.setFormatter(console_formatter)
-        elif isinstance(handler, logging.FileHandler):
-            handler.setFormatter(file_formatter)
-        else:
-            handler.setFormatter(console_formatter)
+    _assign_formatters(handlers, console_formatter, file_formatter)
 
     if config.async_logging:
-        log.debug("enabling-async-logging", handler_count=len(all_handlers))
-        from logging.handlers import QueueHandler, QueueListener
-
-        log_queue: Queue = Queue(-1)
-        queue_handler = QueueHandler(log_queue)
-
-        log.debug("starting-queue-listener", handler_count=len(all_handlers))
-        listener = QueueListener(log_queue, *all_handlers)
-        listener.start()
-
-        # Register cleanup handler to stop listener on exit
-        def cleanup_listener() -> None:
-            log.debug("stopping-queue-listener", reason="atexit")
-            listener.stop()
-
-        atexit.register(cleanup_listener)
-        root_logger = logging.getLogger()
-        root_logger.addHandler(queue_handler)
-        root_logger.setLevel(logging.DEBUG)
-        for handler in list(root_logger.handlers):
-            if handler is not queue_handler:
-                root_logger.removeHandler(handler)
-        log.debug("async-logging-configured", handler_count=len(all_handlers))
+        _configure_async_logging(handlers)
     else:
-        log.debug("configuring-sync-logging", handler_count=len(all_handlers))
-        logging.basicConfig(
-            level=logging.DEBUG,
-            handlers=all_handlers,
-            force=True,  # Override existing config
-        )
-        log.debug("sync-logging-configured", handler_count=len(all_handlers))
+        _configure_sync_logging(handlers)
 
     log.debug("stdlib-logging-configuration-complete", status="complete")

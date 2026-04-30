@@ -150,7 +150,7 @@ class TestConfigureStdlibLogging:
         assert "level" in call_kwargs
         assert "force" in call_kwargs
 
-    @patch("logging.handlers.QueueListener", autospec=True)
+    @patch("stogger.factory.QueueListener", autospec=True)
     @patch("logging.getLogger", autospec=True)
     def test_async_logging_configuration(self, mock_get_logger, mock_queue_listener):
         """Test asynchronous logging configuration."""
