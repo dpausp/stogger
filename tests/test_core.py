@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from unittest.mock import MagicMock, patch
 
 import pytest
 import structlog

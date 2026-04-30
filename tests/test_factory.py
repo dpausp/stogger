@@ -154,7 +154,7 @@ class TestConfigureStdlibLogging:
     @patch("logging.getLogger", autospec=True)
     def test_async_logging_configuration(self, mock_get_logger, mock_queue_listener):
         """Test asynchronous logging configuration."""
-        mock_root_logger = MagicMock(spec=logging.Logger(""))  # noqa: LOG001
+        mock_root_logger = MagicMock(spec=logging.Logger(""))
         mock_get_logger.return_value = mock_root_logger
         mock_listener_instance = MagicMock(spec=QueueListener)
         mock_queue_listener.return_value = mock_listener_instance

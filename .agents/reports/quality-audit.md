@@ -46,7 +46,7 @@ Quality meta-audit of the stogger logging library (standalone repo, HEAD `e2f234
 
 ### Ruff Suppression Analysis
 
-- **35 rules ignored** in pyproject.toml — intentional project decisions
+- **36 rules ignored** in pyproject.toml — intentional project decisions
 - **Legitimate** (22 rules): D-rules (docstring style), COM812 (formatter conflict), E402 (log init order), FBT (boolean trap), N806 (ANSI naming), TRY300 (style)
 - **Questionable** (8 rules): A002 (builtin shadowing), ARG001 (unused args), SLF001 (private access — hides 4 structlog internal dependencies), SIM115 (context managers), BLE001 (broad except), S603/S607 (subprocess security), LOG015 (root logger — hides 2 violations)
 - **Critical hiding** (5 rules): PLR0911/PLR0912/PLR0913/PLR0915/PLR2004 — **silences ALL complexity rules**, hiding the exact issues complexipy flags as failures (CC 43, 36, 18)
@@ -57,7 +57,7 @@ Quality meta-audit of the stogger logging library (standalone repo, HEAD `e2f234
 ### ty Analysis
 
 - Clean baseline — 0 errors, 0 warnings
-- 2 targeted `# ty: ignore` comments for structlog internal API access
+- 4 targeted `# ty: ignore` comments for structlog internal API access and type mismatches
 - No issues found
 
 ### pytest-stogger Plugin Bug
@@ -169,6 +169,40 @@ No code changes in this audit cycle.
 - Remove unused `slow` and `integration` pytest markers (defined but no tests use them)
 - Investigate `pytest-stogger` plugin `UnboundLocalError` bug (rules.py:355)
 - Remove or implement `enable_pii_scrubbing` config attribute (phantom feature)
+
+## Tidy Session — 2026-04-30
+
+### Mock Hardening
+- Bare mocks before: 0 → after: 0
+- Migrated to typed: 0
+- Untouchable: 0 (all already 100% spec'd)
+
+### Suppression Cleanup
+- Linter suppressions removed: 2 (stale `# noqa: LOG001` in test files excluded from ruff)
+- Type-check suppressions removed: 0
+- Test skips removed: 0
+- Dead config removed: 1 (`per-file-ignores` for tests/** — tests/ excluded from ruff)
+- Unused imports removed: 1 (`from unittest.mock import MagicMock, patch` in test_core.py)
+- Restored (still needed): 0
+
+### Report Corrections
+- ruff ignore count: 35 → **36** (undercounted in original audit)
+- ty:ignore count: 2 → **4** (missing core.py:670 and factory.py:73)
+
+### Post-Tidy Gates
+| Tool | Before | After |
+|------|--------|-------|
+| tox (all 5 envs) | PASS | PASS |
+| ruff check | 0 issues | 0 issues |
+| ty check | 0 errors | 0 errors |
+| pytest | 43 passed | 43 passed |
+| coverage | 54.62% | 54.62% |
+
+### Skipped (Not Mechanical)
+- ruff ignore list pruning (36 rules) — requires per-rule ruff testing, cannot determine statically
+- PLR complexity rules re-enablement — requires refactoring CC=43/36/18 functions
+- Test coverage improvement — requires design decisions
+- Architecture test creation — requires design decisions
 
 ## Raw Data Location
 
