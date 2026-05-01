@@ -507,7 +507,7 @@ class TestLogToStdlib:
 
     def test_log_to_stdlib(self):
         """Call with event dict -> logging.log called with correct level."""
-        with patch("stogger.core.logging.log") as mock_log:
+        with patch("stogger.core.logging.log", autospec=True) as mock_log:
             event_dict = {
                 "event": "test message",
                 "level": "warning",
@@ -518,7 +518,7 @@ class TestLogToStdlib:
 
     def test_log_to_stdlib_with_exc_info(self):
         """Call with exc_info -> logging.log called with exc_info kwarg."""
-        with patch("stogger.core.logging.log") as mock_log:
+        with patch("stogger.core.logging.log", autospec=True) as mock_log:
             exc = ValueError("boom")
             event_dict = {
                 "event": "error msg",
@@ -532,7 +532,7 @@ class TestLogToStdlib:
 
     def test_log_to_stdlib_default_level(self):
         """Missing level defaults to INFO."""
-        with patch("stogger.core.logging.log") as mock_log:
+        with patch("stogger.core.logging.log", autospec=True) as mock_log:
             event_dict = {"event": "default"}
             log_to_stdlib(None, "info", event_dict)
             mock_log.assert_called_once_with(logging.INFO, "default")
@@ -679,7 +679,7 @@ class TestMultiRenderer:
             return {"good": "output"}
 
         mr = MultiRenderer(bad=bad_renderer, good=good_renderer)
-        with patch("stogger.core.logging.getLogger") as mock_get_logger:
+        with patch("stogger.core.logging.getLogger", autospec=True) as mock_get_logger:
             mock_get_logger.return_value.exception = MagicMock()
             result = mr(None, "info", {"event": "test"})
 
@@ -701,7 +701,7 @@ class TestMultiOptimisticLogger:
         failing_logger = MagicMock()
         failing_logger.msg.side_effect = RuntimeError("write failed")
         mol = MultiOptimisticLogger({"target": failing_logger})
-        with patch("stogger.core.logging.getLogger") as mock_get_logger:
+        with patch("stogger.core.logging.getLogger", autospec=True) as mock_get_logger:
             mock_get_logger.return_value.exception = MagicMock()
             mol.msg(target="hello")
         # Should not raise
