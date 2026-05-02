@@ -1,11 +1,13 @@
 """Configuration handling for stogger."""
 
 import fnmatch
+import time
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import attrs
 import structlog
 
 
@@ -80,6 +82,65 @@ class ProjectStructure:
             return True
 
 
+def _load_pyproject_config() -> dict[str, Any]:
+    """Load ``[tool.stogger]`` settings from ``pyproject.toml`` in cwd.
+
+    Returns:
+        Dictionary of configuration values, or an empty dict when the
+        file is missing or cannot be parsed.
+
+    """
+    log = structlog.get_logger(__name__)
+
+    pyproject_path = Path.cwd() / "pyproject.toml"
+    log = log.bind(path=str(pyproject_path))
+
+    log.debug(
+        "searching-for-config",
+        exists=pyproject_path.is_file(),
+    )
+
+    if not pyproject_path.is_file():
+        log.debug("no-pyproject-found", exists=False)
+        return {}
+    try:
+        with pyproject_path.open("rb") as f:
+            config = tomllib.load(f)
+        stogger_config = config.get("tool", {}).get("stogger", {})
+        log.debug(
+            "config-loaded-successfully",
+            settings_count=len(stogger_config),
+        )
+    except (tomllib.TOMLDecodeError, Exception):
+        log.exception("config-loading-failed", stage="load")
+        return {}
+    else:
+        return stogger_config
+
+
+@attrs.define(slots=False)
+class FormatConfig:
+    """Configuration for log format settings, loaded from ``[tool.stogger.format]``.
+
+    Attributes:
+        timestamp_precision: Timestamp format — ``"iso"``, ``"iso_seconds"``,
+            ``"iso_no_z"``, or ``"relative"``. Default ``"iso_seconds"``.
+        min_level: Minimum log level to display. Default ``"info"``.
+        show_code_info: Include file name and line number. Default ``False``.
+        pad_event_width: Minimum width for the event column. Default ``30``.
+
+    """
+
+    timestamp_precision: str = "iso_seconds"
+    min_level: str = "info"
+    show_code_info: bool = False
+    pad_event_width: int = 30
+
+    def __attrs_post_init__(self) -> None:
+        self._process_start: float = time.time()
+
+
+@attrs.define
 class StoggerConfig:
     """Central configuration for stogger, merged from ``[tool.stogger]`` in
     ``pyproject.toml`` and keyword arguments passed at construction.
@@ -110,6 +171,7 @@ class StoggerConfig:
         systemd_facility (str | None): Syslog facility for systemd output.
             Default ``None``.
         src_dir (str): Primary source directory name. Default ``"src"``.
+        format (FormatConfig): Format configuration. Default ``FormatConfig()``.
         ast_respect_gitignore (bool): Honor ``.gitignore`` during AST
             analysis. Default ``True``.
         ast_max_parameters (int): Max parameters before flagging a function.
@@ -121,80 +183,65 @@ class StoggerConfig:
 
     """
 
+    verbose: bool = False
+    logdir: Path | None = None
+    log_cmd_output: bool = False
+    log_to_console: bool = True
+    syslog_identifier: str = "stogger"
+    show_caller_info: bool = False
+    translation_dir: Path | None = None
+    language: str = "en"
+    log_format: str = "simple"
+    async_logging: bool = False
+    enable_pii_scrubbing: bool = True
+    pii_redaction_text: str = "[REDACTED]"
+    enable_systemd: bool = True
+    systemd_facility: str | None = None
+    src_dir: str = "src"
+    format: FormatConfig = attrs.field(factory=FormatConfig)
+    ast_respect_gitignore: bool = True
+    ast_max_parameters: int = 8
+    ast_logging_focus: bool = True
+    ast_enabled_patterns: list | None = None
+
     def __init__(self, **kwargs: Any) -> None:
-        """Initializes the configuration.
+        """Initialize configuration from TOML file merged with kwargs.
 
         Args:
-            **kwargs: Keyword arguments that can override config file settings.
+            **kwargs: Keyword arguments that override config file settings.
 
         """
         log = structlog.get_logger(__name__)
 
-        config = self._load_config()
+        config = _load_pyproject_config()
         log.debug("config-loaded-from-file", key_count=len(config))
         config.update(kwargs)
         log.debug("config-merged-with-kwargs", kwargs_count=len(kwargs))
 
-        self.verbose: bool = config.get("verbose", False)
-        self.logdir: Path | None = Path(config["logdir"]) if config.get("logdir") else None
-        self.log_cmd_output: bool = config.get("log_cmd_output", False)
-        self.log_to_console: bool = config.get("log_to_console", True)
-        self.syslog_identifier: str = config.get("syslog_identifier", "stogger")
-        self.show_caller_info: bool = config.get("show_caller_info", False)
-        self.translation_dir: Path | None = Path(config["translation_dir"]) if config.get("translation_dir") else None
-        self.language: str = config.get("language", "en")
-        self.log_format: str = config.get("log_format", "simple")
-        self.async_logging: bool = config.get("async_logging", False)
-        self.enable_pii_scrubbing: bool = config.get("enable_pii_scrubbing", True)
-        self.pii_redaction_text: str = config.get("pii_redaction_text", "[REDACTED]")
-        self.enable_systemd: bool = config.get("enable_systemd", True)
-        self.systemd_facility: str | None = config.get("systemd_facility", None)
-        self.src_dir: str = config.get("src_dir", "src")
-
-        # AST Analysis settings
-        ast_config = config.get("ast", {})
-        self.ast_respect_gitignore: bool = ast_config.get("respect_gitignore", True)
-        self.ast_max_parameters: int = ast_config.get("max_parameters", 8)
-        self.ast_logging_focus: bool = ast_config.get("logging_focus", True)
-        self.ast_enabled_patterns: list | None = ast_config.get(
-            "enabled_patterns",
-            None,
+        # Build FormatConfig from [tool.stogger.format] section
+        format_config = config.pop("format", {})
+        self.__attrs_init__(  # ty: ignore[unresolved-attribute]
+            verbose=config.get("verbose", False),
+            logdir=Path(config["logdir"]) if config.get("logdir") else None,
+            log_cmd_output=config.get("log_cmd_output", False),
+            log_to_console=config.get("log_to_console", True),
+            syslog_identifier=config.get("syslog_identifier", "stogger"),
+            show_caller_info=config.get("show_caller_info", False),
+            translation_dir=Path(config["translation_dir"]) if config.get("translation_dir") else None,
+            language=config.get("language", "en"),
+            log_format=config.get("log_format", "simple"),
+            async_logging=config.get("async_logging", False),
+            enable_pii_scrubbing=config.get("enable_pii_scrubbing", True),
+            pii_redaction_text=config.get("pii_redaction_text", "[REDACTED]"),
+            enable_systemd=config.get("enable_systemd", True),
+            systemd_facility=config.get("systemd_facility", None),
+            src_dir=config.get("src_dir", "src"),
+            format=FormatConfig(**format_config) if isinstance(format_config, dict) else format_config,
+            ast_respect_gitignore=config.get("ast", {}).get("respect_gitignore", True),
+            ast_max_parameters=config.get("ast", {}).get("max_parameters", 8),
+            ast_logging_focus=config.get("ast", {}).get("logging_focus", True),
+            ast_enabled_patterns=config.get("ast", {}).get("enabled_patterns", None),
         )
-
-    def _load_config(self) -> dict[str, Any]:
-        """Load ``[tool.stogger]`` settings from ``pyproject.toml`` in cwd.
-
-        Returns:
-            Dictionary of configuration values, or an empty dict when the
-            file is missing or cannot be parsed.
-
-        """
-        log = structlog.get_logger(__name__)
-
-        pyproject_path = Path.cwd() / "pyproject.toml"
-        log = log.bind(path=str(pyproject_path))
-
-        log.debug(
-            "searching-for-config",
-            exists=pyproject_path.is_file(),
-        )
-
-        if not pyproject_path.is_file():
-            log.debug("no-pyproject-found", exists=False)
-            return {}
-        try:
-            with pyproject_path.open("rb") as f:
-                config = tomllib.load(f)
-            stogger_config = config.get("tool", {}).get("stogger", {})
-            log.debug(
-                "config-loaded-successfully",
-                settings_count=len(stogger_config),
-            )
-        except (tomllib.TOMLDecodeError, Exception):
-            log.exception("config-loading-failed", stage="load")
-            return {}
-        else:
-            return stogger_config
 
 
 def detect_project_structure(project_root: Path | None = None) -> ProjectStructure:
@@ -541,30 +588,3 @@ def _create_default_structure_with_tests(
         detection_source=source,
         project_root=project_root,
     )
-
-
-@dataclass
-class SimpleFormatSettings:
-    """Configuration for the simple console log renderer.
-
-    Attributes:
-        min_level: Minimum log level to display. Default ``"info"``.
-        show_logger_brackets: Wrap logger name in brackets. Default ``False``.
-        show_pid: Include process ID in output. Default ``False``.
-        show_code_info: Include file name and line number. Default ``False``.
-        timestamp_format: Timestamp style — ``"iso"`` or ``"relative"``.
-            Default ``"iso"``.
-        pad_event_width: Minimum width for the event column. Default ``30``.
-
-    """
-
-    min_level: str = "info"
-    show_logger_brackets: bool = False
-    show_pid: bool = False
-    show_code_info: bool = False
-    timestamp_format: str = "iso"
-    pad_event_width: int = 30
-
-
-# Standard settings object
-_default_simple_format_settings = SimpleFormatSettings()

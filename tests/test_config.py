@@ -151,8 +151,6 @@ src_dir = "custom_src"
             assert config.src_dir == "override_src"
 
 
-
-
 # ---------------------------------------------------------------------------
 # Quick-win module coverage tests
 # ---------------------------------------------------------------------------
@@ -294,9 +292,7 @@ def test_detect_from_hatch_section():
         (root / "src" / "pkg").mkdir()
         (root / "src" / "pkg" / "__init__.py").touch()
         (root / "tests").mkdir()
-        (root / "pyproject.toml").write_text(
-            '[tool.hatch.build.targets.wheel]\npackages = ["src/pkg"]\n'
-        )
+        (root / "pyproject.toml").write_text('[tool.hatch.build.targets.wheel]\npackages = ["src/pkg"]\n')
         result = detect_project_structure(root)
         assert result.detection_source == "pyproject.toml"
         assert "src" in result.source_dirs
@@ -310,9 +306,7 @@ def test_detect_from_pytest_section():
         (root / "src" / "pkg").mkdir()
         (root / "src" / "pkg" / "__init__.py").touch()
         (root / "tests").mkdir()
-        (root / "pyproject.toml").write_text(
-            '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
-        )
+        (root / "pyproject.toml").write_text('[tool.pytest.ini_options]\ntestpaths = ["tests"]\n')
         result = detect_project_structure(root)
         assert result.detection_source == "pyproject.toml"
         assert "tests" in result.test_dirs
@@ -378,9 +372,7 @@ def test_colors_tty_branch():
     """Reload _colors with mocked isatty to cover the colorama branch."""
     import stogger._colors as colors_mod
 
-    with patch.object(
-        __import__("sys").stdout, "isatty", return_value=True
-    ):
+    with patch.object(__import__("sys").stdout, "isatty", return_value=True):
         importlib.reload(colors_mod)
         assert isinstance(colors_mod.RESET_ALL, str)
         assert len(colors_mod.RESET_ALL) > 0  # colorama ANSI codes are non-empty
@@ -412,9 +404,7 @@ def test_detect_stogger_with_exclude_patterns():
         (root / "src" / "pkg").mkdir()
         (root / "src" / "pkg" / "__init__.py").touch()
         (root / "tests").mkdir()
-        (root / "pyproject.toml").write_text(
-            '[tool.stogger]\nsrc_dir = "src"\nexclude = ["tests/**", "docs/**"]\n'
-        )
+        (root / "pyproject.toml").write_text('[tool.stogger]\nsrc_dir = "src"\nexclude = ["tests/**", "docs/**"]\n')
         result = detect_project_structure(root)
         assert result.detection_source == "pyproject.toml"
         assert "tests" in result.test_dirs
@@ -440,6 +430,7 @@ def test_probe_pytest_no_testpaths():
         root = Path(tmpdir)
         result = _probe_pytest_section({"ini_options": {}}, root)
         assert result is None
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

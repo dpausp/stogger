@@ -242,3 +242,40 @@ Full CLI test not triggered — stogger is a library (not a CLI tool) and existi
 ## Raw Data Location
 
 `.agents/tmp/quality/` — inventory/, baseline/, extreme/, analysis/, e2e/
+
+## Tidy Session — 2026-05-01
+
+### Mock Hardening
+- Bare mocks before: 5 unspec'd patches → after: 0
+- Migrated to autospec: 5 (all in tests/test_core.py)
+  - 3x `patch("stogger.core.logging.log", autospec=True)` — lines ~510, ~521, ~535
+  - 2x `patch("stogger.core.logging.getLogger", autospec=True)` — lines ~682, ~704
+- Untouchable: 3 bare MagicMock() instances (need spec target design decision)
+- Not candidates: 2 nested attribute stubs, 1 sys.exc_info patch, 1 os.environ patch
+
+### Dead Config Cleanup
+- Removed `[tool.radon]` section — radon not installed, config was dead
+- Removed unused `markers` line from `[tool.pytest.ini_options]` — slow/integration markers never applied to any test
+
+### Suppression Cleanup
+- Linter suppressions removed: 0 (all 8 noqa comments verified legitimate)
+- Type-check suppressions removed: 0 (none existed)
+- Test skips removed: 0 (none existed)
+- Restored (still needed): 0
+
+### Post-Tidy Gates
+| Tool | Before | After |
+|------|--------|-------|
+| ruff | 0 issues | 0 issues |
+| ty | 0 errors | 0 errors |
+| pytest | 118 passed | 118 passed |
+
+### Skipped (Not Mechanical)
+- Bare MagicMock() at test_core.py:694,701,711 — spec target selection is a design decision
+- D-series docstring suppressions (42) — adding docstrings is a writing/design decision
+- DOC201 undocumented returns (8) — documentation decision
+- Architecture enforcement via pytest-archon — needs adoption decision
+- ConsoleFileRenderer::__call__ decomposition (CC=16) — needs design decision
+- Integration test for configure_stdlib_logging — test strategy decision
+- Adding --durations=10 to pytest addopts — CI improvement, not cleanup
+- factory.py coverage gap (80%) — needs test design decision

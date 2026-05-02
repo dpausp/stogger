@@ -25,6 +25,30 @@ from .core import (
 log = structlog.get_logger(__name__)
 
 
+def build_timestamp_processor(config):
+    """Build a TimeStamper processor based on config.format.timestamp_precision.
+
+    Central factory function for timestamp configuration. All TimeStamper
+    call sites use this function to ensure consistent utc=True and correct fmt.
+
+    Args:
+        config: A config object with a .format attribute containing FormatConfig.
+
+    Returns:
+        A TimeStamper processor configured with the appropriate fmt and utc=True.
+
+    """
+    precision = config.format.timestamp_precision
+    fmt_map = {
+        "iso": "iso",
+        "iso_seconds": "%Y-%m-%dT%H:%M:%SZ",
+        "iso_no_z": "%Y-%m-%dT%H:%M:%S",
+        "relative": "iso",
+    }
+    fmt = fmt_map.get(precision, precision)
+    return structlog.processors.TimeStamper(fmt=fmt, utc=True, key="timestamp")
+
+
 def build_shared_processors(config: StoggerConfig) -> list[Any]:
     """Builds processors that are shared between sync and async modes."""
     if config.verbose:
@@ -36,9 +60,8 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
 
     processors = [
         structlog.stdlib.add_log_level,
-        # Note: removed add_logger_name as it's incompatible with PrintLogger
-        # Always add a timestamp to events so renderers have it available
-        structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
+        # Timestamp processor via central factory function
+        build_timestamp_processor(config),
         add_pid,
         add_caller_info,
         process_exc_info,
@@ -72,7 +95,8 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
         processors.append(JSONRenderer())
     else:
         processors.append(
-            ConsoleFileRenderer(  # ty: ignore[invalid-argument-type]
+            ConsoleFileRenderer(
+                format_config=config.format,
                 min_level="debug" if config.verbose else "info",
                 show_caller_info=config.show_caller_info,
             ),
@@ -102,7 +126,7 @@ def build_renderer(config: StoggerConfig) -> Any:
         )
     else:
         # Use ConsoleFileRenderer with direct parameters
-        renderer = ConsoleFileRenderer()
+        renderer = ConsoleFileRenderer(format_config=config.format)
         log.debug(
             "console-renderer-created",
             min_level="debug" if config.verbose else "info",

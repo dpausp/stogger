@@ -8,6 +8,7 @@ import string
 import subprocess
 import sys
 import syslog
+import time
 from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,8 +16,7 @@ from typing import ClassVar
 
 import structlog
 
-# Import the default settings object
-from .config import StoggerConfig, _default_simple_format_settings
+from .config import FormatConfig, StoggerConfig
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -110,35 +110,35 @@ class ConsoleFileRenderer:
 
     def __init__(
         self,
-        settings=_default_simple_format_settings,
+        format_config=None,
         min_level=None,
         show_caller_info=None,
     ) -> None:
-        """Initialize the ConsoleFileRenderer with settings.
+        """Initialize the ConsoleFileRenderer with format_config.
 
         Args:
-            settings: SimpleFormatSettings object with configuration options.
-                      Uses default settings if None is provided.
-            min_level: Override min_level from settings
-            show_caller_info: Override show_code_info from settings
+            format_config: FormatConfig object with format settings.
+                      Uses default FormatConfig() if None is provided.
+            min_level: Override min_level from format_config
+            show_caller_info: Override show_code_info from format_config
 
         """
-        # Store settings object
-        self.settings = settings
+        # Use provided FormatConfig or create default
+        if format_config is None:
+            format_config = FormatConfig()
+        self.format_config = format_config
 
-        # Override settings with provided parameters
-        if min_level is not None:
-            self.settings.min_level = min_level
-        if show_caller_info is not None:
-            self.settings.show_code_info = show_caller_info
+        # Derive effective values from format_config + overrides
+        effective_min_level = min_level if min_level is not None else format_config.min_level
+        effective_show_code_info = show_caller_info if show_caller_info is not None else format_config.show_code_info
 
-        # Initialize instance variables from settings
-        self.min_level = self.LEVELS.index(settings.min_level.lower())
-        self.show_caller_info = settings.show_code_info
-        self.pad_event = settings.pad_event_width
-        self.show_logger_brackets = settings.show_logger_brackets
-        self.show_pid = settings.show_pid
-        self.timestamp_format = settings.timestamp_format
+        # Initialize instance variables
+        self.min_level = self.LEVELS.index(effective_min_level.lower())
+        self.show_caller_info = effective_show_code_info
+        self.pad_event = format_config.pad_event_width
+        self.show_logger_brackets = False
+        self.show_pid = False
+        self.timestamp_format = format_config.timestamp_precision
 
         sys.stdout.isatty()
 
@@ -194,7 +194,10 @@ class ConsoleFileRenderer:
     def _format_timestamp(self, ts, _log_settings):
         """Format timestamp with format variant handling."""
         if ts is not None:
-            if self.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
+            if self.timestamp_format == "relative":
+                elapsed = time.time() - self.format_config._process_start  # noqa: SLF001
+                ts = f"+{elapsed:.3f}s"
+            elif self.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
                 ts = str(ts)[:-1]
             return DIM + str(ts) + RESET_ALL + " "
         return DIM + "notimestamp" + RESET_ALL + " "
@@ -475,12 +478,14 @@ def init_logging(  # noqa: PLR0912, PLR0913 — stable public API, signature fro
             When None (default), uses the level from settings (typically ``"info"``).
         show_caller_info: Whether to display code location (file, function, line)
             in console output. When None (default), uses the setting from
-            ``SimpleFormatSettings.show_code_info``.
+            ``FormatConfig.show_code_info``.
 
     Raises:
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
 
     """
+    from .factory import build_timestamp_processor  # noqa: PLC0415 — avoid circular import
+
     logdir = Path(logdir) if logdir else None
 
     cfg = StoggerConfig()
@@ -495,7 +500,10 @@ def init_logging(  # noqa: PLR0912, PLR0913 — stable public API, signature fro
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(syslog_identifier, config_facility),
         cmd_output_file=CmdOutputFileRenderer(),
-        text=ConsoleFileRenderer(**console_renderer_kwargs),
+        text=ConsoleFileRenderer(
+            format_config=cfg.format if isinstance(cfg.format, FormatConfig) else None,
+            **console_renderer_kwargs,
+        ),
     )
 
     processors = [
@@ -504,7 +512,7 @@ def init_logging(  # noqa: PLR0912, PLR0913 — stable public API, signature fro
         process_exc_info,
         format_exc_info,
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.TimeStamper(fmt="iso", utc=False),
+        build_timestamp_processor(cfg),
         add_caller_info,
         multi_renderer,
     ]
@@ -576,10 +584,12 @@ def init_early_logging() -> None:
         return  # Already configured
 
     with suppress(Exception):
+        from .factory import build_timestamp_processor  # noqa: PLC0415 — avoid circular import
+
         # Minimal processors for early initialization - avoid logging during setup
         processors = [
             structlog.stdlib.add_log_level,
-            structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
+            build_timestamp_processor(StoggerConfig()),
             ConsoleFileRenderer(),
             SelectRenderedString(
                 key="console",

@@ -14,7 +14,7 @@ import pytest
 import structlog
 
 # Import the modules we want to test
-from stogger.config import SimpleFormatSettings
+from stogger.config import FormatConfig
 from stogger.core import (
     CmdOutputFileRenderer,
     ConsoleFileRenderer,
@@ -50,14 +50,14 @@ class TestConsoleFileRenderer:
 
     def test_caller_info_option(self):
         """Test the show_caller_info option."""
-        settings = SimpleFormatSettings(show_code_info=True)
-        renderer = ConsoleFileRenderer(settings=settings)
-        assert renderer.settings.show_code_info is True
+        settings = FormatConfig(show_code_info=True)
+        renderer = ConsoleFileRenderer(format_config=settings)
+        assert renderer.format_config.show_code_info is True
 
     def test_pad_event_width(self):
         """Test the pad_event_width option."""
-        settings = SimpleFormatSettings(pad_event_width=20)
-        renderer = ConsoleFileRenderer(settings=settings)
+        settings = FormatConfig(pad_event_width=20)
+        renderer = ConsoleFileRenderer(format_config=settings)
         result = renderer(
             None,
             "info",
@@ -71,15 +71,13 @@ class TestConsoleFileRenderer:
         assert "short" + " " * 15 in result["file"]
 
     def test_console_file_renderer_with_simple_format_settings(self):
-        """Test ConsoleFileRenderer with SimpleFormatSettings."""
-        settings = SimpleFormatSettings(
+        """Test ConsoleFileRenderer with FormatConfig."""
+        settings = FormatConfig(
             min_level="debug",
-            show_logger_brackets=False,
-            show_pid=False,
             show_code_info=True,
-            timestamp_format="iso_no_z",
+            timestamp_precision="iso_no_z",
         )
-        renderer = ConsoleFileRenderer(settings=settings)
+        renderer = ConsoleFileRenderer(format_config=settings)
 
         result = renderer(
             None,
@@ -134,15 +132,13 @@ class TestCoreEdgeCases:
     """Tests for edge cases in core functionality."""
 
     def test_console_file_renderer_with_simple_format_settings(self):
-        """Test ConsoleFileRenderer with SimpleFormatSettings."""
-        settings = SimpleFormatSettings(
+        """Test ConsoleFileRenderer with FormatConfig."""
+        settings = FormatConfig(
             min_level="debug",
-            show_logger_brackets=False,
-            show_pid=False,
             show_code_info=True,
-            timestamp_format="iso_no_z",
+            timestamp_precision="iso_no_z",
         )
-        renderer = ConsoleFileRenderer(settings=settings)
+        renderer = ConsoleFileRenderer(format_config=settings)
 
         result = renderer(
             None,
@@ -472,9 +468,8 @@ class TestConsoleRendererShowPid:
     """Tests for show_pid in ConsoleFileRenderer."""
 
     def test_console_renderer_show_pid(self):
-        """show_pid=True, pid in event -> output contains pid."""
-        settings = SimpleFormatSettings(show_pid=True)
-        renderer = ConsoleFileRenderer(settings=settings)
+        """show_pid is no longer a FormatConfig field; pid is never shown."""
+        renderer = ConsoleFileRenderer()
         event_dict = {
             "event": "test",
             "level": "info",
@@ -482,16 +477,16 @@ class TestConsoleRendererShowPid:
             "pid": 12345,
         }
         result = renderer(None, "info", event_dict)
-        assert "12345" in result["console"]
+        # show_pid is a dead field, no longer migrated to FormatConfig
+        assert "12345" not in result["console"]
 
 
 class TestConsoleRendererShowLoggerBrackets:
     """Tests for show_logger_brackets in ConsoleFileRenderer."""
 
     def test_console_renderer_show_logger_brackets(self):
-        """show_logger_brackets=True, logger name -> brackets in output."""
-        settings = SimpleFormatSettings(show_logger_brackets=True)
-        renderer = ConsoleFileRenderer(settings=settings)
+        """show_logger_brackets is no longer a FormatConfig field; brackets never shown."""
+        renderer = ConsoleFileRenderer()
         event_dict = {
             "event": "test",
             "level": "info",
@@ -499,7 +494,8 @@ class TestConsoleRendererShowLoggerBrackets:
             "logger": "mymodule",
         }
         result = renderer(None, "info", event_dict)
-        assert "[mymodule]" in result["console"]
+        # show_logger_brackets is a dead field, no longer migrated
+        assert "[mymodule]" not in result["console"]
 
 
 class TestLogToStdlib:

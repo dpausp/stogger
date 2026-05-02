@@ -1,16 +1,3 @@
----
-lifecycle:
-  requirements:
-    completed_at: "2026-05-02T12:00:00Z"
-    git_rev: "cf1638b"
-  design:
-    completed_at: "2026-05-02T14:00:00Z"
-    git_rev: "cf1638b"
-  implement:
-    completed_at: "2026-05-02T15:00:00Z"
-    git_rev: "b455530"
----
-
 # format-config-extension
 
 ## Context
@@ -167,66 +154,6 @@ c. No automated tests — rejected, config pipeline is critical path.
 
 Full test coverage for config flow. Bidirectional traceability: ADR references test file paths. Spec-validation tests verify design decisions before implementation.
 
-## Appendix
+## Verified By
 
-### Interface Contract
-
-**Usage (pyproject.toml):**
-```toml
-[tool.stogger]
-log_format = "simple"
-
-[tool.stogger.format]
-timestamp_precision = "iso_seconds"  # iso | iso_seconds | iso_no_z | relative
-```
-
-**Discovery:** README configuration section + `init_logging()` docstring.
-
-**Error behavior:** Invalid values produce unexpected but non-crashing output. No validation, GIGO.
-
-### Scope Summary
-
-- **IN**: attrs migration of StoggerConfig, FormatConfig attrs class, timestamp_precision config, four format values, central build_timestamp_processor, utc normalization, SimpleFormatSettings removal, TOML loading, README + docstring documentation, TDD tests
-- **OUT**: show_logger_brackets, show_pid (dead fields, not migrated), pydantic/cattrs/msgspec, init_logging() parameter for format, environment variables, format plugin system
-
-### Implementation Plan
-
-```yaml
-id: format-config-extension
-description: "attrs-based config layer migration + timestamp precision configuration for stogger"
-specs:
-  - .agents/impl_specs/format-config-extension.md
-target_tests:
-  - file: tests/impl_spec/test_format_config_extension.py
-    tests:
-      - test_stogger_config_is_attrs_class
-      - test_format_config_is_attrs_class
-      - test_stogger_config_has_format_attr
-      - test_simple_format_settings_removed
-      - test_default_simple_format_settings_removed
-      - test_format_config_has_four_fields
-      - test_format_config_default_timestamp_precision
-      - test_format_config_default_min_level
-      - test_format_config_default_show_code_info
-      - test_format_config_default_pad_event_width
-      - test_build_timestamp_processor_exists
-      - test_build_timestamp_processor_iso
-      - test_build_timestamp_processor_iso_seconds
-      - test_build_timestamp_processor_iso_no_z
-      - test_build_timestamp_processor_relative
-      - test_default_precision_is_iso_seconds
-      - test_renderer_format_timestamp_iso
-      - test_renderer_format_timestamp_iso_seconds
-      - test_renderer_format_timestamp_iso_no_z
-      - test_renderer_format_timestamp_relative
-      - test_format_config_process_start_is_set
-      - test_no_raw_timestamper_in_factory
-      - test_no_raw_timestamper_in_core
-      - test_init_logging_uses_utc_true
-      - test_toml_format_section_loading
-      - test_toml_format_section_partial
-      - test_gigo_invalid_timestamp_precision
-      - test_toml_format_section_absent_defaults
-git_rev: b455530
-created_at: "2026-05-02T15:00:00Z"
-```
+<!-- Tests will be added after implementation -->

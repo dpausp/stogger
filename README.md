@@ -25,6 +25,27 @@ def test_login_logs_user(log):
 
 See `docs/user_guide/testing.md` for details.
 
+## Configuration
+
+Configure stogger in `pyproject.toml` under `[tool.stogger]`:
+
+```toml
+[tool.stogger]
+log_format = "simple"
+
+[tool.stogger.format]
+timestamp_precision = "iso_seconds"  # iso | iso_seconds | iso_no_z | relative
+```
+
+The `timestamp_precision` values:
+
+| Value | Output |
+|---|---|
+| `iso` | `2026-05-02T12:34:56.123456Z` (full µs) |
+| `iso_seconds` | `2026-05-02T12:34:56Z` (default) |
+| `iso_no_z` | `2026-05-02T12:34:56` (no Z suffix) |
+| `relative` | `+2.341s` (elapsed from process start) |
+
 ## Documentation
 
 Full docs at `docs/` — build with:

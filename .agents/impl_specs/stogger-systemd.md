@@ -6,6 +6,9 @@ lifecycle:
   design:
     completed_at: "2026-05-01T02:00:00Z"
     git_rev: "15d6858"
+  implement:
+    completed_at: "2026-05-02T00:00:00Z"
+    git_rev: "7d0c670"
 ---
 
 # stogger-systemd
@@ -219,3 +222,23 @@ Stogger stays on current version. stogger-systemd is a pure addition.
 4. Info message appears when JOURNAL_STREAM detected but package missing
 5. enable_systemd=False in pyproject.toml suppresses all journal behavior
 6. All test cases pass without systemd-python installed
+
+## Implementation Plan
+
+```yaml
+id: stogger-systemd
+description: "Extract systemd journal I/O into separate workspace package. Create packages/stogger-systemd/ with JournalLogger/JournalLoggerFactory, wire dynamic import in init_logging(), fix facility plumbing, add JOURNAL_STREAM info message."
+specs:
+  - .agents/impl_specs/stogger-systemd.md
+target_tests:
+  - file: tests/impl_spec/test_stogger_systemd.py
+    tests:
+      - test_package_api_contract
+      - test_factory_returns_compatible_logger
+      - test_init_logging_journal_registered_on_import
+      - test_init_logging_journal_suppressed_when_disabled
+      - test_journal_stream_info_message_without_package
+      - test_facility_from_config_not_hardcoded
+git_rev: "7d0c670"
+created_at: "2026-05-02T00:00:00Z"
+```
