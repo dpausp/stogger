@@ -94,7 +94,7 @@ Module Contents
    Add a prefix to each line of a multi-line string.
 
 
-.. py:class:: ConsoleFileRenderer(settings=_default_simple_format_settings, min_level=None, show_caller_info=None)
+.. py:class:: ConsoleFileRenderer(format_config=None, min_level=None, show_caller_info=None)
 
    Render `event_dict` nicely aligned, in colors, and ordered with
    specific knowledge about stogger structures.
@@ -106,20 +106,18 @@ Module Contents
 
 
 
-   .. py:attribute:: settings
+   .. py:attribute:: format_config
+      :value: None
+
 
 
    .. py:attribute:: min_level
 
 
    .. py:attribute:: show_caller_info
-      :value: False
-
 
 
    .. py:attribute:: pad_event
-      :value: 30
-
 
 
    .. py:attribute:: show_logger_brackets
@@ -133,8 +131,6 @@ Module Contents
 
 
    .. py:attribute:: timestamp_format
-      :value: 'iso'
-
 
 
 .. py:class:: JSONRenderer(min_level='info')
@@ -223,7 +219,7 @@ Module Contents
            When None (default), uses the level from settings (typically ``"info"``).
        show_caller_info: Whether to display code location (file, function, line)
            in console output. When None (default), uses the setting from
-           ``SimpleFormatSettings.show_code_info``.
+           ``FormatConfig.show_code_info``.
 
    Raises:
        ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.

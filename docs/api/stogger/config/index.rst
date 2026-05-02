@@ -15,8 +15,8 @@ Classes
 .. autoapisummary::
 
    stogger.config.ProjectStructure
+   stogger.config.FormatConfig
    stogger.config.StoggerConfig
-   stogger.config.SimpleFormatSettings
 
 
 Functions
@@ -87,6 +87,43 @@ Module Contents
 
 
 
+.. py:class:: FormatConfig
+
+   Configuration for log format settings, loaded from ``[tool.stogger.format]``.
+
+   Attributes:
+       timestamp_precision: Timestamp format — ``"iso"``, ``"iso_seconds"``,
+           ``"iso_no_z"``, or ``"relative"``. Default ``"iso_seconds"``.
+       min_level: Minimum log level to display. Default ``"info"``.
+       show_code_info: Include file name and line number. Default ``False``.
+       pad_event_width: Minimum width for the event column. Default ``30``.
+
+
+
+   .. py:attribute:: timestamp_precision
+      :type:  str
+      :value: 'iso_seconds'
+
+
+
+   .. py:attribute:: min_level
+      :type:  str
+      :value: 'info'
+
+
+
+   .. py:attribute:: show_code_info
+      :type:  bool
+      :value: False
+
+
+
+   .. py:attribute:: pad_event_width
+      :type:  int
+      :value: 30
+
+
+
 .. py:class:: StoggerConfig(**kwargs)
 
    Central configuration for stogger, merged from ``[tool.stogger]`` in
@@ -118,6 +155,7 @@ Module Contents
        systemd_facility (str | None): Syslog facility for systemd output.
            Default ``None``.
        src_dir (str): Primary source directory name. Default ``"src"``.
+       format (FormatConfig): Format configuration. Default ``FormatConfig()``.
        ast_respect_gitignore (bool): Honor ``.gitignore`` during AST
            analysis. Default ``True``.
        ast_max_parameters (int): Max parameters before flagging a function.
@@ -131,78 +169,120 @@ Module Contents
 
    .. py:attribute:: verbose
       :type:  bool
+      :value: False
+
 
 
    .. py:attribute:: logdir
       :type:  pathlib.Path | None
+      :value: None
+
 
 
    .. py:attribute:: log_cmd_output
       :type:  bool
+      :value: False
+
 
 
    .. py:attribute:: log_to_console
       :type:  bool
+      :value: True
+
 
 
    .. py:attribute:: syslog_identifier
       :type:  str
+      :value: 'stogger'
+
 
 
    .. py:attribute:: show_caller_info
       :type:  bool
+      :value: False
+
 
 
    .. py:attribute:: translation_dir
       :type:  pathlib.Path | None
+      :value: None
+
 
 
    .. py:attribute:: language
       :type:  str
+      :value: 'en'
+
 
 
    .. py:attribute:: log_format
       :type:  str
+      :value: 'simple'
+
 
 
    .. py:attribute:: async_logging
       :type:  bool
+      :value: False
+
 
 
    .. py:attribute:: enable_pii_scrubbing
       :type:  bool
+      :value: True
+
 
 
    .. py:attribute:: pii_redaction_text
       :type:  str
+      :value: '[REDACTED]'
+
 
 
    .. py:attribute:: enable_systemd
       :type:  bool
+      :value: True
+
 
 
    .. py:attribute:: systemd_facility
       :type:  str | None
+      :value: None
+
 
 
    .. py:attribute:: src_dir
       :type:  str
+      :value: 'src'
+
+
+
+   .. py:attribute:: format
+      :type:  FormatConfig
 
 
    .. py:attribute:: ast_respect_gitignore
       :type:  bool
+      :value: True
+
 
 
    .. py:attribute:: ast_max_parameters
       :type:  int
+      :value: 8
+
 
 
    .. py:attribute:: ast_logging_focus
       :type:  bool
+      :value: True
+
 
 
    .. py:attribute:: ast_enabled_patterns
       :type:  list | None
+      :value: None
+
 
 
 .. py:function:: detect_project_structure(project_root = None)
@@ -217,57 +297,6 @@ Module Contents
 
    Raises:
        ValueError: If project structure cannot be determined and user configuration is required.
-
-
-
-.. py:class:: SimpleFormatSettings
-
-   Configuration for the simple console log renderer.
-
-   Attributes:
-       min_level: Minimum log level to display. Default ``"info"``.
-       show_logger_brackets: Wrap logger name in brackets. Default ``False``.
-       show_pid: Include process ID in output. Default ``False``.
-       show_code_info: Include file name and line number. Default ``False``.
-       timestamp_format: Timestamp style — ``"iso"`` or ``"relative"``.
-           Default ``"iso"``.
-       pad_event_width: Minimum width for the event column. Default ``30``.
-
-
-
-   .. py:attribute:: min_level
-      :type:  str
-      :value: 'info'
-
-
-
-   .. py:attribute:: show_logger_brackets
-      :type:  bool
-      :value: False
-
-
-
-   .. py:attribute:: show_pid
-      :type:  bool
-      :value: False
-
-
-
-   .. py:attribute:: show_code_info
-      :type:  bool
-      :value: False
-
-
-
-   .. py:attribute:: timestamp_format
-      :type:  str
-      :value: 'iso'
-
-
-
-   .. py:attribute:: pad_event_width
-      :type:  int
-      :value: 30
 
 
 
