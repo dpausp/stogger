@@ -580,6 +580,13 @@ def init_early_logging() -> None:
     raw dicts. No-op if structlog is already configured. Errors during setup are
     suppressed silently to avoid crashing during early initialization.
     """
+    import inspect
+
+    frame = inspect.stack()[1]
+    caller_info = f"{frame.filename}:{frame.lineno} in {frame.function}"
+    log.debug("init_early_logging called", caller=caller_info)
+    logging.debug("[stogger-early] init_early_logging called from %s", caller_info)
+
     if structlog.is_configured():
         return  # Already configured
 
