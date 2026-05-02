@@ -16,7 +16,7 @@ from typing import ClassVar
 import structlog
 
 # Import the default settings object
-from .config import _default_simple_format_settings
+from .config import StoggerConfig, _default_simple_format_settings
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -447,7 +447,7 @@ def log_to_stdlib(_logger, _name, event_dict):
     return event_dict
 
 
-def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
+def init_logging(  # noqa: PLR0912, PLR0913 — stable public API, signature frozen
     *,
     logdir: str | Path | None = None,
     log_cmd_output: bool = False,
@@ -483,6 +483,9 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     """
     logdir = Path(logdir) if logdir else None
 
+    cfg = StoggerConfig()
+    config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
+
     console_renderer_kwargs = {}
     if verbose:
         console_renderer_kwargs["min_level"] = "debug"
@@ -490,7 +493,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
         console_renderer_kwargs["show_caller_info"] = show_caller_info
 
     multi_renderer = MultiRenderer(
-        journal=SystemdJournalRenderer(syslog_identifier, syslog.LOG_LOCAL1),
+        journal=SystemdJournalRenderer(syslog_identifier, config_facility),
         cmd_output_file=CmdOutputFileRenderer(),
         text=ConsoleFileRenderer(**console_renderer_kwargs),
     )
@@ -528,6 +531,22 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
             subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603, S607
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
+
+    # SPEC: stogger-systemd::journal-registration-flow — dynamic import
+    # for journal logger factory, independent of console suppression.
+    if cfg.enable_systemd:
+        try:
+            from stogger_systemd import get_journal_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
+
+            factory = get_journal_logger_factory()
+            loggers["journal"] = factory
+        except ImportError:
+            if os.environ.get("JOURNAL_STREAM"):
+                print(  # noqa: T201
+                    "systemd journal detected but stogger-systemd not available."
+                    " Install stogger-systemd package for journal integration.",
+                    file=sys.stderr,
+                )
 
     structlog.configure(
         processors=processors,

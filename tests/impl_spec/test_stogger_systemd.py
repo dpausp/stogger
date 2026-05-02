@@ -7,6 +7,7 @@ They will be garbage-collected after Phase 2 makes them green.
 Spec: .agents/impl_specs/stogger-systemd.md
 """
 
+import importlib.util
 import os
 import sys
 import syslog
@@ -18,6 +19,7 @@ import structlog
 
 from stogger.core import init_logging
 
+stogger_systemd_available = importlib.util.find_spec("stogger_systemd") is not None
 
 @pytest.fixture(autouse=True)
 def _reset_structlog():
@@ -32,7 +34,7 @@ XFAIL_REASON = "stogger-systemd not yet implemented"
 # --- Test 1: API contract ---
 
 
-@pytest.mark.xfail(reason=XFAIL_REASON, strict=True)
+@pytest.mark.skipif(not stogger_systemd_available, reason="stogger-systemd package not installed")
 def test_package_api_contract():
     """Verify stogger_systemd module exports the required public API.
 
@@ -56,7 +58,7 @@ def test_package_api_contract():
 # --- Test 2: Factory returns structlog-compatible logger ---
 
 
-@pytest.mark.xfail(reason=XFAIL_REASON, strict=True)
+@pytest.mark.skipif(not stogger_systemd_available, reason="stogger-systemd package not installed")
 def test_factory_returns_compatible_logger():
     """Verify get_journal_logger_factory() returns a structlog-compatible factory.
 
@@ -77,7 +79,6 @@ def test_factory_returns_compatible_logger():
 # --- Test 3: init_logging registers journal logger on successful import ---
 
 
-@pytest.mark.xfail(reason=XFAIL_REASON, strict=True)
 def test_init_logging_journal_registered_on_import():
     """init_logging() registers journal logger when stogger_systemd imports.
 
@@ -116,7 +117,6 @@ def test_init_logging_journal_registered_on_import():
 # --- Test 4: init_logging suppresses journal when disabled ---
 
 
-@pytest.mark.xfail(reason=XFAIL_REASON, strict=True)
 def test_init_logging_journal_suppressed_when_disabled():
     """enable_systemd=False suppresses all journal import attempts.
 
@@ -154,7 +154,6 @@ def test_init_logging_journal_suppressed_when_disabled():
 # --- Test 5: Info message when JOURNAL_STREAM set but package missing ---
 
 
-@pytest.mark.xfail(reason=XFAIL_REASON, strict=True)
 def test_journal_stream_info_message_without_package(capsys):
     """JOURNAL_STREAM + missing stogger_systemd emits info message.
 
@@ -178,7 +177,6 @@ def test_journal_stream_info_message_without_package(capsys):
 # --- Test 6: Facility from config, not hardcoded ---
 
 
-@pytest.mark.xfail(reason=XFAIL_REASON, strict=True)
 def test_facility_from_config_not_hardcoded():
     """SystemdJournalRenderer receives facility from StoggerConfig.
 
