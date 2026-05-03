@@ -339,3 +339,33 @@ Full CLI test not triggered — existing E2E evidence sufficient. This is a libr
 ## Raw Data Location
 
 `.agents/tmp/quality/` — inventory/, baseline/, extreme/, analysis/, e2e/
+
+## Tidy Session — 2026-05-03
+
+### Mock Hardening
+- Bare mocks before: 9 → after: 8
+- Migrated to typed: 1 (`mock_cfg = MagicMock(spec=StoggerConfig)` in test_systemd_integration.py)
+- Untouchable: 8 (5 informal interface mocks in test_core.py, 3 optional-package mocks in test_systemd_integration.py)
+
+### Suppression Cleanup
+- Linter suppressions removed: 0
+- Type-check suppressions removed: 0
+- Test skips removed: 0
+- Restored (still needed): 0
+- Reason: All 13 noqa suppressions in core.py have active inline justification. No stale suppressions found.
+
+### Post-Tidy Gates
+| Tool | Before | After |
+|------|--------|-------|
+| ruff | 0 | 0 |
+| ty | 0 | 0 |
+| pytest | 150/150 | 150/150 |
+| tox | 5/5 | 5/5 |
+
+### Skipped (Not Mechanical)
+- 5 bare mocks in test_core.py: MultiOptimisticLogger target loggers use informal interface (`.msg()` method) with no Protocol class to spec against — needs design decision
+- 3 bare mocks in test_systemd_integration.py: Mock types from optional `stogger_systemd` package not importable in test environment — needs design decision or conditional import
+- All 13 noqa suppressions: All have active inline justification, removing any would re-trigger the suppressed error
+- Tier markers for tests (NAV-02): Adding pytest markers is a design decision
+- Architecture enforcement (NAV-06): Adding pytest-archon is a design decision
+- Type annotations on processors (NAV-03/NAV-04): Defining EventDict type alias is a design decision

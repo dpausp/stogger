@@ -6,6 +6,9 @@ lifecycle:
   design:
     completed_at: "2026-05-03T12:30:00Z"
     git_rev: "c4f0f2b"
+  implement:
+    completed_at: "2026-05-03T13:00:00Z"
+    git_rev: "1682052"
 ---
 
 # logging-decorators
@@ -270,3 +273,50 @@ Not part of this work: task_uuid, task_level, parent-child tracking, preserve_co
 - **Create**: `tests/conftest.py` — shared _reset_structlog fixture
 - **Create**: `tests/test_decorators.py`
 - **Modify**: `tests/test_architecture.py` — register _decorators as Layer 2
+
+## Appendix
+
+### Implementation Plan
+
+```yaml
+id: logging-decorators
+description: "Three logging decorators (log_call, log_result, log_operation) and one context manager (log_scope) as new _decorators.py module at Layer 2. Sync+async support, arg filtering, duration measurement, exception logging."
+specs:
+  - .agents/impl_specs/logging-decorators.md
+target_tests:
+  - file: tests/impl_spec/test_logging_decorators.py
+    tests:
+      - test_import_log_call_from_decorators
+      - test_import_log_result_from_decorators
+      - test_import_log_operation_from_decorators
+      - test_import_log_scope_from_decorators
+      - test_import_log_call_from_stogger_top_level
+      - test_import_log_scope_from_stogger_top_level
+      - test_log_call_produces_called_event
+      - test_log_result_produces_returned_event
+      - test_log_operation_produces_operation_event
+      - test_log_scope_returns_log_scope_instance
+      - test_log_scope_has_add_fields_method
+      - test_log_scope_success_produces_scope_end_event
+      - test_log_scope_exception_produces_scope_failed_event
+      - test_log_call_works_with_async
+      - test_log_result_works_with_async
+      - test_log_operation_works_with_async
+      - test_log_scope_works_with_async_with
+      - test_args_include_default_values
+      - test_args_strip_self
+      - test_args_strip_cls
+      - test_include_args_whitelist_filtering
+      - test_exclude_args_blacklist_filtering
+      - test_log_result_has_duration_ms
+      - test_log_operation_has_duration_ms
+      - test_log_scope_has_duration_ms
+      - test_log_result_logs_exception_and_reraises
+      - test_log_operation_logs_exception_with_args
+      - test_log_call_does_not_catch_exceptions
+      - test_log_scope_exception_reraises
+      - test_func_field_is_module_qualname
+      - test_func_field_for_method
+created_at: "2026-05-03T13:00:00Z"
+git_rev: "1682052"
+```

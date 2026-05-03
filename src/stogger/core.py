@@ -24,6 +24,7 @@ from .processors import build_timestamp_processor
 log = structlog.get_logger(__name__)
 
 from ._colors import BACKRED, BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
+from ._decorators import LogScope, log_call, log_operation, log_result, log_scope  # noqa: F401
 
 
 class PartialFormatter(string.Formatter):

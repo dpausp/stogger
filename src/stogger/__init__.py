@@ -8,6 +8,7 @@ CLI tools: install stoggertools for ``stoggertools docs`` and ``stoggertools doc
 
 __all__ = [
     "JournalLoggerFactory",
+    "LogScope",
     "MultiOptimisticLogger",
     "MultiOptimisticLoggerFactory",
     "StoggerConfig",
@@ -16,6 +17,10 @@ __all__ = [
     "init_command_logging",
     "init_early_logging",
     "init_logging",
+    "log_call",
+    "log_operation",
+    "log_result",
+    "log_scope",
     "logging_initialized",
 ]
 
@@ -24,6 +29,9 @@ from pathlib import Path
 from .config import StoggerConfig as StoggerConfig
 from .core import (
     JournalLoggerFactory as JournalLoggerFactory,
+)
+from .core import (
+    LogScope as LogScope,
 )
 from .core import (
     MultiOptimisticLogger as MultiOptimisticLogger,
@@ -45,6 +53,18 @@ from .core import (
 )
 from .core import (
     init_logging as init_logging,
+)
+from .core import (
+    log_call as log_call,
+)
+from .core import (
+    log_operation as log_operation,
+)
+from .core import (
+    log_result as log_result,
+)
+from .core import (
+    log_scope as log_scope,
 )
 from .core import (
     logging_initialized as logging_initialized,

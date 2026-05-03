@@ -59,7 +59,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py313"
-extend-exclude = [ "tests", "docs", "examples",]
+extend-exclude = [ "tests", "docs", "examples", "scripts",]
 
 [tool.vulture]
 exclude = [ ".venv/", "build/", "dist/", "tests/",]
@@ -87,16 +87,23 @@ source = "src/stogger"
 test_dir = "tests"
 exclude = []
 info_allowed_layers = []
+infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
 exempt_event_ids = [
+    "called",
     "config-loading-failed",
+    "failed",
     "file-logging-setup-failed",
     "heuristic-detection-failed",
     "logging-cmd-output",
     "logging-cmd-output-file-not-found",
     "logging-cmd-output-no-logdir",
     "no-logging-handlers-configured",
+    "operation",
     "project-structure-detected-from-heuristics",
     "project-structure-detected-from-pyproject",
+    "returned",
+    "scope-end",
+    "scope-failed",
     "translation-load-failed",
 ]
 

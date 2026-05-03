@@ -47,3 +47,11 @@ archrule("factory does not import __init__").match("stogger.factory").should_not
 archrule("__init__ does not import processors").match("stogger.__init__").should_not_import(
     "stogger.processors"
 )
+
+# --- Layer 2: _decorators (depends on _types, config — NOT factory or __init__) ---
+
+archrule("_decorators does not import factory").match("stogger._decorators").should_not_import(
+    "stogger.factory"
+)
+
+archrule("_decorators does not import __init__").match("stogger._decorators").should_not_import("stogger")
