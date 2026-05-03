@@ -82,7 +82,7 @@ class ProjectStructure:
             return True
 
 
-def _load_pyproject_config() -> dict[str, Any]:
+def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
     """Load ``[tool.stogger]`` settings from ``pyproject.toml`` in cwd.
 
     Returns:
@@ -91,26 +91,28 @@ def _load_pyproject_config() -> dict[str, Any]:
 
     """
     log = structlog.get_logger(__name__)
-
     pyproject_path = Path.cwd() / "pyproject.toml"
     log = log.bind(path=str(pyproject_path))
 
-    log.debug(
-        "searching-for-config",
-        exists=pyproject_path.is_file(),
-    )
+    if verbose:
+        log.debug(
+            "searching-for-config",
+            exists=pyproject_path.is_file(),
+        )
 
     if not pyproject_path.is_file():
-        log.debug("no-pyproject-found", exists=False)
+        if verbose:
+            log.debug("no-pyproject-found", exists=False)
         return {}
     try:
         with pyproject_path.open("rb") as f:
             config = tomllib.load(f)
         stogger_config = config.get("tool", {}).get("stogger", {})
-        log.debug(
-            "config-loaded-successfully",
-            settings_count=len(stogger_config),
-        )
+        if verbose:
+            log.debug(
+                "config-loaded-successfully",
+                settings_count=len(stogger_config),
+            )
     except (tomllib.TOMLDecodeError, Exception):
         log.exception("config-loading-failed", stage="load")
         return {}
@@ -211,13 +213,15 @@ class StoggerConfig:
             **kwargs: Keyword arguments that override config file settings.
 
         """
+        verbose = kwargs.get("verbose", False)
         log = structlog.get_logger(__name__)
 
-        config = _load_pyproject_config()
-        log.debug("config-loaded-from-file", key_count=len(config))
+        config = _load_pyproject_config(verbose=verbose)
+        if verbose:
+            log.debug("config-loaded-from-file", key_count=len(config))
         config.update(kwargs)
-        log.debug("config-merged-with-kwargs", kwargs_count=len(kwargs))
-
+        if verbose:
+            log.debug("config-merged-with-kwargs", kwargs_count=len(kwargs))
         # Build FormatConfig from [tool.stogger.format] section
         format_config = config.pop("format", {})
         self.__attrs_init__(  # ty: ignore[unresolved-attribute]

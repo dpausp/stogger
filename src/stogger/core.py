@@ -514,6 +514,24 @@ def _configure_structlog(processors, context, loggers):
     )
 
 
+def _ensure_stderr_logging() -> None:
+    """Pre-configure structlog to write to stderr if not yet configured.
+
+    Ensures that any logging during bootstrap (e.g. config loading) goes to
+    stderr instead of structlog's default stdout. Uses ``cache_logger_on_first_use=False``
+    so the full ``init_logging()`` configuration can overwrite it later.
+    """
+    if not structlog.is_configured():
+        structlog.configure(
+            processors=[
+                structlog.processors.add_log_level,
+                structlog.dev.ConsoleRenderer(),
+            ],
+            logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
+            wrapper_class=structlog.BoundLogger,
+            cache_logger_on_first_use=False,
+        )
+
 def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     *,
     logdir: str | Path | None = None,
@@ -550,7 +568,10 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     """
     logdir = Path(logdir) if logdir else None
 
-    cfg = StoggerConfig()
+    # Ensure structlog never writes to stdout during bootstrap
+    _ensure_stderr_logging()
+
+    cfg = StoggerConfig(verbose=bool(verbose))
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
 
     console_renderer_kwargs = _build_console_renderer_kwargs(verbose, show_caller_info)
