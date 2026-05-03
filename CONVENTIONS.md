@@ -220,13 +220,57 @@ def temp_project(tmp_path):
 - we use structured logging with structlog/stogger. No plain log messages or print statements!
 - logging is configured on console to go to stderr.
 - always use simple, descriptive event identifiers (max 4 words) in dash-case style
-- log.info needs a _replace_msg meant for user-focused output relevant to all users
-- log.debug must not have a _replace_msg, just key value info. It's meant for developers and users that want to report issues.
-- use log.bind(key=val) to avoid common repeating keys 3 times or more
-- use log.exception() to log exceptions. Exceptions are handled automatically
-  by the logging library, don't add (error=str(e)) or something like that on
-  your own.
-- **NEVER use f-strings in `_replace_msg`** — use `{key}` placeholders with separate
+
+#### Log-Level Usage
+
+- **`log.info()`** — user-facing messages. Always needs `_replace_msg`. No exceptions.
+- **`log.debug()`** — developer/bug-report context. Never `_replace_msg`. Aim for 2-3
+  key-value pairs, max 5. Marker-style (no key-values) only when truly no context exists.
+- **`log.warning()`** — degraded but recoverable state. Not for "not found" (that's DEBUG)
+  or "broken" (that's ERROR).
+- **`log.error()`** — known failure, handled without exception traceback.
+- **`log.exception()`** — only inside `except:` blocks. Stacktrace is automatic, never
+  add `(error=str(e))` or similar.
+
+#### Conventions
+
+- **`_replace_msg` is mandatory for INFO**: Every `log.info()` call must have a
+  `_replace_msg` with `{placeholder}` syntax for human-readable console output.
+- **`_replace_msg` is forbidden for DEBUG**: Debug messages are key-value only,
+  meant for developers and bug reports.
+- **Consolidate, don't repeat**: If 3+ log calls fire in direct succession sharing the
+  same context, merge them into one statement with all keys.
+
+  ```python
+  # ❌ BAD — three separate calls with shared context
+  log.debug("extracting-docstring", node_type=type(node).__name__)
+  log.debug("extracting-type-hint", has_annotation=annotation is not None)
+  log.debug("extracting-decorators", decorator_count=len(decorator_list))
+
+  # ✅ GOOD — one statement, all context
+  log.debug("extracting-signature-meta",
+            node_type=type(node).__name__,
+            has_annotation=annotation is not None,
+            decorator_count=len(decorator_list))
+  ```
+
+- **Use `log.bind()` for repeating context**: When the same keys appear 3+ times
+  in a loop or scope, bind them once.
+
+  ```python
+  # ❌ BAD — repeating project= on every call
+  for project in projects:
+      log.info("project-start", project=str(project))
+      log.info("project-done", project=str(project))
+
+  # ✅ GOOD — bind once, use everywhere
+  for project in projects:
+      plog = log.bind(project=str(project))
+      plog.info("project-start", _replace_msg="Starting {project}")
+      plog.info("project-done", _replace_msg="Finished {project}")
+  ```
+
+- **NEVER use f-strings in log calls** — use `{key}` placeholders with separate
   key=value arguments. Placeholders and key=value work TOGETHER: the placeholder
   renders for humans, the key=value keeps data structured and filterable.
 
@@ -238,10 +282,13 @@ def temp_project(tmp_path):
   log.info("fetching-session", _replace_msg="Fetching session {sid}…", sid=sid)
   ```
 
+#### Examples
+
 ```python
 logger.info("scan-finished", _replace_msg="Scan finished in {seconds} seconds", duration=duration, structured_data=value)
 logger.debug("cache-hit", operation="scan", name=name, cache_type="redis")
-logger.warn("missing-config-value", _replace_msg="Config: no value for {key}", key=key)
+logger.warning("degraded-performance", _replace_msg="Running without cache — slower responses", backend="redis")
+logger.error("build-failed", strategy="sphinx", returncode=1)
 logger.exception("subprocess-failed", cmd=cmd)
 ```
 
