@@ -509,6 +509,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-archon"
+version = "0.0.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/42/da/8132aa99cee223c7c5b330ffb4bd8094343239774f917e71a21f74d52009/pytest_archon-0.0.7.tar.gz", hash = "sha256:6a1e814c84adbea4afc188369733ec898f2525cc401f3ca965498f8b3ee454d5", size = 48359, upload-time = "2025-09-19T20:56:24.784Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/98/81/a46c239c77d4ec4e3450d463517ff63f10c22962c037ca2b4125394cf400/pytest_archon-0.0.7-py3-none-any.whl", hash = "sha256:5aaad17cff853d058ca686dd1da425ce884daf33ae9668011323173631dc4e94", size = 44868, upload-time = "2025-09-19T20:56:23.16Z" },
+]
+
+[[package]]
 name = "pytest-cov"
 version = "7.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -962,6 +974,7 @@ lint = [
 test = [
     { name = "complexipy" },
     { name = "pytest" },
+    { name = "pytest-archon" },
     { name = "pytest-cov" },
     { name = "pytest-stogger" },
     { name = "pytest-timeout" },
@@ -1003,6 +1016,7 @@ lint = [
 test = [
     { name = "complexipy", specifier = ">=0.1.0" },
     { name = "pytest", specifier = ">=9.0.0" },
+    { name = "pytest-archon", specifier = ">=0.0.7" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-stogger", git = "https://github.com/dpausp/pytest-stogger" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },

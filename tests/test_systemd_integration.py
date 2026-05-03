@@ -19,6 +19,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import structlog
 
+from stogger.config import StoggerConfig
 from stogger.core import init_logging
 
 
@@ -119,7 +120,7 @@ def test_enable_systemd_false_no_import():
     ):
         os.environ.pop("JOURNAL_STREAM", None)
 
-        mock_cfg = MagicMock()
+        mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_systemd = False
         mock_cfg.systemd_facility = None
         mock_config_cls.return_value = mock_cfg

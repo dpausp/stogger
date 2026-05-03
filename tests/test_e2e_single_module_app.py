@@ -33,6 +33,7 @@ def _cleanup_root_logging():
     structlog.reset_defaults()
 
 
+@pytest.mark.e2e
 def test_single_module_app_console_and_file(tmp_path, capsys, monkeypatch):
     """A minimal app initializes stogger, logs events, and output arrives at console + file."""
     monkeypatch.delenv("JOURNAL_STREAM", raising=False)
@@ -75,6 +76,7 @@ def test_single_module_app_console_and_file(tmp_path, capsys, monkeypatch):
     assert "connection-failed" in file_content
 
 
+@pytest.mark.e2e
 def test_single_module_app_bound_logger_context(tmp_path, capsys, monkeypatch):
     """Bound logger propagates context to all subsequent log calls."""
     monkeypatch.delenv("JOURNAL_STREAM", raising=False)
@@ -106,6 +108,7 @@ def test_single_module_app_bound_logger_context(tmp_path, capsys, monkeypatch):
     assert "request-completed" in captured.err
 
 
+@pytest.mark.e2e
 def test_single_module_app_no_console_when_disabled(tmp_path, capsys, monkeypatch):
     """When log_to_console=False, nothing goes to stderr."""
     monkeypatch.delenv("JOURNAL_STREAM", raising=False)
@@ -134,6 +137,7 @@ def test_single_module_app_no_console_when_disabled(tmp_path, capsys, monkeypatc
     assert "silent-event" in log_file.read_text()
 
 
+@pytest.mark.e2e
 def test_single_module_app_exception_logging(tmp_path, capsys, monkeypatch):
     """Exceptions are captured and rendered in log output."""
     monkeypatch.delenv("JOURNAL_STREAM", raising=False)

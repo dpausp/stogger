@@ -20,33 +20,10 @@ from .core import (
     add_pid,
     process_exc_info,
 )
+from .processors import build_timestamp_processor
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
-
-
-def build_timestamp_processor(config):
-    """Build a TimeStamper processor based on config.format.timestamp_precision.
-
-    Central factory function for timestamp configuration. All TimeStamper
-    call sites use this function to ensure consistent utc=True and correct fmt.
-
-    Args:
-        config: A config object with a .format attribute containing FormatConfig.
-
-    Returns:
-        A TimeStamper processor configured with the appropriate fmt and utc=True.
-
-    """
-    precision = config.format.timestamp_precision
-    fmt_map = {
-        "iso": "iso",
-        "iso_seconds": "%Y-%m-%dT%H:%M:%SZ",
-        "iso_no_z": "%Y-%m-%dT%H:%M:%S",
-        "relative": "iso",
-    }
-    fmt = fmt_map.get(precision, precision)
-    return structlog.processors.TimeStamper(fmt=fmt, utc=True, key="timestamp")
 
 
 def build_shared_processors(config: StoggerConfig) -> list[Any]:
@@ -83,7 +60,7 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
                     translation_count=len(translations),
                     language=config.language,
                 )
-            processors.append(TranslationProcessor(translations))
+            processors.append(TranslationProcessor(translations))  # ty: ignore[invalid-argument-type]
         except (OSError, tomllib.TOMLDecodeError):
             log.warning(
                 "translation-load-failed",
@@ -99,7 +76,7 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
                 format_config=config.format,
                 min_level="debug" if config.verbose else "info",
                 show_caller_info=config.show_caller_info,
-            ),
+            ),  # ty: ignore[invalid-argument-type]
         )
         # Add SelectRenderedString to convert dict output to string for PrintLogger
         processors.append(SelectRenderedString(key="console"))
@@ -109,7 +86,7 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
     return processors
 
 
-def build_renderer(config: StoggerConfig) -> Any:
+def build_renderer(config: StoggerConfig) -> ConsoleFileRenderer | JSONRenderer:
     """Builds the final renderer based on the log format."""
     log.debug(
         "building-renderer",
@@ -219,12 +196,12 @@ def configure_stdlib_logging(config: StoggerConfig, processors: list[Any]) -> No
     # ConsoleFileRenderer always returns a dict, so we always need SelectRenderedString
     console_formatter = structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=processors,
-        processors=[renderer, SelectRenderedString("console")],
+        processors=[renderer, SelectRenderedString("console")],  # ty: ignore[invalid-argument-type]
     )
 
     file_formatter = structlog.stdlib.ProcessorFormatter(
         foreign_pre_chain=processors,
-        processors=[renderer, SelectRenderedString("file")],
+        processors=[renderer, SelectRenderedString("file")],  # ty: ignore[invalid-argument-type]
     )
 
     handlers: list[logging.Handler] = []

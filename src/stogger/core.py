@@ -16,7 +16,9 @@ from typing import ClassVar
 
 import structlog
 
+from ._types import EventDict
 from .config import FormatConfig, StoggerConfig
+from .processors import build_timestamp_processor
 
 # Get a logger for this module
 log = structlog.get_logger(__name__)
@@ -57,7 +59,7 @@ class TranslationProcessor:
         self.translations = translations
         self.formatter = PartialFormatter()
 
-    def __call__(self, _, __, event_dict):
+    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:
         msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
 
         # Store original event name before any translation
@@ -231,7 +233,7 @@ class ConsoleFileRenderer:
         if exception_traceback is not None:
             write_fn("\n" + prefix("exception", exception_traceback))
 
-    def __call__(self, _, method_name, event_dict):
+    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict | None:
         log_settings = event_dict.pop("_log_settings", {})
         if log_settings.get("console_ignore", False):
             return None
@@ -450,7 +452,68 @@ def log_to_stdlib(_logger, _name, event_dict):
     return event_dict
 
 
-def init_logging(  # noqa: PLR0912, PLR0913 — stable public API, signature frozen
+def _build_console_renderer_kwargs(verbose, show_caller_info):
+    """Build ConsoleFileRenderer keyword overrides for init_logging."""
+    kwargs = {}
+    if verbose:
+        kwargs["min_level"] = "debug"
+    if show_caller_info is not None:
+        kwargs["show_caller_info"] = show_caller_info
+    return kwargs
+
+
+def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):
+    """Build file, console, and journal logger factories for init_logging."""
+    context = {}
+    loggers = {}
+
+    if logdir is not None:
+        try:
+            main_log_file_name = logdir / f"{syslog_identifier}.log"
+            main_log_file = main_log_file_name.open("a")
+        except PermissionError:
+            pass
+        else:
+            loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
+            context["logdir"] = logdir
+
+    if log_to_console:
+        if os.environ.get("JOURNAL_STREAM"):
+            print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
+            pid = os.getpid()
+            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603, S607
+        else:
+            loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
+
+    # SPEC: stogger-systemd::journal-registration-flow — dynamic import
+    # for journal logger factory, independent of console suppression.
+    if cfg.enable_systemd:
+        try:
+            from stogger_systemd import get_journal_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
+
+            factory = get_journal_logger_factory()
+            loggers["journal"] = factory
+        except ImportError:
+            if os.environ.get("JOURNAL_STREAM"):
+                print(  # noqa: T201
+                    "systemd journal detected but stogger-systemd not available."
+                    " Install stogger-systemd package for journal integration.",
+                    file=sys.stderr,
+                )
+
+    return loggers, context
+
+
+def _configure_structlog(processors, context, loggers):
+    """Configure structlog with processors and MultiOptimisticLoggerFactory."""
+    structlog.configure(
+        processors=processors,
+        wrapper_class=structlog.BoundLogger,
+        logger_factory=MultiOptimisticLoggerFactory(context, loggers),
+    )
+
+
+def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     *,
     logdir: str | Path | None = None,
     log_cmd_output: bool = False,
@@ -484,19 +547,12 @@ def init_logging(  # noqa: PLR0912, PLR0913 — stable public API, signature fro
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
 
     """
-    from .factory import build_timestamp_processor  # noqa: PLC0415 — avoid circular import
-
     logdir = Path(logdir) if logdir else None
 
     cfg = StoggerConfig()
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
 
-    console_renderer_kwargs = {}
-    if verbose:
-        console_renderer_kwargs["min_level"] = "debug"
-    if show_caller_info is not None:
-        console_renderer_kwargs["show_caller_info"] = show_caller_info
-
+    console_renderer_kwargs = _build_console_renderer_kwargs(verbose, show_caller_info)
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(syslog_identifier, config_facility),
         cmd_output_file=CmdOutputFileRenderer(),
@@ -517,50 +573,8 @@ def init_logging(  # noqa: PLR0912, PLR0913 — stable public API, signature fro
         multi_renderer,
     ]
 
-    context = {}
-    loggers = {}
-
-    if logdir is not None:
-        try:
-            main_log_file_name = logdir / f"{syslog_identifier}.log"
-            main_log_file = main_log_file_name.open("a")
-        except PermissionError:
-            pass
-        else:
-            loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
-            context["logdir"] = logdir
-
-    # If stdout is connected to journal, we shouldn't log to console because
-    # output would be duplicated in the journal.
-    if log_to_console:
-        if os.environ.get("JOURNAL_STREAM"):
-            print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
-            pid = os.getpid()
-            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603, S607
-        else:
-            loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
-
-    # SPEC: stogger-systemd::journal-registration-flow — dynamic import
-    # for journal logger factory, independent of console suppression.
-    if cfg.enable_systemd:
-        try:
-            from stogger_systemd import get_journal_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
-
-            factory = get_journal_logger_factory()
-            loggers["journal"] = factory
-        except ImportError:
-            if os.environ.get("JOURNAL_STREAM"):
-                print(  # noqa: T201
-                    "systemd journal detected but stogger-systemd not available."
-                    " Install stogger-systemd package for journal integration.",
-                    file=sys.stderr,
-                )
-
-    structlog.configure(
-        processors=processors,
-        wrapper_class=structlog.BoundLogger,
-        logger_factory=MultiOptimisticLoggerFactory(context, loggers),
-    )
+    loggers, context = _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg)
+    _configure_structlog(processors, context, loggers)
 
     log = structlog.get_logger()
 
@@ -591,8 +605,6 @@ def init_early_logging() -> None:
         return  # Already configured
 
     with suppress(Exception):
-        from .factory import build_timestamp_processor  # noqa: PLC0415 — avoid circular import
-
         # Minimal processors for early initialization - avoid logging during setup
         processors = [
             structlog.stdlib.add_log_level,
@@ -605,7 +617,7 @@ def init_early_logging() -> None:
 
         # Configure structlog with minimal setup
         structlog.configure(
-            processors=processors,
+            processors=processors,  # ty: ignore[invalid-argument-type]
             logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
             wrapper_class=structlog.BoundLogger,
             cache_logger_on_first_use=False,  # Allow reconfiguration
@@ -679,7 +691,7 @@ class SystemdJournalRenderer:
         self.syslog_identifier = syslog_identifier
         self.syslog_facility = syslog_facility
 
-    def __call__(self, _logger, method_name, event_dict):
+    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict:
         if method_name == "trace":
             return {}
 
@@ -744,7 +756,7 @@ class SystemdJournalRenderer:
 class CmdOutputFileRenderer:
     """Renderer for command output file logging."""
 
-    def __call__(self, _logger, _method_name, event_dict):
+    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:
         line = event_dict.pop("cmd_output_line", None)
         if line is not None:
             return {"cmd_output_file": line}
@@ -766,11 +778,11 @@ class MultiRenderer:
     def __repr__(self) -> str:
         return f"<MultiRenderer {[repr(logger) for logger in self.renderers]}>"
 
-    def __call__(self, logger, method_name, event_dict):
+    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:
         merged_messages = {}
         for renderer in self.renderers.values():
             try:
-                messages = renderer(logger, method_name, event_dict.copy())
+                messages = renderer(logger, method_name, dict(event_dict))
                 merged_messages.update(messages)
             except Exception:
                 logging.getLogger(__name__).exception("Renderer failed, using fallback")

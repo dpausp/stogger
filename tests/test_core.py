@@ -38,6 +38,11 @@ from stogger.core import (
 )
 
 
+class _MsgTarget:
+    """Minimal target for MultiOptimisticLogger — has .msg() method."""
+
+    def msg(self, message: str) -> None: ...
+
 @pytest.fixture(autouse=True)
 def _reset_structlog():
     """Reset structlog configuration after each test to avoid state leakage."""
@@ -45,6 +50,7 @@ def _reset_structlog():
     structlog.reset_defaults()
 
 
+@pytest.mark.integration
 class TestConsoleFileRenderer:
     """Tests for the ConsoleFileRenderer class."""
 
@@ -128,6 +134,7 @@ class TestConsoleFileRenderer:
         assert file_json["level"] == "info"
 
 
+@pytest.mark.integration
 class TestCoreEdgeCases:
     """Tests for edge cases in core functionality."""
 
@@ -350,6 +357,7 @@ class TestPartialFormatter:
         assert result == "<bad format>"
 
 
+@pytest.mark.integration
 class TestTranslationProcessor:
     """Tests for TranslationProcessor."""
 
@@ -438,6 +446,7 @@ class TestSelectRenderedString:
         assert result == "{'console': 'output'}"
 
 
+@pytest.mark.integration
 class TestJSONRendererDropEvent:
     """Tests for JSONRenderer level filtering."""
 
@@ -449,6 +458,7 @@ class TestJSONRendererDropEvent:
             renderer(None, "debug", event_dict)
 
 
+@pytest.mark.integration
 class TestConsoleFileRendererConsoleIgnore:
     """Tests for console_ignore setting."""
 
@@ -464,6 +474,7 @@ class TestConsoleFileRendererConsoleIgnore:
         assert result is None
 
 
+@pytest.mark.integration
 class TestConsoleRendererShowPid:
     """Tests for show_pid in ConsoleFileRenderer."""
 
@@ -481,6 +492,7 @@ class TestConsoleRendererShowPid:
         assert "12345" not in result["console"]
 
 
+@pytest.mark.integration
 class TestConsoleRendererShowLoggerBrackets:
     """Tests for show_logger_brackets in ConsoleFileRenderer."""
 
@@ -534,6 +546,7 @@ class TestLogToStdlib:
             mock_log.assert_called_once_with(logging.INFO, "default")
 
 
+@pytest.mark.integration
 class TestInitEarlyLogging:
     """Tests for init_early_logging."""
 
@@ -554,6 +567,7 @@ class TestInitEarlyLogging:
 class TestLoggingInitialized:
     """Tests for logging_initialized."""
 
+    @pytest.mark.integration
     def test_logging_initialized(self):
         """Returns True after init_logging."""
         with patch("os.environ", {**os.environ}):
@@ -576,6 +590,7 @@ class TestJournalLoggerFactory:
         assert factory() is None
 
 
+@pytest.mark.integration
 class TestSystemdJournalRenderer:
     """Tests for SystemdJournalRenderer."""
 
@@ -643,6 +658,7 @@ class TestSystemdJournalRenderer:
         assert "extra_key" in journal["MESSAGE"] or "extra_val" in journal["MESSAGE"]
 
 
+@pytest.mark.integration
 class TestCmdOutputFileRenderer:
     """Tests for CmdOutputFileRenderer."""
 
@@ -687,14 +703,14 @@ class TestMultiOptimisticLogger:
 
     def test_msg_with_truthy_line(self):
         """Msg with truthy line -> logger.msg called."""
-        mock_logger = MagicMock()
+        mock_logger = MagicMock(spec=_MsgTarget)
         mol = MultiOptimisticLogger({"target": mock_logger})
         mol.msg(target="hello world")
         mock_logger.msg.assert_called_once_with("hello world")
 
     def test_msg_exception(self):
         """Logger that raises -> exception caught."""
-        failing_logger = MagicMock()
+        failing_logger = MagicMock(spec=_MsgTarget)
         failing_logger.msg.side_effect = RuntimeError("write failed")
         mol = MultiOptimisticLogger({"target": failing_logger})
         with patch("stogger.core.logging.getLogger", autospec=True) as mock_get_logger:
@@ -704,12 +720,13 @@ class TestMultiOptimisticLogger:
 
     def test_msg_empty_line(self):
         """Msg with empty/missing line -> logger not called."""
-        mock_logger = MagicMock()
+        mock_logger = MagicMock(spec=_MsgTarget)
         mol = MultiOptimisticLogger({"target": mock_logger})
         mol.msg(target="")
         mock_logger.msg.assert_not_called()
 
 
+@pytest.mark.integration
 class TestInitCommandLogging:
     """Tests for init_command_logging."""
 
@@ -743,6 +760,7 @@ class TestInitCommandLogging:
         init_command_logging(log)
 
 
+@pytest.mark.integration
 class TestDropCmdOutputLogfile:
     """Tests for drop_cmd_output_logfile."""
 

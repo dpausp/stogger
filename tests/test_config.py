@@ -47,6 +47,7 @@ language = "fr"
             yield
 
 
+@pytest.mark.integration
 def test_config_loading_from_file(create_pyproject_toml):
     """Test that config is correctly loaded from pyproject.toml."""
     config = StoggerConfig()
@@ -57,6 +58,7 @@ def test_config_loading_from_file(create_pyproject_toml):
     assert config.log_to_console is True  # Default value
 
 
+@pytest.mark.integration
 def test_config_kwargs_override_file(create_pyproject_toml):
     """Test that kwargs provided to the constructor override file settings."""
     config = StoggerConfig(
@@ -121,6 +123,7 @@ def test_config_src_dir_defaults_when_no_file():
             assert config.src_dir == "src"  # Default source directory
 
 
+@pytest.mark.integration
 def test_config_src_dir_from_file():
     """Test that the source directory is correctly loaded from pyproject.toml."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -136,6 +139,7 @@ src_dir = "custom_src"
             assert config.src_dir == "custom_src"
 
 
+@pytest.mark.integration
 def test_config_src_dir_kwargs_override():
     """Test that src_dir in kwargs overrides the file setting."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -252,6 +256,7 @@ def test_should_not_exclude_normal_file():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.integration
 def test_load_config_invalid_toml():
     """Invalid TOML in pyproject.toml causes _load_config to return {} — defaults used."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -269,6 +274,7 @@ def test_load_config_invalid_toml():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.integration
 def test_detect_from_stogger_section():
     """detect_project_structure with [tool.stogger] src_dir returns pyproject.toml source."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -284,6 +290,7 @@ def test_detect_from_stogger_section():
         assert "tests" in result.test_dirs
 
 
+@pytest.mark.integration
 def test_detect_from_hatch_section():
     """detect_project_structure with [tool.hatch] packages returns pyproject.toml source."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -298,6 +305,7 @@ def test_detect_from_hatch_section():
         assert "src" in result.source_dirs
 
 
+@pytest.mark.integration
 def test_detect_from_pytest_section():
     """detect_project_structure with [tool.pytest.ini_options] testpaths returns structure."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -312,6 +320,7 @@ def test_detect_from_pytest_section():
         assert "tests" in result.test_dirs
 
 
+@pytest.mark.integration
 def test_detect_fallback_to_heuristics():
     """No pyproject.toml, but src/ and tests/ exist → heuristics detection."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -326,6 +335,7 @@ def test_detect_fallback_to_heuristics():
         assert "tests" in result.test_dirs
 
 
+@pytest.mark.integration
 def test_detect_heuristics_no_src():
     """No src/ dir, but .py files in root → source_dirs=['.'] via heuristics."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -336,6 +346,7 @@ def test_detect_heuristics_no_src():
         assert "." in result.source_dirs
 
 
+@pytest.mark.integration
 def test_detect_heuristics_nothing_found():
     """No pyproject.toml, no src, no python files → raises ValueError."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -344,6 +355,7 @@ def test_detect_heuristics_nothing_found():
             detect_project_structure(root)
 
 
+@pytest.mark.integration
 def test_detect_pyproject_invalid_toml():
     """Invalid TOML in pyproject.toml falls back to heuristics."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -356,6 +368,7 @@ def test_detect_pyproject_invalid_toml():
         assert result.detection_source == "heuristics"
 
 
+@pytest.mark.integration
 def test_detect_no_stogger_section():
     """Valid pyproject.toml but no [tool.stogger/hatch/pytest] → falls back to heuristics."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -396,6 +409,7 @@ def test_detect_with_project_root_none():
             assert "src" in result.source_dirs
 
 
+@pytest.mark.integration
 def test_detect_stogger_with_exclude_patterns():
     """[tool.stogger] exclude patterns starting with 'tests' populate test_dirs."""
     with tempfile.TemporaryDirectory() as tmpdir:

@@ -1,21 +1,27 @@
 """Tests for the factory module functionality."""
 
 import logging
-from logging.handlers import QueueListener
+from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
+from queue import Queue
 import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from stogger.config import StoggerConfig
+from stogger.core import JSONRenderer, TranslationProcessor
 from stogger.factory import (
+    _assign_formatters,
+    _configure_async_logging,
+    _create_file_handler,
     build_renderer,
     build_shared_processors,
     configure_stdlib_logging,
 )
 
 
+@pytest.mark.integration
 class TestBuildSharedProcessors:
     """Test cases for build_shared_processors function."""
 
@@ -97,6 +103,7 @@ class TestBuildSharedProcessors:
         assert "PIIScrubber" not in processor_types
 
 
+@pytest.mark.integration
 class TestBuildRenderer:
     """Test cases for build_renderer function."""
 
@@ -219,5 +226,127 @@ class TestConfigureStdlibLogging:
             assert call_kwargs["level"] == logging.DEBUG
 
 
-if __name__ == "__main__":
-    pytest.main([__file__])
+@pytest.mark.integration
+class TestBuildSharedProcessorsVerbose:
+    """Tests for verbose mode paths in build_shared_processors."""
+
+    def test_verbose_debug_logging_at_start(self):
+        """Verbose=True triggers debug log at start of build_shared_processors."""
+        config = StoggerConfig(verbose=True)
+        processors = build_shared_processors(config)
+        assert len(processors) > 0
+
+    def test_verbose_with_valid_translations(self):
+        """Verbose=True with valid translation file triggers loading debug logs."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            translation_dir = Path(tmpdir)
+            translation_file = translation_dir / "en.toml"
+            translation_file.write_text('[messages]\ntest = "Test message"')
+            config = StoggerConfig(translation_dir=translation_dir, language="en", verbose=True)
+            processors = build_shared_processors(config)
+            translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
+            assert len(translation_processors) == 1
+
+    def test_verbose_final_debug(self):
+        """Verbose=True triggers shared-processors-built debug at end."""
+        config = StoggerConfig(verbose=True)
+        processors = build_shared_processors(config)
+        assert len(processors) > 0
+
+
+class TestBuildSharedProcessorsCoverage:
+    """Tests for uncovered error and branch paths in build_shared_processors."""
+
+    def test_translation_file_not_found(self):
+        """Missing translation file triggers warning and continues without translator."""
+        config = StoggerConfig(translation_dir=Path("/nonexistent"), language="en")
+        processors = build_shared_processors(config)
+        assert len(processors) > 0
+        translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
+        assert len(translation_processors) == 0
+
+    def test_invalid_toml_translation(self):
+        """Invalid TOML in translation file triggers warning and continues."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            translation_dir = Path(tmpdir)
+            translation_file = translation_dir / "en.toml"
+            translation_file.write_text("invalid toml {{{")
+            config = StoggerConfig(translation_dir=translation_dir, language="en")
+            processors = build_shared_processors(config)
+            assert len(processors) > 0
+
+    def test_json_format_renderer_in_chain(self):
+        """log_format='json' adds JSONRenderer to the processor chain."""
+        config = StoggerConfig(log_format="json")
+        processors = build_shared_processors(config)
+        assert any(isinstance(p, JSONRenderer) for p in processors)
+
+
+class TestCreateFileHandler:
+    """Tests for _create_file_handler function."""
+
+    @pytest.mark.integration
+    def test_permission_error_returns_none(self):
+        """Unwritable directory returns None instead of raising."""
+        result = _create_file_handler("/proc/nonexistent/impossible", "test")
+        assert result is None
+
+
+class TestAssignFormatters:
+    """Tests for _assign_formatters function."""
+
+    def test_non_stream_non_file_handler(self):
+        """Handler that is neither StreamHandler nor FileHandler gets console formatter."""
+        console_fmt = logging.Formatter("%(message)s")
+        file_fmt = logging.Formatter("%(message)s")
+        handler = QueueHandler(Queue())
+        _assign_formatters([handler], console_fmt, file_fmt)
+        assert handler.formatter is console_fmt
+
+
+class TestConfigureAsyncLogging:
+    """Tests for _configure_async_logging function."""
+
+    @patch("stogger.factory.atexit", autospec=True)
+    @patch("logging.getLogger", autospec=True)
+    def test_removes_non_queue_handlers(self, mock_get_logger, mock_atexit):
+        """Existing non-queue handlers on root logger are removed during async setup."""
+        mock_root = MagicMock(spec=logging.Logger)
+        mock_get_logger.return_value = mock_root
+        existing_handler = MagicMock(spec=logging.Handler)
+        mock_root.handlers = [existing_handler]
+
+        handler = logging.StreamHandler()
+        _configure_async_logging([handler])
+
+        mock_root.removeHandler.assert_called()
+
+    @patch("stogger.factory.atexit", autospec=True)
+    @patch("logging.getLogger", autospec=True)
+    def test_atexit_cleanup_stops_listener(self, mock_get_logger, mock_atexit):
+        """Registered atexit cleanup function calls listener.stop()."""
+        mock_root = MagicMock(spec=logging.Logger)
+        mock_get_logger.return_value = mock_root
+        mock_root.handlers = []
+
+        with patch("stogger.factory.QueueListener", autospec=True) as mock_ql:
+            mock_listener = MagicMock()
+            mock_ql.return_value = mock_listener
+
+            handler = logging.StreamHandler()
+            _configure_async_logging([handler])
+
+            cleanup_fn = mock_atexit.register.call_args[0][0]
+            cleanup_fn()
+            mock_listener.stop.assert_called_once()
+
+
+class TestConfigureStdlibLoggingNoHandlers:
+    """Tests for no-handlers early return path."""
+
+    def test_no_handlers_returns_early(self):
+        """No console and no file returns early without configuring logging."""
+        config = StoggerConfig(log_to_console=False, logdir=None)
+        with patch("logging.basicConfig", autospec=True) as mock_basic:
+            configure_stdlib_logging(config, [])
+            mock_basic.assert_not_called()

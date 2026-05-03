@@ -33,6 +33,7 @@ test = [
     "pytest-timeout>=2.4.0",
     "complexipy>=0.1.0",
     "pytest-stogger",
+    "pytest-archon>=0.0.7",
 ]
 docs = [
     "sphinx>=7.0.0",
@@ -75,6 +76,11 @@ python_classes = [ "Test*",]
 python_functions = [ "test_*",]
 addopts = [ "--tb=short", "--strict-markers", "--strict-config", "--disable-warnings",]
 filterwarnings = [ "error", "ignore::UserWarning", "ignore::DeprecationWarning",]
+markers = [
+  "integration: integration tests that test real module interactions",
+  "e2e: end-to-end tests that exercise full pipelines",
+  "slow: tests taking more than 1 second",
+]
 
 [tool.pytest-stogger]
 source = "src/stogger"
