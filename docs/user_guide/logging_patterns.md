@@ -212,6 +212,94 @@ def process_files(file_list: list[str]):
              total=total)
 ```
 
+## Decorators
+
+Stogger provides decorators and a context manager that automate common logging
+patterns. Import them from the top-level package:
+
+```python
+from stogger import log_call, log_result, log_operation, log_scope
+```
+
+All decorators support both sync and async functions.
+
+### @log_call — Entry Logging
+
+Logs function invocation with resolved arguments. Replaces manual
+`log.info("called", func=..., args={...})` at the top of a function.
+
+```python
+# Before (manual Function Tracing pattern):
+def process_package(package_name: str):
+    log.info("package-processing-started", package_name=package_name)
+    ...
+
+# After:
+@log_call
+def process_package(package_name: str):
+    ...
+    # Logs: {"event": "called", "func": "mymodule.process_package",
+    #        "args": {"package_name": "hello"}}
+```
+
+### @log_result — Exit Logging with Timing
+
+Logs return value and duration on success, exception info on failure.
+Replaces manual timing code from the "Timing Operations" pattern.
+
+```python
+# Before (manual timing pattern):
+def timed_operation():
+    start = time.time()
+    result = perform_operation()
+    duration = time.time() - start
+    log.info("operation-completed", duration_ms=round(duration * 1000))
+    return result
+
+# After:
+@log_result
+def timed_operation():
+    return perform_operation()
+    # Logs: {"event": "returned", "func": "mymodule.timed_operation",
+    #        "result": ..., "duration_ms": 12.3}
+```
+
+On exception, logs `{"event": "failed", "exc_type": "ValueError", "exc_msg": "...", "duration_ms": ...}` and re-raises.
+
+### @log_operation — Full Audit Logging
+
+Combines entry and exit logging in a single event: arguments, return value,
+and duration. Use for audit trails and debugging.
+
+```python
+@log_operation(include_args=["query"], exclude_args=["password"])
+def authenticate(query: str, password: str) -> bool:
+    ...
+    # Logs: {"event": "operation", "func": "mymodule.authenticate",
+    #        "args": {"query": "admin"}, "result": true, "duration_ms": 15.3}
+```
+
+Use `include_args` to whitelist argument names or `exclude_args` to blacklist
+sensitive parameters. Both options strip `self` and `cls` automatically.
+
+### log_scope() — Scoped Context Logging
+
+Context manager for logging a named scope with structured fields.
+Use for transactions, migrations, or any logical unit of work.
+
+```python
+with log_scope("db_transaction", table="users") as scope:
+    insert(user)
+    scope.add_fields(rows_inserted=1)
+    # Exit event: {"event": "scope-end", "scope": "db_transaction",
+    #   "table": "users", "rows_inserted": 1, "duration_ms": 45.2}
+```
+
+`add_fields()` accumulates fields during the scope. On exception, logs
+`{"event": "scope-failed", "exc_type": "...", "exc_msg": "...", "duration_ms": ...}`
+and re-raises. Works with `async with` for async code.
+
+
 ### Error Context
 
 ```python

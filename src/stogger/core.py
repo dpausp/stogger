@@ -532,6 +532,7 @@ def _ensure_stderr_logging() -> None:
             cache_logger_on_first_use=False,
         )
 
+
 def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     *,
     logdir: str | Path | None = None,
