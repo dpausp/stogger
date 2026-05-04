@@ -31,6 +31,7 @@ Classes
    stogger.core.SelectRenderedString
    stogger.core.JournalLoggerFactory
    stogger.core.SystemdJournalRenderer
+   stogger.core.PostgresRenderer
    stogger.core.CmdOutputFileRenderer
    stogger.core.MultiRenderer
    stogger.core.MultiOptimisticLoggerFactory
@@ -288,6 +289,17 @@ Module Contents
       We keep strings unchanged to display line breaks properly in journalctl
       and graylog.
 
+
+
+.. py:class:: PostgresRenderer
+
+   Render event_dict into a column dict for PostgreSQL INSERT.
+
+   Extracts known columns (timestamp, level, event, func, scope) and
+   packs remaining fields into JSONB data.
+
+
+   .. py:attribute:: KNOWN_FIELDS
 
 
 .. py:class:: CmdOutputFileRenderer

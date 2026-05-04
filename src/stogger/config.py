@@ -199,6 +199,9 @@ class StoggerConfig:
     pii_redaction_text: str = "[REDACTED]"
     enable_systemd: bool = True
     systemd_facility: str | None = None
+    enable_postgres: bool = False
+    postgres_dsn: str | None = None
+    postgres_table: str = "stogger_logs"
     src_dir: str = "src"
     format: FormatConfig = attrs.field(factory=FormatConfig)
     ast_respect_gitignore: bool = True
@@ -239,6 +242,9 @@ class StoggerConfig:
             pii_redaction_text=config.get("pii_redaction_text", "[REDACTED]"),
             enable_systemd=config.get("enable_systemd", True),
             systemd_facility=config.get("systemd_facility", None),
+            enable_postgres=config.get("enable_postgres", False),
+            postgres_dsn=config.get("postgres_dsn", None),
+            postgres_table=config.get("postgres_table", "stogger_logs"),
             src_dir=config.get("src_dir", "src"),
             format=FormatConfig(**format_config) if isinstance(format_config, dict) else format_config,
             ast_respect_gitignore=config.get("ast", {}).get("respect_gitignore", True),

@@ -251,6 +251,24 @@ Module Contents
 
 
 
+   .. py:attribute:: enable_postgres
+      :type:  bool
+      :value: False
+
+
+
+   .. py:attribute:: postgres_dsn
+      :type:  str | None
+      :value: None
+
+
+
+   .. py:attribute:: postgres_table
+      :type:  str
+      :value: 'stogger_logs'
+
+
+
    .. py:attribute:: src_dir
       :type:  str
       :value: 'src'

@@ -502,6 +502,20 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):
                     file=sys.stderr,
                 )
 
+    # SPEC: postgres-target::package-placement — dynamic import
+    # for postgres logger factory, mirrors journal pattern.
+    if cfg.enable_postgres:
+        try:
+            from stogger_postgres import get_postgres_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
+
+            factory = get_postgres_logger_factory(
+                dsn=cfg.postgres_dsn,
+                table=cfg.postgres_table,
+            )
+            loggers["postgres"] = factory
+        except ImportError:
+            pass  # stogger-postgres not installed, skip silently
+
     return loggers, context
 
 
@@ -578,6 +592,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     console_renderer_kwargs = _build_console_renderer_kwargs(verbose, show_caller_info)
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(syslog_identifier, config_facility),
+        postgres=PostgresRenderer(),
         cmd_output_file=CmdOutputFileRenderer(),
         text=ConsoleFileRenderer(
             format_config=cfg.format if isinstance(cfg.format, FormatConfig) else None,
@@ -774,6 +789,27 @@ class SystemdJournalRenderer:
         if isinstance(obj, datetime):
             return datetime.isoformat(obj)
         return json.dumps(obj, default=self.handle_json_fallback)
+
+
+class PostgresRenderer:
+    """Render event_dict into a column dict for PostgreSQL INSERT.
+
+    Extracts known columns (timestamp, level, event, func, scope) and
+    packs remaining fields into JSONB data.
+    """
+
+    KNOWN_FIELDS = frozenset({"timestamp", "level", "event", "func", "scope"})
+
+    def __call__(self, _logger, _method_name, event_dict):
+        column_dict = {}
+        data = {}
+        for key, value in event_dict.items():
+            if key in self.KNOWN_FIELDS:
+                column_dict[key] = value
+            else:
+                data[key] = value
+        column_dict["data"] = data
+        return {"postgres": column_dict}
 
 
 class CmdOutputFileRenderer:
