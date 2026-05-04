@@ -13,7 +13,7 @@ Welcome to the comprehensive documentation for stogger - your go-to solution for
 Install stogger and start logging:
 
 ```bash
-pip install stogger
+uv add stogger
 ```
 
 ```python

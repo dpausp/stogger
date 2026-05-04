@@ -4,10 +4,10 @@ stogger provides structured logging on top of structlog — console, file, and s
 
 ## Installation
 
-Install stogger using pip:
+Install stogger using uv:
 
 ```bash
-pip install stogger
+uv add stogger
 ```
 
 ## Basic Usage
@@ -75,6 +75,7 @@ stogger.init_logging(
 ## Next Steps
 
 - Learn about [Logging Patterns](logging_patterns.md) for effective logging
+- Set up [Systemd Journal Integration](systemd.md) for services running under systemd
 - Read [Testing with stogger](testing.md) to test your log output
 - Explore [Advanced Features](../features/advanced_assistant.md) for code transformation
 - Check out the [API Reference](../api/index) for detailed documentation
