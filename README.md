@@ -23,7 +23,7 @@ def test_login_logs_user(log):
     log.has("info", "user-login", user_id=123)
 ```
 
-See `docs/user_guide/testing.md` for details.
+See `docs/user/testing.md` for details.
 
 ## Configuration
 
@@ -45,6 +45,11 @@ The `timestamp_precision` values:
 | `iso_seconds` | `2026-05-02T12:34:56Z` (default) |
 | `iso_no_z` | `2026-05-02T12:34:56` (no Z suffix) |
 | `relative` | `+2.341s` (elapsed from process start) |
+
+## Optional Targets
+
+- [Systemd Journal](docs/user/systemd.md) — native journal integration for services
+- [PostgreSQL](docs/user/postgres.md) — queryable persistent logs via database
 
 ## Documentation
 

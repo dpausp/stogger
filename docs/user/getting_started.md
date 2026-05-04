@@ -76,6 +76,7 @@ stogger.init_logging(
 
 - Learn about [Logging Patterns](logging_patterns.md) for effective logging
 - Set up [Systemd Journal Integration](systemd.md) for services running under systemd
+- Set up [PostgreSQL Integration](postgres.md) for queryable persistent logs
 - Read [Testing with stogger](testing.md) to test your log output
 - Explore [Advanced Features](../features/advanced_assistant.md) for code transformation
 - Check out the [API Reference](../api/index) for detailed documentation
