@@ -1,18 +1,3 @@
----
-lifecycle:
-  requirements:
-    completed_at: "2026-05-05T14:35:00Z"
-    git_rev: 6a4ddb4
-  design:
-    completed_at: "2026-05-05T14:50:00Z"
-    git_rev: 6a4ddb4
-  implement:
-    completed_at: "2026-05-05T18:25:08Z"
-    git_rev: 6b0b88a
-  workflow:
-  verify:
----
-
 # stogger-self-logging
 
 ## Context
@@ -135,62 +120,6 @@ b. No new tests — acceptable but new warning event should have coverage
 
 New test cases for: `file-open-permission-denied` warning, `early-init-failed` debug, `stogger-postgres-not-installed` debug, probe early-exit debugs. ~4-5 new test functions.
 
-## Requirements
+## Verified By
 
-### New Event IDs
-
-| Event ID | Level | File | Trigger |
-|---|---|---|---|
-| `file-open-permission-denied` | warning | core.py | PermissionError in `_build_logger_factories()` |
-| `format-field-missing` | debug | core.py | KeyError/AttributeError in `PartialFormatter.get_field()` |
-| `format-field-bad-format` | debug | core.py | ValueError in `PartialFormatter.format_field()` |
-| `no-stogger-section` | debug | config.py | Empty `[tool.stogger]` in `_probe_stogger_section()` |
-| `no-hatch-section` | debug | config.py | Empty `[tool.hatch]` in `_probe_hatch_section()` |
-| `no-pytest-section` | debug | config.py | Empty `[tool.pytest]` in `_probe_pytest_section()` |
-| `early-init-failed` | debug | core.py | Exception in `init_early_logging()` |
-| `stogger-postgres-not-installed` | debug | core.py | ImportError for stogger-postgres |
-
-### Config Changes
-
-`pyproject.toml` `[tool.pytest-stogger]`:
-- Remove explicit `infrastructure_files` key
-- Add `_decorators.py` to `per-file-ignores` with `["except-must-log", "complexity-needs-log"]`
-- Add `file-open-permission-denied` to `exempt_event_ids`
-
-### Code Changes
-
-**core.py:**
-- `_build_logger_factories()` line ~475: add `log.warning("file-open-permission-denied", ...)` in `except PermissionError`
-- `PartialFormatter.get_field()` line ~39: add `log.debug("format-field-missing", field_name=field_name)` in except block
-- `PartialFormatter.format_field()` line ~49: add `log.debug("format-field-bad-format", value=value, format_spec=format_spec)` in except block
-- `init_early_logging()` line ~645: replace `with suppress(Exception)` with `try/except Exception` + `log.debug("early-init-failed")`
-- `_build_logger_factories()` line ~517: add `log.debug("stogger-postgres-not-installed")` in `except ImportError`
-
-**config.py:**
-- `_probe_stogger_section()` line ~319: add `log.debug("no-stogger-section")` before `return None`
-- `_probe_hatch_section()` line ~380: add `log.debug("no-hatch-section")` before `return None`
-- `_probe_pytest_section()` line ~416: add `log.debug("no-pytest-section")` before `return None`
-
-## Appendix
-
-```yaml
-# implementation_plan
-id: stogger-self-logging
-created_at: "2026-05-05T18:25:08Z"
-git_rev: 6b0b88a
-description: "Add ~8 log statements (7 debug, 1 warning) to stogger's own core.py and config.py, plus config changes in pyproject.toml to resolve complexity-needs-log and log-suppression-budget violations"
-target_tests:
-  - file: tests/impl_spec/test_stogger_self_logging.py
-    tests:
-      - test_permission_error_logs_warning
-      - test_partial_formatter_get_field_logs_debug
-      - test_partial_formatter_format_field_logs_debug
-      - test_early_init_logs_on_failure
-      - test_postgres_import_error_logs_debug
-      - test_probe_stogger_section_logs_none
-      - test_probe_hatch_section_logs_none
-      - test_probe_pytest_section_logs_none
-      - test_config_per_file_ignores_decorators
-      - test_config_exempt_event_id
-      - test_config_infrastructure_files_removed
-```
+<!-- Tests will be added after implementation -->

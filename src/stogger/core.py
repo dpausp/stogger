@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import string
-import subprocess
 import sys
 import syslog
 import time
@@ -489,8 +488,6 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):
     if log_to_console:
         if os.environ.get("JOURNAL_STREAM"):
             print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
-            pid = os.getpid()
-            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603, S607
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 

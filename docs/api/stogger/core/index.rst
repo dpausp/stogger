@@ -227,7 +227,7 @@ Module Contents
 
 
 
-.. py:function:: init_early_logging()
+.. py:function:: init_early_logging(*, verbose = False)
 
    Initialize minimal structured logging before full setup.
 
@@ -235,6 +235,12 @@ Module Contents
    so that early startup messages are properly formatted instead of appearing as
    raw dicts. No-op if structlog is already configured. Errors during setup are
    suppressed silently to avoid crashing during early initialization.
+
+   Args:
+       verbose: When ``True``, emit debug messages showing the caller that invoked
+           this function. Also enabled when the ``STOGGER_DEBUG`` environment variable
+           is set.
+
 
 
 .. py:class:: JournalLoggerFactory
@@ -250,7 +256,7 @@ Module Contents
 .. py:data:: JOURNAL_LEVELS
 
 .. py:data:: KEYS_TO_SKIP_IN_JOURNAL_MESSAGE
-   :value: ['_replace_msg', 'code_file', 'code_func', 'code_lineno', 'code_module', 'event',...
+   :value: ['_output', '_raw_output', '_raw_output_prefix', '_replace_msg', 'code_file', 'code_func',...
 
 
 .. py:class:: SystemdJournalRenderer(syslog_identifier, syslog_facility=syslog.LOG_LOCAL0)

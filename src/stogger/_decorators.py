@@ -5,6 +5,7 @@ import inspect
 import time
 
 import structlog
+from structlog import contextvars
 
 
 def _extract_args(func, args, kwargs, include_args, exclude_args):
@@ -357,12 +358,10 @@ class LogScope:
     Event emitted on clean exit::
 
         {"event": "scope-end", "scope": "<name>", <bound_fields>,
-         "duration_ms": <float>}
 
     Event emitted on exception::
 
-        {"event": "scope-failed", "scope": "<name>",
-         "exc_type": "ConnectionError", "exc_msg": "...", "duration_ms": <float>}
+        {"event": "scope-failed", "scope": "<name>,
 
     Example:
         ::
@@ -373,7 +372,6 @@ class LogScope:
                 insert(user)
                 scope.add_fields(rows_inserted=1)
                 # Exit event: {"event": "scope-end", "scope": "db_transaction",
-                #   "table": "users", "rows_inserted": 1, "duration_ms": ...}
 
     """
 
@@ -395,14 +393,17 @@ class LogScope:
 
         """
         self._extra_fields.update(kwargs)
+        contextvars.bind_contextvars(**kwargs)
 
     def __enter__(self):
         self._t0 = time.perf_counter()
+        contextvars.bind_contextvars(**self._fields)
         return self
 
     def __exit__(self, exc_type, exc_val, _exc_tb):
         log = structlog.get_logger()
         duration_ms = (time.perf_counter() - self._t0) * 1000
+        contextvars.unbind_contextvars(*self._fields, *self._extra_fields)
         all_fields = {**self._fields, **self._extra_fields}
         if exc_type is not None:
             log.warning(
@@ -425,11 +426,13 @@ class LogScope:
 
     async def __aenter__(self):
         self._t0 = time.perf_counter()
+        contextvars.bind_contextvars(**self._fields)
         return self
 
     async def __aexit__(self, exc_type, exc_val, _exc_tb):
         log = structlog.get_logger()
         duration_ms = (time.perf_counter() - self._t0) * 1000
+        contextvars.unbind_contextvars(*self._fields, *self._extra_fields)
         all_fields = {**self._fields, **self._extra_fields}
         if exc_type is not None:
             log.warning(
