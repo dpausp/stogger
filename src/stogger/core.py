@@ -209,6 +209,8 @@ class ConsoleFileRenderer:
         """Render output sections: cmd_output, output, stdout, stderr, stack, traceback."""
         cmd_output_line = event_dict.pop("cmd_output_line", None)
         output = event_dict.pop("_output", None)
+        raw_output = event_dict.pop("_raw_output", None)
+        raw_output_prefix = event_dict.pop("_raw_output_prefix", None)
         stdout = event_dict.pop("stdout", None)
         stderr = event_dict.pop("stderr", None)
         stack = event_dict.pop("stack", None)
@@ -219,6 +221,12 @@ class ConsoleFileRenderer:
 
         if output is not None:
             write_fn("\n" + prefix("", "\n" + output + "\n") + RESET_ALL)
+
+        if raw_output is not None:
+            if raw_output_prefix:
+                write_fn("\n" + prefix(raw_output_prefix, raw_output) + "\n")
+            else:
+                write_fn("\n" + raw_output + "\n")
 
         if stdout is not None:
             write_fn("\n" + DIM + prefix("out", "\n" + stdout + "\n") + RESET_ALL)
@@ -702,6 +710,9 @@ JOURNAL_LEVELS = {
 }
 
 KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
+    "_output",
+    "_raw_output",
+    "_raw_output_prefix",
     "_replace_msg",
     "code_file",
     "code_func",
@@ -714,6 +725,8 @@ KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
     "message",
     "output",
     "pid",
+    "stderr",
+    "stdout",
     "timestamp",
 ]
 

@@ -37,6 +37,8 @@ from stogger.core import (
     process_exc_info,
 )
 
+from stogger._colors import RED, RESET_ALL
+
 
 class _MsgTarget:
     """Minimal target for MultiOptimisticLogger — has .msg() method."""
@@ -306,6 +308,8 @@ class TestRenderOutputSections:
         event_dict = {
             "cmd_output_line": "cmd> ls -la",
             "_output": "program output",
+            "_raw_output": "raw ansi output",
+            "_raw_output_prefix": "ty",
             "stdout": "standard out",
             "stderr": "standard error",
             "stack": "stack trace here",
@@ -316,6 +320,8 @@ class TestRenderOutputSections:
 
         assert "cmd> ls -la" in output
         assert "program output" in output
+        assert "ty" in output
+        assert "raw ansi output" in output
         assert "out" in output
         assert "standard out" in output
         assert "err" in output
@@ -326,6 +332,23 @@ class TestRenderOutputSections:
         assert "traceback details" in output
         assert "=" * 79 in output  # separator between stack and traceback
 
+    def test_raw_output_ansi_passthrough(self):
+        """_raw_output preserves ANSI in console, strips for file."""
+
+        renderer = ConsoleFileRenderer()
+        ansi_content = RED + "error text" + RESET_ALL
+        event_dict = {
+            "event": "type-errors",
+            "_raw_output": ansi_content,
+        }
+        result = renderer(None, "info", event_dict.copy())
+
+        # ANSI codes present in console (RED is non-empty when isatty)
+        if RED:
+            assert RED in result["console"]
+            assert RESET_ALL in result["console"]
+        # File output never contains ANSI escape sequences
+        assert "\x1b" not in result["file"]
 
 # --- Batch 5: Remaining Functions ---
 
