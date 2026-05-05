@@ -12,6 +12,10 @@ dependencies = [
     "structlog>=25.4.0",
 ]
 
+[project.optional-dependencies]
+systemd = ["stogger-systemd"]
+postgres = ["stogger-postgres"]
+
 [tool.hatch.version]
 source = "vcs"
 tag-pattern = "^(?P<version>\\d{4}\\.\\d{1,2}\\.\\d{1,2})$"
@@ -194,6 +198,7 @@ commands = [
 [tool.uv.sources]
 pytest-stogger = { git = "https://github.com/dpausp/pytest-stogger" }
 stogger-systemd = { git = "https://github.com/dpausp/stogger-systemd" }
+stogger-postgres = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/stogger-postgres"]
