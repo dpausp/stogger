@@ -7,7 +7,11 @@ lifecycle:
     completed_at: "2026-05-04T15:30:00Z"
     git_rev: "d3e20c9"
   implement:
+    completed_at: "2026-05-04T19:00:00Z"
+    git_rev: "ef5c723"
   workflow:
+    completed_at: "2026-05-04T19:00:00Z"
+    git_rev: "ef5c723"
   verify:
 ---
 

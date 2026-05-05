@@ -377,7 +377,7 @@ def analyze_project(path: Path, verbose: bool = False) -> AnalysisResult:
 
 ## 📊 Document Insights and Discoveries
 
-Document valuable findings in `docs/development/lessons_learned.md`:
+Document valuable findings in `docs/dev/lessons_learned.md`:
 
 - Workflow improvements
 - Tool behavior discoveries

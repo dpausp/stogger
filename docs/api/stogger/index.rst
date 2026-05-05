@@ -10,7 +10,6 @@ stogger
    Docs embedded in this package: llms.txt (index, ~50 entries), _sources/ (individual markdown files).
    llms-full.txt contains ALL docs in one file but is VERY large (~8000+ lines) — prefer reading
    individual files from _sources/ instead.
-   CLI tools: install stoggertools for ``stoggertools docs`` and ``stoggertools docs-serve``.
 
 
 

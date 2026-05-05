@@ -10,6 +10,4 @@ postgres
 testing
 cheatsheet
 nix_integration
-cli_reference
-migration_examples
 ```

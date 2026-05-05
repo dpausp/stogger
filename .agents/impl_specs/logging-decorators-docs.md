@@ -55,7 +55,7 @@ Decorators appear in generated HTML docs under `stogger.core`. Source links go t
 
 #### Context
 
-`docs/user_guide/logging_patterns.md` has manual "Function Tracing" and "Timing Operations" patterns that are exactly what the decorators automate. Users reading that page have no indication that decorators exist.
+`docs/user/logging_patterns.md` has manual "Function Tracing" and "Timing Operations" patterns that are exactly what the decorators automate. Users reading that page have no indication that decorators exist.
 
 #### Decision
 
@@ -63,7 +63,7 @@ Add a new "Decorators" section to `logging_patterns.md` after the "Common Patter
 
 #### Alternatives
 
-a. New standalone page `docs/user_guide/decorators.md` — fragments the logging patterns narrative
+a. New standalone page `docs/user/decorators.md` — fragments the logging patterns narrative
 b. No user guide, rely on API docs only — poor discoverability for new users
 
 #### Consequences
@@ -76,7 +76,7 @@ Users reading logging patterns naturally discover decorators. Single coherent pa
 
 - **Modify**: `src/stogger/_decorators.py` — enriched docstrings for all 5 public names
 - **Modify**: `docs/api/stogger/core/index.rst` — add decorator entries to summary lists and module contents
-- **Modify**: `docs/user_guide/logging_patterns.md` — add "Decorators" section with examples
+- **Modify**: `docs/user/logging_patterns.md` — add "Decorators" section with examples
 
 ### Docstring Requirements
 
