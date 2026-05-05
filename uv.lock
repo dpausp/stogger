@@ -6,7 +6,6 @@ requires-python = ">=3.13"
 members = [
     "stogger",
     "stogger-postgres",
-    "stogger-systemd",
 ]
 
 [[package]]
@@ -1053,20 +1052,6 @@ requires-dist = [
 ]
 
 [[package]]
-name = "stogger-systemd"
-source = { editable = "packages/stogger-systemd" }
-dependencies = [
-    { name = "stogger" },
-    { name = "systemd-python", marker = "sys_platform == 'linux'" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "stogger", editable = "." },
-    { name = "systemd-python", marker = "sys_platform == 'linux'" },
-]
-
-[[package]]
 name = "structlog"
 version = "25.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1074,12 +1059,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/ef/52/9ba0f43b686e7f3dd
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a8/45/a132b9074aa18e799b891b91ad72133c98d8042c70f6240e4c5f9dabee2f/structlog-25.5.0-py3-none-any.whl", hash = "sha256:a8453e9b9e636ec59bd9e79bbd4a72f025981b3ba0f5837aebf48f02f37a7f9f", size = 72510, upload-time = "2025-10-27T08:28:21.535Z" },
 ]
-
-[[package]]
-name = "systemd-python"
-version = "235"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/10/9e/ab4458e00367223bda2dd7ccf0849a72235ee3e29b36dce732685d9b7ad9/systemd-python-235.tar.gz", hash = "sha256:4e57f39797fd5d9e2d22b8806a252d7c0106c936039d1e71c8c6b8008e695c0a", size = 61677, upload-time = "2023-02-11T13:42:16.588Z" }
 
 [[package]]
 name = "tomli"
