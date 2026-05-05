@@ -624,20 +624,27 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
         init_command_logging(log, logdir)
 
 
-def init_early_logging() -> None:
+def init_early_logging(*, verbose: bool = False) -> None:
     """Initialize minimal structured logging before full setup.
 
     Configures a lightweight structlog pipeline (timestamp, level, console renderer)
     so that early startup messages are properly formatted instead of appearing as
     raw dicts. No-op if structlog is already configured. Errors during setup are
     suppressed silently to avoid crashing during early initialization.
-    """
-    import inspect  # noqa: PLC0415 — imported at function level; init_early_logging runs before all modules load, inspect only needed for debug caller info
 
-    frame = inspect.stack()[1]
-    caller_info = f"{frame.filename}:{frame.lineno} in {frame.function}"
-    log.debug("init-early-logging-called", caller=caller_info)
-    logging.debug("[stogger-early] init_early_logging called from %s", caller_info)  # noqa: LOG015 — intentional bridge to stdlib logging for early-init messages before structlog pipeline is available
+    Args:
+        verbose: When ``True``, emit debug messages showing the caller that invoked
+            this function. Also enabled when the ``STOGGER_DEBUG`` environment variable
+            is set.
+
+    """
+    if verbose or os.environ.get("STOGGER_DEBUG"):
+        import inspect  # noqa: PLC0415 — imported at function level; init_early_logging runs before all modules load, inspect only needed for debug caller info
+
+        frame = inspect.stack()[1]
+        caller_info = f"{frame.filename}:{frame.lineno} in {frame.function}"
+        log.debug("init-early-logging-called", caller=caller_info)
+        logging.debug("[stogger-early] init_early_logging called from %s", caller_info)  # noqa: LOG015 — intentional bridge to stdlib logging for early-init messages before structlog pipeline is available
 
     if structlog.is_configured():
         return  # Already configured
