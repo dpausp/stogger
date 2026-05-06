@@ -8,7 +8,6 @@ import string
 import sys
 import syslog
 import time
-from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar
@@ -36,7 +35,7 @@ class PartialFormatter(string.Formatter):
         try:
             return super().get_field(field_name, args, kwargs)
         except (KeyError, AttributeError):
-            # Don't log during formatting to avoid recursion
+            log.debug("format-field-missing", field_name=field_name)
             return None, field_name
 
     def format_field(self, value, format_spec):
@@ -45,8 +44,8 @@ class PartialFormatter(string.Formatter):
             return self.missing
         try:
             return super().format_field(value, format_spec)
-        except ValueError:
-            # Don't log during formatting to avoid recursion
+        except (ValueError, TypeError):  # TypeError: format spec on None returns "None{spec}" which is misleading
+            log.debug("format-field-bad-format", value=value, format_spec=format_spec)
             return self.bad_format
 
 
@@ -470,7 +469,7 @@ def _build_console_renderer_kwargs(verbose, show_caller_info):
     return kwargs
 
 
-def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):
+def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore
     """Build file, console, and journal logger factories for init_logging."""
     context = {}
     loggers = {}
@@ -480,7 +479,11 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):
             main_log_file_name = logdir / f"{syslog_identifier}.log"
             main_log_file = main_log_file_name.open("a")
         except PermissionError:
-            pass
+            log.warning(
+                "file-open-permission-denied",
+                _replace_msg="Cannot open log file: {path}",
+                path=str(main_log_file_name),
+            )
         else:
             loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
             context["logdir"] = logdir
@@ -519,7 +522,7 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):
             )
             loggers["postgres"] = factory
         except ImportError:
-            pass  # stogger-postgres not installed, skip silently
+            log.debug("stogger-postgres-not-installed", import_error=True)
 
     return loggers, context
 
@@ -635,7 +638,7 @@ def init_early_logging(*, verbose: bool = False) -> None:
     Configures a lightweight structlog pipeline (timestamp, level, console renderer)
     so that early startup messages are properly formatted instead of appearing as
     raw dicts. No-op if structlog is already configured. Errors during setup are
-    suppressed silently to avoid crashing during early initialization.
+    suppressed to avoid crashing during early initialization, but logged at debug level.
 
     Args:
         verbose: When ``True``, emit debug messages showing the caller that invoked
@@ -654,8 +657,8 @@ def init_early_logging(*, verbose: bool = False) -> None:
     if structlog.is_configured():
         return  # Already configured
 
-    with suppress(Exception):
-        # Minimal processors for early initialization - avoid logging during setup
+    try:
+        # Minimal processors for early initialization
         processors = [
             structlog.stdlib.add_log_level,
             build_timestamp_processor(StoggerConfig()),
@@ -679,6 +682,8 @@ def init_early_logging(*, verbose: bool = False) -> None:
             format="%(message)s",
             force=True,
         )
+    except Exception as e:  # noqa: BLE001
+        log.debug("early-init-failed", exc=str(e))
 
 
 class JournalLoggerFactory:

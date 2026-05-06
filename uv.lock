@@ -568,6 +568,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pytest-structlog"
+version = "1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+    { name = "structlog" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/94/71/177ef678fde8257c10ae822080811467c0fc893c17daac4c065e0836cd63/pytest_structlog-1.2.tar.gz", hash = "sha256:11b37487663a990bcd490da2e68e2f96b0ecd6a1704f5e82561d5840bd321a60", size = 13285, upload-time = "2025-09-10T02:32:35.962Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/80/3f/cce51dfeb5f1956a30f480611921e9a899ae5cc5f41bb24858ac99401b17/pytest_structlog-1.2-py3-none-any.whl", hash = "sha256:a5659f6b7d43aa53cf8090075deadad35a6bf1899073ea18118e299232d3d6f0", size = 8636, upload-time = "2025-09-10T02:32:34.952Z" },
+]
+
+[[package]]
 name = "pytest-timeout"
 version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1000,6 +1013,7 @@ test = [
     { name = "pytest-archon" },
     { name = "pytest-cov" },
     { name = "pytest-stogger" },
+    { name = "pytest-structlog" },
     { name = "pytest-timeout" },
 ]
 
@@ -1045,6 +1059,7 @@ test = [
     { name = "pytest-archon", specifier = ">=0.0.7" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-stogger", git = "https://github.com/dpausp/pytest-stogger" },
+    { name = "pytest-structlog", specifier = ">=1.2" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
 ]
 

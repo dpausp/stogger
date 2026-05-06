@@ -38,6 +38,7 @@ test = [
     "complexipy>=0.1.0",
     "pytest-stogger",
     "pytest-archon>=0.0.7",
+    "pytest-structlog>=1.2",
 ]
 docs = [
     "sphinx>=7.0.0",
@@ -91,24 +92,9 @@ source = "src/stogger"
 test_dir = "tests"
 exclude = []
 info_allowed_layers = []
-infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
+#KH|infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
 exempt_event_ids = [
-    "called",
-    "config-loading-failed",
-    "failed",
-    "file-logging-setup-failed",
-    "heuristic-detection-failed",
-    "logging-cmd-output",
-    "logging-cmd-output-file-not-found",
-    "logging-cmd-output-no-logdir",
-    "no-logging-handlers-configured",
-    "operation",
-    "project-structure-detected-from-heuristics",
-    "project-structure-detected-from-pyproject",
-    "returned",
-    "scope-end",
-    "scope-failed",
-    "translation-load-failed",
+    "file-open-permission-denied",
 ]
 
 [tool.pytest-stogger.per-file-ignores]

@@ -234,7 +234,7 @@ Module Contents
    Configures a lightweight structlog pipeline (timestamp, level, console renderer)
    so that early startup messages are properly formatted instead of appearing as
    raw dicts. No-op if structlog is already configured. Errors during setup are
-   suppressed silently to avoid crashing during early initialization.
+   suppressed to avoid crashing during early initialization, but logged at debug level.
 
    Args:
        verbose: When ``True``, emit debug messages showing the caller that invoked

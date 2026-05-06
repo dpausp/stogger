@@ -316,10 +316,11 @@ def _probe_stogger_section(stogger_config: dict, project_root: Path) -> ProjectS
         ProjectStructure if the section is present, else None.
 
     """
-    if not stogger_config:
-        return None
-
     log = structlog.get_logger(__name__)
+
+    if not stogger_config:
+        log.debug("no-stogger-section", has_section=False)
+        return None
     log.debug("probing-stogger-section", src_dir=stogger_config.get("src_dir", "src"))
 
     src_dir = stogger_config.get("src_dir", "src")
@@ -377,10 +378,11 @@ def _probe_hatch_section(hatch_config: dict, project_root: Path) -> ProjectStruc
         ProjectStructure if a Hatch wheel package source is found, else None.
 
     """
-    if not hatch_config:
-        return None
-
     log = structlog.get_logger(__name__)
+
+    if not hatch_config:
+        log.debug("no-hatch-section", has_section=False)
+        return None
     log.debug("probing-hatch-section", has_build="build" in hatch_config)
 
     build_config = hatch_config.get("build", {})
@@ -413,10 +415,11 @@ def _probe_pytest_section(pytest_config: dict, project_root: Path) -> ProjectStr
         ProjectStructure if pytest testpaths are found, else None.
 
     """
-    if not pytest_config:
-        return None
-
     log = structlog.get_logger(__name__)
+
+    if not pytest_config:
+        log.debug("no-pytest-section", has_section=False)
+        return None
     log.debug("probing-pytest-section", has_ini_options="ini_options" in pytest_config)
 
     testpaths = pytest_config.get("ini_options", {}).get("testpaths", [])

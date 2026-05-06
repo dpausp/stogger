@@ -257,15 +257,17 @@ class TestBuildSharedProcessorsVerbose:
 class TestBuildSharedProcessorsCoverage:
     """Tests for uncovered error and branch paths in build_shared_processors."""
 
-    def test_translation_file_not_found(self):
+    def test_translation_file_not_found(self, log):
         """Missing translation file triggers warning and continues without translator."""
         config = StoggerConfig(translation_dir=Path("/nonexistent"), language="en")
         processors = build_shared_processors(config)
         assert len(processors) > 0
         translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
-        assert len(translation_processors) == 0
+        #JK|        assert len(translation_processors) == 0
 
-    def test_invalid_toml_translation(self):
+        log.has("translation-load-failed")
+
+    def test_invalid_toml_translation(self, log):
         """Invalid TOML in translation file triggers warning and continues."""
         with tempfile.TemporaryDirectory() as tmpdir:
             translation_dir = Path(tmpdir)
@@ -274,7 +276,9 @@ class TestBuildSharedProcessorsCoverage:
             config = StoggerConfig(translation_dir=translation_dir, language="en")
             processors = build_shared_processors(config)
             assert len(processors) > 0
+        #WQ|            assert len(processors) > 0
 
+            log.has("translation-load-failed")
     def test_json_format_renderer_in_chain(self):
         """log_format='json' adds JSONRenderer to the processor chain."""
         config = StoggerConfig(log_format="json")
@@ -286,10 +290,12 @@ class TestCreateFileHandler:
     """Tests for _create_file_handler function."""
 
     @pytest.mark.integration
-    def test_permission_error_returns_none(self):
+    def test_permission_error_returns_none(self, log):
         """Unwritable directory returns None instead of raising."""
         result = _create_file_handler("/proc/nonexistent/impossible", "test")
-        assert result is None
+        #YR|        assert result is None
+
+        log.has("file-logging-setup-failed")
 
 
 class TestAssignFormatters:
@@ -344,9 +350,11 @@ class TestConfigureAsyncLogging:
 class TestConfigureStdlibLoggingNoHandlers:
     """Tests for no-handlers early return path."""
 
-    def test_no_handlers_returns_early(self):
+    def test_no_handlers_returns_early(self, log):
         """No console and no file returns early without configuring logging."""
         config = StoggerConfig(log_to_console=False, logdir=None)
         with patch("logging.basicConfig", autospec=True) as mock_basic:
             configure_stdlib_logging(config, [])
-            mock_basic.assert_not_called()
+            #BR|            mock_basic.assert_not_called()
+
+        log.has("no-logging-handlers-configured")

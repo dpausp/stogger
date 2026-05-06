@@ -257,7 +257,7 @@ def test_should_not_exclude_normal_file():
 
 
 @pytest.mark.integration
-def test_load_config_invalid_toml():
+def test_load_config_invalid_toml(log):
     """Invalid TOML in pyproject.toml causes _load_config to return {} — defaults used."""
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
@@ -268,6 +268,7 @@ def test_load_config_invalid_toml():
             assert config.verbose is False
             assert config.syslog_identifier == "stogger"
 
+        log.has("config-loading-failed")
 
 # ---------------------------------------------------------------------------
 # Detection subsystem tests
@@ -275,7 +276,7 @@ def test_load_config_invalid_toml():
 
 
 @pytest.mark.integration
-def test_detect_from_stogger_section():
+def test_detect_from_stogger_section(log):
     """detect_project_structure with [tool.stogger] src_dir returns pyproject.toml source."""
     with tempfile.TemporaryDirectory() as tmpdir:
         root = Path(tmpdir)
@@ -289,6 +290,7 @@ def test_detect_from_stogger_section():
         assert "src" in result.source_dirs
         assert "tests" in result.test_dirs
 
+        log.has("project-structure-detected-from-pyproject")
 
 @pytest.mark.integration
 def test_detect_from_hatch_section():
@@ -321,7 +323,7 @@ def test_detect_from_pytest_section():
 
 
 @pytest.mark.integration
-def test_detect_fallback_to_heuristics():
+def test_detect_fallback_to_heuristics(log):
     """No pyproject.toml, but src/ and tests/ exist → heuristics detection."""
     with tempfile.TemporaryDirectory() as tmpdir:
         root = Path(tmpdir)
@@ -334,6 +336,7 @@ def test_detect_fallback_to_heuristics():
         assert "src" in result.source_dirs
         assert "tests" in result.test_dirs
 
+        log.has("project-structure-detected-from-heuristics")
 
 @pytest.mark.integration
 def test_detect_heuristics_no_src():
@@ -347,13 +350,14 @@ def test_detect_heuristics_no_src():
 
 
 @pytest.mark.integration
-def test_detect_heuristics_nothing_found():
+def test_detect_heuristics_nothing_found(log):
     """No pyproject.toml, no src, no python files → raises ValueError."""
     with tempfile.TemporaryDirectory() as tmpdir:
         root = Path(tmpdir)
         with pytest.raises(ValueError, match="Could not determine project structure"):
             detect_project_structure(root)
 
+        log.has("heuristic-detection-failed")
 
 @pytest.mark.integration
 def test_detect_pyproject_invalid_toml():

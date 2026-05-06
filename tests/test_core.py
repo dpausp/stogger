@@ -117,7 +117,7 @@ class TestConsoleFileRenderer:
         assert "some_value" in result["console"]
         assert "\x1b" not in result["file"]  # No ANSI codes in file output
 
-    def test_json_renderer_output(self):
+    def test_json_renderer_output(self, log):
         """Test the output of the JSONRenderer."""
         renderer = JSONRenderer()
         event_dict = {
@@ -134,6 +134,7 @@ class TestConsoleFileRenderer:
         assert console_json["event"] == "test-event"
         assert console_json["some_key"] == "some_value"
         assert file_json["level"] == "info"
+        assert log.has("initializing-json-renderer")
 
 
 @pytest.mark.integration
@@ -356,11 +357,12 @@ class TestRenderOutputSections:
 class TestPartialFormatter:
     """Tests for PartialFormatter get_field and format_field."""
 
-    def test_get_field_missing_key(self):
+    def test_get_field_missing_key(self, log):
         """KeyError/AttributeError in get_field returns (None, field_name)."""
         fmt = PartialFormatter()
         result = fmt.get_field("nonexistent", [], {})
         assert result == (None, "nonexistent")
+        assert log.has("format-field-missing")
 
     def test_get_field_present(self):
         """Normal field lookup returns (value, rest)."""
@@ -373,11 +375,12 @@ class TestPartialFormatter:
         fmt = PartialFormatter()
         assert fmt.format_field(None, "") == "<missing>"
 
-    def test_format_field_bad_format(self):
+    def test_format_field_bad_format(self, log):
         """ValueError in format_field returns '<bad format>'."""
         fmt = PartialFormatter()
         result = fmt.format_field(42, "z")
         assert result == "<bad format>"
+        assert log.has("format-field-bad-format")
 
 
 @pytest.mark.integration
@@ -767,6 +770,8 @@ class TestInitCommandLogging:
         init_command_logging(log, tmp_path)
 
         assert "cmd_output_file" in factories
+
+        log.has("logging-cmd-output")
         # Clean up file handle
         factories["cmd_output_file"]._file.close()  # noqa: SLF001, RUF100
 
@@ -780,7 +785,9 @@ class TestInitCommandLogging:
         )
         log = structlog.get_logger()
         # Should not raise
-        init_command_logging(log)
+        #KV|        init_command_logging(log)
+
+        log.has("logging-cmd-output-no-logdir")
 
 
 @pytest.mark.integration
@@ -815,3 +822,5 @@ class TestDropCmdOutputLogfile:
         log = structlog.get_logger()
         with pytest.raises(KeyError):
             drop_cmd_output_logfile(log)
+
+        log.has("logging-cmd-output-file-not-found")
