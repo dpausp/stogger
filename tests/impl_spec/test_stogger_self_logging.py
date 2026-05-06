@@ -1,8 +1,7 @@
 """Spec validation tests for stogger-self-logging.
 
 These tests define the CONTRACT that the stogger-self-logging implementation
-must fulfill. All tests are marked xfail because the feature doesn't exist yet.
-They will be garbage-collected after implementation makes them green.
+must fulfill. All tests pass — spec fully implemented.
 
 Spec: .agents/impl_specs/stogger-self-logging.md
 
