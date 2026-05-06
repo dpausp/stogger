@@ -98,7 +98,6 @@ exempt_event_ids = [
 ]
 
 [tool.pytest-stogger.per-file-ignores]
-"core.py" = ["except-must-log", "complexity-needs-log"]
 "_colors.py" = ["except-must-log", "complexity-needs-log"]
 
 [tool.ruff.lint]

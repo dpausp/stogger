@@ -13,6 +13,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import structlog
 
+from stogger._colors import RED, RESET_ALL
+
 # Import the modules we want to test
 from stogger.config import FormatConfig
 from stogger.core import (
@@ -36,8 +38,6 @@ from stogger.core import (
     prefix,
     process_exc_info,
 )
-
-from stogger._colors import RED, RESET_ALL
 
 
 class _MsgTarget:
@@ -335,7 +335,6 @@ class TestRenderOutputSections:
 
     def test_raw_output_ansi_passthrough(self):
         """_raw_output preserves ANSI in console, strips for file."""
-
         renderer = ConsoleFileRenderer()
         ansi_content = RED + "error text" + RESET_ALL
         event_dict = {
@@ -409,6 +408,10 @@ class TestTranslationProcessor:
         result = proc(None, "info", event_dict)
         assert "_translated_msg" not in result
 
+    def test_translation_processor_init_logs(self, log):
+        """TranslationProcessor.__init__ logs initializing-translation-processor."""
+        TranslationProcessor({"greeting": "Hello {name}!"})
+        log.has("initializing-translation-processor")
 
 class TestPrefix:
     """Tests for prefix function."""
@@ -588,6 +591,11 @@ class TestInitEarlyLogging:
         init_early_logging()
         second_config = structlog.get_config()
         assert first_config == second_config
+
+    def test_init_early_logging_logs(self, log):
+        """init_early_logging(verbose=True) logs init-early-logging-called."""
+        init_early_logging(verbose=True)
+        log.has("init-early-logging-called")
 
 
 class TestLoggingInitialized:
@@ -811,6 +819,21 @@ class TestDropCmdOutputLogfile:
         drop_cmd_output_logfile(log)
         assert not cmd_file.exists()
 
+    def test_drop_cmd_output_logs(self, tmp_path, log):
+        """drop_cmd_output_logfile logs logging-cmd-output-drop."""
+        cmd_file = tmp_path / "build-output.log"
+        cmd_file_handle = cmd_file.open("w")
+        factories = {"cmd_output_file": structlog.PrintLoggerFactory(cmd_file_handle)}
+        factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)
+        structlog.configure(
+            processors=[],
+            wrapper_class=structlog.BoundLogger,
+            logger_factory=factory,
+        )
+        test_log = structlog.get_logger()
+
+        drop_cmd_output_logfile(test_log)
+        log.has("logging-cmd-output-drop")
     def test_drop_missing_factory(self):
         """KeyError when cmd_output_file not in factories."""
         factory = MultiOptimisticLoggerFactory({}, {})

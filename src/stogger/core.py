@@ -58,7 +58,7 @@ class TranslationProcessor:
         self.translations = translations
         self.formatter = PartialFormatter()
 
-    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:
+    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
         msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
 
         # Store original event name before any translation
@@ -83,7 +83,7 @@ def _pad(s, length):
     return s + " " * (max(0, missing))
 
 
-def prefix(name, s):
+def prefix(name, s):  # stogger: ignore complexity-needs-log
     """Add a prefix to each line of a multi-line string."""
     if not s:
         return ""
@@ -109,7 +109,7 @@ class ConsoleFileRenderer:
         "trace",
     ]
 
-    def __init__(
+    def __init__(  # stogger: ignore complexity-needs-log
         self,
         format_config=None,
         min_level=None,
@@ -161,7 +161,7 @@ class ConsoleFileRenderer:
             max(self._level_to_color.keys(), key=len),
         )
 
-    def _resolve_level_name(self, method_name, event_dict):
+    def _resolve_level_name(self, method_name, event_dict):  # stogger: ignore complexity-needs-log
         """Resolve log level from method_name or fall back to event_dict['level']."""
         if isinstance(method_name, str):
             return method_name.lower()
@@ -170,7 +170,7 @@ class ConsoleFileRenderer:
             return lvl.lower()
         return None
 
-    def _should_drop_by_level(self, level_name, _log_settings):
+    def _should_drop_by_level(self, level_name, _log_settings):  # stogger: ignore
         """Check if event should be dropped based on level filtering."""
         if level_name is None:
             return False
@@ -179,7 +179,7 @@ class ConsoleFileRenderer:
         except ValueError:
             return False
 
-    def _strip_internal_fields(self, event_dict):
+    def _strip_internal_fields(self, event_dict):  # stogger: ignore complexity-needs-log
         """Pop known internal keys from event_dict (mutates in place)."""
         if not self.show_caller_info:
             event_dict.pop("code_file", None)
@@ -192,7 +192,7 @@ class ConsoleFileRenderer:
         event_dict.pop("_translated_msg", None)
         event_dict.pop("_log_settings", None)
 
-    def _format_timestamp(self, ts, _log_settings):
+    def _format_timestamp(self, ts, _log_settings):  # stogger: ignore complexity-needs-log
         """Format timestamp with format variant handling."""
         if ts is not None:
             if self.timestamp_format == "relative":
@@ -203,7 +203,7 @@ class ConsoleFileRenderer:
             return DIM + str(ts) + RESET_ALL + " "
         return DIM + "notimestamp" + RESET_ALL + " "
 
-    def _render_output_sections(self, event_dict, write_fn):
+    def _render_output_sections(self, event_dict, write_fn):  # stogger: ignore complexity-needs-log
         """Render output sections: cmd_output, output, stdout, stderr, stack, traceback."""
         cmd_output_line = event_dict.pop("cmd_output_line", None)
         output = event_dict.pop("_output", None)
@@ -240,7 +240,7 @@ class ConsoleFileRenderer:
         if exception_traceback is not None:
             write_fn("\n" + prefix("exception", exception_traceback))
 
-    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict | None:
+    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict | None:  # stogger: ignore
         log_settings = event_dict.pop("_log_settings", {})
         if log_settings.get("console_ignore", False):
             return None
@@ -319,7 +319,7 @@ class JSONRenderer:
         log.debug("initializing-json-renderer", min_level=min_level)
         self.min_level_idx = ConsoleFileRenderer.LEVELS.index(min_level.lower())
 
-    def __call__(self, _, __, event_dict):
+    def __call__(self, _, __, event_dict):  # stogger: ignore complexity-needs-log
         if ConsoleFileRenderer.LEVELS.index(event_dict["level"]) > self.min_level_idx:
             raise structlog.DropEvent
         json_output = json.dumps(event_dict, default=str)
@@ -342,7 +342,7 @@ def add_caller_info(_, __, event_dict):
     return event_dict
 
 
-def process_exc_info(_, __, event_dict):
+def process_exc_info(_, __, event_dict):  # stogger: ignore complexity-needs-log
     if exc_info := event_dict.get("exc_info"):
         if isinstance(exc_info, BaseException):
             event_dict["exc_info"] = (type(exc_info), exc_info, exc_info.__traceback__)
@@ -351,7 +351,7 @@ def process_exc_info(_, __, event_dict):
     return event_dict
 
 
-def format_exc_info(_logger, _name, event_dict):
+def format_exc_info(_logger, _name, event_dict):  # stogger: ignore complexity-needs-log
     """Renders exc_info if it's present.
     Expects the tuple format returned by sys.exc_info().
     Compared to structlog's format_exc_info(), this renders the exception
@@ -384,7 +384,7 @@ class SelectRenderedString:
         """
         self.key = key
 
-    def __call__(self, _, __, event_dict):
+    def __call__(self, _, __, event_dict):  # stogger: ignore complexity-needs-log
         """Select the appropriate rendered string from the dict."""
         # If it's already a string, pass it through
         if isinstance(event_dict, str):
@@ -400,7 +400,7 @@ class SelectRenderedString:
         return str(event_dict)
 
 
-def log_to_stdlib(_logger, _name, event_dict):
+def log_to_stdlib(_logger, _name, event_dict):  # stogger: ignore complexity-needs-log
     """Bridge structlog events to Python's standard library logging module.
 
     This processor forwards every structlog event to ``logging.log()`` so that
@@ -459,7 +459,7 @@ def log_to_stdlib(_logger, _name, event_dict):
     return event_dict
 
 
-def _build_console_renderer_kwargs(verbose, show_caller_info):
+def _build_console_renderer_kwargs(verbose, show_caller_info):  # stogger: ignore complexity-needs-log
     """Build ConsoleFileRenderer keyword overrides for init_logging."""
     kwargs = {}
     if verbose:
@@ -536,7 +536,7 @@ def _configure_structlog(processors, context, loggers):
     )
 
 
-def _ensure_stderr_logging() -> None:
+def _ensure_stderr_logging() -> None:  # stogger: ignore complexity-needs-log
     """Pre-configure structlog to write to stderr if not yet configured.
 
     Ensures that any logging during bootstrap (e.g. config loading) goes to
@@ -555,7 +555,7 @@ def _ensure_stderr_logging() -> None:
         )
 
 
-def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
+def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # stogger: ignore complexity-needs-log
     *,
     logdir: str | Path | None = None,
     log_cmd_output: bool = False,
@@ -751,7 +751,7 @@ class SystemdJournalRenderer:
         self.syslog_identifier = syslog_identifier
         self.syslog_facility = syslog_facility
 
-    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict:
+    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
         if method_name == "trace":
             return {}
 
@@ -792,7 +792,7 @@ class SystemdJournalRenderer:
 
         return {"journal": event_dict}
 
-    def handle_json_fallback(self, obj):
+    def handle_json_fallback(self, obj):  # stogger: ignore
         """Same as structlog's json fallback.
         Supports obj.__structlog__() for custom object serialization.
         """
@@ -801,7 +801,7 @@ class SystemdJournalRenderer:
         except AttributeError:
             return repr(obj)
 
-    def dump_for_journal(self, obj):
+    def dump_for_journal(self, obj):  # stogger: ignore complexity-needs-log
         """Encode values as JSON, except strings.
         We keep strings unchanged to display line breaks properly in journalctl
         and graylog.
@@ -822,7 +822,7 @@ class PostgresRenderer:
 
     KNOWN_FIELDS = frozenset({"timestamp", "level", "event", "func", "scope"})
 
-    def __call__(self, _logger, _method_name, event_dict):
+    def __call__(self, _logger, _method_name, event_dict):  # stogger: ignore complexity-needs-log
         column_dict = {}
         data = {}
         for key, value in event_dict.items():
@@ -837,7 +837,7 @@ class PostgresRenderer:
 class CmdOutputFileRenderer:
     """Renderer for command output file logging."""
 
-    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:
+    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
         line = event_dict.pop("cmd_output_line", None)
         if line is not None:
             return {"cmd_output_file": line}
@@ -859,13 +859,13 @@ class MultiRenderer:
     def __repr__(self) -> str:
         return f"<MultiRenderer {[repr(logger) for logger in self.renderers]}>"
 
-    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:
+    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
         merged_messages = {}
         for renderer in self.renderers.values():
             try:
                 messages = renderer(logger, method_name, dict(event_dict))
                 merged_messages.update(messages)
-            except Exception:
+            except Exception:  # stogger: ignore except-must-log
                 logging.getLogger(__name__).exception("Renderer failed, using fallback")
 
         return merged_messages
@@ -913,7 +913,7 @@ class MultiOptimisticLogger:
     def __repr__(self) -> str:
         return f"<MultiOptimisticLogger {[repr(logger) for logger in self.loggers]}>"
 
-    def msg(self, **messages) -> None:
+    def msg(self, **messages) -> None:  # stogger: ignore
         for name, logger in self.loggers.items():
             try:
                 line = messages.get(name)
