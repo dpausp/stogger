@@ -93,9 +93,7 @@ test_dir = "tests"
 exclude = []
 info_allowed_layers = []
 #KH|infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
-exempt_event_ids = [
-    "file-open-permission-denied",
-]
+exempt_event_ids = []
 
 [tool.pytest-stogger.per-file-ignores]
 "_colors.py" = ["except-must-log", "complexity-needs-log"]

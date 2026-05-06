@@ -29,6 +29,7 @@ from stogger.core import (
     SelectRenderedString,
     SystemdJournalRenderer,
     TranslationProcessor,
+    _build_logger_factories,
     drop_cmd_output_logfile,
     init_command_logging,
     init_early_logging,
@@ -847,3 +848,22 @@ class TestDropCmdOutputLogfile:
             drop_cmd_output_logfile(log)
 
         log.has("logging-cmd-output-file-not-found")
+
+
+@pytest.mark.integration
+class TestBuildLoggerFactories:
+    """Tests for _build_logger_factories."""
+
+    def test_permission_denied_logs_warning(self, log):
+        """PermissionError opening log file logs file-open-permission-denied."""
+        from stogger.config import StoggerConfig
+
+        cfg = StoggerConfig(enable_systemd=False, enable_postgres=False)
+        with patch.object(Path, "open", side_effect=PermissionError("denied")):
+            _build_logger_factories(
+                logdir=Path("/fake"),
+                log_to_console=False,
+                syslog_identifier="test",
+                cfg=cfg,
+            )
+        log.has("file-open-permission-denied")

@@ -305,20 +305,18 @@ def test_config_decorators_inline_ignore():
 # ---------------------------------------------------------------------------
 
 
-def test_config_exempt_event_id():
-    """pyproject.toml must have file-open-permission-denied in exempt_event_ids.
+def test_config_exempt_event_ids_empty():
+    """pyproject.toml must have empty exempt_event_ids.
 
-    SPEC: logging-level — warning event needs _replace_msg and addition
-    to exempt_event_ids.
-    SPEC: event-id-naming — file-open-permission-denied is kebab-case,
-    4 words (CR-1).
+    SPEC: logging-level — all events covered by log.has() tests,
+    no exemptions needed.
     """
     pyproject = Path("pyproject.toml")
     with pyproject.open("rb") as f:
         config = tomllib.load(f)
 
     exempt_ids = config["tool"]["pytest-stogger"]["exempt_event_ids"]
-    assert "file-open-permission-denied" in exempt_ids
+    assert exempt_ids == []
 
 
 # ---------------------------------------------------------------------------
