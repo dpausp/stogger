@@ -1,14 +1,18 @@
 """Configuration handling for stogger."""
 
 import fnmatch
+import sys
 import time
 import tomllib
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import attrs
 import structlog
+
+_TEST_DEPS_WARNED = False
 
 
 @dataclass
@@ -82,6 +86,36 @@ class ProjectStructure:
             return True
 
 
+def _check_test_dependencies(full_config: dict[str, Any]) -> None:
+    """Warn if pytest-stogger or pytest-structlog are missing during pytest."""
+    global _TEST_DEPS_WARNED  # noqa: PLW0603
+
+    if _TEST_DEPS_WARNED or "_pytest" not in sys.modules:
+        return
+
+    log = structlog.get_logger(__name__)
+    log.debug("checking-test-dependencies", has_dependency_groups="dependency-groups" in full_config)
+
+    _TEST_DEPS_WARNED = True
+
+    required = {"pytest-stogger", "pytest-structlog"}
+
+    # Collect all dependency strings into one lowercase blob
+    all_deps: list[str] = list(full_config.get("dependency-groups", {}).get("test", []))
+    for deps in full_config.get("project", {}).get("optional-dependencies", {}).values():
+        all_deps.extend(deps)
+
+    deps_str = " ".join(str(d).lower() for d in all_deps)
+    missing = sorted(r for r in required if r not in deps_str)
+
+    if missing:
+        msg = (
+            f"stogger test infrastructure incomplete: {', '.join(missing)}. "
+            "Add to test dependencies for convention checking."
+        )
+        warnings.warn(msg, UserWarning, stacklevel=3)
+
+
 def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
     """Load ``[tool.stogger]`` settings from ``pyproject.toml`` in cwd.
 
@@ -108,6 +142,7 @@ def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
         with pyproject_path.open("rb") as f:
             config = tomllib.load(f)
         stogger_config = config.get("tool", {}).get("stogger", {})
+        _check_test_dependencies(config)
         if verbose:
             log.debug(
                 "config-loaded-successfully",
