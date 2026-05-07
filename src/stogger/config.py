@@ -99,19 +99,24 @@ def _check_test_dependencies(full_config: dict[str, Any]) -> None:
     _TEST_DEPS_WARNED = True
 
     required = {"pytest-stogger", "pytest-structlog"}
+    dep_groups = full_config.get("dependency-groups", {})
+    test_deps = dep_groups.get("test")
 
-    # Collect all dependency strings into one lowercase blob
-    all_deps: list[str] = list(full_config.get("dependency-groups", {}).get("test", []))
-    for deps in full_config.get("project", {}).get("optional-dependencies", {}).values():
-        all_deps.extend(deps)
+    if test_deps is None:
+        msg = (
+            "stogger test infrastructure incomplete: no [dependency-groups].test found in pyproject.toml. "
+            "Add pytest-stogger and pytest-structlog to [dependency-groups].test."
+        )
+        warnings.warn(msg, UserWarning, stacklevel=3)
+        return
 
-    deps_str = " ".join(str(d).lower() for d in all_deps)
+    deps_str = " ".join(str(d).lower() for d in test_deps)
     missing = sorted(r for r in required if r not in deps_str)
 
     if missing:
         msg = (
             f"stogger test infrastructure incomplete: {', '.join(missing)}. "
-            "Add to test dependencies for convention checking."
+            "Add to [dependency-groups].test in pyproject.toml."
         )
         warnings.warn(msg, UserWarning, stacklevel=3)
 
