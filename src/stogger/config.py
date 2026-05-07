@@ -160,6 +160,10 @@ def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
         with pyproject_path.open("rb") as f:
             config = tomllib.load(f)
         stogger_config = config.get("tool", {}).get("stogger", {})
+        if "syslog_identifier" not in stogger_config:
+            project_name = config.get("project", {}).get("name")
+            if project_name:
+                stogger_config["syslog_identifier"] = project_name
         _check_test_dependencies(config)
         if verbose:
             log.debug(
