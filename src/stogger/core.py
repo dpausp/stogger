@@ -560,7 +560,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     logdir: str | Path | None = None,
     log_cmd_output: bool = False,
     log_to_console: bool = True,
-    syslog_identifier: str = "stogger",
+    syslog_identifier: str | None = None,
     verbose: bool | None = None,
     show_caller_info: bool | None = None,
 ) -> None:
@@ -578,7 +578,9 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
         log_to_console: Log to stderr. Disabled automatically when running under
             systemd journal (detected via ``JOURNAL_STREAM`` env var).
         syslog_identifier: Identifier string for syslog/journal entries. Also used
-            as the main log file name (``{syslog_identifier}.log``).
+            as the main log file name (``{syslog_identifier}.log``). When None
+            (default), uses the value from settings (``syslog_identifier`` in
+            ``[tool.stogger]`` config).
         verbose: When True, sets the console log level to ``"debug"``.
             When None (default), uses the level from settings (typically ``"info"``).
         show_caller_info: Whether to display code location (file, function, line)
@@ -596,6 +598,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
 
     cfg = StoggerConfig(verbose=bool(verbose))
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
+    syslog_identifier = syslog_identifier if syslog_identifier is not None else cfg.syslog_identifier
 
     console_renderer_kwargs = _build_console_renderer_kwargs(verbose, show_caller_info)
     multi_renderer = MultiRenderer(

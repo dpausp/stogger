@@ -199,7 +199,7 @@ Module Contents
 
 
 
-.. py:function:: init_logging(*, logdir = None, log_cmd_output = False, log_to_console = True, syslog_identifier = 'stogger', verbose = None, show_caller_info = None)
+.. py:function:: init_logging(*, logdir = None, log_cmd_output = False, log_to_console = True, syslog_identifier = None, verbose = None, show_caller_info = None)
 
    Initialize full structured logging with console, file, and journal targets.
 
@@ -215,7 +215,9 @@ Module Contents
        log_to_console: Log to stderr. Disabled automatically when running under
            systemd journal (detected via ``JOURNAL_STREAM`` env var).
        syslog_identifier: Identifier string for syslog/journal entries. Also used
-           as the main log file name (``{syslog_identifier}.log``).
+           as the main log file name (``{syslog_identifier}.log``). When None
+           (default), uses the value from settings (``syslog_identifier`` in
+           ``[tool.stogger]`` config).
        verbose: When True, sets the console log level to ``"debug"``.
            When None (default), uses the level from settings (typically ``"info"``).
        show_caller_info: Whether to display code location (file, function, line)

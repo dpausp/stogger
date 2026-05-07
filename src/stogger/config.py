@@ -101,7 +101,7 @@ class ProjectStructure:
 
 def _check_test_dependencies(full_config: dict[str, Any]) -> None:
     """Warn if pytest-stogger or pytest-structlog are missing during pytest."""
-    global _TEST_DEPS_WARNED  # noqa: PLW0603
+    global _TEST_DEPS_WARNED
 
     if _TEST_DEPS_WARNED or "_pytest" not in sys.modules:
         return
