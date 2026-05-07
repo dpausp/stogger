@@ -74,6 +74,9 @@ sort_by_size = true
 [tool.ty.src]
 exclude = ["tests", "docs"]
 
+[tool.pyright]
+exclude = ["tests", "docs"]
+
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
 python_files = [ "test_*.py", "*_test.py",]
