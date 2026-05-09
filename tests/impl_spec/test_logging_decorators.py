@@ -117,7 +117,8 @@ def test_log_operation_produces_operation_event(log):
     evt = log.events[0]
     assert evt["event"] == "operation"
     assert "func" in evt
-    assert evt["args"] == {"a": 3, "b": 4}
+    assert evt["a"] == 3
+    assert evt["b"] == 4
     assert evt["result"] == 7
     assert "duration_ms" in evt
 
@@ -312,8 +313,8 @@ def test_include_args_whitelist_filtering(log):
     authenticate("admin", "secret")
 
     evt = log.events[0]
-    assert evt["args"] == {"query": "admin"}
-    assert "password" not in evt["args"]
+    assert evt["query"] == "admin"
+    assert "password" not in evt
 
 
 def test_exclude_args_blacklist_filtering(log):
@@ -327,8 +328,8 @@ def test_exclude_args_blacklist_filtering(log):
     authenticate("admin", "secret")
 
     evt = log.events[0]
-    assert "password" not in evt["args"]
-    assert evt["args"]["query"] == "admin"
+    assert "password" not in evt
+    assert evt["query"] == "admin"
 
 
 # ---------------------------------------------------------------------------
@@ -417,7 +418,7 @@ def test_log_operation_logs_exception_with_args(log):
     assert evt["event"] == "failed"
     assert evt["exc_type"] == "RuntimeError"
     assert evt["exc_msg"] == "failed on 5"
-    assert evt["args"] == {"x": 5}
+    assert evt["x"] == 5
     assert "duration_ms" in evt
 
 

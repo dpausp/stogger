@@ -92,7 +92,8 @@ def test_log_operation_captures_all(log):
     assert result == 21
     evt = log.events[0]
     assert evt["event"] == "operation"
-    assert evt["args"] == {"a": 3, "b": 7}
+    assert evt["a"] == 3
+    assert evt["b"] == 7
     assert evt["result"] == 21
     assert "duration_ms" in evt
     assert log.has("operation")
@@ -110,7 +111,7 @@ def test_log_operation_exception_logs_failed(log):
     assert evt["event"] == "failed"
     assert evt["exc_type"] == "TypeError"
     assert evt["exc_msg"] == "ouch"
-    assert evt["args"] == {"x": 5}
+    assert evt["x"] == 5
     assert isinstance(evt["duration_ms"], float)
     assert log.has("failed")
 
@@ -185,7 +186,8 @@ def test_include_args_filters(log):
     func(1, 2)
 
     evt = log.events[0]
-    assert evt["args"] == {"x": 1}
+    assert evt["x"] == 1
+    assert "y" not in evt
 
 
 def test_exclude_args_filters(log):
@@ -196,8 +198,8 @@ def test_exclude_args_filters(log):
     login("admin", "secret")
 
     evt = log.events[0]
-    assert "password" not in evt["args"]
-    assert evt["args"]["user"] == "admin"
+    assert "password" not in evt
+    assert evt["user"] == "admin"
 
 
 # --- self/cls stripping ---

@@ -288,7 +288,7 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
                     "failed",
                     _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                     func=func_name,
-                    args=all_args,
+                    **all_args,
                     exc_type=type(exc).__name__,
                     exc_msg=str(exc),
                     duration_ms=duration_ms,
@@ -298,7 +298,7 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
             log.debug(
                 "operation",
                 func=func_name,
-                args=all_args,
+                **all_args,
                 result=result,
                 duration_ms=duration_ms,
             )
@@ -319,7 +319,7 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
                 "failed",
                 _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                 func=func_name,
-                args=all_args,
+                **all_args,
                 exc_type=type(exc).__name__,
                 exc_msg=str(exc),
                 duration_ms=duration_ms,
@@ -329,7 +329,7 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
         log.debug(
             "operation",
             func=func_name,
-            args=all_args,
+            **all_args,
             result=result,
             duration_ms=duration_ms,
         )
