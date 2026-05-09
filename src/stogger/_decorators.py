@@ -295,9 +295,8 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
                 )
                 raise
             duration_ms = (time.perf_counter() - t0) * 1000
-            log.info(
+            log.debug(
                 "operation",
-                _replace_msg="{func}({args}) -> {result} in {duration_ms:.1f}ms",
                 func=func_name,
                 args=all_args,
                 result=result,
@@ -327,9 +326,8 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
             )
             raise
         duration_ms = (time.perf_counter() - t0) * 1000
-        log.info(
+        log.debug(
             "operation",
-            _replace_msg="{func}({args}) -> {result} in {duration_ms:.1f}ms",
             func=func_name,
             args=all_args,
             result=result,
