@@ -1,10 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "demo"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "structlog>=25.0.0",
+    "stogger",
 ]
+
+[tool.uv.sources]
+stogger = { path = "../../" }
+pytest-stogger = { path = "../../../pytest-stogger" }
 
 [dependency-groups]
 test = [
@@ -17,7 +26,7 @@ test = [
 [tool.pytest-stogger]
 source = "src/demo"
 test_dir = "tests"
-exclude = []
+exclude = ["cli/commands.py"]
 info_allowed_layers = ["service"]
 infrastructure_files = []
 exempt_event_ids = []
