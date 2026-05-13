@@ -76,8 +76,7 @@ def test_log_call_produces_called_event(log):
     evt = log.events[0]
     assert evt["event"] == "called"
     assert "func" in evt
-    assert "args" in evt
-    assert evt["args"] == {"name": "world"}
+    assert evt["name"] == "world"
     assert "result" not in evt
     assert "duration_ms" not in evt
 
@@ -197,7 +196,7 @@ def test_log_call_works_with_async(log):
     assert len(log.events) == 1
     evt = log.events[0]
     assert evt["event"] == "called"
-    assert evt["args"] == {"query": "test"}
+    assert evt["query"] == "test"
 
 
 def test_log_result_works_with_async(log):
@@ -266,7 +265,8 @@ def test_args_include_default_values(log):
     func_with_defaults(1)
 
     evt = log.events[0]
-    assert evt["args"] == {"x": 1, "y": 10}
+    assert evt["x"] == 1
+    assert evt["y"] == 10
 
 
 def test_args_strip_self(log):
@@ -281,8 +281,8 @@ def test_args_strip_self(log):
     Service().process("hello")
 
     evt = log.events[0]
-    assert "self" not in evt["args"]
-    assert evt["args"] == {"data": "hello"}
+    assert "self" not in evt
+    assert evt["data"] == "hello"
 
 
 def test_args_strip_cls(log):
@@ -298,8 +298,8 @@ def test_args_strip_cls(log):
     Handler.create("test")
 
     evt = log.events[0]
-    assert "cls" not in evt["args"]
-    assert evt["args"] == {"name": "test"}
+    assert "cls" not in evt
+    assert evt["name"] == "test"
 
 
 def test_include_args_whitelist_filtering(log):

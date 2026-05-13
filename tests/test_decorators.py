@@ -19,7 +19,8 @@ def test_log_call_captures_args(log):
 
     evt = log.events[0]
     assert evt["event"] == "called"
-    assert evt["args"] == {"name": "world", "greeting": "hello"}
+    assert evt["name"] == "world"
+    assert evt["greeting"] == "hello"
     assert "result" not in evt
     assert "duration_ms" not in evt
     assert log.has("called")
@@ -156,7 +157,7 @@ def test_log_call_async(log):
     assert result == "hi world"
     evt = log.events[0]
     assert evt["event"] == "called"
-    assert evt["args"] == {"name": "world"}
+    assert evt["name"] == "world"
     assert log.has("called")
 
 
@@ -214,8 +215,8 @@ def test_self_stripped(log):
     Service().run("test")
 
     evt = log.events[0]
-    assert "self" not in evt["args"]
-    assert evt["args"] == {"data": "test"}
+    assert "self" not in evt
+    assert evt["data"] == "test"
     assert log.has("called")
 
 
