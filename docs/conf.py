@@ -158,7 +158,6 @@ COVERAGE_TIERS = {
     ],
     "tier2_basic": [  # 40-80% coverage - basic documentation
         "linter",
-        "pii_scrubber",
         "assistant",
         "interactive_transformer",
         "gitignore_utils",

@@ -122,7 +122,7 @@ skip_covered = false
 precision = 2
 
 [tool.tox]
-env_list = ["fix", "cov", "docs", "build", "3.13"]
+env_list = ["fix", "cov", "docs", "build", "3.13", "integrations"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
@@ -178,6 +178,14 @@ description = "Build package with embedded documentation"
 dependency_groups = ["docs"]
 commands = [
     ["uv", "build", { replace = "posargs", extend = true }],
+]
+
+[tool.tox.env.integrations]
+description = "Integration tests with optional dependencies (systemd, postgres)"
+dependency_groups = ["test"]
+extras = ["systemd", "postgres"]
+commands = [
+    ["pytest", "tests/test_systemd_integration_real.py", "tests/test_postgres_integration_real.py", "-v"],
 ]
 
 [tool.uv.sources]

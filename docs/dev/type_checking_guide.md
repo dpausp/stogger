@@ -61,7 +61,6 @@ class FormatConfig:
 class StoggerConfig:
     verbose: bool = False
     logdir: Path | None = None
-    enable_pii_scrubbing: bool = True
     systemd_facility: str | None = None
     ast_enabled_patterns: list | None = None
 ```

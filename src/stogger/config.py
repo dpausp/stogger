@@ -221,10 +221,6 @@ class StoggerConfig:
         log_format (str): Output format — ``"simple"`` or ``"json"``.
             Default ``"simple"``.
         async_logging (bool): Use asynchronous log writing. Default ``False``.
-        enable_pii_scrubbing (bool): Scrub PII from log messages.
-            Default ``True``.
-        pii_redaction_text (str): Replacement text for redacted PII.
-            Default ``"[REDACTED]"``.
         enable_systemd (bool): Enable systemd/journal integration.
             Default ``True``.
         systemd_facility (str | None): Syslog facility for systemd output.
@@ -252,8 +248,6 @@ class StoggerConfig:
     language: str = "en"
     log_format: str = "simple"
     async_logging: bool = False
-    enable_pii_scrubbing: bool = True
-    pii_redaction_text: str = "[REDACTED]"
     enable_systemd: bool = True
     systemd_facility: str | None = None
     enable_postgres: bool = False
@@ -295,8 +289,6 @@ class StoggerConfig:
             language=config.get("language", "en"),
             log_format=config.get("log_format", "simple"),
             async_logging=config.get("async_logging", False),
-            enable_pii_scrubbing=config.get("enable_pii_scrubbing", True),
-            pii_redaction_text=config.get("pii_redaction_text", "[REDACTED]"),
             enable_systemd=config.get("enable_systemd", True),
             systemd_facility=config.get("systemd_facility", None),
             enable_postgres=config.get("enable_postgres", False),

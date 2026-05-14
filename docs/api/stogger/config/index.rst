@@ -146,10 +146,6 @@ Module Contents
        log_format (str): Output format — ``"simple"`` or ``"json"``.
            Default ``"simple"``.
        async_logging (bool): Use asynchronous log writing. Default ``False``.
-       enable_pii_scrubbing (bool): Scrub PII from log messages.
-           Default ``True``.
-       pii_redaction_text (str): Replacement text for redacted PII.
-           Default ``"[REDACTED]"``.
        enable_systemd (bool): Enable systemd/journal integration.
            Default ``True``.
        systemd_facility (str | None): Syslog facility for systemd output.
@@ -224,18 +220,6 @@ Module Contents
    .. py:attribute:: async_logging
       :type:  bool
       :value: False
-
-
-
-   .. py:attribute:: enable_pii_scrubbing
-      :type:  bool
-      :value: True
-
-
-
-   .. py:attribute:: pii_redaction_text
-      :type:  str
-      :value: '[REDACTED]'
 
 
 

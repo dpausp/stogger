@@ -367,7 +367,7 @@ log.warning(
 log.info("user-authenticated", user_id=123, email_domain="example.com")
 ```
 
-Never log passwords, tokens, or raw PII. Note: PII scrubbing via `enable_pii_scrubbing=True` is currently not implemented — the config option is accepted but has no effect.
+Never log passwords, tokens, or raw PII. Structure log calls to exclude sensitive fields from the outset.
 
 ## Performance
 

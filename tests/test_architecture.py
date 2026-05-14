@@ -14,44 +14,80 @@ Validates the layer boundary rules of the dependency graph:
 
 from pytest_archon import archrule
 
+PACKAGE = "stogger"
+
+
 # --- Layer 0: Foundation modules (no internal deps) ---
 
-archrule("config has no internal deps", comment="config is the deepest layer").match(
-    "stogger.config"
-).should_not_import("stogger")
 
-archrule("_types has no internal deps").match("stogger._types").should_not_import("stogger")
+def test_config_has_no_internal_deps():
+    archrule("config has no internal deps", comment="config is the deepest layer").match(
+        "stogger.config"
+    ).should_not_import("stogger").check(PACKAGE)
 
-archrule("_colors has no internal deps").match("stogger._colors").should_not_import("stogger")
 
-archrule("_regexes has no internal deps").match("stogger._regexes").should_not_import("stogger")
+def test_types_has_no_internal_deps():
+    archrule("_types has no internal deps").match("stogger._types").should_not_import("stogger").check(PACKAGE)
+
+
+def test_colors_has_no_internal_deps():
+    archrule("_colors has no internal deps").match("stogger._colors").should_not_import("stogger").check(PACKAGE)
+
+
+def test_regexes_has_no_internal_deps():
+    archrule("_regexes has no internal deps").match("stogger._regexes").should_not_import("stogger").check(PACKAGE)
+
 
 # --- Layer 1: processors (depends only on config) ---
 
-archrule("processors depends only on config").match("stogger.processors").should_not_import(
-    "stogger.core", "stogger.factory", "stogger._types", "stogger._colors", "stogger._regexes"
-)
+
+def test_processors_depends_only_on_config():
+    archrule("processors depends only on config").match("stogger.processors").should_not_import(
+        "stogger.core", "stogger.factory", "stogger._types", "stogger._colors", "stogger._regexes"
+    ).check(PACKAGE)
+
 
 # --- Layer 2: core (depends on config, _types, processors, _colors — NOT factory) ---
 
-archrule("core does not import factory").match("stogger.core").should_not_import("stogger.factory")
 
-archrule("core does not import __init__").match("stogger.core").should_not_import("stogger")
+def test_core_does_not_import_factory():
+    archrule("core does not import factory").match("stogger.core").should_not_import("stogger.factory").check(
+        PACKAGE
+    )
+
+
+def test_core_does_not_import_init():
+    archrule("core does not import __init__").match("stogger.core").should_not_import("stogger").check(PACKAGE)
+
 
 # --- Layer 3: factory (depends on config, core, processors — NOT __init__) ---
 
-archrule("factory does not import __init__").match("stogger.factory").should_not_import("stogger")
+
+def test_factory_does_not_import_init():
+    archrule("factory does not import __init__").match("stogger.factory").should_not_import("stogger").check(
+        PACKAGE
+    )
+
 
 # --- Top level: __init__ (aggregation only, does not import factory internals) ---
 
-archrule("__init__ does not import processors").match("stogger.__init__").should_not_import(
-    "stogger.processors"
-)
+
+def test_init_does_not_import_processors():
+    archrule("__init__ does not directly import processors").match("stogger").exclude("stogger.*").should_not_import(
+        "stogger.processors"
+    ).check(PACKAGE, only_direct_imports=True)
+
 
 # --- Layer 2: _decorators (depends on _types, config — NOT factory or __init__) ---
 
-archrule("_decorators does not import factory").match("stogger._decorators").should_not_import(
-    "stogger.factory"
-)
 
-archrule("_decorators does not import __init__").match("stogger._decorators").should_not_import("stogger")
+def test_decorators_does_not_import_factory():
+    archrule("_decorators does not import factory").match("stogger._decorators").should_not_import(
+        "stogger.factory"
+    ).check(PACKAGE)
+
+
+def test_decorators_does_not_import_init():
+    archrule("_decorators does not import __init__").match("stogger._decorators").should_not_import(
+        "stogger"
+    ).check(PACKAGE)

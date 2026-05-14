@@ -93,16 +93,6 @@ class TestBuildSharedProcessors:
         translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
         assert len(translation_processors) == 0
 
-    def test_pii_processor_exclusion(self):
-        """Test that PII processor is excluded when disabled."""
-        config = StoggerConfig(enable_pii_scrubbing=False)
-        processors = build_shared_processors(config)
-
-        # Should not include PII processor
-        processor_types = [type(p).__name__ for p in processors]
-        assert "PIIScrubber" not in processor_types
-
-
 @pytest.mark.integration
 class TestBuildRenderer:
     """Test cases for build_renderer function."""
