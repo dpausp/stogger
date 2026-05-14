@@ -336,7 +336,7 @@ class TestConfigureAsyncLogging:
         mock_root.handlers = []
 
         with patch("stogger.factory.QueueListener", autospec=True) as mock_ql:
-            mock_listener = MagicMock()
+            mock_listener = MagicMock(spec=QueueListener)
             mock_ql.return_value = mock_listener
 
             handler = logging.StreamHandler()

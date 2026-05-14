@@ -321,3 +321,36 @@ No code changes were made during this audit. Report-only deliverable.
 ## Raw Data Location
 
 `.agents/tmp/quality/` — inventory/, baseline/, extreme/, analysis/, e2e/
+
+## Tidy Session — 2026-05-14
+
+### Mock Hardening
+- Bare mocks before: 11 → after: 10
+- Migrated to typed: 1 (test_factory.py:339 — `MagicMock()` → `MagicMock(spec=QueueListener)`)
+- Untouchable: 10 (8 mock unavailable optional packages, 2 autospec attribute overrides)
+
+### Suppression Cleanup
+- Linter suppressions removed: 0 (all 15 noqa verified active and documented)
+- Type-check suppressions removed: 0 (0 type:ignore in src/)
+- Test skips removed: 0 (0 skip/xfail in tests/)
+- Restored (still needed): 0
+
+### Config Cleanup
+- Dead markers removed: 1 (`slow` marker from pyproject.toml — defined but 0 tests used it)
+
+### Post-Tidy Gates
+| Tool | Before | After |
+|------|--------|-------|
+| ruff | 0 issues | 0 issues |
+| ty | 0 errors | 0 errors |
+| pytest | 239 passed, 8 skipped | 239 passed, 8 skipped |
+| tox | 5/5 envs green | 5/5 envs green |
+
+### Skipped (Not Mechanical)
+- test_core.py bare MagicMock attribute overrides (lines 730, 752) — autospec'd .exception method behavior needs design verification
+- 8 mocks of unavailable optional packages (stogger-systemd: 3, stogger-postgres: 5) — no class available to spec against
+- All 15 noqa suppressions in src/core.py — verified active via ruff --ignore-noqa, all documented
+- test_architecture.py collection issue — needs investigation of pytest-archon mechanism
+- ConsoleFileRenderer complexity (CC=16) — refactoring required, not mechanical
+- E2E tier underrepresentation — needs design decision on test scenarios
+- PII scrubbing config gap — needs design decision (implement or remove)

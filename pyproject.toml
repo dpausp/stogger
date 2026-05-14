@@ -87,7 +87,6 @@ filterwarnings = [ "error", "ignore::UserWarning", "ignore::DeprecationWarning",
 markers = [
   "integration: integration tests that test real module interactions",
   "e2e: end-to-end tests that exercise full pipelines",
-  "slow: tests taking more than 1 second",
 ]
 
 [tool.pytest-stogger]
