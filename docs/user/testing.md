@@ -147,10 +147,4 @@ to appear twice.
 - **Don't use `caplog` or `log_to_stdlib`** — `pytest-structlog` is the
   right tool for structlog-based projects.
 
-## Summary
 
-- **Add** `pytest-structlog` as dev dependency
-- **Use** the `log` fixture — it captures all structlog events
-- **Assert** with `log.has()`, `log.events`, `log.count()`
-- **CLI tests**: same approach — `log` fixture for events, `result.output` for rendered text
-- **Don't** reconfigure structlog, build custom processors, or import stogger internals

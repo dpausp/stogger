@@ -24,7 +24,7 @@ Short attention span edition. Do these things and your logs will be useful, cons
 
 ## Exceptions — do this
 
-- Inside `except`, prefer `log.exception(...)` — it automatically includes `exc_info=True` and adds the full traceback to the `exception` field. Kein `error=str(e)` nötig:
+- Inside `except`, prefer `log.exception(...)` — it automatically includes `exc_info=True` and adds the full traceback to the `exception` field. No need for `error=str(e)`:
 
 ```python
 try:
@@ -38,7 +38,7 @@ except Exception:
     # optionally: raise
 ```
 
-- Alternative (wenn du aus bestimmten Gründen `log.error` verwenden willst):
+- Alternative (when you need `log.error` for specific reasons):
 
 ```python
 try:
@@ -51,8 +51,8 @@ except Exception as e:
     )
 ```
 
-- Warum wichtig: stogger verarbeitet `exc_info` und rendert einen vollständigen Traceback ins Feld `exception`. Ohne `exc_info` geht der Stacktrace verloren.
-- Kein `exc_info` auf `info`/`debug` — zu laut und unnötig.
+- Why this matters: stogger processes `exc_info` and renders a full traceback into the `exception` field. Without `exc_info`, the stack trace is lost.
+- Never use `exc_info` on `info`/`debug` — too noisy and unnecessary.
 
 ## Message formatting
 
