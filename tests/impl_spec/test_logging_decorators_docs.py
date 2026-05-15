@@ -10,32 +10,25 @@ import importlib.util
 import pathlib
 import re
 
-import pytest
-
-
 # --- api-docs-visibility: module rename ---
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — module not renamed yet", strict=True)
 def test_decorators_module_importable():
     """stogger.decorators module MUST exist and be importable."""
     import stogger.decorators  # noqa: F401
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — old module still exists", strict=True)
 def test_old_decorators_module_gone():
     """stogger._decorators module MUST NOT exist after rename."""
     result = importlib.util.find_spec("stogger._decorators")
     assert result is None, "stogger._decorators must not exist after rename to stogger.decorators"
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — public symbols not importable from decorators", strict=True)
 def test_decorators_module_exports_all_symbols():
     """All 5 public symbols must be importable from stogger.decorators."""
     from stogger.decorators import LogScope, log_call, log_operation, log_result, log_scope  # noqa: F401
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — top-level re-exports not sourced from decorators module", strict=True)
 def test_top_level_re_exports_sourced_from_decorators():
     """Top-level imports must resolve through stogger.decorators (not _decorators)."""
     from stogger import log_call
@@ -49,7 +42,6 @@ def test_top_level_re_exports_sourced_from_decorators():
 # --- spec-test-cleanup ---
 
 
-@pytest.mark.xfail(reason="Spec: spec-test-cleanup — old spec test file still exists", strict=True)
 def test_old_spec_test_file_removed():
     """tests/impl_spec/test_logging_decorators.py must not exist after cleanup."""
     old_test = pathlib.Path(__file__).parent / "test_logging_decorators.py"
@@ -59,7 +51,6 @@ def test_old_spec_test_file_removed():
 # --- docstring-quality: LogScope fix ---
 
 
-@pytest.mark.xfail(reason="Spec: docstring-quality — LogScope docstring missing complete event schema", strict=True)
 def test_logscope_docstring_has_complete_event_schema():
     """LogScope class docstring MUST contain a complete event schema example."""
     from stogger import LogScope
@@ -83,7 +74,6 @@ def test_logscope_docstring_has_complete_event_schema():
     )
 
 
-@pytest.mark.xfail(reason="Spec: docstring-quality — LogScope docstring has truncated JSON", strict=True)
 def test_logscope_docstring_no_truncated_json():
     """LogScope docstring MUST NOT contain truncated/incomplete JSON in event schema blocks."""
     from stogger import LogScope
@@ -108,7 +98,6 @@ def test_logscope_docstring_no_truncated_json():
 # --- Import chain integrity (derived from api-docs-visibility) ---
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — core still imports from ._decorators", strict=True)
 def test_log_call_module_is_decorators():
     """log_call.__module__ MUST be stogger.decorators (not stogger._decorators)."""
     from stogger import log_call
@@ -118,7 +107,6 @@ def test_log_call_module_is_decorators():
     )
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — core still imports from ._decorators", strict=True)
 def test_log_scope_module_is_decorators():
     """log_scope.__module__ MUST be stogger.decorators."""
     from stogger import log_scope
@@ -128,7 +116,6 @@ def test_log_scope_module_is_decorators():
     )
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — core still imports from ._decorators", strict=True)
 def test_log_result_module_is_decorators():
     """log_result.__module__ MUST be stogger.decorators."""
     from stogger import log_result
@@ -138,7 +125,6 @@ def test_log_result_module_is_decorators():
     )
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — core still imports from ._decorators", strict=True)
 def test_log_operation_module_is_decorators():
     """log_operation.__module__ MUST be stogger.decorators."""
     from stogger import log_operation
@@ -148,7 +134,6 @@ def test_log_operation_module_is_decorators():
     )
 
 
-@pytest.mark.xfail(reason="Spec: api-docs-visibility — LogScope class module not updated", strict=True)
 def test_logscope_class_module_is_decorators():
     """LogScope class __module__ MUST be stogger.decorators."""
     from stogger import LogScope

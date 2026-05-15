@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from stogger._decorators import log_call, log_operation, log_result, log_scope
+from stogger.decorators import log_call, log_operation, log_result, log_scope
 
 
 # --- log_call ---

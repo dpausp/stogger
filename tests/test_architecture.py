@@ -78,16 +78,16 @@ def test_init_does_not_import_processors():
     ).check(PACKAGE, only_direct_imports=True)
 
 
-# --- Layer 2: _decorators (depends on _types, config — NOT factory or __init__) ---
+# --- Layer 2: decorators (depends on _types, config — NOT factory or __init__) ---
 
 
 def test_decorators_does_not_import_factory():
-    archrule("_decorators does not import factory").match("stogger._decorators").should_not_import(
+    archrule("decorators does not import factory").match("stogger.decorators").should_not_import(
         "stogger.factory"
     ).check(PACKAGE)
 
 
 def test_decorators_does_not_import_init():
-    archrule("_decorators does not import __init__").match("stogger._decorators").should_not_import(
+    archrule("decorators does not import __init__").match("stogger.decorators").should_not_import(
         "stogger"
     ).check(PACKAGE)

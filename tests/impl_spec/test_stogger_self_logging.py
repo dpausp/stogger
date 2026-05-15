@@ -267,12 +267,12 @@ def test_probe_pytest_section_logs_none(captured_logs):
 
 
 # ---------------------------------------------------------------------------
-# 9. Config: _decorators.py uses inline ignore instead of per-file-ignores
+# 9. Config: decorators.py uses inline ignore instead of per-file-ignores
 # ---------------------------------------------------------------------------
 
 
 def test_config_decorators_inline_ignore():
-    """_decorators.py must NOT be in per-file-ignores; instead _filter_args()
+    """decorators.py must NOT be in per-file-ignores; instead _filter_args()
     has an inline ignore for complexity-needs-log.
 
     RATIONALE: per-file-ignores suppresses ALL log calls in a file for the
@@ -284,10 +284,10 @@ def test_config_decorators_inline_ignore():
         config = tomllib.load(f)
 
     per_file_ignores = config["tool"]["pytest-stogger"]["per-file-ignores"]
-    assert "_decorators.py" not in per_file_ignores
+    assert "decorators.py" not in per_file_ignores
 
     # Verify inline ignore exists on the def line
-    source = Path("src/stogger/_decorators.py").read_text()
+    source = Path("src/stogger/decorators.py").read_text()
     lines = source.splitlines()
     for line in lines:
         if line.strip().startswith("def _filter_args("):
@@ -296,7 +296,7 @@ def test_config_decorators_inline_ignore():
             )
             break
     else:
-        pytest.fail("_filter_args() not found in _decorators.py")
+    pytest.fail("_filter_args() not found in decorators.py")
 
 
 # ---------------------------------------------------------------------------

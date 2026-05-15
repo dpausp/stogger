@@ -161,7 +161,7 @@ def process_package(package_name: str):
         raise
 ```
 
-Or use the [`@log_call`](reference.md#log_call--entry-logging) decorator instead.
+Or use the [`@log_call`](reference.md#log_call--entry-logging) decorator instead — see [Decorators](#decorators) for the full pattern guide.
 
 ### Timing Operations
 
@@ -183,7 +183,7 @@ def timed_operation():
 ```
 
 Or use the [`@log_result`](reference.md#log_result--exit-logging-with-timing) decorator
-instead.
+instead — see [Decorators](#decorators) for the full pattern guide.
 
 ### CLI Command Logging
 
@@ -232,6 +232,100 @@ def process_files(file_list: list[str]):
     log.info("batch-processing-completed",
              _replace_msg="All {total} files processed successfully",
              total=total)
+```
+
+## Decorators
+
+Automate common logging patterns with decorators instead of manual
+`log.info()` calls.
+All decorators support sync and async functions and are imported from
+the top-level package:
+
+```python
+from stogger import log_call, log_result, log_operation, log_scope
+```
+
+### Entry Logging with `@log_call`
+
+Replace manual "function started" logging:
+
+```python
+from stogger import log_call
+
+@log_call
+def process_package(package_name: str):
+    # Automatically logs: {"event": "called", "func": "mymodule.process_package",
+    #                      "package_name": "hello"}
+    ...
+```
+
+Filter sensitive arguments:
+
+```python
+@log_call(exclude_args=["password", "token"])
+def authenticate(username: str, password: str, token: str):
+    # Logs: {"event": "called", "func": "...", "username": "alice"}
+    ...
+```
+
+### Exit Logging with `@log_result`
+
+Replace manual "operation completed" + timing:
+
+```python
+from stogger import log_result
+
+@log_result
+def compute_hash(data: bytes) -> str:
+    ...
+    # On success: {"event": "returned", "func": "mymodule.compute_hash",
+    #              "result": "abc123", "duration_ms": 12.5}
+    # On failure: {"event": "failed", "func": "mymodule.compute_hash",
+    #              "exc_type": "ValueError", "exc_msg": "...", "duration_ms": 5.1}
+```
+
+### Full Audit with `@log_operation`
+
+Combine entry and exit logging — arguments, result, and timing in a
+single event:
+
+```python
+from stogger import log_operation
+
+@log_operation(exclude_args=["api_key"])
+def fetch_data(endpoint: str, api_key: str) -> dict:
+    ...
+    # On success: {"event": "operation", "func": "mymodule.fetch_data",
+    #              "endpoint": "/users", "result": {...}, "duration_ms": 45.2}
+```
+
+When the function raises, logs `{"event": "failed", ...}` with exception
+info and re-raises.
+
+### Scoped Logging with `log_scope()`
+
+Context manager for code blocks that aren't functions — transactions,
+migrations, multi-step operations:
+
+```python
+from stogger import log_scope
+
+with log_scope("db_transaction", table="users") as scope:
+    insert(user)
+    scope.add_fields(rows_inserted=1)
+    # On exit: {"event": "scope-end", "scope": "db_transaction",
+    #           "table": "users", "rows_inserted": 1, "duration_ms": 3.2}
+```
+
+Add fields mid-scope with `add_fields()`.
+On exception, logs `scope-failed` and re-raises.
+
+Async usage:
+
+```python
+async with log_scope("api-request", endpoint="/orders") as scope:
+    result = await fetch_orders()
+    scope.add_fields(order_count=len(result))
 ```
 
 ## Error Context

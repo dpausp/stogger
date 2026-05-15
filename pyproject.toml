@@ -94,7 +94,7 @@ source = "src/stogger"
 test_dir = "tests"
 exclude = []
 info_allowed_layers = []
-#KH|infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
+#KH|infrastructure_files = ["core.py", "_colors.py", "decorators.py"]
 exempt_event_ids = []
 
 [tool.pytest-stogger.per-file-ignores]

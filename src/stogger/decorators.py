@@ -347,11 +347,11 @@ class LogScope:
 
     Event emitted on clean exit::
 
-        {"event": "scope-end", "scope": "<name>", <bound_fields>,
+        {"event": "scope-end", "scope": "<name>", "duration_ms": <float>, <bound_fields>}
 
     Event emitted on exception::
 
-        {"event": "scope-failed", "scope": "<name>,
+        {"event": "scope-failed", "scope": "<name>", "exc_type": "ValueError", "exc_msg": "...", "duration_ms": <float>}
 
     Example:
         ::
@@ -361,7 +361,7 @@ class LogScope:
             with log_scope("db_transaction", table="users") as scope:
                 insert(user)
                 scope.add_fields(rows_inserted=1)
-                # Exit event: {"event": "scope-end", "scope": "db_transaction",
+                # Exit event: {"event": "scope-end", "scope": "db_transaction", "duration_ms": 12.3, "table": "users"}
 
     """
 
