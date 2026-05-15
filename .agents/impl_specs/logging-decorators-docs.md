@@ -6,6 +6,9 @@ lifecycle:
   design:
     completed_at: "2026-05-15T00:00:00Z"
     git_rev: "e32969d"
+  plan:
+    completed_at: "2026-05-15T12:00:00Z"
+    git_rev: "69aa1d3"
 ---
 
 # logging-decorators-docs
@@ -136,3 +139,29 @@ New section must show: basic usage of all 4 features, arg filtering example, exc
 ## References
 
 - `.agents/impl_specs/logging-decorators.md` — original implementation spec with event schemas and interface contracts
+
+## Appendix
+
+```yaml implementation_plan
+description: "Make logging decorators documentation-visible: rename _decorators.py to decorators.py, fix LogScope docstring, add user guide section, delete obsolete spec tests"
+specs:
+  - .agents/impl_specs/logging-decorators-docs.md
+target_tests:
+  - file: tests/impl_spec/test_logging_decorators_docs.py
+    tests:
+      - test_decorators_module_importable
+      - test_old_decorators_module_gone
+      - test_decorators_module_exports_all_symbols
+      - test_top_level_re_exports_sourced_from_decorators
+      - test_old_spec_test_file_removed
+      - test_logscope_docstring_has_complete_event_schema
+      - test_logscope_docstring_no_truncated_json
+      - test_log_call_module_is_decorators
+      - test_log_scope_module_is_decorators
+      - test_log_result_module_is_decorators
+      - test_log_operation_module_is_decorators
+      - test_logscope_class_module_is_decorators
+id: logging-decorators-docs
+created_at: "2026-05-15T12:00:00Z"
+git_rev: "69aa1d3"
+```
