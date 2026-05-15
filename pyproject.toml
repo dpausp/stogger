@@ -189,8 +189,6 @@ commands = [
 ]
 
 [tool.uv.sources]
-pytest-stogger = { git = "https://github.com/dpausp/pytest-stogger" }
-stogger-systemd = { git = "https://github.com/dpausp/stogger-systemd" }
 stogger-postgres = { workspace = true }
 
 [tool.uv.workspace]
