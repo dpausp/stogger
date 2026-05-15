@@ -1,14 +1,43 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+"""Sphinx configuration for stogger."""
+
+import subprocess
+from importlib.metadata import version as _pkg_version
+from pathlib import Path
 
 # -- Project information -----------------------------------------------------
 
 project = "stogger"
-copyright = "2024, stogger contributors"
+copyright = "2024-2026, stogger contributors"  # noqa: A001
 author = "stogger contributors"
-release = "0.3.5"
+
+# -- Version -----------------------------------------------------------------
+
+_pkg = "stogger"
+
+# Full version (e.g. "2026.5.4")
+try:
+    release = _pkg_version(_pkg)
+except Exception:
+    release = "unknown"
+
+# Short version for sidebar (major.minor)
+version = ".".join(release.split(".")[:2])
+
+
+# Git short rev
+def _git_rev() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            cwd=Path(__file__).parent,
+            text=True,
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+git_rev = _git_rev()
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -103,7 +132,7 @@ myst_heading_anchors = 3
 
 # -- Furo theme configuration -----------------------------------------------
 html_theme = "furo"
-html_title = "stogger Documentation"
+html_title = f"stogger v{release} ({git_rev})"
 html_static_path = ["_static"]
 
 html_theme_options = {
