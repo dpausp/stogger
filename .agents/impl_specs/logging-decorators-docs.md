@@ -9,6 +9,9 @@ lifecycle:
   plan:
     completed_at: "2026-05-15T12:00:00Z"
     git_rev: "69aa1d3"
+  workflow:
+    completed_at: "2026-05-16T00:00:00Z"
+    git_rev: "a40967b"
 ---
 
 # logging-decorators-docs
