@@ -1,10 +1,13 @@
 # Logging Patterns
 
-Common patterns for structured logging with stogger. For log level details, decorator API, and output key reference, see [Reference](reference.md).
+Common patterns for structured logging with stogger.
+For log level details, decorator API, and output key reference, see
+[Reference](reference.md).
 
 ## User Output with `_replace_msg`
 
-Use `log.info()` instead of `print()` or `typer.echo()` for line-oriented user output. The event name provides structure; `_replace_msg` provides the human-readable sentence:
+Use `log.info()` instead of `print()` or `typer.echo()` for line-oriented user output.
+The event name provides structure; `_replace_msg` provides the human-readable sentence:
 
 ```python
 log.info("package-installed",
@@ -14,11 +17,96 @@ log.info("package-installed",
          size_mb=15.7)
 ```
 
-Single source of truth for user communication and diagnostics — structured data for analysis, formatted text for humans, audit trail of user interactions.
+Single source of truth for user communication and diagnostics — structured data for
+analysis, formatted text for humans, audit trail of user interactions.
+
+## Output Rendering
+
+stogger renders output to two targets: **console** (with ANSI colors) and **file**
+(stripped).
+Use output keys to embed command results, tool output, or tracebacks in a log
+event. The `write()` closure handles the split automatically — console gets raw ANSI,
+file gets stripped text.
+
+| Key | Prefix label | DIM | ANSI behavior |
+| --- | --- | --- | --- |
+| `cmd_output_line` | `> ` | Yes | Stripped via DIM wrapping |
+| `_output` | *(none)* | No | Stripped via `write()` closure |
+| `_raw_output` | configurable via `_raw_output_prefix` | No | **Preserved** in console, stripped in file |
+| `_raw_output_prefix` | Sets prefix for `_raw_output` | — | *(metadata only)* |
+| `stdout` | `out` | Yes | Stripped via DIM wrapping |
+| `stderr` | `err` | No | Stripped via `write()` closure |
+| `stack` | `stack` | No | Stripped via `write()` closure |
+| `exception_traceback` | `exception` | No | Stripped via `write()` closure |
+
+### Tool Output with ANSI Colors
+
+Use `_raw_output` for tool output containing ANSI codes (e.g.,
+`ty check --color always`, `pytest --color yes`). Set `_raw_output_prefix` to label the
+block:
+
+```python
+log.warning(
+    "component-type-errors",
+    _replace_msg="{component}: {count} type error(s)",
+    component=component_name,
+    count=result.output.count("error:"),
+    _raw_output_prefix="ty",
+    _raw_output=result.output.strip(),
+)
+```
+
+Without `_raw_output_prefix`, the output renders without a label.
+
+### Command Invocation
+
+Use `cmd_output_line` for a single command line.
+Renders dimmed with a `>` prefix:
+
+```python
+log.info("deploy-command", cmd_output_line="rsync -avz ./dist/ server:/var/www/")
+```
+
+### Captured Process Output
+
+Use `stdout` and `stderr` for subprocess output.
+Both render dimmed with `out:` / `err:` prefix labels:
+
+```python
+log.error(
+    "build-failed",
+    _replace_msg="Build failed for {package}",
+    package=package_name,
+    stderr=process.stderr,
+)
+```
+
+### Stack Traces and Exceptions
+
+Use `stack` for a formatted stack trace and `exception_traceback` for the exception
+chain. When both are present, they are separated by a divider line:
+
+```python
+log.error("unhandled-exception", stack=formatted_stack, exception_traceback=traceback_str)
+```
+
+Usually you don’t set these manually — `log.exception()` captures the traceback
+automatically.
+
+### Generic Multi-line Output
+
+Use `_output` for arbitrary multi-line content that doesn’t fit the other keys.
+No prefix label, no DIM wrapping:
+
+```python
+log.info("diff-result", _output=diff_text)
+```
 
 ## Exception Handling
 
-Use `log.exception()` in except blocks. It is equivalent to `log.error()` with `exc_info=True` and automatically includes the full traceback. Do not pass `error=str(e)` — the exception context is already captured.
+Use `log.exception()` in except blocks.
+It is equivalent to `log.error()` with `exc_info=True` and automatically includes the
+full traceback. Do not pass `error=str(e)` — the exception context is already captured.
 
 ```python
 try:
@@ -29,7 +117,8 @@ except ValidationError as e:
     raise
 ```
 
-Use `log.error` with `exc_info=True` only when you have a specific reason not to use `log.exception()`. Never use `exc_info` on `info`/`debug` levels.
+Use `log.error` with `exc_info=True` only when you have a specific reason not to use
+`log.exception()`. Never use `exc_info` on `info`/`debug` levels.
 
 ## Correlation IDs
 
@@ -93,7 +182,8 @@ def timed_operation():
     return result
 ```
 
-Or use the [`@log_result`](reference.md#log_result--exit-logging-with-timing) decorator instead.
+Or use the [`@log_result`](reference.md#log_result--exit-logging-with-timing) decorator
+instead.
 
 ### CLI Command Logging
 
@@ -176,7 +266,8 @@ def validate_config(config_path: Path):
 
 ## Security
 
-Never log passwords, tokens, or raw PII. Structure log calls to exclude sensitive fields from the outset:
+Never log passwords, tokens, or raw PII. Structure log calls to exclude sensitive fields
+from the outset:
 
 ```python
 log.info("user-authenticated", user_id=123, email_domain="example.com")
@@ -201,7 +292,8 @@ if random.random() < 0.1:  # 10% sampling
     log.debug("high-frequency-event", event_data=data)
 ```
 
-Avoid chatty `info` logs in tight loops. Use `debug`, sample, or aggregate instead.
+Avoid chatty `info` logs in tight loops.
+Use `debug`, sample, or aggregate instead.
 
 ## Monitoring-Friendly Logging
 
