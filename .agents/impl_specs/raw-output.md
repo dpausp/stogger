@@ -9,6 +9,9 @@ lifecycle:
   plan:
     completed_at: "2026-05-15T12:00:00Z"
     git_rev: e32969d
+  workflow:
+    completed_at: "2026-05-15T12:30:00Z"
+    git_rev: 9316bbd
 ---
 
 # raw-output
