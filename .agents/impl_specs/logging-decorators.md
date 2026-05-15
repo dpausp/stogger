@@ -9,6 +9,9 @@ lifecycle:
   implement:
     completed_at: "2026-05-03T13:00:00Z"
     git_rev: "1682052"
+  workflow:
+    completed_at: "2026-05-15T12:00:00Z"
+    git_rev: "5cab06a"
 ---
 
 # logging-decorators
