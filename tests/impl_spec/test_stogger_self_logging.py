@@ -296,7 +296,7 @@ def test_config_decorators_inline_ignore():
             )
             break
     else:
-    pytest.fail("_filter_args() not found in decorators.py")
+        pytest.fail("_filter_args() not found in decorators.py")
 
 
 # ---------------------------------------------------------------------------
