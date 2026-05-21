@@ -13,7 +13,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-systemd = ["stogger-systemd"]
+systemd = [
+    "stogger-systemd>=2026.5.21",
+]
 postgres = ["stogger-postgres"]
 
 [tool.hatch.version]
