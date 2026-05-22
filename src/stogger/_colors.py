@@ -1,7 +1,7 @@
 """Color constants for terminal output.
 
 Uses colorama when available with isatty check, falls back to empty strings.
-Shared by stogger, stogger-systemd, and stogger-eliot.
+Shared by stogger and stogger-eliot.
 """
 
 import sys

@@ -529,19 +529,18 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
-    # SPEC: stogger-systemd::journal-registration-flow — dynamic import
+    # SPEC: stogger-systemd::journal-registration-flow — lazy import
     # for journal logger factory, independent of console suppression.
     if cfg.enable_systemd:
         try:
-            from stogger_systemd import get_journal_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
+            from stogger.systemd import get_journal_logger_factory  # noqa: PLC0415
 
             factory = get_journal_logger_factory()
             loggers["journal"] = factory
         except ImportError:
             if os.environ.get("JOURNAL_STREAM"):
                 print(  # noqa: T201
-                    "systemd journal detected but stogger-systemd not available."
-                    " Install stogger-systemd package for journal integration.",
+                    "systemd journal detected but stogger.systemd not available.",
                     file=sys.stderr,
                 )
 
