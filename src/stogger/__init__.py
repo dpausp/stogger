@@ -5,6 +5,13 @@ llms-full.txt contains ALL docs in one file but is VERY large (~8000+ lines) —
 individual files from _sources/ instead.
 """
 
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("stogger")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
+
 __all__ = [
     "JournalLoggerFactory",
     "LogScope",
