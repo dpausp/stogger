@@ -205,4 +205,3 @@ Full coverage of the registration flow without PostgreSQL in CI. Real-package te
 
 ## Verified By
 
-<!-- Tests will be added after implementation -->

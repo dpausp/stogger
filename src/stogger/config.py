@@ -1,6 +1,5 @@
 """Configuration handling for stogger."""
 
-import atexit
 import fnmatch
 import sys
 import time
@@ -14,18 +13,6 @@ import attrs
 import structlog
 
 _TEST_DEPS_WARNED = False
-_PENDING_WARNINGS: list[str] = []
-
-
-def _emit_pending_warnings() -> None:
-    """Emit accumulated test dependency warnings at process exit."""
-    log = structlog.get_logger()
-    for msg in _PENDING_WARNINGS:
-        log.debug("emitting-deferred-warning", message=msg)
-        warnings.warn(msg, UserWarning, stacklevel=2)
-
-
-atexit.register(_emit_pending_warnings)
 
 
 @dataclass
@@ -120,7 +107,7 @@ def _check_test_dependencies(full_config: dict[str, Any]) -> None:
             "stogger test infrastructure incomplete: no [dependency-groups].test found in pyproject.toml. "
             "Add pytest-stogger and pytest-structlog to [dependency-groups].test."
         )
-        _PENDING_WARNINGS.append(msg)
+        warnings.warn(msg, UserWarning, stacklevel=2)
         return
 
     deps_str = " ".join(str(d).lower() for d in test_deps)
@@ -131,7 +118,7 @@ def _check_test_dependencies(full_config: dict[str, Any]) -> None:
             f"stogger test infrastructure incomplete: {', '.join(missing)}. "
             "Add to [dependency-groups].test in pyproject.toml."
         )
-        _PENDING_WARNINGS.append(msg)
+        warnings.warn(msg, UserWarning, stacklevel=2)
 
 
 def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
@@ -170,7 +157,7 @@ def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
                 "config-loaded-successfully",
                 settings_count=len(stogger_config),
             )
-    except (tomllib.TOMLDecodeError, Exception):
+    except (FileNotFoundError, tomllib.TOMLDecodeError):
         log.exception("config-loading-failed", stage="load")
         return {}
     else:

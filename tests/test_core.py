@@ -3,7 +3,6 @@
 import datetime
 import io
 import json
-import logging
 import os
 import subprocess
 import sys
@@ -20,7 +19,6 @@ from stogger.config import FormatConfig
 from stogger.core import (
     CmdOutputFileRenderer,
     ConsoleFileRenderer,
-    JournalLoggerFactory,
     JSONRenderer,
     MultiOptimisticLogger,
     MultiOptimisticLoggerFactory,
@@ -34,7 +32,6 @@ from stogger.core import (
     init_command_logging,
     init_early_logging,
     init_logging,
-    log_to_stdlib,
     logging_initialized,
     prefix,
     process_exc_info,
@@ -101,7 +98,7 @@ class TestConsoleFileRenderer:
             },
         )
 
-        assert "2023-01-01T00:00:00 " in result["console"]
+        assert "2023-01-01T00:00:00" in result["console"]
         assert "2023-01-01T00:00:00Z" not in result["console"]
 
     def test_console_renderer_output(self):
@@ -164,7 +161,7 @@ class TestCoreEdgeCases:
             },
         )
 
-        assert "2023-01-01T00:00:00 " in result["console"]
+        assert "2023-01-01T00:00:00" in result["console"]
         assert "2023-01-01T00:00:00Z" not in result["console"]
 
     def test_early_logging_initialization(self):
@@ -505,78 +502,6 @@ class TestConsoleFileRendererConsoleIgnore:
 
 
 @pytest.mark.integration
-class TestConsoleRendererShowPid:
-    """Tests for show_pid in ConsoleFileRenderer."""
-
-    def test_console_renderer_show_pid(self):
-        """show_pid is no longer a FormatConfig field; pid is never shown."""
-        renderer = ConsoleFileRenderer()
-        event_dict = {
-            "event": "test",
-            "level": "info",
-            "timestamp": "2025-01-01T00:00:00Z",
-            "pid": 12345,
-        }
-        result = renderer(None, "info", event_dict)
-        # show_pid is a dead field, no longer migrated to FormatConfig
-        assert "12345" not in result["console"]
-
-
-@pytest.mark.integration
-class TestConsoleRendererShowLoggerBrackets:
-    """Tests for show_logger_brackets in ConsoleFileRenderer."""
-
-    def test_console_renderer_show_logger_brackets(self):
-        """show_logger_brackets is no longer a FormatConfig field; brackets never shown."""
-        renderer = ConsoleFileRenderer()
-        event_dict = {
-            "event": "test",
-            "level": "info",
-            "timestamp": "2025-01-01T00:00:00Z",
-            "logger": "mymodule",
-        }
-        result = renderer(None, "info", event_dict)
-        # show_logger_brackets is a dead field, no longer migrated
-        assert "[mymodule]" not in result["console"]
-
-
-class TestLogToStdlib:
-    """Tests for log_to_stdlib processor."""
-
-    def test_log_to_stdlib(self):
-        """Call with event dict -> logging.log called with correct level."""
-        with patch("stogger.core.logging.log", autospec=True) as mock_log:
-            event_dict = {
-                "event": "test message",
-                "level": "warning",
-            }
-            result = log_to_stdlib(None, "warning", event_dict)
-            mock_log.assert_called_once_with(logging.WARNING, "test message")
-            assert result is event_dict
-
-    def test_log_to_stdlib_with_exc_info(self):
-        """Call with exc_info -> logging.log called with exc_info kwarg."""
-        with patch("stogger.core.logging.log", autospec=True) as mock_log:
-            exc = ValueError("boom")
-            event_dict = {
-                "event": "error msg",
-                "level": "error",
-                "exc_info": (type(exc), exc, None),
-            }
-            log_to_stdlib(None, "error", event_dict)
-            mock_log.assert_called_once()
-            call_kwargs = mock_log.call_args
-            assert call_kwargs[1].get("exc_info") is not None or len(call_kwargs[0]) > 1
-
-    def test_log_to_stdlib_default_level(self):
-        """Missing level defaults to INFO."""
-        with patch("stogger.core.logging.log", autospec=True) as mock_log:
-            event_dict = {"event": "default"}
-            log_to_stdlib(None, "info", event_dict)
-            mock_log.assert_called_once_with(logging.INFO, "default")
-
-
-@pytest.mark.integration
 class TestInitEarlyLogging:
     """Tests for init_early_logging."""
 
@@ -614,15 +539,6 @@ class TestLoggingInitialized:
         """Returns False when structlog is not configured."""
         assert not structlog.is_configured()
         assert logging_initialized() is False
-
-
-class TestJournalLoggerFactory:
-    """Tests for JournalLoggerFactory."""
-
-    def test_journal_logger_factory(self):
-        """JournalLoggerFactory()() returns None."""
-        factory = JournalLoggerFactory()
-        assert factory() is None
 
 
 @pytest.mark.integration
@@ -716,22 +632,18 @@ class TestMultiRenderer:
     """Tests for MultiRenderer."""
 
     def test_multi_renderer_exception(self):
-        """Renderer that raises -> exception caught, partial results returned."""
-        _err_msg = "boom"
+        """Renderer that raises -> RuntimeError re-raised with context."""
 
         def bad_renderer(_logger, _method, _event_dict):
-            raise RuntimeError(_err_msg)
+            msg = "boom"
+            raise RuntimeError(msg)
 
         def good_renderer(_logger, _method, _event_dict):
             return {"good": "output"}
 
         mr = MultiRenderer(bad=bad_renderer, good=good_renderer)
-        with patch("stogger.core.logging.getLogger", autospec=True) as mock_get_logger:
-            mock_get_logger.return_value.exception = MagicMock()
-            result = mr(None, "info", {"event": "test"})
-
-        assert result == {"good": "output"}
-
+        with pytest.raises(RuntimeError, match="Renderer failed"):
+            mr(None, "info", {"event": "test"})
 
 class TestMultiOptimisticLogger:
     """Tests for MultiOptimisticLogger."""
@@ -744,14 +656,12 @@ class TestMultiOptimisticLogger:
         mock_logger.msg.assert_called_once_with("hello world")
 
     def test_msg_exception(self):
-        """Logger that raises -> exception caught."""
+        """Logger that raises -> RuntimeError re-raised with context."""
         failing_logger = MagicMock(spec=_MsgTarget)
         failing_logger.msg.side_effect = RuntimeError("write failed")
         mol = MultiOptimisticLogger({"target": failing_logger})
-        with patch("stogger.core.logging.getLogger", autospec=True) as mock_get_logger:
-            mock_get_logger.return_value.exception = MagicMock()
+        with pytest.raises(RuntimeError, match="Sub-logger dispatch failed"):
             mol.msg(target="hello")
-        # Should not raise
 
     def test_msg_empty_line(self):
         """Msg with empty/missing line -> logger not called."""

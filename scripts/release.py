@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Release all stogger projects together.
+"""Release stogger.
 
-Bumps version (CalVer), commits, and tags each project.
-Projects default to: stogger, pytest-stogger, stogger-systemd.
+Bumps version (CalVer), commits, and tags the project.
 
 Usage:
-    python scripts/release.py              # release all projects
-    python scripts/release.py stogger      # release single project
+    python scripts/release.py              # release stogger
     python scripts/release.py --dry-run    # show what would happen
 """
 
@@ -16,8 +14,6 @@ from pathlib import Path
 
 PROJECTS = {
     "stogger": Path(__file__).resolve().parent.parent,
-    "pytest-stogger": Path(__file__).resolve().parent.parent.parent / "pytest-stogger",
-    "stogger-systemd": Path(__file__).resolve().parent.parent.parent / "stogger-systemd",
 }
 
 

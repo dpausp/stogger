@@ -135,7 +135,6 @@ def test_log_call_captures_args(captured_events):
 config.py ← (no internal deps)
 _types.py ← (no internal deps)
 _colors.py ← (no internal deps)
-_regexes.py ← (no internal deps)
 processors.py ← config.py
 core.py ← config.py, _types.py, processors.py, _colors.py
 factory.py ← config.py, core.py, processors.py

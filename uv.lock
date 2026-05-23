@@ -561,10 +561,14 @@ wheels = [
 
 [[package]]
 name = "pytest-stogger"
-version = "2026.5.7.dev9+g53e253764"
-source = { git = "https://github.com/dpausp/pytest-stogger#53e2537647aa20999a2c62ec1e1791a5a3fa04be" }
+version = "2026.5.15"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "complexipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0d/7c/c9879fa82b725cf9127fab794d7c6b35cebbd2d510232d8e2dbd2e4a9e55/pytest_stogger-2026.5.15.tar.gz", hash = "sha256:f6fd92c85de54bed7cea85b18a60fcbcda00b95232867ced0b2ca8b104a143af", size = 95301, upload-time = "2026-05-16T13:48:49.833Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/8e/be5ef37dc5c35348d319e7acce0690523cbefcc8d62085f9478e4d4073c3/pytest_stogger-2026.5.15-py3-none-any.whl", hash = "sha256:76f8ad588901e4e5d9588980dd5c60b1014e60eadd2a090ea01da5404abaa830", size = 22162, upload-time = "2026-05-16T13:48:46.296Z" },
 ]
 
 [[package]]
@@ -977,9 +981,6 @@ dependencies = [
 postgres = [
     { name = "stogger-postgres" },
 ]
-systemd = [
-    { name = "stogger-systemd" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -1022,10 +1023,9 @@ requires-dist = [
     { name = "attrs", specifier = ">=24.3.0" },
     { name = "colorama", specifier = ">=0.4.6" },
     { name = "stogger-postgres", marker = "extra == 'postgres'", editable = "packages/stogger-postgres" },
-    { name = "stogger-systemd", marker = "extra == 'systemd'", git = "https://github.com/dpausp/stogger-systemd" },
     { name = "structlog", specifier = ">=25.4.0" },
 ]
-provides-extras = ["postgres", "systemd"]
+provides-extras = ["postgres"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1058,7 +1058,7 @@ test = [
     { name = "pytest", specifier = ">=9.0.0" },
     { name = "pytest-archon", specifier = ">=0.0.7" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
-    { name = "pytest-stogger", git = "https://github.com/dpausp/pytest-stogger" },
+    { name = "pytest-stogger" },
     { name = "pytest-structlog", specifier = ">=1.2" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
 ]
@@ -1075,14 +1075,6 @@ dependencies = [
 requires-dist = [
     { name = "psycopg" },
     { name = "stogger", editable = "." },
-]
-
-[[package]]
-name = "stogger-systemd"
-version = "2026.5.7.dev2+g234ac2215"
-source = { git = "https://github.com/dpausp/stogger-systemd#234ac22151e55a356a30ffef50c649bf0d6926c8" }
-dependencies = [
-    { name = "stogger" },
 ]
 
 [[package]]

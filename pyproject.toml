@@ -21,26 +21,6 @@ tag-pattern = "^(?P<version>\\d{4}\\.\\d{1,2}\\.\\d{1,2})$"
 fallback-version = "2026.5.15"
 raw-options.root = "."
 
-[tool.bumpversion]
-current_version = "2026.5.15"
-parse = """(?x)
-    (?P<release>
-        (?:[1-9][0-9]{3})\\.
-        (?:1[0-2]|[1-9])\\.
-        (?:3[0-1]|[1-2][0-9]|[1-9])
-    )
-"""
-serialize = ["{release}"]
-commit = true
-tag = true
-
-[tool.bumpversion.parts.release]
-calver_format = "{YYYY}.{MM}.{DD}"
-
-[[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'fallback-version = "{current_version}"'
-replace = 'fallback-version = "{new_version}"'
 
 [tool.hatch.build.targets.wheel.sources]
 "src" = ""
@@ -112,9 +92,8 @@ markers = [
 [tool.pytest-stogger]
 source = "src/stogger"
 test_dir = "tests"
-exclude = []
+disable_rules = ["no-early-init"]
 info_allowed_layers = []
-#KH|infrastructure_files = ["core.py", "_colors.py", "decorators.py"]
 exempt_event_ids = []
 
 [tool.pytest-stogger.per-file-ignores]

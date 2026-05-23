@@ -156,4 +156,3 @@ Full test coverage for config flow. Bidirectional traceability: ADR references t
 
 ## Verified By
 
-<!-- Tests will be added after implementation -->

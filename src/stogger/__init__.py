@@ -13,7 +13,6 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 __all__ = [
-    "JournalLoggerFactory",
     "LogScope",
     "MultiOptimisticLogger",
     "MultiOptimisticLoggerFactory",
@@ -33,9 +32,6 @@ __all__ = [
 from pathlib import Path
 
 from .config import StoggerConfig as StoggerConfig
-from .core import (
-    JournalLoggerFactory as JournalLoggerFactory,
-)
 from .core import (
     LogScope as LogScope,
 )

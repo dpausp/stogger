@@ -175,7 +175,6 @@ intersphinx_mapping = {
 COVERAGE_TIERS = {
     "tier1_full": [  # ≥80% coverage - comprehensive documentation
         "__main__",
-        "_regexes",
         "log_reviewer",
         "config",
         "journal_viewer",

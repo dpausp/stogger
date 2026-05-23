@@ -24,5 +24,6 @@ Submodules
    /api/stogger/decorators/index
    /api/stogger/factory/index
    /api/stogger/processors/index
+   /api/stogger/systemd/index
 
 

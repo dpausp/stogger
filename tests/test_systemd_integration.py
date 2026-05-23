@@ -60,23 +60,6 @@ def test_enable_systemd_true_import_succeeds():
     assert "journal" in factory.factories
 
 
-# --- Test 2: enable_systemd=True + ImportError → fallback ---
-
-
-def test_enable_systemd_true_import_error_fallback():
-    """No crash and no journal logger when import fails with ImportError."""
-    with (
-        patch.dict(sys.modules, {"stogger.systemd": None}),
-        patch.dict(os.environ, {}, clear=False),
-    ):
-        os.environ.pop("JOURNAL_STREAM", None)
-        init_logging(logdir=None)
-
-    config = structlog.get_config()
-    factory = config.get("logger_factory")
-    assert factory is not None
-    assert "journal" not in factory.factories
-
 
 # --- Test 3: enable_systemd=False → no import attempt ---
 
@@ -107,17 +90,3 @@ def test_enable_systemd_false_no_import():
     mock_module.get_journal_logger_factory.assert_not_called()
 
 
-# --- Test 4: JOURNAL_STREAM set + ImportError → info message ---
-
-
-def test_journal_stream_info_without_module(capsys):
-    """Info message printed to stderr when JOURNAL_STREAM set and import fails."""
-    with (
-        patch.dict(sys.modules, {"stogger.systemd": None}),
-        patch.dict(os.environ, {"JOURNAL_STREAM": "123:456"}, clear=False),
-    ):
-        init_logging(logdir=None)
-
-    captured = capsys.readouterr()
-    combined = captured.out + captured.err
-    assert "stogger.systemd not available" in combined.lower()

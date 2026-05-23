@@ -5,7 +5,6 @@ Validates the layer boundary rules of the dependency graph:
     config.py ← (no internal deps)
     _types.py ← (no internal deps)
     _colors.py ← (no internal deps)
-    _regexes.py ← (no internal deps)
     processors.py ← config.py
     core.py ← config.py, _types.py, processors.py, _colors.py
     factory.py ← config.py, core.py, processors.py
@@ -34,16 +33,12 @@ def test_colors_has_no_internal_deps():
     archrule("_colors has no internal deps").match("stogger._colors").should_not_import("stogger").check(PACKAGE)
 
 
-def test_regexes_has_no_internal_deps():
-    archrule("_regexes has no internal deps").match("stogger._regexes").should_not_import("stogger").check(PACKAGE)
-
-
 # --- Layer 1: processors (depends only on config) ---
 
 
 def test_processors_depends_only_on_config():
     archrule("processors depends only on config").match("stogger.processors").should_not_import(
-        "stogger.core", "stogger.factory", "stogger._types", "stogger._colors", "stogger._regexes"
+        "stogger.core", "stogger.factory", "stogger._types", "stogger._colors"
     ).check(PACKAGE)
 
 
