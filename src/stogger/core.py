@@ -519,6 +519,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     syslog_identifier: str | None = None,
     verbose: bool | None = None,
     show_caller_info: bool | None = None,
+    timestamp_precision: str | None = None,
 ) -> None:
     """Initialize full structured logging with console, file, and journal targets.
 
@@ -542,6 +543,10 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
         show_caller_info: Whether to display code location (file, function, line)
             in console output. When None (default), uses the setting from
             ``FormatConfig.show_code_info``.
+        timestamp_precision: Timestamp format override. One of ``"iso"``,
+            ``"iso_seconds"``, ``"iso_no_z"``, or ``"relative"``. When None
+            (default), uses the setting from ``FormatConfig.timestamp_precision``
+            (typically ``"iso_seconds"``).
 
     Raises:
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
@@ -553,6 +558,8 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     _ensure_stderr_logging()
 
     cfg = StoggerConfig(verbose=bool(verbose))
+    if timestamp_precision is not None:
+        cfg.format.timestamp_precision = timestamp_precision
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
     syslog_identifier = syslog_identifier if syslog_identifier is not None else cfg.syslog_identifier
 
