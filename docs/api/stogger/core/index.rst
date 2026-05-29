@@ -157,7 +157,7 @@ Module Contents
 
 
 
-.. py:function:: init_logging(*, logdir = None, log_cmd_output = False, log_to_console = True, syslog_identifier = None, verbose = None, show_caller_info = None)
+.. py:function:: init_logging(*, logdir = None, log_cmd_output = False, log_to_console = True, syslog_identifier = None, verbose = None, show_caller_info = None, timestamp_precision = None)
 
    Initialize full structured logging with console, file, and journal targets.
 
@@ -181,6 +181,10 @@ Module Contents
        show_caller_info: Whether to display code location (file, function, line)
            in console output. When None (default), uses the setting from
            ``FormatConfig.show_code_info``.
+       timestamp_precision: Timestamp format override. One of ``"iso"``,
+           ``"iso_seconds"``, ``"iso_no_z"``, or ``"relative"``. When None
+           (default), uses the setting from ``FormatConfig.timestamp_precision``
+           (typically ``"iso_seconds"``).
 
    Raises:
        ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
