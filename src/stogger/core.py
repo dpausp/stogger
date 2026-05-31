@@ -871,6 +871,8 @@ class MultiOptimisticLogger:
                 line = messages.get(name)
                 if line:
                     logger.msg(line)
+            except ValueError:
+                pass  # File handle closed (xdist worker cleanup)
             except Exception as err:
                 msg = "Sub-logger dispatch failed"
                 raise RuntimeError(msg) from err
