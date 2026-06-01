@@ -43,6 +43,7 @@ class _MsgTarget:
 
     def msg(self, message: str) -> None: ...
 
+
 @pytest.fixture(autouse=True)
 def _reset_structlog():
     """Reset structlog configuration after each test to avoid state leakage."""
@@ -348,6 +349,7 @@ class TestRenderOutputSections:
         # File output never contains ANSI escape sequences
         assert "\x1b" not in result["file"]
 
+
 # --- Batch 5: Remaining Functions ---
 
 
@@ -410,6 +412,7 @@ class TestTranslationProcessor:
         """TranslationProcessor.__init__ logs initializing-translation-processor."""
         TranslationProcessor({"greeting": "Hello {name}!"})
         log.has("initializing-translation-processor")
+
 
 class TestPrefix:
     """Tests for prefix function."""
@@ -645,6 +648,7 @@ class TestMultiRenderer:
         with pytest.raises(RuntimeError, match="Renderer failed"):
             mr(None, "info", {"event": "test"})
 
+
 class TestMultiOptimisticLogger:
     """Tests for MultiOptimisticLogger."""
 
@@ -704,7 +708,7 @@ class TestInitCommandLogging:
         )
         log = structlog.get_logger()
         # Should not raise
-        #KV|        init_command_logging(log)
+        # KV|        init_command_logging(log)
 
         log.has("logging-cmd-output-no-logdir")
 
@@ -745,6 +749,7 @@ class TestDropCmdOutputLogfile:
 
         drop_cmd_output_logfile(test_log)
         log.has("logging-cmd-output-drop")
+
     def test_drop_missing_factory(self):
         """KeyError when cmd_output_file not in factories."""
         factory = MultiOptimisticLoggerFactory({}, {})
@@ -777,3 +782,30 @@ class TestBuildLoggerFactories:
                 cfg=cfg,
             )
         log.has("file-open-permission-denied")
+
+    def test_early_init_propagates_errors(self):
+        """init_early_logging must propagate errors, not suppress them."""
+        with patch("stogger.core.build_timestamp_processor", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError, match="boom"):
+                init_early_logging()
+
+    def test_postgres_import_error_logs_debug(self, log):
+        """_build_logger_factories logs debug when stogger_postgres ImportError."""
+        from stogger.config import StoggerConfig
+
+        cfg = StoggerConfig(enable_postgres=True, enable_systemd=False)
+        real_import = __import__
+
+        def blocking_import(name, *args, **kwargs):
+            if name == "stogger_postgres":
+                raise ImportError("stogger_postgres not available")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=blocking_import):
+            _build_logger_factories(
+                logdir=None,
+                log_to_console=False,
+                syslog_identifier="test",
+                cfg=cfg,
+            )
+        log.has("stogger-postgres-not-installed")

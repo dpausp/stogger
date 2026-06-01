@@ -555,5 +555,54 @@ def test_env_no_override_stogger_debug():
         assert "debug" not in overrides
 
 
+# ---------------------------------------------------------------------------
+# Pyproject config contract tests (migrated from impl_spec)
+# ---------------------------------------------------------------------------
+
+
+def test_pyproject_exempt_event_ids_empty():
+    """pyproject.toml must have empty exempt_event_ids."""
+    import tomllib
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as f:
+        config = tomllib.load(f)
+    exempt_ids = config["tool"]["pytest-stogger"]["exempt_event_ids"]
+    assert exempt_ids == []
+
+
+def test_pyproject_infrastructure_files_removed():
+    """pyproject.toml must NOT have explicit infrastructure_files key."""
+    import tomllib
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as f:
+        config = tomllib.load(f)
+    stogger_config = config["tool"]["pytest-stogger"]
+    assert "infrastructure_files" not in stogger_config
+
+
+def test_pyproject_decorators_inline_ignore():
+    """decorators.py must NOT be in per-file-ignores; uses inline ignore instead."""
+    import tomllib
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as f:
+        config = tomllib.load(f)
+
+    per_file_ignores = config["tool"]["pytest-stogger"]["per-file-ignores"]
+    assert "decorators.py" not in per_file_ignores
+
+    source = (Path(__file__).resolve().parent.parent / "src" / "stogger" / "decorators.py").read_text()
+    for line in source.splitlines():
+        if line.strip().startswith("def _filter_args("):
+            assert "stogger: ignore complexity-needs-log" in line, (
+                f"Expected inline ignore on _filter_args() def line: {line!r}"
+            )
+            break
+    else:
+        pytest.fail("_filter_args() not found in decorators.py")
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
