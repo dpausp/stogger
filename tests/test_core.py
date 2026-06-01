@@ -28,6 +28,7 @@ from stogger.core import (
     SystemdJournalRenderer,
     TranslationProcessor,
     _build_logger_factories,
+    _inject_exc_info_for_exception,
     drop_cmd_output_logfile,
     init_command_logging,
     init_early_logging,
@@ -426,6 +427,41 @@ class TestPrefix:
         result = prefix("tag", "line1\nline2")
         assert "tag: line1" in result
         assert "tag: line2" in result
+
+
+class TestInjectExcInfoForException:
+    """Tests for _inject_exc_info_for_exception."""
+
+    def test_injects_when_exception_method_no_exc_info(self):
+        """exception() method without exc_info -> injects sys.exc_info()."""
+        try:
+            raise ValueError("injected")
+        except ValueError:
+            result = _inject_exc_info_for_exception(None, "exception", {"event": "test"})
+        assert "exc_info" in result
+        assert result["exc_info"][0] is ValueError
+        assert "injected" in str(result["exc_info"][1])
+
+    def test_does_not_overwrite_existing_exc_info(self):
+        """exception() with exc_info already set -> leaves it untouched."""
+        result = _inject_exc_info_for_exception(None, "exception", {"event": "test", "exc_info": "custom"})
+        assert result["exc_info"] == "custom"
+
+    def test_ignores_error_method(self):
+        """error() method -> no injection."""
+        result = _inject_exc_info_for_exception(None, "error", {"event": "test"})
+        assert "exc_info" not in result
+
+    def test_ignores_info_method(self):
+        """info() method -> no injection."""
+        result = _inject_exc_info_for_exception(None, "info", {"event": "test"})
+        assert "exc_info" not in result
+
+    def test_outside_except_block_returns_none_tuple(self):
+        """exception() called outside except block -> sys.exc_info() returns (None, None, None)."""
+        result = _inject_exc_info_for_exception(None, "exception", {"event": "test"})
+        assert "exc_info" in result
+        assert result["exc_info"] == (None, None, None)
 
 
 class TestProcessExcInfo:

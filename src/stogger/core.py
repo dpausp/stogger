@@ -352,6 +352,27 @@ def add_caller_info(_logger: object, _method_name: str, event_dict: EventDict) -
     return event_dict
 
 
+def _inject_exc_info_for_exception(  # stogger: ignore complexity-needs-log
+    _logger: object,
+    method_name: str,
+    event_dict: EventDict,
+) -> EventDict:
+    """Inject ``exc_info`` when ``exception()`` is used and no ``exc_info`` is present.
+
+    ``structlog._generic.BoundLogger`` (the wrapper class stogger uses) has no
+    special ``exception()`` method — it treats ``exception`` like any other
+    method name and does **not** inject ``exc_info`` automatically. Without this
+    processor, ``log.exception()`` inside an ``except`` block produces no traceback
+    and behaves identically to ``log.error()``.
+
+    Must be placed **before** ``process_exc_info`` in the processor chain so the
+    injected ``exc_info`` tuple is normalized and rendered downstream.
+    """
+    if method_name == "exception" and "exc_info" not in event_dict:
+        event_dict["exc_info"] = sys.exc_info()
+    return event_dict
+
+
 def process_exc_info(  # stogger: ignore complexity-needs-log
     _logger: object,
     _method_name: str,
@@ -586,6 +607,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     )
 
     processors = [
+        _inject_exc_info_for_exception,
         add_pid,
         structlog.processors.add_log_level,
         process_exc_info,
