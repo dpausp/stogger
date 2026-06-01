@@ -125,6 +125,7 @@ stogger.init_logging(
 ## Next Steps
 
 - Learn about [Logging Patterns](logging_patterns.md) for effective logging
+- Browse the [Output Gallery](output_gallery.md) to see what stogger output looks like
 - Set up [Systemd Journal Integration](systemd.md) for services running under systemd
 - Set up [PostgreSQL Integration](postgres.md) for queryable persistent logs
 - Read [Testing with stogger](testing.md) to test your log output
