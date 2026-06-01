@@ -174,8 +174,7 @@ Module Contents
 
    Args:
        name: Scope identifier used as the ``scope`` field in log events.
-       **fields: Arbitrary key-value pairs bound to the scope. Included in
-           both success and failure exit events.
+       fields: Key-value pairs bound to the scope, included in all exit events.
 
    Event emitted on clean exit::
 
@@ -206,7 +205,7 @@ Module Contents
       values taking precedence on key collision.
 
       Args:
-          **kwargs: Arbitrary key-value pairs to include in the exit event.
+          kwargs: Arbitrary key-value pairs to include in the exit event.
 
 
 
@@ -221,7 +220,7 @@ Module Contents
 
    Args:
        name: Scope identifier used as the ``scope`` field in log events.
-       **fields: Arbitrary key-value pairs bound to the scope.
+       fields: Arbitrary key-value pairs bound to the scope.
 
    Returns:
        LogScope: A context manager instance that logs scope entry/exit.

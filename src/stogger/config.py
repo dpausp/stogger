@@ -24,8 +24,7 @@ class ProjectStructure:
         source_dirs: Relative paths to source directories (e.g. ``["src"]``).
         test_dirs: Relative paths to test directories (e.g. ``["tests"]``).
         exclude_patterns: Glob patterns for files excluded from logging analysis.
-        detection_source: How the structure was determined — ``"pyproject.toml"``,
-            ``"heuristics"``, or ``"defaults"``.
+        detection_source: ``"pyproject.toml"``, ``"heuristics"``, or ``"defaults"``.
         project_root: Absolute path to the project root directory.
 
     """
@@ -231,8 +230,7 @@ class FormatConfig:
     """Configuration for log format settings, loaded from ``[tool.stogger.format]``.
 
     Attributes:
-        timestamp_precision: Timestamp format — ``"iso"``, ``"iso_seconds"``,
-            ``"iso_no_z"``, or ``"relative"``. Default ``"iso_seconds"``.
+        timestamp_precision: ``"iso"``, ``"iso_seconds"``, ``"iso_no_z"``, or ``"relative"``.
         min_level: Minimum log level to display. Default ``"info"``.
         show_code_info: Include file name and line number. Default ``False``.
         pad_event_width: Minimum width for the event column. Default ``30``.
@@ -260,30 +258,20 @@ class StoggerConfig:
         logdir (Path | None): Directory for log files. Default ``None``.
         log_cmd_output (bool): Log subprocess command output. Default ``False``.
         log_to_console (bool): Also log to the console. Default ``True``.
-        syslog_identifier (str): Identifier for syslog/systemd journal.
-            Default ``"stogger"``.
-        show_caller_info (bool): Include caller file/line in log output.
-            Default ``False``.
-        translation_dir (Path | None): Directory containing message
-            translations. Default ``None``.
+        syslog_identifier (str): Identifier for syslog/systemd journal. Default ``"stogger"``.
+        show_caller_info (bool): Include caller file/line in log output. Default ``False``.
+        translation_dir (Path | None): Directory containing message translations. Default ``None``.
         language (str): Language code for log messages. Default ``"en"``.
-        log_format (str): Output format — ``"simple"`` or ``"json"``.
-            Default ``"simple"``.
+        log_format (str): Output format — ``"simple"`` or ``"json"``. Default ``"simple"``.
         async_logging (bool): Use asynchronous log writing. Default ``False``.
-        enable_systemd (bool): Enable systemd/journal integration.
-            Default ``True``.
-        systemd_facility (str | None): Syslog facility for systemd output.
-            Default ``None``.
+        enable_systemd (bool): Enable systemd/journal integration. Default ``True``.
+        systemd_facility (str | None): Syslog facility for systemd output. Default ``None``.
         src_dir (str): Primary source directory name. Default ``"src"``.
         format (FormatConfig): Format configuration. Default ``FormatConfig()``.
-        ast_respect_gitignore (bool): Honor ``.gitignore`` during AST
-            analysis. Default ``True``.
-        ast_max_parameters (int): Max parameters before flagging a function.
-            Default ``8``.
-        ast_logging_focus (bool): Focus AST analysis on logging patterns.
-            Default ``True``.
-        ast_enabled_patterns (list | None): Specific AST patterns to enable.
-            ``None`` enables all. Default ``None``.
+        ast_respect_gitignore (bool): Honor ``.gitignore`` during AST analysis. Default ``True``.
+        ast_max_parameters (int): Max parameters before flagging a function. Default ``8``.
+        ast_logging_focus (bool): Focus AST analysis on logging patterns. Default ``True``.
+        ast_enabled_patterns (list | None): Specific AST patterns to enable. Default ``None``.
 
     """
 

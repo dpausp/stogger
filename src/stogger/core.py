@@ -905,8 +905,7 @@ def init_command_logging(log, logdir=None) -> None:
 
     Args:
         log: A structlog BoundLogger instance (typically from ``structlog.get_logger()``).
-        logdir: Directory for the command output file. Falls back to the
-            ``logdir`` stored in the current ``MultiOptimisticLoggerFactory`` context.
+        logdir: Directory for the command output file, or factory context ``logdir`` fallback.
 
     """
     logger_factory = structlog.get_config()["logger_factory"]

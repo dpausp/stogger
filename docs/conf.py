@@ -133,7 +133,7 @@ myst_heading_anchors = 3
 # -- Furo theme configuration -----------------------------------------------
 html_theme = "furo"
 html_title = f"stogger v{release} ({git_rev})"
-html_static_path = ["_static"]
+# html_static_path = ["_static"]  # No custom static files
 
 html_theme_options = {
     "sidebar_hide_name": False,
