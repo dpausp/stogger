@@ -543,6 +543,22 @@ class TestLoggingInitialized:
         assert not structlog.is_configured()
         assert logging_initialized() is False
 
+    def test_init_logging_warns_on_already_configured(self, log):
+        """init_logging() warns when structlog was already configured."""
+        # Pre-configure structlog (simulates pytest-structlog or a prior call)
+        structlog.configure(
+            processors=[structlog.dev.ConsoleRenderer()],
+            logger_factory=structlog.PrintLoggerFactory(),
+            wrapper_class=structlog.BoundLogger,
+        )
+        assert structlog.is_configured()
+
+        with patch("os.environ", {**os.environ}):
+            os.environ.pop("JOURNAL_STREAM", None)
+            init_logging(logdir=None)
+
+        log.has("init-logging-overriding-existing-config")
+
 
 @pytest.mark.integration
 class TestSystemdJournalRenderer:

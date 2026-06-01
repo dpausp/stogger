@@ -554,6 +554,8 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
 
     """
+    _already_configured = structlog.is_configured()
+
     logdir = Path(logdir) if logdir else None
 
     # Ensure structlog never writes to stdout during bootstrap
@@ -594,6 +596,13 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     _configure_structlog(processors, context, loggers)
 
     log = structlog.get_logger()
+
+    if _already_configured:
+        log.warning(
+            "init-logging-overriding-existing-config",
+            _replace_msg="init_logging() called but structlog was already configured — "
+            "this overrides the existing pipeline (test capture, etc.)",
+        )
 
     if log_cmd_output:
         if not logdir:
