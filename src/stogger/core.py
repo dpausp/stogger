@@ -558,6 +558,9 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     _ensure_stderr_logging()
 
     cfg = StoggerConfig(verbose=bool(verbose))
+    if logdir is None:
+        logdir = cfg.logdir
+        structlog.get_logger(__name__).debug("logging-logdir-fallback", logdir=str(logdir))
     if timestamp_precision is not None:
         cfg.format.timestamp_precision = timestamp_precision
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0

@@ -1,6 +1,7 @@
 """Configuration handling for stogger."""
 
 import fnmatch
+import os
 import sys
 import time
 import tomllib
@@ -164,6 +165,67 @@ def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
         return stogger_config
 
 
+def _load_env_overrides() -> dict[str, Any]:
+    """Load configuration overrides from ``STOGGER_<KEY>`` environment variables.
+
+    Maps environment variable names to config keys with appropriate type conversion.
+    Bool values: ``"1"``, ``"true"``, ``"yes"`` (case-insensitive) -> ``True``;
+    ``"0"``, ``"false"``, ``"no"`` -> ``False``. Invalid values are silently ignored.
+
+    Returns:
+        Dictionary of configuration values parsed from environment variables.
+        Empty dict if none are set.
+
+    """
+    log = structlog.get_logger(__name__)
+    overrides: dict[str, Any] = {}
+
+    # Env suffix -> (config_key, type)
+    env_mapping: dict[str, tuple[str, type]] = {
+        "VERBOSE": ("verbose", bool),
+        "LOGDIR": ("logdir", Path),
+        "LOG_CMD_OUTPUT": ("log_cmd_output", bool),
+        "LOG_TO_CONSOLE": ("log_to_console", bool),
+        "SYSLOG_IDENTIFIER": ("syslog_identifier", str),
+        "SHOW_CALLER_INFO": ("show_caller_info", bool),
+        "TRANSLATION_DIR": ("translation_dir", Path),
+        "LANGUAGE": ("language", str),
+        "LOG_FORMAT": ("log_format", str),
+        "ASYNC_LOGGING": ("async_logging", bool),
+        "ENABLE_SYSTEMD": ("enable_systemd", bool),
+        "SYSTEMD_FACILITY": ("systemd_facility", str),
+        "ENABLE_POSTGRES": ("enable_postgres", bool),
+        "POSTGRES_DSN": ("postgres_dsn", str),
+        "POSTGRES_TABLE": ("postgres_table", str),
+        "SRC_DIR": ("src_dir", str),
+    }
+
+    for env_suffix, (config_key, target_type) in env_mapping.items():
+        env_name = f"STOGGER_{env_suffix}"
+        raw = os.environ.get(env_name)
+        if raw is None:
+            continue
+
+        if target_type is bool:
+            normalized = raw.strip().lower()
+            if normalized in ("1", "true", "yes"):
+                overrides[config_key] = True
+            elif normalized in ("0", "false", "no"):
+                overrides[config_key] = False
+            else:
+                log.debug(
+                    "env-override-bool-invalid",
+                    env=env_name,
+                    value=raw,
+                )
+        elif target_type is Path:
+            overrides[config_key] = Path(raw)
+        else:
+            overrides[config_key] = raw
+
+    return overrides
+
+
 @attrs.define(slots=False)
 class FormatConfig:
     """Configuration for log format settings, loaded from ``[tool.stogger.format]``.
@@ -261,6 +323,10 @@ class StoggerConfig:
         if verbose:
             log.debug("config-loaded-from-file", key_count=len(config))
         config.update(kwargs)
+        env_overrides = _load_env_overrides()
+        if verbose:
+            log.debug("config-loaded-from-env", override_count=len(env_overrides), overridden_keys=list(env_overrides))
+        config.update(env_overrides)
         if verbose:
             log.debug("config-merged-with-kwargs", kwargs_count=len(kwargs))
         # Build FormatConfig from [tool.stogger.format] section
