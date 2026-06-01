@@ -89,4 +89,11 @@ def test_enable_systemd_false_no_import():
 
     mock_module.get_journal_logger_factory.assert_not_called()
 
+def test_dummy_journal_logger_logs_not_available(log):
+    """DummyJournalLogger logs journal-not-available on first msg()."""
+    from stogger.systemd import DummyJournalLogger
+
+    dj = DummyJournalLogger()
+    dj.msg({"MESSAGE": "test"})
+    log.has("journal-not-available")
 

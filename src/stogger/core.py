@@ -433,7 +433,7 @@ def _build_console_renderer_kwargs(verbose, show_caller_info):  # stogger: ignor
     return kwargs
 
 
-def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore
+def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore private-no-log-info
     """Build file, console, and journal logger factories for init_logging."""
     context = {}
     loggers = {}
@@ -454,7 +454,11 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
 
     if log_to_console:
         if os.environ.get("JOURNAL_STREAM"):
-            print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
+            log.info(
+                "journal-stream-detected",
+                _replace_msg="JOURNAL_STREAM set, switching to systemd journal logging",
+                journal_stream=os.environ.get("JOURNAL_STREAM"),
+            )
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
@@ -824,13 +828,18 @@ class MultiRenderer:
     def __repr__(self) -> str:
         return f"<MultiRenderer {[repr(logger) for logger in self.renderers]}>"
 
-    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
+    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:
         merged_messages = {}
         for renderer in self.renderers.values():
             try:
                 messages = renderer(logger, method_name, dict(event_dict))
                 merged_messages.update(messages)
-            except Exception as err:  # stogger: ignore except-must-log
+            except Exception as err:
+                log.exception(
+                    "renderer-failed",
+                    renderer=type(renderer).__name__,
+                    event_name=event_dict.get("event"),
+                )
                 msg = "Renderer failed"
                 raise RuntimeError(msg) from err
 
@@ -879,15 +888,22 @@ class MultiOptimisticLogger:
     def __repr__(self) -> str:
         return f"<MultiOptimisticLogger {[repr(logger) for logger in self.loggers]}>"
 
-    def msg(self, **messages) -> None:  # stogger: ignore
+    def msg(self, **messages) -> None:
         for name, logger in self.loggers.items():
             try:
                 line = messages.get(name)
                 if line:
                     logger.msg(line)
             except ValueError:
-                pass  # File handle closed (xdist worker cleanup)
+                log.debug(
+                    "sub-logger-value-error",
+                    target=name,
+                )
             except Exception as err:
+                log.exception(
+                    "sub-logger-dispatch-failed",
+                    target=name,
+                )
                 msg = "Sub-logger dispatch failed"
                 raise RuntimeError(msg) from err
 
@@ -932,7 +948,14 @@ def init_command_logging(log, logdir=None) -> None:
     else:
         cmd_log_file_name = logdir / "build-output.log"
 
-    cmd_log_file = cmd_log_file_name.open("w")
+    try:
+        cmd_log_file = cmd_log_file_name.open("w")
+    except OSError:
+        log.exception(
+            "cmd-output-file-open-failed",
+            cmd_log_file=str(cmd_log_file_name),
+        )
+        return
 
     log.info(
         "logging-cmd-output",

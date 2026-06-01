@@ -664,6 +664,17 @@ class TestMultiRenderer:
         with pytest.raises(RuntimeError, match="Renderer failed"):
             mr(None, "info", {"event": "test"})
 
+    def test_renderer_failure_logs_event(self, log):
+        """Renderer that raises logs renderer-failed event."""
+
+        def bad_renderer(_logger, _method, _event_dict):
+            raise RuntimeError("boom")
+
+        mr = MultiRenderer(bad=bad_renderer)
+        with pytest.raises(RuntimeError, match="Renderer failed"):
+            mr(None, "info", {"event": "test"})
+        log.has("renderer-failed")
+
 
 class TestMultiOptimisticLogger:
     """Tests for MultiOptimisticLogger."""
@@ -682,6 +693,23 @@ class TestMultiOptimisticLogger:
         mol = MultiOptimisticLogger({"target": failing_logger})
         with pytest.raises(RuntimeError, match="Sub-logger dispatch failed"):
             mol.msg(target="hello")
+
+    def test_dispatch_failure_logs_event(self, log):
+        """Sub-logger that raises logs sub-logger-dispatch-failed event."""
+        failing_logger = MagicMock(spec=_MsgTarget)
+        failing_logger.msg.side_effect = RuntimeError("write failed")
+        mol = MultiOptimisticLogger({"target": failing_logger})
+        with pytest.raises(RuntimeError, match="Sub-logger dispatch failed"):
+            mol.msg(target="hello")
+        log.has("sub-logger-dispatch-failed")
+
+    def test_value_error_logs_event(self, log):
+        """Sub-logger raising ValueError logs sub-logger-value-error event."""
+        failing_logger = MagicMock(spec=_MsgTarget)
+        failing_logger.msg.side_effect = ValueError("file handle closed")
+        mol = MultiOptimisticLogger({"target": failing_logger})
+        mol.msg(target="hello")
+        log.has("sub-logger-value-error")
 
     def test_msg_empty_line(self):
         """Msg with empty/missing line -> logger not called."""
@@ -727,6 +755,19 @@ class TestInitCommandLogging:
         # KV|        init_command_logging(log)
 
         log.has("logging-cmd-output-no-logdir")
+
+    def test_cmd_output_file_open_failure_logs_event(self, log, tmp_path):
+        """OSError opening cmd output file logs cmd-output-file-open-failed event."""
+        factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, {})
+        structlog.configure(
+            processors=[],
+            wrapper_class=structlog.BoundLogger,
+            logger_factory=factory,
+        )
+        test_log = structlog.get_logger()
+        with patch.object(Path, "open", side_effect=OSError("permission denied")):
+            init_command_logging(test_log, tmp_path)
+        log.has("cmd-output-file-open-failed")
 
 
 @pytest.mark.integration
@@ -825,3 +866,17 @@ class TestBuildLoggerFactories:
                 cfg=cfg,
             )
         log.has("stogger-postgres-not-installed")
+
+    def test_journal_stream_detected_logs_event(self, log):
+        """JOURNAL_STREAM env var set logs journal-stream-detected event."""
+        from stogger.config import StoggerConfig
+
+        cfg = StoggerConfig(enable_systemd=False, enable_postgres=False)
+        with patch.dict(os.environ, {"JOURNAL_STREAM": "123:456"}):
+            _build_logger_factories(
+                logdir=None,
+                log_to_console=True,
+                syslog_identifier="test",
+                cfg=cfg,
+            )
+        log.has("journal-stream-detected")
