@@ -128,4 +128,4 @@ stogger.init_logging(
 - Set up [Systemd Journal Integration](systemd.md) for services running under systemd
 - Set up [PostgreSQL Integration](postgres.md) for queryable persistent logs
 - Read [Testing with stogger](testing.md) to test your log output
-- Check out the [API Reference](../api/index) for detailed documentation
+- Read the source — agents read code, not generated docs ;)

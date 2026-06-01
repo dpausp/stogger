@@ -45,15 +45,6 @@ user/index
 ```
 
 
-## API Reference
-
-```{toctree}
-:maxdepth: 2
-:caption: API Reference
-
-api/index
-```
-
 ## Development
 
 ```{toctree}
@@ -62,10 +53,3 @@ api/index
 
 dev/index
 ```
-
-
-## Indices
-
-- {ref}`genindex`
-- {ref}`modindex`
-- {ref}`search`
