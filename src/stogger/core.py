@@ -529,7 +529,9 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
 
     Args:
         logdir: Directory for log files. A ``{syslog_identifier}.log`` file is created
-            here when writable. Required if ``log_cmd_output`` is True.
+            here when writable. Falls back to the ``logdir`` setting from
+            ``[tool.stogger]`` config (or ``STOGGER_LOGDIR`` env var) when not
+            provided. Required if ``log_cmd_output`` is True.
         log_cmd_output: Enable separate command output logging to a dedicated file
             in ``logdir``. Requires ``logdir`` to be set.
         log_to_console: Log to stderr. Disabled automatically when running under
