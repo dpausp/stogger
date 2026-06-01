@@ -110,7 +110,7 @@ autodoc_typehints_format = "short"
 
 # -- sphinx-llm configuration ------------------------------------------------
 llms_txt_build_parallel = True
-llms_txt_full_build = True
+llms_txt_full_build = False
 llms_txt_description = "stogger - A sophisticated multi-target structured logging system built on structlog"
 
 # -- MyST Parser configuration ----------------------------------------------

@@ -7,6 +7,8 @@ lifecycle:
     completed_at: "2026-06-01T00:00:00Z"
     git_rev: bb8e188
   plan:
+    completed_at: "2026-06-01T12:00:00Z"
+    git_rev: a673677
   workflow:
   verify:
 ---
@@ -158,3 +160,24 @@ b. Integration test only — slower, harder to debug. Rejected.
 One unit test in `tests/` that runs against the editable install. Catches if the build pipeline breaks.
 
 ## Verified By
+
+## Appendix
+
+```yaml
+# Implementation Plan
+id: embedded-docs
+description: Embed Sphinx-generated documentation into the installed Python package for LLM agent discovery
+git_rev: a673677
+created_at: "2026-06-01T12:00:00Z"
+target_tests:
+  - file: tests/impl_spec/test_embedded_docs.py
+    tests:
+      - test_llms_txt_exists_and_readable
+      - test_llms_txt_links_resolve
+      - test_agent_skill_md_exists
+      - test_docs_path_attribute
+      - test_init_docstring_describes_layout
+      - test_build_script_is_idempotent
+      - test_llms_full_txt_disabled
+```
+

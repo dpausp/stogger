@@ -178,6 +178,7 @@ depends = ["docs"]
 description = "Build package with embedded documentation"
 dependency_groups = ["docs"]
 commands = [
+    ["python", "scripts/build_docs_for_package.py"],
     ["uv", "build", { replace = "posargs", extend = true }],
 ]
 
