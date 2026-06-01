@@ -119,6 +119,25 @@ b. Keep autoapi but exclude from `_sources/` — API docs are part of the packag
 
 Autoapi RST files are included in `_sources/api/`. Minor Sphinx warnings don't affect functionality.
 
+### init-discovery
+
+#### Context
+
+Agents need to find the docs without knowing the internal structure. `__init__.py` already has a docstring and `__docs_path__` attribute from commit `1812089`, but both reference the old layout (mention `llms-full.txt`, no `_docs/` container).
+
+#### Decision
+
+Update the module docstring to describe the new layout: `_docs/llms.txt` as index, `_docs/_sources/` for individual files, no `llms-full.txt`. Keep `__docs_path__ = Path(__file__).parent` unchanged — it already points to the package root where `_docs/` lives. An agent doing `dir(stogger)` sees `__docs_path__`; reading the docstring reveals the structure.
+
+#### Alternatives
+
+a. Only update docstring, keep `__docs_path__` as-is — `__docs_path__` already points to the right place, but docstring must reflect reality. Actually this is the same as the recommendation since `__docs_path__` doesn't need changing.
+b. Add a dedicated `DOCS` attribute pointing directly to `_docs/` — redundant with `__docs_path__ / '_docs'`, adds maintenance surface. Rejected.
+
+#### Consequences
+
+Two-layer discovery: `dir(stogger)` reveals `__docs_path__`, docstring explains what's inside. No new attributes needed — just updating existing ones to match the new layout.
+
 ### discovery-test
 
 #### Context
