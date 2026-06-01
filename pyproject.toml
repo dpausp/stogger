@@ -55,6 +55,7 @@ docs = [
     "sphinx-llms-txt>=0.7.1",
     "sphinx-togglebutton>=0.4.5",
     "roman-numerals>=4.1.0",
+    "erbsland-sphinx-ansi>=1.2.2",
 ]
 dev = [
     "pytest-ruff>=0.5",

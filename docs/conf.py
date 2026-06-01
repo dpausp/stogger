@@ -56,6 +56,8 @@ extensions = [
     "sphinx_togglebutton",
     # Open Graph metadata
     "sphinxext.opengraph",
+    # ANSI color rendering in code blocks
+    "erbsland.sphinx.ansi",
 ]
 
 templates_path = ["_templates"]

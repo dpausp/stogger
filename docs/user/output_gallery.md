@@ -2,43 +2,36 @@
 
 What stogger output looks like in the terminal.
 All examples use `stogger.init_logging(verbose=True)` unless noted.
-Colors are described in the legend below — the terminal renders them automatically.
-
-## Color Legend
-
-| Element | Color | Style |
-|---------|-------|-------|
-| Timestamp | Default | Dim |
-| Level D, I | Green | Bright |
-| Level W | Yellow | Bright |
-| Level E, C | Red | Bright |
-| Event name | Default | Bright, right-padded to 30 chars |
-| Keys (no `_replace_msg`) | Cyan | Normal |
-| Values (no `_replace_msg`) | Magenta | Normal |
-| Output blocks (`>`, `err:`, etc.) | Default | Dim |
-| Raw ANSI tool output | Preserved | As-is |
 
 ## Log Levels with `_replace_msg`
 
-```text
-2026-06-01T17:19:01Z D cache-lookup                   Cache hit for key user:123
-2026-06-01T17:19:01Z I user-login                     User alice logged in from 192.168.1.1
-2026-06-01T17:19:01Z W rate-limit-approaching         Rate limit approaching for user 123
-2026-06-01T17:19:01Z E payment-gateway-timeout        Payment gateway stripe timed out after 5000ms
-2026-06-01T17:19:01Z C database-unavailable           Database unavailable after 3 attempts
+Five log levels, each with a human-readable `_replace_msg`:
+
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mD§[0m §[1mcache-lookup                  §[0m Cache hit for key user:123
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mI§[0m §[1muser-login                    §[0m User alice logged in from 192.168.1.1
+   §[2m2026-06-01T17:19:01Z§[0m §[33m§[1mW§[0m §[1mrate-limit-approaching        §[0m Rate limit approaching for user 123
+   §[2m2026-06-01T17:19:01Z§[0m §[31m§[1mE§[0m §[1mpayment-gateway-timeout       §[0m Payment gateway stripe timed out after 5000ms
+   §[2m2026-06-01T17:19:01Z§[0m §[31m§[1mC§[0m §[1mdatabase-unavailable          §[0m Database unavailable after 3 attempts
 ```
 
-Format: dimmed ISO timestamp, colored level letter, bright-padded event name, then the formatted `_replace_msg` text.
+Dimmed ISO timestamp, colored level letter (green D/I, yellow W, red E/C), bright-padded event name, then the formatted `_replace_msg` text.
 
 ## Raw KV Pairs (no `_replace_msg`)
 
-```text
-2026-06-01T17:19:01Z I order-created                  amount=99.99 currency='USD' customer_id=67890 order_id=12345
-2026-06-01T17:19:01Z W disk-usage-high                free_gb=12.3 mount='/var' usage_percent=87
-2026-06-01T17:19:01Z E api-response-failed            endpoint='/api/orders' status_code=503 upstream='payment-service'
-```
+Without `_replace_msg`, remaining fields render as `key=value` pairs — cyan keys, magenta values, sorted alphabetically:
 
-Without `_replace_msg`, keys render as cyan and values as magenta, sorted alphabetically.
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mI§[0m §[1morder-created                 §[0m §[36mamount§[0m=§[35m99.99§[0m §[36mcurrency§[0m=§[35m'USD'§[0m §[36mcustomer_id§[0m=§[35m67890§[0m §[36morder_id§[0m=§[35m12345§[0m
+   §[2m2026-06-01T17:19:01Z§[0m §[33m§[1mW§[0m §[1mdisk-usage-high               §[0m §[36mfree_gb§[0m=§[35m12.3§[0m §[36mmount§[0m=§[35m'/var'§[0m §[36musage_percent§[0m=§[35m87§[0m
+   §[2m2026-06-01T17:19:01Z§[0m §[31m§[1mE§[0m §[1mapi-response-failed           §[0m §[36mendpoint§[0m=§[35m'/api/orders'§[0m §[36mstatus_code§[0m=§[35m503§[0m §[36mupstream§[0m=§[35m'payment-service'§[0m
+```
 
 ## Output Keys in Action
 
@@ -46,78 +39,96 @@ See [Logging Patterns](logging_patterns.md) for when to use each output key.
 
 ### `cmd_output_line` — Single command line
 
-```text
-2026-06-01T17:19:01Z I deploy-command                 cmd_output_line='rsync -avz ./dist/ server:/var/www/'
-> rsync -avz ./dist/ server:/var/www/
-```
+Dimmed `>` prefix. Use for logging a command before execution:
 
-Dimmed `>` prefix. Use for logging a command before execution.
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mI§[0m §[1mdeploy-command                §[0m §[2m> rsync -avz ./dist/ server:/var/www/§[0m
+```
 
 ### `_output` — Multi-line block
 
-```text
-2026-06-01T17:19:01Z I diff-result                    _output='--- a/file.py\n+++ b/file.py\n@@ ...'
+Plain multi-line block (no prefix). Use for diffs, file content, structured text:
 
---- a/file.py
-+++ b/file.py
-@@ -1,3 +1,4 @@
- import os
-+import sys
- import json
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mI§[0m §[1mdiff-result                   §[0m
+   --- a/file.py
+   +++ b/file.py
+   @@ -1,3 +1,4 @@
+    import os
+   +import sys
+    import json
 ```
-
-Plain multi-line block (no prefix). Use for diffs, file content, structured text.
 
 ### `_raw_output` — Preserved ANSI colors
 
-```text
-2026-06-01T17:19:01Z W component-type-errors          ty: 3 type error(s)
-ty: error: import unknown module
-ty: error: type mismatch
-ty: error: unresolved reference
-```
+Tool output with its ANSI colors preserved. `_raw_output_prefix` sets the block label (`ty:` here):
 
-Tool output with its ANSI colors preserved. `_raw_output_prefix` sets the block label (`ty:` here).
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[33m§[1mW§[0m §[1mcomponent-type-errors         §[0m ty: 3 type error(s)
+   ty: §[31merror:§[0m import unknown module
+   ty: §[31merror:§[0m type mismatch
+   ty: §[31merror:§[0m unresolved reference
+```
 
 ### `stderr` — Error output
 
-```text
-2026-06-01T17:19:01Z E build-failed                   Build failed for myapp
-err: 
-err: SyntaxError: invalid syntax
-err:   File "main.py", line 42
-err:
-```
+Dimmed `err:` prefix per line. Use for subprocess stderr or error streams:
 
-Dimmed `err:` prefix per line. Use for subprocess stderr or error streams.
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[31m§[1mE§[0m §[1mbuild-failed                  §[0m Build failed for myapp
+   §[2merr:§[0m
+   §[2merr: SyntaxError: invalid syntax§[0m
+   §[2merr:   File "main.py", line 42§[0m
+```
 
 ## Decorator Output
-
-```text
-2026-06-01T17:19:01Z D called                         func='myapp.process_data' x=21
-2026-06-01T17:19:01Z D returned                       duration_ms=0.042 func='myapp.process_data' result='hello world'
-2026-06-01T17:19:01Z D operation                      a=3 b=7 duration_ms=0.055 func='myapp.add' result=10
-```
 
 All decorators emit debug-level events with `func=`, positional args, `result`, and `duration_ms`.
 See [Reference](reference.md) for decorator API details.
 
-## Non-Verbose Mode
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
 
-```text
-2026-06-01T17:19:01Z I this-should-be-visible         Only info and above in non-verbose mode
-2026-06-01T17:19:01Z W rate-limit-warning             Rate limit at 90%
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mD§[0m §[1mcalled                        §[0m §[36mfunc§[0m=§[35m'myapp.process_data'§[0m §[36mx§[0m=§[35m21§[0m
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mD§[0m §[1mreturned                      §[0m §[36mduration_ms§[0m=§[35m0.042§[0m §[36mfunc§[0m=§[35m'myapp.process_data'§[0m §[36mresult§[0m=§[35m'hello world'§[0m
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mD§[0m §[1moperation                     §[0m §[36ma§[0m=§[35m3§[0m §[36mb§[0m=§[35m7§[0m §[36mduration_ms§[0m=§[35m0.055§[0m §[36mfunc§[0m=§[35m'myapp.add'§[0m §[36mresult§[0m=§[35m10§[0m
 ```
 
-With `verbose=False` (the default), only I/W/E/C pass — debug is filtered.
+## Non-Verbose Mode
+
+With `verbose=False` (the default), only I/W/E/C pass — debug is filtered:
+
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[32m§[1mI§[0m §[1mthis-should-be-visible        §[0m Only info and above in non-verbose mode
+   §[2m2026-06-01T17:19:01Z§[0m §[33m§[1mW§[0m §[1mrate-limit-warning            §[0m Rate limit at 90%
+```
 
 ## Exception Logging
 
-```text
-2026-06-01T17:19:01Z E operation-failed               Operation failed: something went wrong
-```
+`log.exception()` renders the same as error. The traceback context is captured in the event dict:
 
-`log.exception()` renders the same as error. The traceback context is captured in the event dict.
+```{eval-rst}
+.. erbsland-ansi::
+   :escape-char: §
+
+   §[2m2026-06-01T17:19:01Z§[0m §[31m§[1mE§[0m §[1moperation-failed              §[0m Operation failed: something went wrong
+```
 
 ## JSON Format
 
@@ -137,7 +148,7 @@ With `log_format="json"`, the console renderer stays the same on TTY — JSON ap
 
 ## Timestamp Formats
 
-Configure via `timestamp_format` in `[tool.stogger]` or `init_logging()`:
+Configure via `[tool.stogger.format]` or `init_logging()`:
 
 ```text
 2026-06-01T17:19:01.123456Z    iso            (full ISO 8601 with microseconds)
