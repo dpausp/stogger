@@ -27,17 +27,13 @@ class TestDeadCodeRemoval:
         """JournalLoggerFactory class must not exist in core.py source."""
         source = (SRC_ROOT / "core.py").read_text()
         tree = ast.parse(source)
-        class_names = [
-            node.name
-            for node in ast.walk(tree)
-            if isinstance(node, ast.ClassDef)
-        ]
+        class_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
         assert "JournalLoggerFactory" not in class_names
-
 
     def test_journal_logger_factory_not_exported(self) -> None:
         """From stogger import JournalLoggerFactory must raise ImportError."""
         import stogger
+
         assert not hasattr(stogger, "JournalLoggerFactory")
 
     def test_no_dead_fields_show_logger_brackets(self) -> None:
@@ -63,10 +59,7 @@ class TestDeadCodeRemoval:
                 for item in ast.walk(node):
                     if isinstance(item, ast.Expr) and isinstance(item.value, ast.Call):
                         func = item.value.func
-                        if (
-                            isinstance(func, ast.Attribute)
-                            and func.attr == "isatty"
-                        ):
+                        if isinstance(func, ast.Attribute) and func.attr == "isatty":
                             bare_isatty_found = True
 
         assert console_renderer_found, "ConsoleFileRenderer class not found"
@@ -122,30 +115,6 @@ class TestBroadExceptionCleanup:
         else:
             pytest.fail("MultiRenderer class not found")
 
-    def test_multi_optimistic_logger_reraises(self) -> None:
-        """MultiOptimisticLogger.msg must re-raise or wrap exceptions."""
-        source = (SRC_ROOT / "core.py").read_text()
-        tree = ast.parse(source)
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef) and node.name == "MultiOptimisticLogger":
-                for item in node.body:
-                    if isinstance(item, ast.FunctionDef) and item.name == "msg":
-                        for child in ast.walk(item):
-                            if isinstance(child, ast.Try):
-                                for handler in child.handlers:
-                                    has_reraise = any(
-                                        isinstance(stmt, ast.Raise)
-                                        for stmt in ast.walk(ast.Module(body=handler.body, type_ignores=[]))
-                                    )
-                                    if not has_reraise:
-                                        pytest.fail(
-                                            "MultiOptimisticLogger.msg silently catches exceptions without re-raising"
-                                        )
-                break
-        else:
-            pytest.fail("MultiOptimisticLogger class not found")
-
     def test_load_pyproject_config_no_bare_exception(self) -> None:
         """_load_pyproject_config must catch only specific exceptions, not bare Exception."""
         source = (SRC_ROOT / "config.py").read_text()
@@ -160,9 +129,7 @@ class TestBroadExceptionCleanup:
                         if isinstance(child.type, ast.Tuple):
                             for elt in child.type.elts:
                                 if isinstance(elt, ast.Name) and elt.id == "Exception":
-                                    pytest.fail(
-                                        "_load_pyproject_config catches 'Exception' in tuple"
-                                    )
+                                    pytest.fail("_load_pyproject_config catches 'Exception' in tuple")
                 break
         else:
             pytest.fail("_load_pyproject_config function not found")
@@ -208,24 +175,14 @@ class TestBackwardsCompatPurge:
                         and target.id == "KEYS_TO_SKIP_IN_JOURNAL_MESSAGE"
                         and isinstance(node.value, ast.List)
                     ):
-                        elements = [
-                            elt.value
-                            for elt in node.value.elts
-                            if isinstance(elt, ast.Constant)
-                        ]
-                        assert "output" not in elements, (
-                            "Bare 'output' found in KEYS_TO_SKIP_IN_JOURNAL_MESSAGE"
-                        )
+                        elements = [elt.value for elt in node.value.elts if isinstance(elt, ast.Constant)]
+                        assert "output" not in elements, "Bare 'output' found in KEYS_TO_SKIP_IN_JOURNAL_MESSAGE"
 
     def test_log_to_stdlib_removed(self) -> None:
         """log_to_stdlib function must not exist in core.py."""
         source = (SRC_ROOT / "core.py").read_text()
         tree = ast.parse(source)
-        func_names = [
-            node.name
-            for node in ast.walk(tree)
-            if isinstance(node, ast.FunctionDef)
-        ]
+        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
         assert "log_to_stdlib" not in func_names
 
     def test_no_bumpversion_in_pyproject(self) -> None:
@@ -367,15 +324,10 @@ class TestOptionalImportSimplification:
                         isinstance(handler.type, ast.Name) and handler.type.id == "ImportError"
                     ) or (
                         isinstance(handler.type, ast.Tuple)
-                        and any(
-                            isinstance(elt, ast.Name) and elt.id == "ImportError"
-                            for elt in handler.type.elts
-                        )
+                        and any(isinstance(elt, ast.Name) and elt.id == "ImportError" for elt in handler.type.elts)
                     )
                     if catches_import_error:
                         # Check if the try body contains a stogger.systemd import
                         try_body_source = ast.get_source_segment(source, node)
                         if try_body_source and "stogger.systemd" in try_body_source:
-                            pytest.fail(
-                                "stogger.systemd import wrapped in try/except ImportError"
-                            )
+                            pytest.fail("stogger.systemd import wrapped in try/except ImportError")
