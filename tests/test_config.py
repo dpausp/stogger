@@ -99,7 +99,8 @@ def test_sync_logging_setup(mock_basic_config):
 @patch("logging.getLogger", autospec=True)
 def test_async_logging_setup(mock_get_logger, mock_listener):
     """Test that asynchronous logging sets up a QueueListener."""
-    mock_root_logger = MagicMock()
+    mock_root_logger = MagicMock(spec=logging.Logger)
+    mock_root_logger.handlers = []
     mock_get_logger.return_value = mock_root_logger
 
     config = StoggerConfig(async_logging=True, log_to_console=True)

@@ -36,7 +36,9 @@ def test_enable_systemd_true_import_succeeds():
     """Journal factory registered in loggers dict when import succeeds."""
     mock_module = types.ModuleType("stogger.systemd")
 
-    mock_logger_instance = MagicMock()
+    from stogger.systemd import DummyJournalLogger
+
+    mock_logger_instance = MagicMock(spec=DummyJournalLogger)
 
     class MockFactory:
         def __call__(self):
