@@ -84,6 +84,29 @@ Provided by pytest-stogger. Returns source file paths and `[tool.pytest-stogger]
 
 ## Testing Patterns
 
+### Bekannte Einschränkung: Processor-Snapshot bei BoundLogger
+
+`structlog.get_logger()` gibt einen `BoundLoggerLazyProxy` zurück, der bei jedem
+Log-Aufruf die aktuellen Processors aus `_CONFIG.default_processors` liest. Das
+pytest-structlog `log`-Fixture kann daher alle Events erfassen.
+
+Wenn jemand **`get_logger().bind(...)` auf Modulebene** aufruft, entsteht ein
+direkter `BoundLogger`, der die Processors snapshotet:
+
+```python
+# OK: _log_proxy ist ein Proxy → jeder Aufruf liest _CONFIG.default_processors
+_log_proxy = structlog.get_logger()
+_log_proxy.debug("event")  # Wird erfasst
+
+# PROBLEM: _log_bound ist ein BoundLogger → snapshotet processors bei __init__
+_log_bound = structlog.get_logger().bind(module="cache")
+_log_bound.debug("event")  # Wird NICHT erfasst
+```
+
+Der Mechanismus: `BoundLoggerBase.__init__` speichert `self._processors`
+(_base.py:58). Spätere `structlog.configure()`-Aufrufe (wie im `log`-Fixture)
+aktualisieren nur `_CONFIG`, nicht existierende BoundLogger-Instanzen.
+
 ### Configuring structlog in tests
 
 Always set `cache_logger_on_first_use=False` so the autouse reset fixture can reconfigure:
