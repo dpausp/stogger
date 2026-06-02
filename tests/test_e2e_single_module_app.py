@@ -8,6 +8,7 @@ No mocks. Real structlog pipeline.
 """
 
 import logging
+import sys
 
 import pytest
 import structlog
@@ -196,3 +197,79 @@ def test_single_module_app_exception_logging_with_log_exception(tmp_path, capsys
     assert "RuntimeError" in captured.err
     assert "auto-injected" in captured.err
     assert "Traceback" in captured.err or "traceback" in captured.err.lower()
+
+
+@pytest.mark.e2e
+def test_pipeline_survives_recursion_error_during_exception_formatting(tmp_path, capsys, monkeypatch):
+    """Deep stack + exception formatting hits RecursionError → pipeline must not crash.
+
+    Real-world scenario: application has a deep call stack, throws an exception
+    with a __context__ chain, and the RecursionError occurs inside Python's
+    linecache/traceback module during formatting. The stogger pipeline must
+    degrade gracefully and continue accepting log calls — a logger that kills
+    itself while trying to log is the worst possible failure mode.
+
+    No journal stream (DummyJournalLogger) — exercises the full pipeline without
+    systemd, including the journal-noop path that previously caused re-entry.
+    """
+    monkeypatch.delenv("JOURNAL_STREAM", raising=False)
+
+    logdir = tmp_path / "logs"
+    logdir.mkdir()
+
+    import stogger
+
+    stogger.init_logging(
+        logdir=str(logdir),
+        log_to_console=True,
+        syslog_identifier="e2e-recursion",
+    )
+
+    log = structlog.get_logger("myapp")
+
+    # Consume most of the recursion limit with a deep call stack.
+    # This leaves very little headroom — when format_exc_info calls
+    # traceback.print_exception → linecache.getline, it hits RecursionError.
+    old_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(150)
+
+    try:
+        # Nested exception with __context__ chain — exercises the
+        # exact code path from the original bug report.
+        try:
+            raise ValueError("inner-error")
+        except ValueError:
+            raise RuntimeError("outer-error") from None
+
+        pytest.fail("Should have raised RuntimeError")  # pragma: no cover
+    except RuntimeError:
+        # This MUST not crash the pipeline — format_exc_info catches
+        # the RecursionError internally and provides degraded output.
+        log.exception("recursion-scenario")
+
+    # Restore limit BEFORE asserting — otherwise the asserts themselves
+    # might hit the low limit if pytest internals are deep enough.
+    sys.setrecursionlimit(old_limit)
+
+    captured = capsys.readouterr()
+
+    # The pipeline survived: we got output for the exception event.
+    # With degraded formatting we get "[traceback unavailable]", with
+    # full formatting we get the actual traceback. Either is acceptable.
+    assert "recursion-scenario" in captured.err
+    assert "RuntimeError" in captured.err or "traceback unavailable" in captured.err.lower()
+
+    # CRITICAL: the pipeline must still accept new log calls after the
+    # RecursionError. If the pipeline is dead, this will either raise
+    # an exception or produce no output.
+    log.info("pipeline-alive", status="ok")
+
+    captured2 = capsys.readouterr()
+    assert "pipeline-alive" in captured2.err
+
+    # File output must also have survived.
+    log_file = logdir / "e2e-recursion.log"
+    assert log_file.exists()
+    file_content = log_file.read_text()
+    assert "recursion-scenario" in file_content
+    assert "pipeline-alive" in file_content

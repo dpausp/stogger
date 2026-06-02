@@ -79,16 +79,8 @@ class JournalLogger:
 class DummyJournalLogger:
     """No-op journal logger for non-systemd environments."""
 
-    def __init__(self) -> None:
-        self._warned = False
-
-    def msg(self, messages: dict) -> None:  # noqa: ARG002
-        if not self._warned:
-            self._warned = True
-            # Use stdlib to avoid structlog re-entry which can cause RecursionError
-            import logging
-
-            logging.getLogger("stogger.systemd").warning("Systemd journal not available, journal logging disabled")
+    def msg(self, messages: dict) -> None:
+        pass
 
 
 class JournalLoggerFactory:
@@ -105,7 +97,7 @@ class JournalLoggerFactory:
 
 def _journal_socket_available(path: str = JOURNAL_SOCKET_PATH) -> bool:
     try:
-        st = os.stat(path)
+        st = os.stat(path)  # noqa: PTH116
     except (OSError, RecursionError):
         return False
     return stat.S_ISSOCK(st.st_mode)

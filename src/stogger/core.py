@@ -495,10 +495,13 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
     # SPEC: legacy-elimination::optional-import-simplification — direct import,
     # stogger.systemd is a built-in module, not an external package.
     if cfg.enable_systemd:
-        from stogger.systemd import get_journal_logger_factory  # noqa: PLC0415
+        from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
 
         factory = get_journal_logger_factory()
         loggers["journal"] = factory
+
+        if not _journal_socket_available():
+            log.warning("journal-not-available", _replace_msg="Systemd journal not available, journal logging disabled")
 
     # SPEC: postgres-target::package-placement — dynamic import
     # for postgres logger factory, mirrors journal pattern.
