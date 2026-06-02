@@ -386,7 +386,7 @@ def process_exc_info(  # stogger: ignore complexity-needs-log
     return event_dict
 
 
-def format_exc_info(  # stogger: ignore complexity-needs-log
+def format_exc_info(  # stogger: ignore
     _logger: object,
     _name: str,
     event_dict: EventDict,
@@ -399,7 +399,13 @@ def format_exc_info(  # stogger: ignore complexity-needs-log
     exc_info = event_dict.pop("exc_info", None)
     if exc_info is not None:
         exception_class = exc_info[0]
-        formatted_traceback = structlog.processors._format_exception(exc_info)  # noqa: SLF001
+        try:
+            formatted_traceback = structlog.processors._format_exception(exc_info)  # noqa: SLF001
+        except Exception:  # noqa: BLE001
+            # Formatting itself failed (e.g. RecursionError in linecache
+            # when walking a deep __context__ chain). Provide degraded
+            # output instead of crashing the entire logging pipeline.
+            formatted_traceback = f"[traceback unavailable: formatting raised {type(exc_info[1]).__name__}]"
         event_dict["exception_traceback"] = formatted_traceback
         event_dict["exception_msg"] = str(exc_info[1])
         event_dict["exception_class"] = exception_class.__module__ + "." + exception_class.__name__

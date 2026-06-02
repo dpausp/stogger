@@ -30,6 +30,7 @@ from stogger.core import (
     _build_logger_factories,
     _inject_exc_info_for_exception,
     drop_cmd_output_logfile,
+    format_exc_info,
     init_command_logging,
     init_early_logging,
     init_logging,
@@ -489,6 +490,46 @@ class TestProcessExcInfo:
         event_dict = {"event": "test"}
         result = process_exc_info(None, "info", event_dict)
         assert "exc_info" not in result
+
+
+class TestFormatExcInfo:
+    """Tests for format_exc_info processor."""
+
+    def test_formats_exception(self):
+        """Normal exception -> full traceback, class, and message."""
+        try:
+            raise ValueError("boom")
+        except ValueError:
+            exc_info = sys.exc_info()
+
+        result = format_exc_info(None, "error", {"event": "test", "exc_info": exc_info})
+        assert "exc_info" not in result
+        assert "exception_traceback" in result
+        assert "ValueError: boom" in result["exception_traceback"]
+        assert result["exception_msg"] == "boom"
+        assert result["exception_class"] == "builtins.ValueError"
+
+    def test_no_exc_info_passes_through(self):
+        """No exc_info -> event_dict unchanged."""
+        event_dict = {"event": "test"}
+        result = format_exc_info(None, "info", event_dict)
+        assert "exception_traceback" not in result
+        assert result == {"event": "test"}
+
+    def test_formatting_failure_degraded_output(self):
+        """Formatting raises (e.g. RecursionError) -> degraded output, no crash."""
+        try:
+            raise ValueError("original")
+        except ValueError:
+            exc_info = sys.exc_info()
+
+        with patch("structlog.processors._format_exception", side_effect=RecursionError("stack overflow")):
+            result = format_exc_info(None, "error", {"event": "test", "exc_info": exc_info})
+
+        assert "exception_traceback" in result
+        assert "[traceback unavailable" in result["exception_traceback"]
+        assert result["exception_msg"] == "original"
+        assert result["exception_class"] == "builtins.ValueError"
 
 
 class TestSelectRenderedString:
