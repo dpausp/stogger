@@ -241,7 +241,10 @@ class ConsoleFileRenderer:
         replace_msg = event_dict.pop("_replace_msg", None)
         if replace_msg:
             formatter = PartialFormatter()
-            return formatter.format(replace_msg, **event_dict)
+            try:
+                return formatter.format(replace_msg, **event_dict)
+            except RecursionError:
+                return str(replace_msg)
         return None
 
     def _create_write_helper(self, console_io, log_io):  # stogger: ignore

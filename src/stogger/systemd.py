@@ -4,9 +4,9 @@ Lazy-loaded: only imported when systemd journal integration is enabled.
 Uses only stdlib (socket, stat, pathlib) — no external dependencies.
 """
 
+import os
 import socket
 import stat
-from pathlib import Path
 from typing import Self
 
 import structlog
@@ -84,8 +84,11 @@ class DummyJournalLogger:
 
     def msg(self, messages: dict) -> None:  # noqa: ARG002
         if not self._warned:
-            log.warning("journal-not-available", _replace_msg="Systemd journal not available, journal logging disabled")
             self._warned = True
+            # Use stdlib to avoid structlog re-entry which can cause RecursionError
+            import logging
+
+            logging.getLogger("stogger.systemd").warning("Systemd journal not available, journal logging disabled")
 
 
 class JournalLoggerFactory:
@@ -102,8 +105,8 @@ class JournalLoggerFactory:
 
 def _journal_socket_available(path: str = JOURNAL_SOCKET_PATH) -> bool:
     try:
-        st = Path(path).stat()
-    except OSError:
+        st = os.stat(path)
+    except (OSError, RecursionError):
         return False
     return stat.S_ISSOCK(st.st_mode)
 
