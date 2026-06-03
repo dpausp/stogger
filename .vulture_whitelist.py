@@ -11,7 +11,7 @@ Categories of false positives:
 
 # attrs class fields on StoggerConfig — accessed dynamically via __attrs_init__
 log_cmd_output = None
-enable_systemd = None
+systemd_mode = None
 systemd_facility = None
 ast_respect_gitignore = None
 ast_max_parameters = None

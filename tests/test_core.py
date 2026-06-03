@@ -905,9 +905,9 @@ class TestBuildLoggerFactories:
 
     def test_permission_denied_logs_warning(self, log):
         """PermissionError opening log file logs file-open-permission-denied."""
-        from stogger.config import StoggerConfig
+        from stogger.config import StoggerConfig, SystemdMode
 
-        cfg = StoggerConfig(enable_systemd=False, enable_postgres=False)
+        cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
         with patch.object(Path, "open", side_effect=PermissionError("denied")):
             _build_logger_factories(
                 logdir=Path("/fake"),
@@ -930,9 +930,9 @@ class TestBuildLoggerFactories:
         but the optional package is not installed, so they must know.
         """
         """_build_logger_factories logs debug when stogger_postgres ImportError."""
-        from stogger.config import StoggerConfig
+        from stogger.config import StoggerConfig, SystemdMode
 
-        cfg = StoggerConfig(enable_postgres=True, enable_systemd=False)
+        cfg = StoggerConfig(enable_postgres=True, systemd=SystemdMode.OFF.value)
         real_import = __import__
 
         def blocking_import(name, *args, **kwargs):
@@ -948,13 +948,16 @@ class TestBuildLoggerFactories:
                 cfg=cfg,
             )
         log.has("stogger-postgres-not-installed")
-        log.has("stogger-postgres-not-installed", _replace_msg="PostgreSQL logging enabled but stogger-postgres package is not installed")
+        log.has(
+            "stogger-postgres-not-installed",
+            _replace_msg="PostgreSQL logging enabled but stogger-postgres package is not installed",
+        )
 
     def test_journal_stream_detected_logs_event(self, log):
         """JOURNAL_STREAM env var set logs journal-stream-detected event."""
-        from stogger.config import StoggerConfig
+        from stogger.config import StoggerConfig, SystemdMode
 
-        cfg = StoggerConfig(enable_systemd=False, enable_postgres=False)
+        cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
         with patch.dict(os.environ, {"JOURNAL_STREAM": "123:456"}):
             _build_logger_factories(
                 logdir=None,

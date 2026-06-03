@@ -97,7 +97,7 @@ Available variables:
 | ``STOGGER_LANGUAGE`` | ``language`` | str |
 | ``STOGGER_LOG_FORMAT`` | ``log_format`` | str |
 | ``STOGGER_ASYNC_LOGGING`` | ``async_logging`` | bool |
-| ``STOGGER_ENABLE_SYSTEMD`` | ``enable_systemd`` | bool |
+| ``STOGGER_SYSTEMD`` | ``systemd`` | ``"auto"``, ``"required"``, ``"off"`` |
 | ``STOGGER_SYSTEMD_FACILITY`` | ``systemd_facility`` | str |
 | ``STOGGER_ENABLE_POSTGRES`` | ``enable_postgres`` | bool |
 | ``STOGGER_POSTGRES_DSN`` | ``postgres_dsn`` | str |

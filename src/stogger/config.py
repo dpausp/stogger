@@ -7,11 +7,31 @@ import time
 import tomllib
 import warnings
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import attrs
 import structlog
+
+
+class SystemdMode(Enum):
+    """Systemd journal integration mode.
+
+    Controls how stogger handles systemd journal logging.
+
+    Attributes:
+        AUTO: Try journal if available, silently fall back to DummyJournalLogger.
+        REQUIRED: Systemd journal must be available — raises RuntimeError at
+            init time if journal socket is missing.
+        OFF: No systemd journal integration at all.
+
+    """
+
+    AUTO = "auto"
+    REQUIRED = "required"
+    OFF = "off"
+
 
 _TEST_DEPS_WARNED = False
 
@@ -191,7 +211,7 @@ def _load_env_overrides() -> dict[str, Any]:
         "LANGUAGE": ("language", str),
         "LOG_FORMAT": ("log_format", str),
         "ASYNC_LOGGING": ("async_logging", bool),
-        "ENABLE_SYSTEMD": ("enable_systemd", bool),
+        "SYSTEMD": ("systemd", str),
         "SYSTEMD_FACILITY": ("systemd_facility", str),
         "ENABLE_POSTGRES": ("enable_postgres", bool),
         "POSTGRES_DSN": ("postgres_dsn", str),
@@ -264,7 +284,9 @@ class StoggerConfig:
         language (str): Language code for log messages. Default ``"en"``.
         log_format (str): Output format — ``"simple"`` or ``"json"``. Default ``"simple"``.
         async_logging (bool): Use asynchronous log writing. Default ``False``.
-        enable_systemd (bool): Enable systemd/journal integration. Default ``True``.
+        systemd_mode (SystemdMode): Systemd journal integration mode.
+            ``"auto"`` (try if available, silent fallback), ``"required"`` (must
+            have journal), ``"off"`` (no integration). Default ``SystemdMode.AUTO``.
         systemd_facility (str | None): Syslog facility for systemd output. Default ``None``.
         src_dir (str): Primary source directory name. Default ``"src"``.
         format (FormatConfig): Format configuration. Default ``FormatConfig()``.
@@ -285,7 +307,7 @@ class StoggerConfig:
     language: str = "en"
     log_format: str = "simple"
     async_logging: bool = False
-    enable_systemd: bool = True
+    systemd_mode: SystemdMode = SystemdMode.AUTO
     systemd_facility: str | None = None
     enable_postgres: bool = False
     postgres_dsn: str | None = None
@@ -330,7 +352,7 @@ class StoggerConfig:
             language=config.get("language", "en"),
             log_format=config.get("log_format", "simple"),
             async_logging=config.get("async_logging", False),
-            enable_systemd=config.get("enable_systemd", True),
+            systemd_mode=SystemdMode(config["systemd"]) if "systemd" in config else SystemdMode.AUTO,
             systemd_facility=config.get("systemd_facility", None),
             enable_postgres=config.get("enable_postgres", False),
             postgres_dsn=config.get("postgres_dsn", None),

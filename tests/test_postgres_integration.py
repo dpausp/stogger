@@ -20,10 +20,11 @@ from collections.abc import Callable
 import pytest
 import structlog
 
-from stogger.config import StoggerConfig
+from stogger.config import StoggerConfig, SystemdMode
 from stogger.core import init_logging
 
 from stogger.systemd import DummyJournalLogger
+
 
 @pytest.fixture(autouse=True)
 def _reset_structlog():
@@ -67,7 +68,7 @@ def test_enable_postgres_true_import_succeeds():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = True
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = "postgresql://test:@/testdb"
         mock_cfg.postgres_table = "stogger_logs"
@@ -102,7 +103,7 @@ def test_enable_postgres_true_import_error_fallback():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = True
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = "postgresql://test:@/testdb"
         mock_cfg.postgres_table = "stogger_logs"
@@ -144,7 +145,7 @@ def test_enable_postgres_false_no_import():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = False
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = None
         mock_cfg.postgres_table = "stogger_logs"
@@ -175,7 +176,7 @@ def test_enable_postgres_true_import_error_silent_fallback():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = True
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = "postgresql://test:@/testdb"
         mock_cfg.postgres_table = "stogger_logs"

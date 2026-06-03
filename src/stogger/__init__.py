@@ -20,6 +20,7 @@ __all__ = [
     "MultiOptimisticLoggerFactory",
     "StoggerConfig",
     "SystemdJournalRenderer",
+    "SystemdMode",
     "drop_cmd_output_logfile",
     "init_command_logging",
     "init_early_logging",
@@ -34,6 +35,7 @@ __all__ = [
 from pathlib import Path
 
 from .config import StoggerConfig as StoggerConfig
+from .config import SystemdMode as SystemdMode
 from .core import (
     LogScope as LogScope,
 )

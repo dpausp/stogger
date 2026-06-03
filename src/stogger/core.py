@@ -10,12 +10,12 @@ import syslog
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import structlog
 
 from ._types import EventDict
-from .config import FormatConfig, StoggerConfig
+from .config import FormatConfig, StoggerConfig, SystemdMode
 from .processors import build_timestamp_processor
 
 # Get a logger for this module
@@ -492,16 +492,22 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
-    # SPEC: legacy-elimination::optional-import-simplification — direct import,
-    # stogger.systemd is a built-in module, not an external package.
-    if cfg.enable_systemd:
-        from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
+    if cfg.systemd_mode is SystemdMode.AUTO:
+        from stogger.systemd import get_journal_logger_factory  # noqa: PLC0415
 
         factory = get_journal_logger_factory()
         loggers["journal"] = factory
 
+    elif cfg.systemd_mode is SystemdMode.REQUIRED:
+        from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
+
         if not _journal_socket_available():
-            log.warning("journal-not-available", _replace_msg="Systemd journal not available, journal logging disabled")
+            msg = "Systemd journal required but not available"
+            raise RuntimeError(msg)
+        factory = get_journal_logger_factory()
+        loggers["journal"] = factory
+
+    # SystemdMode.OFF: no journal integration at all
 
     # SPEC: postgres-target::package-placement — dynamic import
     # for postgres logger factory, mirrors journal pattern.
@@ -561,6 +567,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     verbose: bool | None = None,
     show_caller_info: bool | None = None,
     timestamp_precision: str | None = None,
+    systemd: SystemdMode | None = None,
 ) -> None:
     """Initialize full structured logging with console, file, and journal targets.
 
@@ -590,6 +597,11 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
             ``"iso_seconds"``, ``"iso_no_z"``, or ``"relative"``. When None
             (default), uses the setting from ``FormatConfig.timestamp_precision``
             (typically ``"iso_seconds"``).
+        systemd: Systemd journal integration mode. One of ``SystemdMode.AUTO``
+            (default — try journal, silent fallback), ``SystemdMode.REQUIRED``
+            (error if journal unavailable), or ``SystemdMode.OFF`` (no journal
+            integration). When None (default), uses the setting from config or
+            ``STOGGER_SYSTEMD`` env var.
 
     Raises:
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
@@ -602,10 +614,12 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     # Ensure structlog never writes to stdout during bootstrap
     _ensure_stderr_logging()
 
-    cfg = StoggerConfig(verbose=bool(verbose))
+    cfg_kwargs: dict[str, Any] = {"verbose": bool(verbose)}
+    if systemd is not None:
+        cfg_kwargs["systemd"] = systemd.value
+    cfg = StoggerConfig(**cfg_kwargs)
     if logdir is None:
         logdir = cfg.logdir
-        structlog.get_logger(__name__).debug("logging-logdir-fallback", logdir=str(logdir))
     if timestamp_precision is not None:
         cfg.format.timestamp_precision = timestamp_precision
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
