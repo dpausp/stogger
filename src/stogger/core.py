@@ -463,7 +463,7 @@ def _build_console_renderer_kwargs(verbose, show_caller_info):  # stogger: ignor
     return kwargs
 
 
-def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore private-no-log-info
+def build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore private-no-log-info
     """Build file, console, and journal logger factories for init_logging."""
     context = {}
     loggers = {}
@@ -493,10 +493,11 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
     if cfg.systemd_mode is SystemdMode.AUTO:
-        from stogger.systemd import get_journal_logger_factory  # noqa: PLC0415
+        from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
 
-        factory = get_journal_logger_factory()
-        loggers["journal"] = factory
+        if _journal_socket_available():
+            factory = get_journal_logger_factory()
+            loggers["journal"] = factory
 
     elif cfg.systemd_mode is SystemdMode.REQUIRED:
         from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
@@ -530,7 +531,7 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
     return loggers, context
 
 
-def _configure_structlog(processors, context, loggers):
+def configure_structlog(processors, context, loggers):
     """Configure structlog with processors and MultiOptimisticLoggerFactory."""
     structlog.configure(
         processors=processors,
@@ -648,8 +649,8 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
         multi_renderer,
     ]
 
-    loggers, context = _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg)
-    _configure_structlog(processors, context, loggers)
+    loggers, context = build_logger_factories(logdir, log_to_console, syslog_identifier, cfg)
+    configure_structlog(processors, context, loggers)
 
     log = structlog.get_logger()
 

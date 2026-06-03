@@ -21,7 +21,7 @@ class SystemdMode(Enum):
     Controls how stogger handles systemd journal logging.
 
     Attributes:
-        AUTO: Try journal if available, silently fall back to DummyJournalLogger.
+        AUTO: Try journal if available, silently skip registration if not.
         REQUIRED: Systemd journal must be available — raises RuntimeError at
             init time if journal socket is missing.
         OFF: No systemd journal integration at all.

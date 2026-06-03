@@ -27,7 +27,7 @@ from stogger.core import (
     SelectRenderedString,
     SystemdJournalRenderer,
     TranslationProcessor,
-    _build_logger_factories,
+    build_logger_factories,
     _inject_exc_info_for_exception,
     drop_cmd_output_logfile,
     format_exc_info,
@@ -901,7 +901,7 @@ class TestDropCmdOutputLogfile:
 
 @pytest.mark.integration
 class TestBuildLoggerFactories:
-    """Tests for _build_logger_factories."""
+    """Tests for build_logger_factories."""
 
     def test_permission_denied_logs_warning(self, log):
         """PermissionError opening log file logs file-open-permission-denied."""
@@ -909,7 +909,7 @@ class TestBuildLoggerFactories:
 
         cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
         with patch.object(Path, "open", side_effect=PermissionError("denied")):
-            _build_logger_factories(
+            build_logger_factories(
                 logdir=Path("/fake"),
                 log_to_console=False,
                 syslog_identifier="test",
@@ -924,12 +924,12 @@ class TestBuildLoggerFactories:
                 init_early_logging()
 
     def test_postgres_import_error_logs_warning(self, log):
-        """_build_logger_factories logs warning when stogger_postgres ImportError.
+        """build_logger_factories logs warning when stogger_postgres ImportError.
 
         Level changed from debug to warning — user explicitly enabled postgres logging
         but the optional package is not installed, so they must know.
         """
-        """_build_logger_factories logs debug when stogger_postgres ImportError."""
+        """build_logger_factories logs debug when stogger_postgres ImportError."""
         from stogger.config import StoggerConfig, SystemdMode
 
         cfg = StoggerConfig(enable_postgres=True, systemd=SystemdMode.OFF.value)
@@ -941,7 +941,7 @@ class TestBuildLoggerFactories:
             return real_import(name, *args, **kwargs)
 
         with patch("builtins.__import__", side_effect=blocking_import):
-            _build_logger_factories(
+            build_logger_factories(
                 logdir=None,
                 log_to_console=False,
                 syslog_identifier="test",
@@ -959,7 +959,7 @@ class TestBuildLoggerFactories:
 
         cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
         with patch.dict(os.environ, {"JOURNAL_STREAM": "123:456"}):
-            _build_logger_factories(
+            build_logger_factories(
                 logdir=None,
                 log_to_console=True,
                 syslog_identifier="test",

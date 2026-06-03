@@ -466,7 +466,7 @@ def test_init_logging_falls_back_to_cfg_logdir():
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
 
         with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch("stogger.core._build_logger_factories", return_value=({}, {})) as mock_factories:
+            with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
                 init_logging()
 
                 mock_factories.assert_called_once()
@@ -483,7 +483,7 @@ def test_init_logging_logdir_param_wins():
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
 
         with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch("stogger.core._build_logger_factories", return_value=({}, {})) as mock_factories:
+            with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
                 init_logging(logdir="/custom/path")
 
                 mock_factories.assert_called_once()

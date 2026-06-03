@@ -21,6 +21,8 @@ __all__ = [
     "StoggerConfig",
     "SystemdJournalRenderer",
     "SystemdMode",
+    "build_logger_factories",
+    "configure_structlog",
     "drop_cmd_output_logfile",
     "init_command_logging",
     "init_early_logging",
@@ -47,6 +49,12 @@ from .core import (
 )
 from .core import (
     SystemdJournalRenderer as SystemdJournalRenderer,
+)
+from .core import (
+    build_logger_factories as build_logger_factories,
+)
+from .core import (
+    configure_structlog as configure_structlog,
 )
 from .core import (
     drop_cmd_output_logfile as drop_cmd_output_logfile,

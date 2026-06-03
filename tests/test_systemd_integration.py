@@ -35,8 +35,8 @@ def _reset_structlog():
 # --- Test 1: SystemdMode.AUTO + import succeeds ---
 
 
-def test_systemd_auto_import_succeeds():
-    """Journal factory registered in loggers dict when import succeeds."""
+def test_systemd_auto_journal_available():
+    """Journal factory registered in loggers dict when socket is available."""
     mock_module = types.ModuleType("stogger.systemd")
 
     from stogger.systemd import DummyJournalLogger
@@ -48,7 +48,7 @@ def test_systemd_auto_import_succeeds():
             return mock_logger_instance
 
     mock_module.get_journal_logger_factory = MagicMock(return_value=MockFactory())
-    mock_module._journal_socket_available = MagicMock(return_value=False)
+    mock_module._journal_socket_available = MagicMock(return_value=True)
     mock_module.JournalLogger = type("JournalLogger", (), {})
     mock_module.DummyJournalLogger = type("DummyJournalLogger", (), {})
     mock_module.JournalLoggerFactory = MockFactory
@@ -64,6 +64,25 @@ def test_systemd_auto_import_succeeds():
     factory = config.get("logger_factory")
     assert factory is not None
     assert "journal" in factory.factories
+
+
+def test_systemd_auto_socket_unavailable():
+    """No journal factory registered when socket is unavailable in AUTO mode."""
+    mock_module = types.ModuleType("stogger.systemd")
+
+    mock_module.get_journal_logger_factory = MagicMock()
+    mock_module._journal_socket_available = MagicMock(return_value=False)
+    mock_module.JournalLogger = type("JournalLogger", (), {})
+    mock_module.DummyJournalLogger = type("DummyJournalLogger", (), {})
+
+    with (
+        patch.dict(sys.modules, {"stogger.systemd": mock_module}),
+        patch.dict(os.environ, {}, clear=False),
+    ):
+        os.environ.pop("JOURNAL_STREAM", None)
+        init_logging(logdir=None)
+
+    mock_module.get_journal_logger_factory.assert_not_called()
 
 
 # --- Test 3: SystemdMode.OFF → no import attempt ---
