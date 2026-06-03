@@ -113,9 +113,6 @@ def _check_test_dependencies(full_config: dict[str, Any]) -> None:
     if _TEST_DEPS_WARNED or "_pytest" not in sys.modules:
         return
 
-    log = structlog.get_logger(__name__)
-    log.debug("checking-test-dependencies", has_dependency_groups="dependency-groups" in full_config)
-
     _TEST_DEPS_WARNED = True
 
     required = {"pytest-stogger", "pytest-structlog"}
@@ -134,6 +131,12 @@ def _check_test_dependencies(full_config: dict[str, Any]) -> None:
     missing = sorted(r for r in required if r not in deps_str)
 
     if missing:
+        log = structlog.get_logger(__name__)
+        log.warning(
+            "test-dependencies-missing",
+            _replace_msg="Missing test dependencies: {deps}",
+            deps=", ".join(missing),
+        )
         msg = (
             f"stogger test infrastructure incomplete: {', '.join(missing)}. "
             "Add to [dependency-groups].test in pyproject.toml."

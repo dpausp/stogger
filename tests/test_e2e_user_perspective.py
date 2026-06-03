@@ -59,12 +59,8 @@ def test_default_init_no_internals_on_stderr(capsys, monkeypatch):
         stogger.init_logging(logdir=None, log_to_console=True, syslog_identifier="user-persp")
 
     captured = capsys.readouterr()
-    # init_logging itself should be silent on success — no internal noise.
-    # Known leak: checking-test-dependencies from config.py leaks through
-    # pre-configuration structlog defaults (separate fix needed).
-    lines = [l for l in captured.err.strip().splitlines() if l]
-    user_visible = [l for l in lines if "checking-test-dependencies" not in l]
-    assert user_visible == [], f"Unexpected events on stderr: {user_visible}"
+    # init_logging itself should be silent on success — no internal noise
+    assert captured.err == ""
 
 
 @pytest.mark.e2e

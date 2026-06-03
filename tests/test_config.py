@@ -3,7 +3,9 @@
 import importlib
 import logging
 import os
+import sys
 import tempfile
+import warnings
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -603,6 +605,29 @@ def test_pyproject_decorators_inline_ignore():
             break
     else:
         pytest.fail("_filter_args() not found in decorators.py")
+
+
+def test_missing_test_dependencies_logs_warning(log, monkeypatch):
+    """Missing pytest-stogger/pytest-structlog logs test-dependencies-missing event."""
+    import stogger.config as cfg_module
+
+    # Reset the warned flag so the check runs
+    cfg_module._TEST_DEPS_WARNED = False
+
+    # Ensure _pytest is in sys.modules so the guard passes
+    monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
+
+    full_config = {
+        "dependency-groups": {
+            "test": ["pytest"],  # missing pytest-stogger and pytest-structlog
+        }
+    }
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        cfg_module._check_test_dependencies(full_config)
+
+    log.has("test-dependencies-missing", deps="pytest-stogger, pytest-structlog")
 
 
 if __name__ == "__main__":
