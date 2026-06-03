@@ -14,6 +14,7 @@ import os
 import sys
 import types
 from unittest.mock import MagicMock, patch
+from collections.abc import Callable
 
 import pytest
 import structlog
@@ -21,6 +22,7 @@ import structlog
 from stogger.config import StoggerConfig
 from stogger.core import init_logging
 
+from stogger.systemd import DummyJournalLogger
 
 @pytest.fixture(autouse=True)
 def _reset_structlog():
@@ -70,7 +72,7 @@ def test_enable_systemd_false_no_import():
     """No import attempt when enable_systemd=False in config."""
     mock_module = types.ModuleType("stogger.systemd")
 
-    mock_module.get_journal_logger_factory = MagicMock()
+    mock_module.get_journal_logger_factory = MagicMock(spec=Callable)
     mock_module.JournalLogger = type("JournalLogger", (), {})
     mock_module.DummyJournalLogger = type("DummyJournalLogger", (), {})
     mock_module.JournalLoggerFactory = type("JournalLoggerFactory", (), {})
@@ -109,7 +111,7 @@ def test_journal_not_available_warns_during_init(log):
 
     class MockFactory:
         def __call__(self):
-            return MagicMock()
+            return MagicMock(spec=DummyJournalLogger)
 
     mock_module.get_journal_logger_factory = MagicMock(return_value=MockFactory())
     mock_module._journal_socket_available = MagicMock(return_value=False)
@@ -125,3 +127,14 @@ def test_journal_not_available_warns_during_init(log):
         init_logging(logdir=None)
 
     log.has("journal-not-available")
+
+
+def test_journal_sender_send_failure_logs_warning(log):
+    """JournalSender.send() logs warning with context when socket send fails."""
+    from stogger.systemd import JournalSender
+
+    sender = JournalSender(socket_path="/nonexistent/socket/path")
+    result = sender.send({"MESSAGE": "test"})
+
+    assert result is False
+    log.has("journal-send-failed", socket_path="/nonexistent/socket/path")

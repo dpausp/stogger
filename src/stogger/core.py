@@ -515,7 +515,11 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
             )
             loggers["postgres"] = factory
         except ImportError:
-            log.debug("stogger-postgres-not-installed", reason="optional package not installed")
+            log.warning(
+                "stogger-postgres-not-installed",
+                _replace_msg="PostgreSQL logging enabled but stogger-postgres package is not installed",
+                reason="optional package not installed",
+            )
 
     return loggers, context
 

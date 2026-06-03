@@ -42,7 +42,12 @@ class JournalSender:
                 sock.sendall(payload)
                 return True
         except OSError as e:
-            log.debug("journal-send-failed", socket_path=self._socket_path, error=str(e))
+            log.warning(
+                "journal-send-failed",
+                socket_path=self._socket_path,
+                error=str(e),
+                _replace_msg="Journal send failed for socket {socket_path}",
+            )
             return False
 
     @staticmethod

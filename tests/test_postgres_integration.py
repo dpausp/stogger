@@ -15,6 +15,7 @@ import os
 import sys
 import types
 from unittest.mock import MagicMock, patch
+from collections.abc import Callable
 
 import pytest
 import structlog
@@ -22,6 +23,7 @@ import structlog
 from stogger.config import StoggerConfig
 from stogger.core import init_logging
 
+from stogger.systemd import DummyJournalLogger
 
 @pytest.fixture(autouse=True)
 def _reset_structlog():
@@ -45,7 +47,7 @@ def test_enable_postgres_true_import_succeeds():
     """
     mock_module = types.ModuleType("stogger_postgres")
 
-    mock_logger_instance = MagicMock()
+    mock_logger_instance = MagicMock(spec=DummyJournalLogger)
 
     class MockFactory:
         def __call__(self):
@@ -128,7 +130,7 @@ def test_enable_postgres_false_no_import():
     """
     mock_module = types.ModuleType("stogger_postgres")
 
-    mock_module.get_postgres_logger_factory = MagicMock()
+    mock_module.get_postgres_logger_factory = MagicMock(spec=Callable)
     mock_module.PostgresLogger = type("PostgresLogger", (), {})
     mock_module.DummyPostgresLogger = type("DummyPostgresLogger", (), {})
     mock_module.PostgresLoggerFactory = type("PostgresLoggerFactory", (), {})

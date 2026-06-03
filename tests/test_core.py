@@ -923,7 +923,12 @@ class TestBuildLoggerFactories:
             with pytest.raises(RuntimeError, match="boom"):
                 init_early_logging()
 
-    def test_postgres_import_error_logs_debug(self, log):
+    def test_postgres_import_error_logs_warning(self, log):
+        """_build_logger_factories logs warning when stogger_postgres ImportError.
+
+        Level changed from debug to warning — user explicitly enabled postgres logging
+        but the optional package is not installed, so they must know.
+        """
         """_build_logger_factories logs debug when stogger_postgres ImportError."""
         from stogger.config import StoggerConfig
 
@@ -943,6 +948,7 @@ class TestBuildLoggerFactories:
                 cfg=cfg,
             )
         log.has("stogger-postgres-not-installed")
+        log.has("stogger-postgres-not-installed", _replace_msg="PostgreSQL logging enabled but stogger-postgres package is not installed")
 
     def test_journal_stream_detected_logs_event(self, log):
         """JOURNAL_STREAM env var set logs journal-stream-detected event."""
