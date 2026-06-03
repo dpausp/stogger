@@ -161,3 +161,30 @@ def test_journal_sender_send_failure_logs_warning(log):
 
     assert result is False
     log.has("journal-send-failed", socket_path="/nonexistent/socket/path")
+
+
+def test_systemd_journal_active_logged_after_init(log):
+    """init_logging logs systemd-journal-active when journal target is registered."""
+    from stogger.systemd import DummyJournalLogger
+
+    mock_logger_instance = MagicMock(spec=DummyJournalLogger)
+
+    class MockFactory:
+        def __call__(self):
+            return mock_logger_instance
+
+    mock_module = types.ModuleType("stogger.systemd")
+    mock_module.get_journal_logger_factory = MagicMock(return_value=MockFactory())
+    mock_module._journal_socket_available = MagicMock(return_value=True)
+    mock_module.JournalLogger = type("JournalLogger", (), {})
+    mock_module.DummyJournalLogger = type("DummyJournalLogger", (), {})
+    mock_module.JournalLoggerFactory = MockFactory
+
+    with (
+        patch.dict(sys.modules, {"stogger.systemd": mock_module}),
+        patch.dict(os.environ, {}, clear=False),
+    ):
+        os.environ.pop("JOURNAL_STREAM", None)
+        init_logging(logdir=None)
+
+    log.has("systemd-journal-active")

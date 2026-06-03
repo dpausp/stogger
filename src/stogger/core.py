@@ -495,7 +495,9 @@ def build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # s
     if cfg.systemd_mode is SystemdMode.AUTO:
         from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
 
-        if _journal_socket_available():
+        socket_available = _journal_socket_available()
+        log.debug("systemd-journal-socket-check", available=socket_available)
+        if socket_available:
             factory = get_journal_logger_factory()
             loggers["journal"] = factory
 
@@ -659,6 +661,12 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
             "init-logging-overriding-existing-config",
             _replace_msg="init_logging() called but structlog was already configured — "
             "this overrides the existing pipeline (test capture, etc.)",
+        )
+
+    if "journal" in loggers:
+        log.info(
+            "systemd-journal-active",
+            _replace_msg="Systemd journal logging active",
         )
 
     if log_cmd_output:
