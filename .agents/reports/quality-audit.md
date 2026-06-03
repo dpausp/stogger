@@ -290,6 +290,42 @@ Step 6 not triggered — project is a library, no CLI entry points. All 12 publi
 4. **Conftest private API import** (maintainability): Refactor to use public pytest-stogger API or vendor the imports in conftest.py:14
 5. **2 naked MagicMock() calls**: Add spec= to MagicMock calls in test_config.py:102, test_systemd_integration.py:39
 
+## Tidy Session — 2026-06-03
+
+### Mock Hardening
+- Bare mocks before: 6 → after: 0
+- Migrated to typed: 6 (2 in previous session + 4 in tidy)
+- Untouchable: 0
+
+### Logging Convention Fixes
+- log.debug → log.warning with _replace_msg: 2 (core.py:518, systemd.py:45)
+- Missing _replace_msg added: 1 (systemd.py:45)
+- Missing store labels added: 0
+- Ephemeral data persisted: 0
+
+### Post-Tidy Gates
+
+| Tool | Before | After |
+|------|--------|-------|
+| ruff | 0 issues | 0 issues |
+| ty | 0 errors | 0 errors |
+| pytest | 224 passed, 1 skipped | **228 passed**, 1 skipped, 1 xfailed |
+
+### Logrambo Re-Check
+- Previous critical findings (Postgres ImportError, JournalSender OSError): **FIXED**
+- New findings: 1 critical (init_logging silent success), 5 major (not part of this tidy)
+- Logging signal improved: orange → still orange (new critical found), but original 2 criticals resolved
+
+### Skipped (Not Mechanical)
+- init_logging confirmation event (needs design decision)
+- MultiRenderer event_dict persistence (needs design decision)
+- LogScope scope-failed using log.warning instead of log.exception (needs design decision)
+- Coverage improvements for decorators.py, systemd.py (needs test writing, not mechanical)
+
+### Commits
+- `b313743` fix: add spec= to 2 naked MagicMock() calls
+- `9fc6b4d` tidy: 2 logging fixes + 4 mock specs + 1 new test
+
 ## Raw Data Location
 
 `.agents/tmp/quality/` — inventory/, baseline/, extreme/, analysis/, e2e/
