@@ -106,7 +106,7 @@ class ProjectStructure:
             return True
 
 
-def _check_test_dependencies(full_config: dict[str, Any]) -> None:
+def _check_test_dependencies(full_config: dict[str, Any]) -> None:  # stogger: ignore complexity-needs-log
     """Warn if pytest-stogger or pytest-structlog are missing during pytest."""
     global _TEST_DEPS_WARNED
 
@@ -131,12 +131,6 @@ def _check_test_dependencies(full_config: dict[str, Any]) -> None:
     missing = sorted(r for r in required if r not in deps_str)
 
     if missing:
-        log = structlog.get_logger(__name__)
-        log.warning(
-            "test-dependencies-missing",
-            _replace_msg="Missing test dependencies: {deps}",
-            deps=", ".join(missing),
-        )
         msg = (
             f"stogger test infrastructure incomplete: {', '.join(missing)}. "
             "Add to [dependency-groups].test in pyproject.toml."

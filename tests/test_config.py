@@ -607,8 +607,8 @@ def test_pyproject_decorators_inline_ignore():
         pytest.fail("_filter_args() not found in decorators.py")
 
 
-def test_missing_test_dependencies_logs_warning(log, monkeypatch):
-    """Missing pytest-stogger/pytest-structlog logs test-dependencies-missing event."""
+def test_missing_test_dependencies_warns(monkeypatch):
+    """Missing pytest-stogger/pytest-structlog triggers UserWarning."""
     import stogger.config as cfg_module
 
     # Reset the warned flag so the check runs
@@ -623,11 +623,13 @@ def test_missing_test_dependencies_logs_warning(log, monkeypatch):
         }
     }
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", UserWarning)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", UserWarning)
         cfg_module._check_test_dependencies(full_config)
 
-    log.has("test-dependencies-missing", deps="pytest-stogger, pytest-structlog")
+    assert len(caught) == 1
+    assert "pytest-stogger" in str(caught[0].message)
+    assert "pytest-structlog" in str(caught[0].message)
 
 
 if __name__ == "__main__":
