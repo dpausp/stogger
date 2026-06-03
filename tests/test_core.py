@@ -932,7 +932,9 @@ class TestBuildLoggerFactories:
         """build_logger_factories logs debug when stogger_postgres ImportError."""
         from stogger.config import StoggerConfig, SystemdMode
 
-        cfg = StoggerConfig(enable_postgres=True, systemd=SystemdMode.OFF.value)
+        cfg = StoggerConfig(
+            enable_postgres=True, systemd=SystemdMode.OFF.value, postgres_dsn="postgresql://localhost/test"
+        )
         real_import = __import__
 
         def blocking_import(name, *args, **kwargs):
@@ -966,3 +968,16 @@ class TestBuildLoggerFactories:
                 cfg=cfg,
             )
         log.has("journal-stream-detected")
+
+    def test_postgres_enabled_without_dsn_raises(self):
+        """enable_postgres=True without postgres_dsn raises ValueError."""
+        from stogger.config import StoggerConfig, SystemdMode
+
+        cfg = StoggerConfig(enable_postgres=True, systemd=SystemdMode.OFF.value)
+        with pytest.raises(ValueError, match="postgres_dsn is not configured"):
+            build_logger_factories(
+                logdir=None,
+                log_to_console=False,
+                syslog_identifier="test",
+                cfg=cfg,
+            )

@@ -526,6 +526,9 @@ def build_logger_factories(
     # SPEC: postgres-target::package-placement — dynamic import
     # for postgres logger factory, mirrors journal pattern.
     if cfg.enable_postgres:
+        if not cfg.postgres_dsn:
+            msg = "PostgreSQL logging enabled but postgres_dsn is not configured"
+            raise ValueError(msg)
         try:
             from stogger_postgres import get_postgres_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
 
