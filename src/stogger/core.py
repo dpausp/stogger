@@ -463,8 +463,21 @@ def _build_console_renderer_kwargs(verbose, show_caller_info):  # stogger: ignor
     return kwargs
 
 
-def build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore private-no-log-info
-    """Build file, console, and journal logger factories for init_logging."""
+def build_logger_factories(
+    logdir: Path | None,
+    log_to_console: bool,
+    syslog_identifier: str,
+    cfg: StoggerConfig,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build file, console, and journal logger factories.
+
+    Returns:
+        Tuple of (loggers, context). ``loggers`` maps target names
+        (``"file"``, ``"console"``, ``"journal"``, ``"postgres"``) to
+        structlog factory callables. ``context`` contains default binding
+        keys (e.g. ``logdir``).
+
+    """
     context = {}
     loggers = {}
 
@@ -531,7 +544,11 @@ def build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # s
     return loggers, context
 
 
-def configure_structlog(processors, context, loggers):
+def configure_structlog(
+    processors: list[Any],
+    context: dict[str, Any],
+    loggers: dict[str, Any],
+) -> None:
     """Configure structlog with processors and MultiOptimisticLoggerFactory."""
     structlog.configure(
         processors=processors,

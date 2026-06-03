@@ -84,6 +84,12 @@ def test_systemd_auto_socket_unavailable():
 
     mock_module.get_journal_logger_factory.assert_not_called()
 
+    # structlog must be configured without journal factory
+    config = structlog.get_config()
+    factory = config.get("logger_factory")
+    assert factory is not None
+    assert "journal" not in factory.factories
+
 
 # --- Test 3: SystemdMode.OFF → no import attempt ---
 

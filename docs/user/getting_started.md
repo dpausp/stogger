@@ -112,13 +112,14 @@ stogger can also be configured programmatically:
 
 ```python
 import stogger
+from stogger import SystemdMode
 
 # Configure with custom settings
-# Prefer init_logging; configure is subject to change.
 stogger.init_logging(
     verbose=True,
     logdir="logs/",
-    syslog_identifier="my-app"
+    syslog_identifier="my-app",
+    systemd=SystemdMode.AUTO,
 )
 ```
 
