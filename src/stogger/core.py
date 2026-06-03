@@ -495,9 +495,7 @@ def build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # s
     if cfg.systemd_mode is SystemdMode.AUTO:
         from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
 
-        socket_available = _journal_socket_available()
-        log.debug("systemd-journal-socket-check", available=socket_available)
-        if socket_available:
+        if _journal_socket_available():
             factory = get_journal_logger_factory()
             loggers["journal"] = factory
 
