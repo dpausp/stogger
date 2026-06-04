@@ -463,6 +463,38 @@ def _build_console_renderer_kwargs(verbose, show_caller_info):  # stogger: ignor
     return kwargs
 
 
+def _build_postgres_factory(cfg: StoggerConfig) -> dict[str, Any]:
+    """Build postgres logger factory if enabled.
+
+    Returns ``{"postgres": factory}`` or empty dict.
+    """
+    if not cfg.enable_postgres:
+        return {}
+
+    if not cfg.postgres_dsn:
+        msg = "PostgreSQL logging enabled but postgres_dsn is not configured"
+        raise ValueError(msg)
+
+    # SPEC: postgres-target::package-placement — dynamic import
+    # for postgres logger factory, mirrors journal pattern.
+    try:
+        from stogger_postgres import get_postgres_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
+
+        factory = get_postgres_logger_factory(
+            dsn=cfg.postgres_dsn,
+            table=cfg.postgres_table,
+        )
+    except ImportError:
+        log.warning(
+            "stogger-postgres-not-installed",
+            _replace_msg="PostgreSQL logging enabled but stogger-postgres package is not installed",
+            reason="optional package not installed",
+        )
+        return {}
+
+    return {"postgres": factory}
+
+
 def build_logger_factories(
     logdir: Path | None,
     log_to_console: bool,
@@ -523,26 +555,7 @@ def build_logger_factories(
 
     # SystemdMode.OFF: no journal integration at all
 
-    # SPEC: postgres-target::package-placement — dynamic import
-    # for postgres logger factory, mirrors journal pattern.
-    if cfg.enable_postgres:
-        if not cfg.postgres_dsn:
-            msg = "PostgreSQL logging enabled but postgres_dsn is not configured"
-            raise ValueError(msg)
-        try:
-            from stogger_postgres import get_postgres_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
-
-            factory = get_postgres_logger_factory(
-                dsn=cfg.postgres_dsn,
-                table=cfg.postgres_table,
-            )
-            loggers["postgres"] = factory
-        except ImportError:
-            log.warning(
-                "stogger-postgres-not-installed",
-                _replace_msg="PostgreSQL logging enabled but stogger-postgres package is not installed",
-                reason="optional package not installed",
-            )
+    loggers.update(_build_postgres_factory(cfg))
 
     return loggers, context
 
