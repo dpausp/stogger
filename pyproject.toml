@@ -191,6 +191,17 @@ commands = [
     ["pytest", "tests/test_systemd_integration_real.py", "tests/test_postgres_integration_real.py", "-v"],
 ]
 
+[tool.tox.env.outsider]
+skip_install = true
+depends = ["docs"]
+dependency_groups = ["test"]
+description = "Test from consumer perspective (wheel install with embedded docs)"
+commands = [
+    ["python", "scripts/build_docs_for_package.py"],
+    ["uv", "pip", "install", "--no-deps", "."],
+    ["pytest", "tests/test_doc_discovery.py", "tests/test_e2e_user_perspective.py", "-v"],
+]
+
 [tool.uv.sources]
 stogger-postgres = { workspace = true }
 
