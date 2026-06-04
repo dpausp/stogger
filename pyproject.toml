@@ -22,6 +22,9 @@ fallback-version = "2026.5.15"
 raw-options.root = "."
 
 
+[tool.hatch.build.targets.wheel]
+artifacts = ["src/stogger/_docs/"]
+
 [tool.hatch.build.targets.wheel.sources]
 "src" = ""
 
