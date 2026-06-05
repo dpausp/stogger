@@ -569,6 +569,35 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-patterns"
+source = { directory = "/srv/s-dev/git/pytest-patterns" }
+dependencies = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pytest", specifier = ">=6" }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.0.0" },
+    { name = "pyproject-fmt", specifier = ">=2.5.0" },
+    { name = "pytest-cov" },
+    { name = "pytest-xdist" },
+    { name = "ruff" },
+    { name = "tox" },
+    { name = "tox-uv" },
+]
+lint = [
+    { name = "mypy", specifier = ">=1.0.0" },
+    { name = "ruff" },
+]
+test = [
+    { name = "pytest-cov" },
+    { name = "pytest-xdist" },
+]
+
+[[package]]
 name = "pytest-ruff"
 version = "0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1037,6 +1066,7 @@ test = [
     { name = "pytest" },
     { name = "pytest-archon" },
     { name = "pytest-cov" },
+    { name = "pytest-patterns" },
     { name = "pytest-stogger" },
     { name = "pytest-structlog" },
     { name = "pytest-timeout" },
@@ -1083,6 +1113,7 @@ test = [
     { name = "pytest", specifier = ">=9.0.0" },
     { name = "pytest-archon", specifier = ">=0.0.7" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
+    { name = "pytest-patterns", directory = "/srv/s-dev/git/pytest-patterns" },
     { name = "pytest-stogger" },
     { name = "pytest-structlog", specifier = ">=1.2" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
