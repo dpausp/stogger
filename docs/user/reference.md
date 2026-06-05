@@ -99,6 +99,17 @@ Use these keys to render tool output, command results, and tracebacks:
 | `stack` | `stack` | No | Stripped via `write()` closure |
 | `exception_traceback` | `exception` | No | Stripped via `write()` closure |
 
+### Underscore Prefix Convention
+
+The `_` prefix marks internal keys consumed by dedicated render stages. Don't use it for your own fields — they will be silently dropped from rendered output.
+
+Underscore-prefixed keys:
+
+- Never appear in the fallback `key=value` body when no `_replace_msg` is provided — they are rendered only via their dedicated stage (the table above).
+- Cannot be referenced from `_replace_msg` format strings. `_replace_msg="Got {_output}"` raises `KeyError` because `_output` is excluded from the format-string keyword arguments.
+
+This matches the [structlog key convention](https://www.structlog.org/en/stable/contents.html) and prevents internal fields from leaking into user-controlled message templates.
+
 ### Raw Output with ANSI Passthrough
 
 Use `_raw_output` for tool output containing ANSI color codes. Console preserves colors; log file gets stripped output:

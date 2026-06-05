@@ -8,4 +8,5 @@ postgres-target
 stogger-systemd
 stogger-self-logging
 legacy-elimination
+body-skip-underscore-keys
 ```

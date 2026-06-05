@@ -118,6 +118,57 @@ class TestConsoleFileRenderer:
         assert "some_value" in result["console"]
         assert "\x1b" not in result["file"]  # No ANSI codes in file output
 
+    def test_underscore_keys_dropped_from_fallback_body(self):
+        """Fallback KV body skips `_`-prefixed keys (spec: body-skip-underscore-keys)."""
+        renderer = ConsoleFileRenderer()
+        event_dict = {
+            "event": "test-event",
+            "level": "info",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "visible_key": "visible_value",
+            "_internal_key": "secret_internal_value",
+            "_output": "command output line",
+        }
+        result = renderer(None, "info", event_dict)
+        assert "visible_key" in result["file"]
+        assert "visible_value" in result["file"]
+        # `_`-prefixed keys MUST NOT appear in the fallback body.
+        # `_internal_key` has no dedicated render stage so it must vanish entirely.
+        assert "_internal_key" not in result["file"]
+        assert "secret_internal_value" not in result["file"]
+        # `_output` is consumed by the dedicated output-section stage, so the value
+        # appears exactly once (as the rendered output section), not duplicated in body.
+        assert result["file"].count("command output line") == 1
+
+    def test_replace_msg_cannot_reference_underscore_key(self):
+        """`_replace_msg` format strings cannot reference `_`-prefixed keys."""
+        renderer = ConsoleFileRenderer()
+        event_dict = {
+            "event": "test-event",
+            "level": "info",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "_replace_msg": "leaked: {_internal}",
+            "_internal": "secret_value",
+        }
+        result = renderer(None, "info", event_dict)
+        # Internal value must not be reachable via format string
+        assert "secret_value" not in result["file"]
+        # PartialFormatter emits '<missing>' for unavailable keys
+        assert "<missing>" in result["file"]
+
+    def test_underscore_output_key_not_duplicated_in_body(self):
+        """`_output` value appears once (via output-section stage), not duplicated in body."""
+        renderer = ConsoleFileRenderer()
+        event_dict = {
+            "event": "test-event",
+            "level": "info",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "_output": "command output line",
+        }
+        result = renderer(None, "info", event_dict)
+        # The output appears once (via the dedicated stage), not twice (body + stage)
+        assert result["file"].count("command output line") == 1
+
     def test_json_renderer_output(self, log):
         """Test the output of the JSONRenderer."""
         renderer = JSONRenderer()
@@ -415,6 +466,32 @@ class TestTranslationProcessor:
         TranslationProcessor({"greeting": "Hello {name}!"})
         log.has("initializing-translation-processor")
 
+    def test_translation_processor_replace_msg_excludes_underscore_keys(self):
+        """`_replace_msg` format strings cannot reference `_`-prefixed keys."""
+        proc = TranslationProcessor({})
+        event_dict = {
+            "event": "something",
+            "_replace_msg": "leaked: {_internal}",
+            "_internal": "secret_value",
+        }
+        result = proc(None, "info", event_dict)
+        assert "secret_value" not in result["_translated_msg"]
+        # PartialFormatter emits '<missing>' for unavailable keys
+        assert "<missing>" in result["_translated_msg"]
+
+    def test_translation_processor_template_excludes_underscore_keys(self):
+        """Translation templates cannot reference `_`-prefixed keys."""
+        proc = TranslationProcessor({"greeting": "visible: {ok} leaked: {_internal}"})
+        event_dict = {
+            "event": "greeting",
+            "ok": "ok",
+            "_internal": "secret_value",
+        }
+        result = proc(None, "info", event_dict)
+        assert "secret_value" not in result["_translated_msg"]
+        assert "<missing>" in result["_translated_msg"]
+        assert "visible: ok" in result["_translated_msg"]
+
 
 class TestPrefix:
     """Tests for prefix function."""
@@ -703,6 +780,25 @@ class TestSystemdJournalRenderer:
         journal = result["journal"]
         # kv renderer should include the extra key
         assert "extra_key" in journal["MESSAGE"] or "extra_val" in journal["MESSAGE"]
+
+    def test_journal_replace_msg_excludes_underscore_keys(self):
+        """Journal renderer `_replace_msg` excludes `_`-prefixed keys from interpolation."""
+        renderer = SystemdJournalRenderer("test-id")
+        event_dict = {
+            "event": "base",
+            "_replace_msg": "leaked: {_internal}",
+            "_internal": "secret_value",
+            "level": "info",
+        }
+        result = renderer(None, "info", event_dict)
+        message = result["journal"]["MESSAGE"]
+        # Internal value must not be reachable via format string
+        assert "secret_value" not in message
+        # PartialFormatter emits '<missing>' for unavailable keys
+        assert "<missing>" in message
+        # When _replace_msg is set, the formatted message replaces the kv body.
+        # Visible keys are not auto-rendered in this branch.
+        assert "base: leaked: <missing>" in message
 
 
 @pytest.mark.integration

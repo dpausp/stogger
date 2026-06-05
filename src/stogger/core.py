@@ -49,6 +49,18 @@ class PartialFormatter(string.Formatter):
             return self.bad_format
 
 
+def _format_kwargs(event_dict: EventDict) -> dict[str, Any]:
+    """Build kwargs for PartialFormatter, excluding `_`-prefixed internal keys.
+
+    Internal keys (``_output``, ``_replace_msg``, ``_translated_msg``, etc.) are
+    consumed by dedicated render stages and must not be reachable from
+    user-controlled format strings. Implements
+    `.agents/impl_specs/body-skip-underscore-keys.md` decision
+    ``underscore-keys-excluded-from-replace-msg-interpolation``.
+    """
+    return {k: v for k, v in event_dict.items() if not k.startswith("_")}
+
+
 class TranslationProcessor:
     def __init__(self, translations) -> None:
         log.debug(
@@ -68,11 +80,11 @@ class TranslationProcessor:
         template = self.translations.get(msg_key)
         if template:
             # Don't log during translation to avoid recursion
-            translated_msg = self.formatter.format(template, **event_dict)
+            translated_msg = self.formatter.format(template, **_format_kwargs(event_dict))
             event_dict["_translated_msg"] = translated_msg
         elif replace_msg := event_dict.pop("_replace_msg", None):
             # Don't log during translation to avoid recursion
-            translated_msg = self.formatter.format(replace_msg, **event_dict)
+            translated_msg = self.formatter.format(replace_msg, **_format_kwargs(event_dict))
             event_dict["_translated_msg"] = translated_msg
         # No logging for "no translation found" to avoid recursion
         return event_dict
@@ -242,7 +254,7 @@ class ConsoleFileRenderer:
         if replace_msg:
             formatter = PartialFormatter()
             try:
-                return formatter.format(replace_msg, **event_dict)
+                return formatter.format(replace_msg, **_format_kwargs(event_dict))
             except RecursionError:
                 return str(replace_msg)
         return None
@@ -295,6 +307,7 @@ class ConsoleFileRenderer:
                 " ".join(
                     CYAN + key + RESET_ALL + "=" + MAGENTA + repr(event_dict[key]) + RESET_ALL
                     for key in sorted(event_dict.keys())
+                    if not key.startswith("_")
                 ),
             )
 
@@ -821,7 +834,7 @@ class SystemdJournalRenderer:
 
         if replace_msg is not None:
             formatter = PartialFormatter()
-            formatted_replace_msg = formatter.format(replace_msg, **event_dict)
+            formatted_replace_msg = formatter.format(replace_msg, **_format_kwargs(event_dict))
             event_dict["message"] += ": " + formatted_replace_msg
         else:
             kv = kv_renderer(
