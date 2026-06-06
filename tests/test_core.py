@@ -925,8 +925,10 @@ class TestMultiOptimisticLogger:
 class TestInitCommandLogging:
     """Tests for init_command_logging."""
 
-    def test_init_command_logging(self, tmp_path):
+    def test_init_command_logging(self, monkeypatch, tmp_path):
         """Creates cmd_output_file factory in multi-logger."""
+        # Explicitly set INVOCATION_ID to cover the timestamped-filename branch
+        monkeypatch.setenv("INVOCATION_ID", "test-invocation-id")
         # Set up structlog with MultiOptimisticLoggerFactory
         factories = {}
         factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)

@@ -125,6 +125,7 @@ branch = true
 omit = [ "tests/*", ".venv/*",]
 
 [tool.coverage.report]
+fail_under = 100
 exclude_lines = [ "pragma: no cover", "def __repr__", "if self.debug:", "if settings.DEBUG", "raise AssertionError", "raise NotImplementedError", "if 0:", "if __name__ == .__main__.:", "class .*\\bProtocol\\):", "@(abc\\.)?abstractmethod",]
 show_missing = true
 skip_covered = false
