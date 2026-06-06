@@ -713,6 +713,34 @@ class TestLoggingInitialized:
 
         log.has("init-logging-overriding-existing-config")
 
+    def test_init_logging_emits_started_event(self, log):
+        """init_logging() emits init-logging-started debug event at entry."""
+        with patch("os.environ", {**os.environ}):
+            os.environ.pop("JOURNAL_STREAM", None)
+            init_logging(logdir=None)
+        log.has("init-logging-started")
+
+
+class TestBuildConsoleRendererKwargs:
+    """Tests for _build_console_renderer_kwargs logging."""
+
+    def test_emits_building_event(self, log):
+        """_build_console_renderer_kwargs emits building-console-renderer-kwargs debug event."""
+        from stogger.core import _build_console_renderer_kwargs
+
+        _build_console_renderer_kwargs(verbose=True, show_caller_info=False)
+        log.has("building-console-renderer-kwargs")
+
+
+class TestEnsureStderrLogging:
+    """Tests for _ensure_stderr_logging logging."""
+
+    def test_emits_ensuring_event(self, log):
+        """_ensure_stderr_logging emits ensuring-stderr-logging debug event."""
+        from stogger.core import _ensure_stderr_logging
+
+        _ensure_stderr_logging()
+        log.has("ensuring-stderr-logging")
 
 @pytest.mark.integration
 class TestSystemdJournalRenderer:

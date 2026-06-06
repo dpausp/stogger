@@ -28,6 +28,7 @@ def _extract_args(func, args, kwargs, include_args, exclude_args):
     return _filter_args(all_args, include_args, exclude_args)
 
 
+# stogger: ignore — filter helper inside log_call decorator, wrapper already logs the args
 def _filter_args(args_dict, include_args, exclude_args):  # stogger: ignore complexity-needs-log
     """Apply include/exclude filtering to an args dict."""
     if include_args is not None:

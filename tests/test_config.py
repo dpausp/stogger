@@ -632,5 +632,16 @@ def test_missing_test_dependencies_warns(monkeypatch):
     assert "pytest-structlog" in str(caught[0].message)
 
 
+def test_check_test_dependencies_emits_checking_event(log, monkeypatch):
+    """_check_test_dependencies emits checking-test-dependencies debug event."""
+    import stogger.config as cfg_module
+
+    # Reset the warned flag so the check runs
+    cfg_module._TEST_DEPS_WARNED = False
+    monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
+
+    cfg_module._check_test_dependencies({"dependency-groups": {"test": []}})
+    log.has("checking-test-dependencies")
+
 if __name__ == "__main__":
     pytest.main([__file__])

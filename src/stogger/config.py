@@ -106,8 +106,10 @@ class ProjectStructure:
             return True
 
 
-def _check_test_dependencies(full_config: dict[str, Any]) -> None:  # stogger: ignore complexity-needs-log
+def _check_test_dependencies(full_config: dict[str, Any]) -> None:
     """Warn if pytest-stogger or pytest-structlog are missing during pytest."""
+    log = structlog.get_logger(__name__)
+    log.debug("checking-test-dependencies", in_pytest="_pytest" in sys.modules)
     global _TEST_DEPS_WARNED
 
     if _TEST_DEPS_WARNED or "_pytest" not in sys.modules:

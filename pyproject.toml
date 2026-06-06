@@ -102,8 +102,11 @@ info_allowed_layers = []
 exempt_event_ids = []
 
 [tool.pytest-stogger.per-file-ignores]
+# Low-level ANSI helpers — logging would corrupt colorized output.
 "_colors.py" = ["except-must-log", "complexity-needs-log"]
+# Package init — runs before logger is configured.
 "__init__.py" = ["except-must-log"]
+# systemd journal bridge — sends directly to journald via AF_UNIX, not stogger.
 "systemd.py" = ["except-must-log", "complexity-needs-log"]
 
 [tool.ruff.lint]
