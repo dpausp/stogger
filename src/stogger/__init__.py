@@ -11,7 +11,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 try:
     __version__ = version("stogger")
-except PackageNotFoundError:
+except PackageNotFoundError:  # pragma: no cover — dev fallback, package always installed in test/CI
     __version__ = "0.0.0"
 
 __all__ = [

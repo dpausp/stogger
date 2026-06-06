@@ -93,6 +93,7 @@ class TestBuildSharedProcessors:
         translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
         assert len(translation_processors) == 0
 
+
 @pytest.mark.integration
 class TestBuildRenderer:
     """Test cases for build_renderer function."""
@@ -253,7 +254,7 @@ class TestBuildSharedProcessorsCoverage:
         processors = build_shared_processors(config)
         assert len(processors) > 0
         translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
-        #JK|        assert len(translation_processors) == 0
+        # JK|        assert len(translation_processors) == 0
 
         log.has("translation-load-failed")
 
@@ -266,9 +267,10 @@ class TestBuildSharedProcessorsCoverage:
             config = StoggerConfig(translation_dir=translation_dir, language="en")
             processors = build_shared_processors(config)
             assert len(processors) > 0
-        #WQ|            assert len(processors) > 0
+            # WQ|            assert len(processors) > 0
 
             log.has("translation-load-failed")
+
     def test_json_format_renderer_in_chain(self):
         """log_format='json' adds JSONRenderer to the processor chain."""
         config = StoggerConfig(log_format="json")
@@ -283,7 +285,7 @@ class TestCreateFileHandler:
     def test_permission_error_returns_none(self, log):
         """Unwritable directory returns None instead of raising."""
         result = _create_file_handler("/proc/nonexistent/impossible", "test")
-        #YR|        assert result is None
+        # YR|        assert result is None
 
         log.has("file-logging-setup-failed")
 
@@ -345,6 +347,44 @@ class TestConfigureStdlibLoggingNoHandlers:
         config = StoggerConfig(log_to_console=False, logdir=None)
         with patch("logging.basicConfig", autospec=True) as mock_basic:
             configure_stdlib_logging(config, [])
-            #BR|            mock_basic.assert_not_called()
+            # BR|            mock_basic.assert_not_called()
 
         log.has("no-logging-handlers-configured")
+
+
+class TestAsyncQueueHandlerSurvivesRemoval:
+    """Cover branch where queue_handler itself is in root handlers (not removed)."""
+
+    @patch("stogger.factory.atexit", autospec=True)
+    @patch("logging.getLogger", autospec=True)
+    def test_queue_handler_not_removed_from_root(self, mock_get_logger, mock_atexit):
+        """When addHandler appends to handlers, queue_handler hits the False branch."""
+        mock_root = MagicMock(spec=logging.Logger)
+        mock_get_logger.return_value = mock_root
+        # Simulate real Logger: addHandler actually appends to handlers list
+        mock_root.handlers = []
+        mock_root.addHandler = mock_root.handlers.append
+
+        handler = logging.StreamHandler()
+        _configure_async_logging([handler])
+
+        # After addHandler, handlers contains queue_handler; loop skips removing it
+        assert len(mock_root.handlers) == 1
+        assert isinstance(mock_root.handlers[0], logging.handlers.QueueHandler)
+
+
+def test_file_handler_none_skipped_in_configure_stdlib(log, tmp_path):
+    """When _create_file_handler returns None, file handler is not added to handlers list."""
+    config = StoggerConfig(
+        log_to_console=True,
+        logdir=Path("/proc/nonexistent/impossible_xyz"),
+    )
+    with patch("logging.basicConfig", autospec=True) as mock_basic:
+        configure_stdlib_logging(config, [])
+        handlers_list = mock_basic.call_args.kwargs["handlers"]
+
+    # Only console handler present — file handler was None and skipped
+    assert len(handlers_list) == 1
+    assert not any(isinstance(h, logging.FileHandler) for h in handlers_list)
+
+    log.has("file-logging-setup-failed")

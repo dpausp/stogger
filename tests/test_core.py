@@ -1250,3 +1250,17 @@ def test_init_command_logging_without_invocation_name(monkeypatch, tmp_path):
     init_command_logging(log, tmp_path)
     assert (tmp_path / "build-output.log").exists()
     factories["cmd_output_file"]._file.close()  # noqa: SLF001
+
+
+def test_write_helper_skips_ansi_stripping_without_reset_all():
+    """When RESET_ALL is falsy (no colorama), write helper skips ANSI stripping loop."""
+    from unittest.mock import MagicMock
+
+    renderer = ConsoleFileRenderer()
+    console_io = MagicMock()
+    log_io = MagicMock()
+    write = renderer._create_write_helper(console_io, log_io)  # noqa: SLF001
+    with patch("stogger.core.RESET_ALL", ""):
+        write("some line")
+    # Without RESET_ALL, line is passed through unmodified to log_io
+    log_io.write.assert_called_once_with("some line")
