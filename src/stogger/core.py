@@ -71,7 +71,9 @@ class TranslationProcessor:
         self.formatter = PartialFormatter()
 
     # stogger: ignore — structlog processor, logging here would recurse
-    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
+    def __call__(  # stogger: ignore
+        self, _logger: object, _method_name: str, event_dict: EventDict
+    ) -> EventDict:
         msg_key = event_dict.pop("_msg_key", None) or event_dict.get("event")
 
         # Store original event name before any translation
@@ -183,7 +185,9 @@ class ConsoleFileRenderer:
         return None
 
     # stogger: ignore — structlog processor, logging here would recurse
-    def _should_drop_by_level(self, level_name, _log_settings):  # stogger: ignore
+    def _should_drop_by_level(  # stogger: ignore
+        self, level_name, _log_settings
+    ):
         """Check if event should be dropped based on level filtering."""
         if level_name is None:
             return False
@@ -269,7 +273,9 @@ class ConsoleFileRenderer:
         return None
 
     # stogger: ignore — ANSI escape helper, output pipeline must not log
-    def _create_write_helper(self, console_io, log_io):  # stogger: ignore
+    def _create_write_helper(  # stogger: ignore
+        self, console_io, log_io
+    ):
         """Create a write function that strips ANSI escape codes for the file target."""
 
         def write(line) -> None:
@@ -293,7 +299,9 @@ class ConsoleFileRenderer:
         return write
 
     # stogger: ignore — structlog formatter, output pipeline must not log
-    def _format_header(self, event_dict, write, log_settings):  # stogger: ignore
+    def _format_header(  # stogger: ignore
+        self, event_dict, write, log_settings
+    ):
         """Format the log header line: timestamp, PID, level, event name, caller info."""
         ts = event_dict.pop("timestamp", None)
         write(self._format_timestamp(ts, log_settings))
@@ -310,7 +318,9 @@ class ConsoleFileRenderer:
         event_dict.pop("logger", "root")
 
     # stogger: ignore — structlog formatter, output pipeline must not log
-    def _format_body(self, event_dict, write, formatted_replace_msg):  # stogger: ignore
+    def _format_body(  # stogger: ignore
+        self, event_dict, write, formatted_replace_msg
+    ):
         """Format the log body: formatted replace_msg or remaining KV pairs."""
         if formatted_replace_msg:
             write(formatted_replace_msg)
@@ -324,7 +334,9 @@ class ConsoleFileRenderer:
             )
 
     # stogger: ignore — structlog processor, logging here would recurse
-    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict | None:  # stogger: ignore
+    def __call__(  # stogger: ignore
+        self, _logger: object, method_name: str, event_dict: EventDict
+    ) -> EventDict | None:
         log_settings = event_dict.pop("_log_settings", {})
         if log_settings.get("console_ignore", False):
             return None
@@ -897,7 +909,9 @@ class SystemdJournalRenderer:
         self.syslog_facility = syslog_facility
 
     # stogger: ignore — structlog processor, logging here would recurse
-    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
+    def __call__(  # stogger: ignore
+        self, _logger: object, method_name: str, event_dict: EventDict
+    ) -> EventDict:
         if method_name == "trace":
             return {}
 
@@ -939,7 +953,9 @@ class SystemdJournalRenderer:
         return {"journal": event_dict}
 
     # stogger: ignore — json fallback / serialization, output pipeline must not log
-    def handle_json_fallback(self, obj):  # stogger: ignore
+    def handle_json_fallback(  # stogger: ignore
+        self, obj
+    ):
         """Same as structlog's json fallback.
         Supports obj.__structlog__() for custom object serialization.
         """
@@ -992,7 +1008,9 @@ class CmdOutputFileRenderer:
     """Renderer for command output file logging."""
 
     # stogger: ignore — structlog processor, logging here would recurse
-    def __call__(self, _logger: object, _method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
+    def __call__(  # stogger: ignore
+        self, _logger: object, _method_name: str, event_dict: EventDict
+    ) -> EventDict:
         line = event_dict.pop("cmd_output_line", None)
         if line is not None:
             return {"cmd_output_file": line}

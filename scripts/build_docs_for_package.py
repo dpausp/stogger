@@ -32,7 +32,7 @@ def main() -> None:
     # Copy _sources/
     sources_src = SPHINX_OUTPUT / "_sources"
     if sources_src.is_dir():
-        shutil.copytree(sources_src, TARGET_DIR / "_sources")
+        shutil.copytree(sources_src, TARGET_DIR / "_sources", dirs_exist_ok=True)
 
     # Copy and fix llms.txt
     llms_src = SPHINX_OUTPUT / "llms.txt"
