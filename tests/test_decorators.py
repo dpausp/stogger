@@ -152,7 +152,7 @@ def test_log_call_async(log):
     async def async_greet(name: str) -> str:
         return f"hi {name}"
 
-    result = asyncio.get_event_loop().run_until_complete(async_greet("world"))
+    result = asyncio.run(async_greet("world"))
 
     assert result == "hi world"
     evt = log.events[0]
@@ -166,7 +166,7 @@ def test_log_scope_async(log):
         async with log_scope("async_ctx", x=1) as scope:
             scope.add_fields(y=2)
 
-    asyncio.get_event_loop().run_until_complete(run())
+    asyncio.run(run())
 
     evt = log.events[-1]
     assert evt["event"] == "scope-end"

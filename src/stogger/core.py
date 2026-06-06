@@ -35,7 +35,7 @@ class PartialFormatter(string.Formatter):
         try:
             return super().get_field(field_name, args, kwargs)
         except (KeyError, AttributeError):
-            log.debug("format-field-missing", field_name=field_name)
+            log.debug("format-field-absent", field_name=field_name)
             return None, field_name
 
     def format_field(self, value, format_spec):
@@ -817,7 +817,6 @@ def init_early_logging(*, verbose: bool = False) -> None:
         frame = inspect.stack()[1]
         caller_info = f"{frame.filename}:{frame.lineno} in {frame.function}"
         log.debug("init-early-logging-called", caller=caller_info)
-        logging.debug("[stogger-early] init_early_logging called from %s", caller_info)  # noqa: LOG015 — intentional bridge to stdlib logging for early-init messages before structlog pipeline is available
 
     if structlog.is_configured():
         return  # Already configured

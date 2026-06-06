@@ -188,7 +188,7 @@ class TestUnderscoreKeysExcludedFromReplaceMsg:
 
         Internal output-section keys must not be reachable from user-
         controlled format strings. The PartialFormatter logs
-        ``format-field-missing`` when it cannot resolve a field.
+        ``format-field-absent`` when it cannot resolve a field.
         """
         renderer = ConsoleFileRenderer()
         event_dict = {
@@ -207,7 +207,7 @@ class TestUnderscoreKeysExcludedFromReplaceMsg:
         # The output-section stage still consumes ``_output`` normally.
         assert _OUTPUT_VAL in result["file"]
         # Formatter emitted the diagnostic event with the field name.
-        assert log.has("format-field-missing")
+        assert log.has("format-field-absent")
 
     def test_replace_msg_does_not_interpolate_custom_underscore_key(self):
         """Any user-supplied ``_foo`` is unreachable from _replace_msg."""

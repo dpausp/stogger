@@ -711,7 +711,8 @@ def test_check_test_dependencies_emits_checking_event(log, monkeypatch):
     cfg_module._TEST_DEPS_WARNED = False
     monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
 
-    cfg_module._check_test_dependencies({"dependency-groups": {"test": []}})
+    with pytest.warns(UserWarning, match="stogger test infrastructure incomplete"):
+        cfg_module._check_test_dependencies({"dependency-groups": {"test": []}})
     log.has("checking-test-dependencies")
 
 

@@ -29,11 +29,11 @@ Um einen Eintrag zu beheben: **Datei und Zeile** in der Tabelle aufsuchen, verst
 | 2026-06-06 | src/stogger/core.py | 420 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
 | 2026-06-06 | src/stogger/core.py | 434 | * | inline ignore | structlog processor, logging here would recurse |
 | 2026-06-06 | src/stogger/core.py | 478 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 912 | * | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 956 | * | inline ignore | json fallback / serialization, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 968 | complexity-needs-log | inline ignore | json fallback / serialization, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 990 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 1011 | * | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-07 | src/stogger/core.py | 911 | * | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-07 | src/stogger/core.py | 955 | * | inline ignore | json fallback / serialization, output pipeline must not log |
+| 2026-06-07 | src/stogger/core.py | 967 | complexity-needs-log | inline ignore | json fallback / serialization, output pipeline must not log |
+| 2026-06-07 | src/stogger/core.py | 989 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-07 | src/stogger/core.py | 1010 | * | inline ignore | structlog processor, logging here would recurse |
 | 2026-06-06 | src/stogger/decorators.py | 32 | complexity-needs-log | inline ignore | filter helper inside log_call decorator, wrapper already logs the args |
 | 2026-06-03 | src/stogger/systemd.py | - | per-file: complexity-needs-log | per-file-ignores | systemd journal bridge — sends directly to journald via AF_UNIX, not stogger. |
 | 2026-06-03 | src/stogger/systemd.py | - | per-file: except-must-log | per-file-ignores | systemd journal bridge — sends directly to journald via AF_UNIX, not stogger. |

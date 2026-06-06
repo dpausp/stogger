@@ -414,7 +414,7 @@ class TestPartialFormatter:
         fmt = PartialFormatter()
         result = fmt.get_field("nonexistent", [], {})
         assert result == (None, "nonexistent")
-        assert log.has("format-field-missing")
+        assert log.has("format-field-absent")
 
     def test_get_field_present(self):
         """Normal field lookup returns (value, rest)."""
