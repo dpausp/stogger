@@ -451,6 +451,77 @@ def test_probe_pytest_no_testpaths():
         assert result is None
 
 
+def test_check_test_dependencies_warns_when_no_test_group(monkeypatch):
+    """_check_test_dependencies warns when [dependency-groups].test is absent."""
+    import stogger.config as cfg_module
+
+    cfg_module._TEST_DEPS_WARNED = False
+    monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        cfg_module._check_test_dependencies({"dependency-groups": {}})
+
+    assert any("no [dependency-groups].test found" in str(w.message) for w in caught)
+
+
+def test_load_pyproject_config_verbose_missing():
+    """_load_pyproject_config(verbose=True) handles missing file gracefully."""
+    from stogger.config import _load_pyproject_config
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            result = _load_pyproject_config(verbose=True)
+            assert result == {}
+
+
+def test_env_override_str_value():
+    """STOGGER_SYSLOG_IDENTIFIER env var applies as a raw string override."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch.dict(os.environ, {"STOGGER_SYSLOG_IDENTIFIER": "env-app"}, clear=True):
+                config = StoggerConfig()
+                assert config.syslog_identifier == "env-app"
+
+
+def test_probe_stogger_exclude_pattern_nonexistent_testdir():
+    """Exclude pattern starting with 'tests' but missing dir is skipped."""
+    from stogger.config import _probe_stogger_section
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        result = _probe_stogger_section({"src_dir": "src", "exclude": ["tests/**"]}, root)
+        assert result is not None
+        # tests/ does not exist, so the exclude pattern is skipped
+        assert result.test_dirs == []
+
+
+def test_probe_hatch_packages_no_match():
+    """Hatch packages without existing src dir or without '/' return None."""
+    from stogger.config import _probe_hatch_section
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        hatch = {"build": {"targets": {"wheel": {"packages": ["standalone", "src/missing"]}}}}
+        result = _probe_hatch_section(hatch, root)
+        assert result is None
+
+
+def test_create_default_structure_with_tests_no_src():
+    """Falls back to '.' when neither src nor lib exists."""
+    from stogger.config import _create_default_structure_with_tests
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)  # no src/, no lib/
+        result = _create_default_structure_with_tests(root, ["tests"], "pytest")
+        assert result.source_dirs == ["."]
+        assert "tests" in result.test_dirs
+
+
 # ---------------------------------------------------------------------------
 # Logdir config fallback & env override tests
 # ---------------------------------------------------------------------------
@@ -642,6 +713,7 @@ def test_check_test_dependencies_emits_checking_event(log, monkeypatch):
 
     cfg_module._check_test_dependencies({"dependency-groups": {"test": []}})
     log.has("checking-test-dependencies")
+
 
 if __name__ == "__main__":
     pytest.main([__file__])

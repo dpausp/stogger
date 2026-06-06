@@ -169,6 +169,55 @@ def test_journal_sender_send_failure_logs_warning(log):
     log.has("journal-send-failed", socket_path="/nonexistent/socket/path")
 
 
+def test_format_message_skips_none_and_handles_bytes():
+    """format_message omits None values and uses binary length-prefix for bytes."""
+    from stogger.systemd import JournalSender
+
+    payload = JournalSender.format_message({"TEXT": "hi", "SKIP": None, "BIN": b"\x00\x01"})
+
+    assert b"TEXT=hi\n" in payload
+    assert b"SKIP" not in payload
+    # Binary fields are length-prefixed: key\n<len>\n<bytes>\n
+    assert b"BIN\n2\n\x00\x01\n" in payload
+
+
+def test_journal_sender_context_manager(tmp_path):
+    """JournalSender opens and closes a real AF_UNIX datagram socket."""
+    import socket
+
+    from stogger.systemd import JournalSender
+
+    sock_path = str(tmp_path / "test.sock")
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+    server.bind(sock_path)
+    try:
+        with JournalSender(socket_path=sock_path) as sender:
+            assert sender._sock is not None
+        # __exit__ closes the socket and clears the reference
+        assert sender._sock is None
+    finally:
+        server.close()
+
+
+def test_journal_sender_exit_without_enter_is_noop():
+    """__exit__ is a no-op when __enter__ was never called (no socket to close)."""
+    from stogger.systemd import JournalSender
+
+    bare = JournalSender(socket_path="/nonexistent/socket/path")
+    bare.__exit__(None, None, None)
+    assert bare._sock is None
+
+
+def test_journal_logger_factory_returns_dummy_when_unavailable():
+    """JournalLoggerFactory returns DummyJournalLogger when socket path is missing."""
+    from stogger.systemd import DummyJournalLogger, JournalLoggerFactory
+
+    factory = JournalLoggerFactory(socket_path="/nonexistent/socket/path")
+    logger = factory()
+
+    assert isinstance(logger, DummyJournalLogger)
+
+
 def test_systemd_journal_active_logged_after_init(log):
     """init_logging logs systemd-journal-active when journal target is registered."""
     from stogger.systemd import DummyJournalLogger
