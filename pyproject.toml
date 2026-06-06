@@ -212,6 +212,7 @@ commands = [
 [tool.uv.sources]
 stogger-postgres = { workspace = true }
 pytest-patterns = { path = "/srv/s-dev/git/pytest-patterns" }
+pytest-stogger = { path = "/pytest-stogger" }
 
 [tool.uv.workspace]
 members = ["packages/stogger-postgres"]

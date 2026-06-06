@@ -612,15 +612,42 @@ wheels = [
 
 [[package]]
 name = "pytest-stogger"
-version = "2026.6.2"
-source = { registry = "https://pypi.org/simple" }
+source = { directory = "/pytest-stogger" }
 dependencies = [
     { name = "complexipy" },
     { name = "pathspec" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/96/2d370251a27aa3778169250a578331d1dc0678219070ed894d7e81b7eb4f/pytest_stogger-2026.6.2.tar.gz", hash = "sha256:56e345bd3eb0ef408c87d9182dbdaf3e90e14a69ebc1062b3871159e76683758", size = 109028, upload-time = "2026-06-02T07:08:56.303Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/56/08a3636f077f4105b8c110ea24328f03e2bec41becf00ac3dad62daabb82/pytest_stogger-2026.6.2-py3-none-any.whl", hash = "sha256:b439b68ee38e4ce5fc7bcbf60b2d55d8602cee63961a04ba23088cf3e5138647", size = 27247, upload-time = "2026-06-02T07:08:57.225Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "complexipy" },
+    { name = "pathspec" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest-archon", specifier = ">=0.0.7" },
+    { name = "pytest-cov" },
+    { name = "pytest-structlog", specifier = ">=1.2" },
+    { name = "tox", specifier = ">=4.47.3" },
+    { name = "tox-uv-bare", specifier = ">=1.33.1" },
+    { name = "vulture", specifier = ">=2.0" },
+]
+docs = [
+    { name = "furo", specifier = ">=2024.0.0" },
+    { name = "myst-parser", specifier = ">=4.0.0" },
+    { name = "sphinx", specifier = ">=8.0.0" },
+    { name = "sphinx-autoapi", specifier = ">=3.0.0" },
+    { name = "sphinx-autodoc-typehints", specifier = ">=3.0.0" },
+    { name = "sphinx-copybutton", specifier = ">=0.5.0" },
+    { name = "sphinx-llm", specifier = ">=0.3.0" },
+]
+test = [
+    { name = "pytest", specifier = ">=9.0.3" },
+    { name = "pytest-archon", specifier = ">=0.0.7" },
+    { name = "pytest-cov" },
+    { name = "pytest-structlog", specifier = ">=1.2" },
 ]
 
 [[package]]
@@ -1114,7 +1141,7 @@ test = [
     { name = "pytest-archon", specifier = ">=0.0.7" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "pytest-patterns", directory = "/srv/s-dev/git/pytest-patterns" },
-    { name = "pytest-stogger" },
+    { name = "pytest-stogger", directory = "/pytest-stogger" },
     { name = "pytest-structlog", specifier = ">=1.2" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
 ]
