@@ -13,8 +13,13 @@ _log_proxy = structlog.get_logger()
 # Case 2: get_logger() with positional arg — also a proxy
 _log_proxy_with_arg = structlog.get_logger("testmodule")
 
-# Case 3: get_logger().bind() — returns a direct BoundLogger with snapshotted processors!
-_log_bound = structlog.get_logger("testmodule").bind(scope="module-level")
+# Note: The known limitation that ``structlog.get_logger().bind(...)`` at module
+# level produces a BoundLogger whose processor chain is snapshotted at creation
+# time — and is therefore invisible to pytest-structlog's capture fixture — is
+# documented in docs/dev/testing_guide.md ("Bekannte Einschränkung:
+# Processor-Snapshot bei BoundLogger") and in docs/user/testing.md. It is a
+# structlog upstream behaviour and cannot be pinned by a meaningful runtime
+# assertion (the previous xfail test never executed its body).
 
 
 def test_log_proxy_debug_is_captured(log: StructuredLogCapture) -> None:
@@ -33,26 +38,3 @@ def test_log_proxy_with_arg_debug_is_captured(log: StructuredLogCapture) -> None
     """log.debug() on a proxy logger (with positional arg) is captured."""
     _log_proxy_with_arg.debug("proxy-arg-debug-event")
     assert log.has("proxy-arg-debug-event")
-
-
-def test_log_bound_debug_not_captured_by_design(log: StructuredLogCapture) -> None:
-    """log.debug() on a BoundLogger (from .bind()) is NOT captured.
-
-    ``get_logger().bind(...)`` at module level creates a direct ``BoundLogger``
-    that snapshots ``_processors`` at creation time
-    (structlog._base.BoundLoggerBase line 58). The ``log`` fixture's
-    ``structlog.configure()`` updates ``_CONFIG.default_processors``, but
-    existing ``BoundLogger`` instances still use their snapshotted chain.
-
-    This is a known structlog limitation — avoid ``.bind()`` at module level.
-    Use ``structlog.get_logger()`` (returns a lazy proxy) and bind inside
-    functions instead.
-    """
-    import pytest
-
-    pytest.xfail(
-        "BoundLogger stores _processors snapshot at creation time; "
-        "structlog.configure() does not update existing instances"
-    )
-    _log_bound.debug("bound-debug-event")
-    assert log.has("bound-debug-event")
