@@ -4,7 +4,10 @@ Copies ``_sources/`` and ``llms.txt`` from ``docs/_build/html/`` into
 ``src/stogger/_docs/``, copies the agent skill file, and rewrites paths
 so links resolve from the embedded location.
 
-Idempotent: removes old ``_docs/`` before copying.
+Concurrency-safe: merges into ``_docs/`` in place (``dirs_exist_ok=True``)
+rather than removing it first. ``tox -p`` runs this script concurrently from
+the ``build`` and ``outsider`` environments; a ``shutil.rmtree`` would let
+one invocation delete files another is copying.
 """
 
 import shutil
@@ -23,10 +26,8 @@ def main() -> None:
     if not AGENT_SKILL.is_file():
         sys.exit(f"ERROR: Agent skill not found at {AGENT_SKILL}")
 
-    # Idempotent: remove old _docs/ before copying
-    if TARGET_DIR.is_dir():
-        shutil.rmtree(TARGET_DIR)
-
+    # SPEC: fix-doc-discovery-isolation::inplace-merge — merge into _docs/ in
+    # place, never rmtree. tox -p runs build + outsider envs concurrently.
     TARGET_DIR.mkdir(parents=True, exist_ok=True)
 
     # Copy _sources/
