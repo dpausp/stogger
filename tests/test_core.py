@@ -742,6 +742,7 @@ class TestEnsureStderrLogging:
         _ensure_stderr_logging()
         log.has("ensuring-stderr-logging")
 
+
 @pytest.mark.integration
 class TestSystemdJournalRenderer:
     """Tests for SystemdJournalRenderer."""
@@ -944,7 +945,7 @@ class TestInitCommandLogging:
         factories["cmd_output_file"]._file.close()  # noqa: SLF001, RUF100
 
     def test_init_command_logging_no_logdir(self):
-        """No logdir and no context logdir -> logs warning and returns."""
+        """No logdir and no context logdir -> logs warning and returns early."""
         factory = MultiOptimisticLoggerFactory({}, {})
         structlog.configure(
             processors=[],
@@ -952,12 +953,12 @@ class TestInitCommandLogging:
             logger_factory=factory,
         )
         log = structlog.get_logger()
-        # Should not raise
-        # KV|        init_command_logging(log)
-
+        # Should not raise; warning logged, no cmd_output_file registered
+        init_command_logging(log)
         log.has("logging-cmd-output-no-logdir")
+        assert "cmd_output_file" not in factory.factories
 
-    def test_cmd_output_file_open_failure_logs_event(self, log, tmp_path):
+    def test_cmd_output_file_open_failure_logs_event(self, tmp_path):
         """OSError opening cmd output file logs cmd-output-file-open-failed event."""
         factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, {})
         structlog.configure(
@@ -965,10 +966,11 @@ class TestInitCommandLogging:
             wrapper_class=structlog.BoundLogger,
             logger_factory=factory,
         )
-        test_log = structlog.get_logger()
+        log = structlog.get_logger()
         with patch.object(Path, "open", side_effect=OSError("permission denied")):
-            init_command_logging(test_log, tmp_path)
+            init_command_logging(log, tmp_path)
         log.has("cmd-output-file-open-failed")
+        assert "cmd_output_file" not in factory.factories
 
 
 @pytest.mark.integration
@@ -1105,3 +1107,146 @@ class TestBuildLoggerFactories:
                 syslog_identifier="test",
                 cfg=cfg,
             )
+
+
+# ---------------------------------------------------------------------------
+# Coverage gap closures for core.py
+# ---------------------------------------------------------------------------
+
+
+def test_translation_processor_preserves_existing_original_event():
+    """_original_event is not overwritten when already present in event_dict."""
+    proc = TranslationProcessor({"greeting": "Hello!"})
+    event_dict = {"event": "greeting", "_original_event": "preset"}
+    result = proc(None, "info", event_dict)
+    assert result["_original_event"] == "preset"
+
+
+def test_format_timestamp_relative():
+    """relative timestamp format shows elapsed seconds with '+' prefix."""
+    settings = FormatConfig(timestamp_precision="relative")
+    renderer = ConsoleFileRenderer(format_config=settings)
+    result = renderer._format_timestamp("2026-01-01T00:00:00Z", {})
+    assert "+" in result
+    assert "s" in result
+
+
+def test_render_stack_without_traceback():
+    """stack section renders without separator when no exception_traceback."""
+    renderer = ConsoleFileRenderer()
+    buf = io.StringIO()
+    event_dict = {"stack": "stack trace here"}
+    renderer._render_output_sections(event_dict, buf.write)
+    output = buf.getvalue()
+    assert "stack trace here" in output
+    assert "=" * 79 not in output
+
+
+def test_format_replace_msg_recursion_fallback():
+    """RecursionError in _replace_msg formatting falls back to raw string."""
+
+    class Recursive:
+        def __format__(self, spec):
+            return format(self, spec)  # infinite recursion
+
+    renderer = ConsoleFileRenderer()
+    event_dict = {"_replace_msg": "val={x}", "x": Recursive()}
+    result = renderer._format_replace_msg(event_dict)
+    assert result == "val={x}"
+
+
+def test_select_rendered_string_dict_non_str_fallback():
+    """Dict with non-str key value falls back to str()."""
+    selector = SelectRenderedString("console")
+    result = selector(None, "info", {"console": 12345})
+    assert result == str({"console": 12345})
+
+
+def test_init_command_logging_non_multi_factory_is_noop():
+    """Returns early when logger_factory is not a MultiOptimisticLoggerFactory."""
+    structlog.configure(processors=[], logger_factory=structlog.PrintLoggerFactory())
+    log = structlog.get_logger()
+    # Must not raise — early return path
+    init_command_logging(log)
+
+
+def test_init_command_logging_logdir_from_context(tmp_path):
+    """logdir=None falls back to factory context logdir."""
+    factories = {}
+    factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)
+    structlog.configure(processors=[], wrapper_class=structlog.BoundLogger, logger_factory=factory)
+    log = structlog.get_logger()
+    init_command_logging(log)  # no explicit logdir → context fallback
+    assert "cmd_output_file" in factories
+    factories["cmd_output_file"]._file.close()  # noqa: SLF001
+
+
+def test_init_logging_sets_systemd_kwarg():
+    """init_logging(systemd=...) passes the mode value into StoggerConfig."""
+    from stogger.config import SystemdMode
+
+    with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
+        init_logging(systemd=SystemdMode.OFF)
+    args, _kwargs = mock_factories.call_args
+    cfg = args[3]
+    assert cfg.systemd_mode is SystemdMode.OFF
+
+
+def test_init_logging_sets_timestamp_precision():
+    """init_logging(timestamp_precision=...) applies to cfg.format."""
+    with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
+        init_logging(timestamp_precision="iso_seconds")
+    args, _kwargs = mock_factories.call_args
+    assert args[3].format.timestamp_precision == "iso_seconds"
+
+
+def test_init_logging_log_cmd_output_without_logdir_raises():
+    """log_cmd_output=True without logdir raises ValueError."""
+    with patch("stogger.core.build_logger_factories", return_value=({}, {})):
+        with pytest.raises(ValueError, match="A logdir is required for command logging."):
+            init_logging(log_cmd_output=True, logdir=None)
+
+
+def test_build_logger_factories_required_with_available_socket():
+    """SystemdMode.REQUIRED with available socket registers journal factory."""
+    from stogger.config import StoggerConfig, SystemdMode
+
+    cfg = StoggerConfig(systemd=SystemdMode.REQUIRED.value)
+    mock_journal_factory = MagicMock()
+    with (
+        patch("stogger.systemd._journal_socket_available", return_value=True),
+        patch("stogger.systemd.get_journal_logger_factory", return_value=mock_journal_factory),
+    ):
+        loggers, _context = build_logger_factories(
+            logdir=None,
+            log_to_console=False,
+            syslog_identifier="test",
+            cfg=cfg,
+        )
+    assert loggers["journal"] is mock_journal_factory
+
+
+def test_select_rendered_string_non_dict_fallback():
+    """Non-dict, non-str event_dict falls back to str()."""
+    selector = SelectRenderedString("console")
+    result = selector(None, "info", 12345)
+    assert result == "12345"
+
+
+def test_init_logging_log_cmd_output_with_logdir(tmp_path):
+    """log_cmd_output=True with valid logdir reaches init_command_logging."""
+    with patch("stogger.core.build_logger_factories", return_value=({}, {})):
+        # Should not raise; command logging path exercised
+        init_logging(log_cmd_output=True, logdir=tmp_path)
+
+
+def test_init_command_logging_without_invocation_name(monkeypatch, tmp_path):
+    """Without INVOCATION_ID env var, cmd log file is named build-output.log."""
+    monkeypatch.delenv("INVOCATION_ID", raising=False)
+    factories = {}
+    factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)
+    structlog.configure(processors=[], wrapper_class=structlog.BoundLogger, logger_factory=factory)
+    log = structlog.get_logger()
+    init_command_logging(log, tmp_path)
+    assert (tmp_path / "build-output.log").exists()
+    factories["cmd_output_file"]._file.close()  # noqa: SLF001
