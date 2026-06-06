@@ -627,7 +627,7 @@ def _drop_below_info(
     return event_dict
 
 
-def _ensure_stderr_logging() -> None:
+def _ensure_stderr_logging() -> bool:
     """Pre-configure structlog to write to stderr if not yet configured.
 
     Ensures that any logging during bootstrap (e.g. config loading) goes to
@@ -637,13 +637,20 @@ def _ensure_stderr_logging() -> None:
     Debug and trace events are dropped by ``_drop_below_info`` so that
     pre-init ``log.debug()`` calls (which arrive after this configure but
     before the full pipeline is in place) do not leak to stderr.
+
+    Returns:
+        True if structlog was already configured when this function was
+        called, False if a new bootstrap pipeline was just installed.
+
     """
-    # NOTE: this debug call itself fires BEFORE the configure() below takes
-    # effect, so it goes through whatever pipeline existed previously (test
-    # capture, prior init_logging, or structlog default) — it is NOT subject
-    # to _drop_below_info.
-    log.debug("ensuring-stderr-logging", already_configured=structlog.is_configured())
-    if not structlog.is_configured():
+    # SPEC: fix-pre-bootstrap-stdout-leak::debug-after-configure — capture
+    # pre-configure state, install bootstrap pipeline, THEN emit the debug
+    # event. The event fires through either the new bootstrap pipeline
+    # (filtered by ``_drop_below_info``) or the caller's pre-existing
+    # pipeline (e.g. pytest-structlog capture). Never through structlog's
+    # default PrintLogger → stdout.
+    was_configured = structlog.is_configured()
+    if not was_configured:
         structlog.configure(
             processors=[
                 structlog.processors.add_log_level,
@@ -654,6 +661,8 @@ def _ensure_stderr_logging() -> None:
             wrapper_class=structlog.BoundLogger,
             cache_logger_on_first_use=False,
         )
+    log.debug("ensuring-stderr-logging", already_configured=was_configured)
+    return was_configured
 
 
 def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
@@ -705,13 +714,17 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
 
     """
-    log.debug("init-logging-started", already_configured=structlog.is_configured())
-    _already_configured = structlog.is_configured()
+    # SPEC: fix-pre-bootstrap-stdout-leak::bootstrap-first — install the
+    # bootstrap stderr pipeline BEFORE any ``log.debug()`` so the
+    # ``init-logging-started`` event flows through ``_drop_below_info``
+    # instead of structlog's default PrintLogger (stdout). The returned
+    # value preserves whether structlog was already configured before
+    # bootstrap, which the override-warning below relies on.
+    _already_configured = _ensure_stderr_logging()
+
+    log.debug("init-logging-started", already_configured=_already_configured)
 
     logdir = Path(logdir) if logdir else None
-
-    # Ensure structlog never writes to stdout during bootstrap
-    _ensure_stderr_logging()
 
     cfg_kwargs: dict[str, Any] = {"verbose": bool(verbose)}
     if systemd is not None:

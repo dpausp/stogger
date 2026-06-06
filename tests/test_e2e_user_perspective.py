@@ -61,6 +61,7 @@ def test_default_init_no_internals_on_stderr(capsys, monkeypatch):
     captured = capsys.readouterr()
     # init_logging itself should be silent on success — no internal noise
     assert captured.err == ""
+    assert captured.out == ""
 
 
 @pytest.mark.e2e
@@ -80,6 +81,7 @@ def test_default_init_user_events_rendered(capsys, monkeypatch):
     assert "order-placed" in captured.err
     assert "42" in captured.err
     assert "widget" in captured.err
+    assert captured.out == ""
 
 
 @pytest.mark.e2e
@@ -99,6 +101,7 @@ def test_default_init_debug_events_filtered(capsys, monkeypatch):
 
     assert "visible-event" in captured.err
     assert "internal-diagnostic" not in captured.err
+    assert captured.out == ""
 
 
 # --- Scenario 2: Verbose mode ---
@@ -120,6 +123,7 @@ def test_verbose_mode_shows_debug_events(capsys, monkeypatch):
 
     assert "debug-visible-now" in captured.err
     assert "verbose-mode" in captured.err
+    assert captured.out == ""
 
 
 # --- Scenario 3: File logging ---
@@ -145,6 +149,7 @@ def test_file_logging_renders_to_file(tmp_path, capsys, monkeypatch):
     # Console has it
     assert "disk-check" in captured.err
     assert "85" in captured.err
+    assert captured.out == ""
 
     # File also has it
     log_file = logdir / "user-file.log"
@@ -186,6 +191,7 @@ def test_systemd_auto_active_logs_confirmation(capsys, monkeypatch):
 
     # The confirmation event should be rendered on stderr
     assert "systemd-journal-active" in captured.err
+    assert captured.out == ""
 
 
 @pytest.mark.e2e
@@ -208,6 +214,7 @@ def test_systemd_auto_unavailable_no_journal_events(capsys, monkeypatch):
 
     # No journal confirmation — journal is not active
     assert "systemd-journal-active" not in captured.err
+    assert captured.out == ""
 
 
 @pytest.mark.e2e
@@ -230,6 +237,7 @@ def test_systemd_auto_unavailable_verbose_still_clean(capsys, monkeypatch):
 
     # Even verbose should not leak pre-configuration internals
     assert "systemd-journal-socket-check" not in captured.err
+    assert captured.out == ""
 
 
 # --- Scenario 5: Exception rendering ---
@@ -258,6 +266,7 @@ def test_exception_renders_traceback_on_stderr(capsys, monkeypatch):
     assert "ConnectionError" in captured.err
     assert "database connection refused" in captured.err
     assert "db.example.com" in captured.err
+    assert captured.out == ""
 
 
 # --- Scenario 6: _replace_msg renders human-readable text ---
@@ -279,5 +288,7 @@ def test_replace_msg_renders_human_readable(capsys, monkeypatch):
 
     # The rendered output should contain the human-readable message
     assert "User alice logged in from 10.0.0.1" in captured.err
+
     # The event name should still be present
     assert "user-login" in captured.err
+    assert captured.out == ""
