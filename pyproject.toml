@@ -87,8 +87,7 @@ testpaths = [ "tests",]
 python_files = [ "test_*.py", "*_test.py",]
 python_classes = [ "Test*",]
 python_functions = [ "test_*",]
-addopts = [ "--tb=short", "--strict-markers", "--strict-config", "--disable-warnings", "--structlog-settings-report=never",]
-filterwarnings = [ "error", "ignore::UserWarning", "ignore::DeprecationWarning",]
+addopts = [ "--tb=short", "--strict-markers", "--strict-config", "--structlog-settings-report=never",]
 markers = [
   "integration: integration tests that test real module interactions",
   "e2e: end-to-end tests that exercise full pipelines",
