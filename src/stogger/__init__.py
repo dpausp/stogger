@@ -7,12 +7,9 @@ is the primary agent entry point.
 Discover via ``__docs_path__ / '_docs' / 'llms.txt'``.
 """
 
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import version
 
-try:
-    __version__ = version("stogger")
-except PackageNotFoundError:  # pragma: no cover — dev fallback, package always installed in test/CI
-    __version__ = "0.0.0"
+__version__ = version("stogger")
 
 __all__ = [
     "LogScope",
