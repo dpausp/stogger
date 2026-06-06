@@ -148,10 +148,11 @@ description = "Format, lint, fix whitespace, type-check, dead code"
 allowlist_externals = ["ruff", "ty"]
 dependency_groups = ["test", "lint"]
 commands = [
-    ["ruff", "check", "--fix"],
-    ["ty", "check", "src/"],
-    ["vulture", "src/", "tests/", "--min-confidence=80"],
-    ["ruff", "format"],
+  ["ruff", "check", "--fix"],
+  ["ty", "check", "src/"],
+  ["vulture", "src/", "tests/", "--min-confidence=80"],
+  ["complexipy", "src/"],
+  ["ruff", "format"],
 ]
 
 [tool.tox.env.cov]
