@@ -43,6 +43,7 @@ test = [
     "pytest-stogger",
     "pytest-archon>=0.0.7",
     "pytest-structlog>=1.2",
+    "stogger-postgres",
 ]
 docs = [
     "sphinx>=7.0.0",
@@ -131,7 +132,7 @@ skip_covered = false
 precision = 2
 
 [tool.tox]
-env_list = ["fix", "cov", "docs", "build", "3.13", "integrations", "outsider"]
+env_list = ["fix", "cov", "docs", "build", "3.13", "outsider"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
@@ -189,14 +190,6 @@ dependency_groups = ["docs"]
 commands = [
     ["python", "scripts/build_docs_for_package.py"],
     ["uv", "build", { replace = "posargs", extend = true }],
-]
-
-[tool.tox.env.integrations]
-description = "Integration tests with optional dependencies (postgres)"
-dependency_groups = ["test"]
-extras = ["postgres"]
-commands = [
-    ["pytest", "tests/test_systemd_integration_real.py", "tests/test_postgres_integration_real.py", "-v"],
 ]
 
 [tool.tox.env.outsider]
