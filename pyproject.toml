@@ -131,7 +131,7 @@ skip_covered = false
 precision = 2
 
 [tool.tox]
-env_list = ["fix", "cov", "docs", "build", "3.13", "integrations", "outsider"]
+env_list = ["fix", "cov", "docs", "build", "integrations", "outsider"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
@@ -151,12 +151,12 @@ commands = [
   ["ruff", "check", "--fix"],
   ["ty", "check", "src/"],
   ["vulture", "src/", "tests/", "--min-confidence=80"],
-  ["complexipy", "src/"],
+  ["complexipy", "src/", "--quiet"],
   ["ruff", "format"],
 ]
 
 [tool.tox.env.cov]
-base_python = ["3.13"]
+base_python = ["3.14"]
 package = "editable"
 runner = "uv-venv-lock-runner"
 dependency_groups = ["test"]
@@ -178,7 +178,7 @@ commands_pre = [
     ["rm", "-rf", "docs/autoapi", "docs/_build"],
 ]
 commands = [
-    ["sphinx-build", "-b", "html", "docs", "docs/_build/html"],
+    ["sphinx-build", "-q", "-b", "html", "docs", "docs/_build/html"],
 ]
 
 [tool.tox.env.build]
