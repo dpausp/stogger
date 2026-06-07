@@ -522,7 +522,7 @@ def _build_postgres_factory(cfg: StoggerConfig) -> dict[str, Any]:
     # SPEC: postgres-target::package-placement — dynamic import
     # for postgres logger factory, mirrors journal pattern.
     try:
-        from stogger_postgres import get_postgres_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
+        from stogger_postgres import get_postgres_logger_factory  # noqa: PLC0415
 
         factory = get_postgres_logger_factory(
             dsn=cfg.postgres_dsn,
