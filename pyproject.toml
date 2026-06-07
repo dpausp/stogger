@@ -131,7 +131,7 @@ skip_covered = false
 precision = 2
 
 [tool.tox]
-env_list = ["fix", "cov", "docs", "build", "integrations", "outsider"]
+env_list = ["fix", "cov", "docs", "build", "3.13", "integrations", "outsider"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
