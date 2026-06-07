@@ -17,6 +17,8 @@ _SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "build_docs_for_p
 @pytest.fixture(scope="module")
 def build_docs():
     spec = importlib.util.spec_from_file_location("build_docs_for_package", _SCRIPT)
+    assert spec is not None
+    assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

@@ -1097,6 +1097,7 @@ test = [
     { name = "pytest-stogger" },
     { name = "pytest-structlog" },
     { name = "pytest-timeout" },
+    { name = "stogger-postgres" },
 ]
 
 [package.metadata]
@@ -1144,6 +1145,7 @@ test = [
     { name = "pytest-stogger", directory = "/pytest-stogger" },
     { name = "pytest-structlog", specifier = ">=1.2" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "stogger-postgres", editable = "packages/stogger-postgres" },
 ]
 
 [[package]]

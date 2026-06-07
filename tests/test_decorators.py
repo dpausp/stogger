@@ -6,7 +6,6 @@ import pytest
 
 from stogger.decorators import log_call, log_operation, log_result, log_scope
 
-
 # --- log_call ---
 
 
@@ -133,9 +132,8 @@ def test_log_scope_context_manager(log):
 
 
 def test_log_scope_exception_logs_failed(log):
-    with pytest.raises(ValueError, match="bad"):
-        with log_scope("failing"):
-            raise ValueError("bad")
+    with pytest.raises(ValueError, match="bad"), log_scope("failing"):
+        raise ValueError("bad")
 
     evt = log.events[-1]
     assert evt["event"] == "scope-failed"

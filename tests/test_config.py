@@ -2,6 +2,7 @@
 
 import importlib
 import logging
+import logging.handlers
 import os
 import sys
 import tempfile
@@ -37,7 +38,7 @@ def create_pyproject_toml():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
         pyproject_path = config_dir / "pyproject.toml"
-        with open(pyproject_path, "w") as f:
+        with pyproject_path.open("w") as f:
             f.write("""
 [tool.stogger]
 verbose = true
@@ -76,13 +77,12 @@ def test_config_kwargs_override_file(create_pyproject_toml):
 
 def test_config_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
-            config = StoggerConfig()
-            assert config.verbose is False
-            assert config.logdir is None
-            assert config.syslog_identifier == "stogger"
-            assert config.language == "en"
+    with tempfile.TemporaryDirectory() as tmpdir, patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
+        config = StoggerConfig()
+        assert config.verbose is False
+        assert config.logdir is None
+        assert config.syslog_identifier == "stogger"
+        assert config.language == "en"
 
 
 @patch("logging.basicConfig", autospec=True)
@@ -120,10 +120,9 @@ def test_async_logging_setup(mock_get_logger, mock_listener):
 
 def test_config_src_dir_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
-            config = StoggerConfig()
-            assert config.src_dir == "src"  # Default source directory
+    with tempfile.TemporaryDirectory() as tmpdir, patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
+        config = StoggerConfig()
+        assert config.src_dir == "src"  # Default source directory
 
 
 @pytest.mark.integration
@@ -132,7 +131,7 @@ def test_config_src_dir_from_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
         pyproject_path = config_dir / "pyproject.toml"
-        with open(pyproject_path, "w") as f:
+        with pyproject_path.open("w") as f:
             f.write("""
 [tool.stogger]
 src_dir = "custom_src"
@@ -148,7 +147,7 @@ def test_config_src_dir_kwargs_override():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
         pyproject_path = config_dir / "pyproject.toml"
-        with open(pyproject_path, "w") as f:
+        with pyproject_path.open("w") as f:
             f.write("""
 [tool.stogger]
 src_dir = "custom_src"
@@ -481,10 +480,12 @@ def test_env_override_str_value():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_SYSLOG_IDENTIFIER": "env-app"}, clear=True):
-                config = StoggerConfig()
-                assert config.syslog_identifier == "env-app"
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_SYSLOG_IDENTIFIER": "env-app"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.syslog_identifier == "env-app"
 
 
 def test_probe_stogger_exclude_pattern_nonexistent_testdir():
@@ -538,14 +539,16 @@ def test_init_logging_falls_back_to_cfg_logdir():
         pyproject_path = config_dir / "pyproject.toml"
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
-                init_logging()
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories,
+        ):
+            init_logging()
 
-                mock_factories.assert_called_once()
-                args, _ = mock_factories.call_args
-                logdir_arg = args[0]
-                assert logdir_arg == Path("/tmp/logs")
+            mock_factories.assert_called_once()
+            args, _ = mock_factories.call_args
+            logdir_arg = args[0]
+            assert logdir_arg == Path("/tmp/logs")
 
 
 def test_init_logging_logdir_param_wins():
@@ -555,14 +558,16 @@ def test_init_logging_logdir_param_wins():
         pyproject_path = config_dir / "pyproject.toml"
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
-                init_logging(logdir="/custom/path")
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories,
+        ):
+            init_logging(logdir="/custom/path")
 
-                mock_factories.assert_called_once()
-                args, _ = mock_factories.call_args
-                logdir_arg = args[0]
-                assert logdir_arg == Path("/custom/path")
+            mock_factories.assert_called_once()
+            args, _ = mock_factories.call_args
+            logdir_arg = args[0]
+            assert logdir_arg == Path("/custom/path")
 
 
 def test_env_override_logdir():
@@ -572,10 +577,12 @@ def test_env_override_logdir():
         pyproject_path = config_dir / "pyproject.toml"
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/toml/path"\n')
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_LOGDIR": "/env/path"}, clear=True):
-                config = StoggerConfig()
-                assert config.logdir == Path("/env/path")
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_LOGDIR": "/env/path"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.logdir == Path("/env/path")
 
 
 def test_env_override_verbose():
@@ -583,10 +590,12 @@ def test_env_override_verbose():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True):
-                config = StoggerConfig()
-                assert config.verbose is True
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.verbose is True
 
 
 def test_env_override_bool_false():
@@ -594,10 +603,12 @@ def test_env_override_bool_false():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_LOG_TO_CONSOLE": "false"}, clear=True):
-                config = StoggerConfig()
-                assert config.log_to_console is False
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_LOG_TO_CONSOLE": "false"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.log_to_console is False
 
 
 def test_env_override_bool_invalid():
@@ -605,10 +616,12 @@ def test_env_override_bool_invalid():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_VERBOSE": "invalid"}, clear=True):
-                config = StoggerConfig()
-                assert config.verbose is False
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_VERBOSE": "invalid"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.verbose is False
 
 
 def test_env_override_kwargs_priority():
@@ -616,10 +629,12 @@ def test_env_override_kwargs_priority():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True):
-                config = StoggerConfig(verbose=False)
-                assert config.verbose is True
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True),
+        ):
+            config = StoggerConfig(verbose=False)
+            assert config.verbose is True
 
 
 def test_env_no_override_stogger_debug():

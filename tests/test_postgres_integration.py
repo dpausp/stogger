@@ -14,15 +14,15 @@ Test matrix from spec decision ``test-strategy``:
 import os
 import sys
 import types
-from unittest.mock import MagicMock, patch
 from collections.abc import Callable
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 import structlog
 
 from stogger.config import StoggerConfig, SystemdMode
 from stogger.core import init_logging
-
 from stogger.systemd import DummyJournalLogger
 
 
@@ -46,7 +46,7 @@ def test_enable_postgres_true_import_succeeds():
     SPEC: api-contract — ``get_postgres_logger_factory()`` returns a callable
     factory whose return value is a structlog-compatible logger.
     """
-    mock_module = types.ModuleType("stogger_postgres")
+    mock_module: Any = types.ModuleType("stogger_postgres")
 
     mock_logger_instance = MagicMock(spec=DummyJournalLogger)
 
@@ -129,7 +129,7 @@ def test_enable_postgres_false_no_import():
     SPEC: acceptance criterion — ``enable_postgres=False`` suppresses all
     postgres behavior.
     """
-    mock_module = types.ModuleType("stogger_postgres")
+    mock_module: Any = types.ModuleType("stogger_postgres")
 
     mock_module.get_postgres_logger_factory = MagicMock(spec=Callable)
     mock_module.PostgresLogger = type("PostgresLogger", (), {})

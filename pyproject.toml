@@ -70,7 +70,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py313"
-extend-exclude = [ "tests", "docs", "examples", "scripts",]
+extend-exclude = [ "docs", "examples", "scripts",]
 
 [tool.vulture]
 exclude = [ ".venv/", "build/", "dist/", "tests/",]
@@ -78,7 +78,7 @@ min_confidence = 80
 sort_by_size = true
 
 [tool.ty.src]
-exclude = ["tests", "docs"]
+exclude = ["docs"]
 
 [tool.pyright]
 exclude = ["tests", "docs"]
@@ -112,6 +112,22 @@ exempt_event_ids = []
 [tool.ruff.lint]
 select = [ "E", "W", "F", "I", "N", "D", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RUF", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG",]
 ignore = [ "D100", "D104", "D203", "D213", "COM812", "D101", "D102", "D103", "D105", "D107", "D205", "D400", "D401", "D417", "E402", "FBT001", "FBT002", "FBT003", "N806", "PLW0603", "PLW2901", "TRY300",]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",     # assert is the testing primitive
+    "PLC0415",  # inline imports after mocking sys.modules
+    "SLF001",   # tests access private members
+    "PLR2004",  # magic values in assertions are expected values
+    "TRY301",   # raise-in-try to test exception paths
+    "TRY003",   # vanilla raises in test setup
+    "EM101",    # raw-string-in-exception conflicts with PT012 single-statement
+    "ARG001",   # pytest fixtures / @patch inject unused params
+    "ARG002",   # same for methods
+    "S108",     # /tmp in test-data assertions
+    "S603",     # subprocess in controlled test context
+    "LOG015",   # root logger in stdlib-bridge tests
+]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -150,7 +166,7 @@ allowlist_externals = ["ruff", "ty"]
 dependency_groups = ["test", "lint"]
 commands = [
   ["ruff", "check", "--fix"],
-  ["ty", "check", "src/"],
+  ["ty", "check", "src/", "tests/"],
   ["vulture", "src/", "tests/", "--min-confidence=80"],
   ["complexipy", "src/", "--quiet"],
   ["ruff", "format"],

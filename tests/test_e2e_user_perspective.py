@@ -9,9 +9,9 @@ verify the output.
 """
 
 import logging
-import os
 import sys
 import types
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -47,7 +47,7 @@ def test_default_init_no_internals_on_stderr(capsys, monkeypatch):
     monkeypatch.delenv("JOURNAL_STREAM", raising=False)
 
     # Mock systemd module to prevent any journal events
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
     mock_module.get_journal_logger_factory = MagicMock()
     mock_module._journal_socket_available = MagicMock(return_value=False)
     mock_module.JournalLogger = type("JournalLogger", (), {})
@@ -175,7 +175,7 @@ def test_systemd_auto_active_logs_confirmation(capsys, monkeypatch):
         def __call__(self):
             return mock_logger_instance
 
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
     mock_module.get_journal_logger_factory = MagicMock(return_value=MockFactory())
     mock_module._journal_socket_available = MagicMock(return_value=True)
     mock_module.JournalLogger = type("JournalLogger", (), {})
@@ -199,7 +199,7 @@ def test_systemd_auto_unavailable_no_journal_events(capsys, monkeypatch):
     """When journal is unavailable in AUTO mode, no journal-related events on stderr."""
     monkeypatch.delenv("JOURNAL_STREAM", raising=False)
 
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
     mock_module.get_journal_logger_factory = MagicMock()
     mock_module._journal_socket_available = MagicMock(return_value=False)
     mock_module.JournalLogger = type("JournalLogger", (), {})
@@ -222,7 +222,7 @@ def test_systemd_auto_unavailable_verbose_still_clean(capsys, monkeypatch):
     """Even in verbose mode, AUTO unavailable produces no socket-check noise."""
     monkeypatch.delenv("JOURNAL_STREAM", raising=False)
 
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
     mock_module.get_journal_logger_factory = MagicMock()
     mock_module._journal_socket_available = MagicMock(return_value=False)
     mock_module.JournalLogger = type("JournalLogger", (), {})

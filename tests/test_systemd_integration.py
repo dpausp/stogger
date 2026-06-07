@@ -13,15 +13,15 @@ Test matrix:
 import os
 import sys
 import types
-from unittest.mock import MagicMock, patch
 from collections.abc import Callable
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 import structlog
 
 from stogger.config import StoggerConfig, SystemdMode
 from stogger.core import init_logging
-
 from stogger.systemd import DummyJournalLogger
 
 
@@ -37,9 +37,7 @@ def _reset_structlog():
 
 def test_systemd_auto_journal_available():
     """Journal factory registered in loggers dict when socket is available."""
-    mock_module = types.ModuleType("stogger.systemd")
-
-    from stogger.systemd import DummyJournalLogger
+    mock_module: Any = types.ModuleType("stogger.systemd")
 
     mock_logger_instance = MagicMock(spec=DummyJournalLogger)
 
@@ -68,7 +66,7 @@ def test_systemd_auto_journal_available():
 
 def test_systemd_auto_socket_unavailable():
     """No journal factory registered when socket is unavailable in AUTO mode."""
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
 
     mock_module.get_journal_logger_factory = MagicMock()
     mock_module._journal_socket_available = MagicMock(return_value=False)
@@ -96,7 +94,7 @@ def test_systemd_auto_socket_unavailable():
 
 def test_systemd_off_no_import():
     """No import attempt when SystemdMode.OFF in config."""
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
 
     mock_module.get_journal_logger_factory = MagicMock(spec=Callable)
     mock_module.JournalLogger = type("JournalLogger", (), {})
@@ -122,8 +120,6 @@ def test_systemd_off_no_import():
 
 def test_dummy_journal_logger_is_silent():
     """DummyJournalLogger.msg() is a silent no-op — no logging side effects."""
-    from stogger.systemd import DummyJournalLogger
-
     dj = DummyJournalLogger()
     # Must not raise, log, or do anything — pure no-op
     dj.msg({"MESSAGE": "test"})
@@ -133,7 +129,7 @@ def test_dummy_journal_logger_is_silent():
 
 def test_systemd_required_raises_when_not_available():
     """SystemdMode.REQUIRED raises RuntimeError when journal socket is missing."""
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
 
     mock_module.get_journal_logger_factory = MagicMock()
     mock_module._journal_socket_available = MagicMock(return_value=False)
@@ -210,7 +206,7 @@ def test_journal_sender_exit_without_enter_is_noop():
 
 def test_journal_logger_factory_returns_dummy_when_unavailable():
     """JournalLoggerFactory returns DummyJournalLogger when socket path is missing."""
-    from stogger.systemd import DummyJournalLogger, JournalLoggerFactory
+    from stogger.systemd import JournalLoggerFactory
 
     factory = JournalLoggerFactory(socket_path="/nonexistent/socket/path")
     logger = factory()
@@ -220,15 +216,13 @@ def test_journal_logger_factory_returns_dummy_when_unavailable():
 
 def test_systemd_journal_active_logged_after_init(log):
     """init_logging logs systemd-journal-active when journal target is registered."""
-    from stogger.systemd import DummyJournalLogger
-
     mock_logger_instance = MagicMock(spec=DummyJournalLogger)
 
     class MockFactory:
         def __call__(self):
             return mock_logger_instance
 
-    mock_module = types.ModuleType("stogger.systemd")
+    mock_module: Any = types.ModuleType("stogger.systemd")
     mock_module.get_journal_logger_factory = MagicMock(return_value=MockFactory())
     mock_module._journal_socket_available = MagicMock(return_value=True)
     mock_module.JournalLogger = type("JournalLogger", (), {})

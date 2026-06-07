@@ -32,7 +32,7 @@ def _cleanup_root_logging():
     config = structlog.get_config()
     factory = config.get("logger_factory")
     if hasattr(factory, "factories"):
-        for _name, sub_factory in factory.factories.items():
+        for sub_factory in factory.factories.values():
             if hasattr(sub_factory, "_file"):
                 sub_factory._file.close()
     structlog.reset_defaults()

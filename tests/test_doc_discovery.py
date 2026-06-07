@@ -9,6 +9,7 @@ from importlib.resources import files
 from pathlib import Path
 
 import pytest
+
 import stogger
 
 _docs_path = Path(__file__).resolve().parent.parent / "src" / "stogger" / "_docs"

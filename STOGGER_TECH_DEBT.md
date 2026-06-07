@@ -1,13 +1,21 @@
 # Stogger Tech Debt
 
-Diese Datei wird automatisch von **pytest-stogger** erzeugt und bietet eine Übersicht aller aktuell unterdrückten Stogger-Regelverletzungen.
+Diese Datei wird automatisch von **pytest-stogger** erzeugt und bietet eine Übersicht
+aller aktuell unterdrückten Stogger-Regelverletzungen.
 
-Jede Regel hat einen konkreten Zweck: kebab-case-Event-IDs ermöglichen Log-Aggregation, `_replace_msg` erzeugt lesbare Meldungen, und der Verzicht auf f-Strings erlaubt strukturiertes Rendering — unterdrückte Regeln fehlen in der Produktion und verhindern bei Fehlern die Diagnose. Saubere Logging-Konventionen beschleunigen Debugging und erleichtern das Onboarding.
+Jede Regel hat einen konkreten Zweck: kebab-case-Event-IDs ermöglichen Log-Aggregation,
+`_replace_msg` erzeugt lesbare Meldungen, und der Verzicht auf f-Strings erlaubt
+strukturiertes Rendering — unterdrückte Regeln fehlen in der Produktion und verhindern
+bei Fehlern die Diagnose.
+Saubere Logging-Konventionen beschleunigen Debugging und erleichtern das Onboarding.
 
-Um einen Eintrag zu beheben: **Datei und Zeile** in der Tabelle aufsuchen, verstehen was die Regel fordert, den Unterdrückungskommentar (`# stogger: ignore`) entfernen und das zugrunde liegende Problem beheben. Danach verschwindet der Eintrag beim nächsten Lauf automatisch.
+Um einen Eintrag zu beheben: **Datei und Zeile** in der Tabelle aufsuchen, verstehen was
+die Regel fordert, den Unterdrückungskommentar (`# stogger: ignore`) entfernen und das
+zugrunde liegende Problem beheben.
+Danach verschwindet der Eintrag beim nächsten Lauf automatisch.
 
 | First Seen | File | Line | Rule | Mechanism | Rationale |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | 2026-06-03 | src/stogger/__init__.py | - | per-file: except-must-log | per-file-ignores | Package init — runs before logger is configured. |
 | 2026-06-03 | src/stogger/_colors.py | - | per-file: complexity-needs-log | per-file-ignores | Low-level ANSI helpers — logging would corrupt colorized output. |
 | 2026-06-03 | src/stogger/_colors.py | - | per-file: except-must-log | per-file-ignores | Low-level ANSI helpers — logging would corrupt colorized output. |
@@ -38,4 +46,4 @@ Um einen Eintrag zu beheben: **Datei und Zeile** in der Tabelle aufsuchen, verst
 | 2026-06-03 | src/stogger/systemd.py | - | per-file: complexity-needs-log | per-file-ignores | systemd journal bridge — sends directly to journald via AF_UNIX, not stogger. |
 | 2026-06-03 | src/stogger/systemd.py | - | per-file: except-must-log | per-file-ignores | systemd journal bridge — sends directly to journald via AF_UNIX, not stogger. |
 
-_29 suppressed violation(s)._
+*29 suppressed violation(s).*

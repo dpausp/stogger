@@ -26,8 +26,8 @@ def _reset_logging():
         factory = config.get("logger_factory")
         if hasattr(factory, "factories"):
             for sub_factory in factory.factories.values():
-                if hasattr(sub_factory, "_file") and sub_factory._file not in (sys.stderr, sys.stdout):  # noqa: SLF001
-                    sub_factory._file.close()  # noqa: SLF001
+                if hasattr(sub_factory, "_file") and sub_factory._file not in (sys.stderr, sys.stdout):
+                    sub_factory._file.close()
 
     structlog.reset_defaults()
 
@@ -141,8 +141,7 @@ def test_e2e_full_pipeline_with_config(tmp_path, capsys, monkeypatch):
     # pyproject.toml config drives StoggerConfig
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text(
-        "[tool.stogger]\n"
-        'syslog_identifier = "e2e-pipeline"\n',
+        '[tool.stogger]\nsyslog_identifier = "e2e-pipeline"\n',
     )
     monkeypatch.chdir(tmp_path)
 

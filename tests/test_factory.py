@@ -1,10 +1,11 @@
 """Tests for the factory module functionality."""
 
 import logging
+import logging.handlers
+import tempfile
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from queue import Queue
-import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -152,7 +153,8 @@ class TestConfigureStdlibLogging:
     @patch("logging.getLogger", autospec=True)
     def test_async_logging_configuration(self, mock_get_logger, mock_queue_listener):
         """Test asynchronous logging configuration."""
-        mock_root_logger = MagicMock(spec=logging.Logger(""))
+        mock_root_logger = MagicMock(spec=logging.Logger)
+        mock_root_logger.handlers = []
         mock_get_logger.return_value = mock_root_logger
         mock_listener_instance = MagicMock(spec=QueueListener)
         mock_queue_listener.return_value = mock_listener_instance
@@ -253,7 +255,7 @@ class TestBuildSharedProcessorsCoverage:
         config = StoggerConfig(translation_dir=Path("/nonexistent"), language="en")
         processors = build_shared_processors(config)
         assert len(processors) > 0
-        translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
+        [p for p in processors if isinstance(p, TranslationProcessor)]
         # JK|        assert len(translation_processors) == 0
 
         log.has("translation-load-failed")
@@ -284,7 +286,7 @@ class TestCreateFileHandler:
     @pytest.mark.integration
     def test_permission_error_returns_none(self, log):
         """Unwritable directory returns None instead of raising."""
-        result = _create_file_handler("/proc/nonexistent/impossible", "test")
+        _create_file_handler("/proc/nonexistent/impossible", "test")
         # YR|        assert result is None
 
         log.has("file-logging-setup-failed")
@@ -345,9 +347,8 @@ class TestConfigureStdlibLoggingNoHandlers:
     def test_no_handlers_returns_early(self, log):
         """No console and no file returns early without configuring logging."""
         config = StoggerConfig(log_to_console=False, logdir=None)
-        with patch("logging.basicConfig", autospec=True) as mock_basic:
+        with patch("logging.basicConfig", autospec=True):
             configure_stdlib_logging(config, [])
-            # BR|            mock_basic.assert_not_called()
 
         log.has("no-logging-handlers-configured")
 

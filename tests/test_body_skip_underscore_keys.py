@@ -52,6 +52,7 @@ class TestUnderscoreKeysExcludedFromBody:
             "regular_key": "regular_value",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         # The body renders keys as ``key='value'``. Neither the key nor its
         # value must appear in the rendered output.
@@ -78,6 +79,7 @@ class TestUnderscoreKeysExcludedFromBody:
             "_output": _OUTPUT_VAL,
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         # Body would render this as ``_output='program_output_marker_abc'``;
         # that substring must be absent.
@@ -97,6 +99,7 @@ class TestUnderscoreKeysExcludedFromBody:
             "_raw_output_prefix": "pfx",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         assert "_raw_output=" not in result["file"]
         assert "_raw_output_prefix=" not in result["file"]
@@ -119,6 +122,7 @@ class TestUnderscoreKeysExcludedFromBody:
             "_output": _OUTPUT_VAL,
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         assert result["file"].count(_OUTPUT_VAL) == 1, (
             f"Expected {_OUTPUT_VAL!r} to appear exactly once in rendered "
@@ -138,6 +142,7 @@ class TestUnderscoreKeysExcludedFromBody:
             "session": "abc",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         assert "user_id=42" in result["file"]
         assert "session='abc'" in result["file"]
@@ -156,6 +161,7 @@ class TestUnderscoreKeysExcludedFromBody:
             "_output": _OUTPUT_VAL,
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         # Header is present.
         assert "test-event" in result["file"]
@@ -199,6 +205,7 @@ class TestUnderscoreKeysExcludedFromReplaceMsg:
             "_output": _OUTPUT_VAL,
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         # The body shows the formatted _replace_msg. ``_output`` must NOT
         # have been interpolated — the formatter reports ``<missing>``.
@@ -220,6 +227,7 @@ class TestUnderscoreKeysExcludedFromReplaceMsg:
             "_custom_internal": "leaked_via_format",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         assert "value is <missing>" in result["file"]
         assert "leaked_via_format" not in result["file"]
@@ -236,6 +244,7 @@ class TestUnderscoreKeysExcludedFromReplaceMsg:
             "session": "abc",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         assert "user=42" in result["file"]
         assert "session=abc" in result["file"]
@@ -255,6 +264,7 @@ class TestUnderscoreKeysExcludedFromReplaceMsg:
             "_internal": "should_not_leak",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
 
         assert "ok=yes" in result["file"]
         assert "internal=<missing>" in result["file"]

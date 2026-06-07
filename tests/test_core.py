@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -27,8 +28,8 @@ from stogger.core import (
     SelectRenderedString,
     SystemdJournalRenderer,
     TranslationProcessor,
-    build_logger_factories,
     _inject_exc_info_for_exception,
+    build_logger_factories,
     drop_cmd_output_logfile,
     format_exc_info,
     init_command_logging,
@@ -76,6 +77,7 @@ class TestConsoleFileRenderer:
                 "level": "info",
             },
         )
+        assert result is not None
 
         assert "short" + " " * 15 in result["file"]
 
@@ -100,6 +102,7 @@ class TestConsoleFileRenderer:
                 "code_lineno": 42,
             },
         )
+        assert result is not None
 
         assert "2023-01-01T00:00:00" in result["console"]
         assert "2023-01-01T00:00:00Z" not in result["console"]
@@ -114,6 +117,7 @@ class TestConsoleFileRenderer:
             "some_key": "some_value",
         }
         result = renderer(None, "info", event_dict.copy())
+        assert result is not None
         assert "test-event" in result["console"]
         assert "some_value" in result["console"]
         assert "\x1b" not in result["file"]  # No ANSI codes in file output
@@ -130,6 +134,7 @@ class TestConsoleFileRenderer:
             "_output": "command output line",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
         assert "visible_key" in result["file"]
         assert "visible_value" in result["file"]
         # `_`-prefixed keys MUST NOT appear in the fallback body.
@@ -151,6 +156,7 @@ class TestConsoleFileRenderer:
             "_internal": "secret_value",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
         # Internal value must not be reachable via format string
         assert "secret_value" not in result["file"]
         # PartialFormatter emits '<missing>' for unavailable keys
@@ -166,6 +172,7 @@ class TestConsoleFileRenderer:
             "_output": "command output line",
         }
         result = renderer(None, "info", event_dict)
+        assert result is not None
         # The output appears once (via the dedicated stage), not twice (body + stage)
         assert result["file"].count("command output line") == 1
 
@@ -214,6 +221,7 @@ class TestCoreEdgeCases:
                 "code_lineno": 42,
             },
         )
+        assert result is not None
 
         assert "2023-01-01T00:00:00" in result["console"]
         assert "2023-01-01T00:00:00Z" not in result["console"]
@@ -394,6 +402,7 @@ class TestRenderOutputSections:
             "_raw_output": ansi_content,
         }
         result = renderer(None, "info", event_dict.copy())
+        assert result is not None
 
         # ANSI codes present in console (RED is non-empty when isatty)
         if RED:
@@ -615,7 +624,8 @@ class TestSelectRenderedString:
     def test_select_rendered_string_passthrough(self):
         """String input -> returned as-is."""
         proc = SelectRenderedString()
-        assert proc(None, "info", "already a string") == "already a string"
+        event: Any = "already a string"
+        assert proc(None, "info", event) == "already a string"
 
     def test_select_rendered_string_dict(self):
         """Dict with key -> returns value."""
@@ -1047,9 +1057,11 @@ class TestBuildLoggerFactories:
 
     def test_early_init_propagates_errors(self):
         """init_early_logging must propagate errors, not suppress them."""
-        with patch("stogger.core.build_timestamp_processor", side_effect=RuntimeError("boom")):
-            with pytest.raises(RuntimeError, match="boom"):
-                init_early_logging()
+        with (
+            patch("stogger.core.build_timestamp_processor", side_effect=RuntimeError("boom")),
+            pytest.raises(RuntimeError, match="boom"),
+        ):
+            init_early_logging()
 
     def test_postgres_import_error_logs_warning(self, log):
         """build_logger_factories logs warning when stogger_postgres ImportError.
@@ -1125,7 +1137,7 @@ def test_translation_processor_preserves_existing_original_event():
 
 
 def test_format_timestamp_relative():
-    """relative timestamp format shows elapsed seconds with '+' prefix."""
+    """Relative timestamp format shows elapsed seconds with '+' prefix."""
     settings = FormatConfig(timestamp_precision="relative")
     renderer = ConsoleFileRenderer(format_config=settings)
     result = renderer._format_timestamp("2026-01-01T00:00:00Z", {})
@@ -1134,7 +1146,7 @@ def test_format_timestamp_relative():
 
 
 def test_render_stack_without_traceback():
-    """stack section renders without separator when no exception_traceback."""
+    """Stack section renders without separator when no exception_traceback."""
     renderer = ConsoleFileRenderer()
     buf = io.StringIO()
     event_dict = {"stack": "stack trace here"}
@@ -1180,7 +1192,7 @@ def test_init_command_logging_logdir_from_context(tmp_path):
     log = structlog.get_logger()
     init_command_logging(log)  # no explicit logdir → context fallback
     assert "cmd_output_file" in factories
-    factories["cmd_output_file"]._file.close()  # noqa: SLF001
+    factories["cmd_output_file"]._file.close()
 
 
 def test_init_logging_sets_systemd_kwarg():
@@ -1204,9 +1216,11 @@ def test_init_logging_sets_timestamp_precision():
 
 def test_init_logging_log_cmd_output_without_logdir_raises():
     """log_cmd_output=True without logdir raises ValueError."""
-    with patch("stogger.core.build_logger_factories", return_value=({}, {})):
-        with pytest.raises(ValueError, match="A logdir is required for command logging."):
-            init_logging(log_cmd_output=True, logdir=None)
+    with (
+        patch("stogger.core.build_logger_factories", return_value=({}, {})),
+        pytest.raises(ValueError, match=r"A logdir is required for command logging."),
+    ):
+        init_logging(log_cmd_output=True, logdir=None)
 
 
 def test_build_logger_factories_required_with_available_socket():
@@ -1231,7 +1245,8 @@ def test_build_logger_factories_required_with_available_socket():
 def test_select_rendered_string_non_dict_fallback():
     """Non-dict, non-str event_dict falls back to str()."""
     selector = SelectRenderedString("console")
-    result = selector(None, "info", 12345)
+    event: Any = 12345
+    result = selector(None, "info", event)
     assert result == "12345"
 
 
@@ -1251,7 +1266,7 @@ def test_init_command_logging_without_invocation_name(monkeypatch, tmp_path):
     log = structlog.get_logger()
     init_command_logging(log, tmp_path)
     assert (tmp_path / "build-output.log").exists()
-    factories["cmd_output_file"]._file.close()  # noqa: SLF001
+    factories["cmd_output_file"]._file.close()
 
 
 def test_write_helper_skips_ansi_stripping_without_reset_all():
@@ -1261,7 +1276,7 @@ def test_write_helper_skips_ansi_stripping_without_reset_all():
     renderer = ConsoleFileRenderer()
     console_io = MagicMock()
     log_io = MagicMock()
-    write = renderer._create_write_helper(console_io, log_io)  # noqa: SLF001
+    write = renderer._create_write_helper(console_io, log_io)
     with patch("stogger.core.RESET_ALL", ""):
         write("some line")
     # Without RESET_ALL, line is passed through unmodified to log_io

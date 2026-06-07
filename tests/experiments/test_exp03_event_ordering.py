@@ -65,7 +65,7 @@ def _cleanup_root_logging():
     config = structlog.get_config()
     factory = config.get("logger_factory")
     if hasattr(factory, "factories"):
-        for _name, sub_factory in factory.factories.items():
+        for sub_factory in factory.factories.values():
             if hasattr(sub_factory, "_file"):
                 sub_factory._file.close()
     structlog.reset_defaults()
@@ -94,7 +94,7 @@ def _emit_triad(logdir, monkeypatch):
 
 
 def _build_event_pattern(patterns):
-    """Build a reusable pattern describing the expected output.
+    r"""Build a reusable pattern describing the expected output.
 
     Independent of sink: works against the ANSI-stripped console output
     and against the file content. Reusing one pattern is the parity
