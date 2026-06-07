@@ -193,6 +193,7 @@ commands = [
 ]
 
 [tool.tox.env.outsider]
+base_python = ["3.14"]
 skip_install = true
 depends = ["docs"]
 dependency_groups = ["test"]
