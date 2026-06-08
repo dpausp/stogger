@@ -26,24 +26,25 @@ Danach verschwindet der Eintrag beim nächsten Lauf automatisch.
 | 2026-06-06 | src/stogger/core.py | 188 | * | inline ignore | structlog processor, logging here would recurse |
 | 2026-06-06 | src/stogger/core.py | 200 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
 | 2026-06-06 | src/stogger/core.py | 214 | complexity-needs-log | inline ignore | structlog formatter, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 226 | complexity-needs-log | inline ignore | structlog formatter, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 264 | * | inline ignore | structlog formatter, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 276 | * | inline ignore | ANSI escape helper, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 302 | * | inline ignore | structlog formatter, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 321 | * | inline ignore | structlog formatter, output pipeline must not log |
-| 2026-06-06 | src/stogger/core.py | 337 | * | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 369 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 398 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 420 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 434 | * | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-06 | src/stogger/core.py | 478 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-07 | src/stogger/core.py | 911 | * | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-07 | src/stogger/core.py | 955 | * | inline ignore | json fallback / serialization, output pipeline must not log |
-| 2026-06-07 | src/stogger/core.py | 967 | complexity-needs-log | inline ignore | json fallback / serialization, output pipeline must not log |
-| 2026-06-07 | src/stogger/core.py | 989 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
-| 2026-06-07 | src/stogger/core.py | 1010 | * | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 226 | * | inline ignore | structlog formatter, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 240 | complexity-needs-log | inline ignore | structlog formatter, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 278 | * | inline ignore | structlog formatter, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 290 | * | inline ignore | ANSI escape helper, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 316 | * | inline ignore | structlog formatter, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 335 | * | inline ignore | structlog formatter, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 351 | * | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 384 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 413 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 435 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 449 | * | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 493 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 926 | * | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 970 | * | inline ignore | json fallback / serialization, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 982 | complexity-needs-log | inline ignore | json fallback / serialization, output pipeline must not log |
+| 2026-06-08 | src/stogger/core.py | 1004 | complexity-needs-log | inline ignore | structlog processor, logging here would recurse |
+| 2026-06-08 | src/stogger/core.py | 1025 | * | inline ignore | structlog processor, logging here would recurse |
 | 2026-06-06 | src/stogger/decorators.py | 32 | complexity-needs-log | inline ignore | filter helper inside log_call decorator, wrapper already logs the args |
 | 2026-06-03 | src/stogger/systemd.py | - | per-file: complexity-needs-log | per-file-ignores | systemd journal bridge — sends directly to journald via AF_UNIX, not stogger. |
 | 2026-06-03 | src/stogger/systemd.py | - | per-file: except-must-log | per-file-ignores | systemd journal bridge — sends directly to journald via AF_UNIX, not stogger. |
 
-*29 suppressed violation(s).*
+*30 suppressed violation(s).*
