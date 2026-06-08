@@ -269,7 +269,82 @@ def test_exception_renders_traceback_on_stderr(capsys, monkeypatch):
     assert captured.out == ""
 
 
-# --- Scenario 6: _replace_msg renders human-readable text ---
+# --- Scenario 6: Two-phase init — early pipeline vs full pipeline ---
+
+
+@pytest.mark.e2e
+def test_early_only_no_traceback_on_exception(capsys):
+    """log.exception() after init_early_logging() produces NO traceback.
+
+    The early pipeline has no exception processors — it's a bootstrap,
+    not a replacement for init_logging(). Without the full pipeline,
+    log.exception() behaves identically to log.error().
+    """
+    from stogger import init_early_logging
+
+    init_early_logging()
+
+    log = structlog.get_logger("myapp")
+
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        log.exception("early-only-exception", detail="no-traceback")
+
+    captured = capsys.readouterr()
+
+    # The event name and error level should appear
+    assert "early-only-exception" in captured.err
+    # But NO traceback — the early pipeline lacks format_exc_info
+    assert "Traceback" not in captured.err
+    assert "ValueError" not in captured.err
+    assert "boom" not in captured.err
+
+
+@pytest.mark.e2e
+def test_early_then_full_init_traceback_appears(capsys, monkeypatch):
+    """log.exception() after init_logging() DOES render the traceback.
+
+    Demonstrates the correct two-phase pattern: init_early_logging() at
+    import time (bootstrap), then init_logging() once config is available.
+    The full pipeline replaces the early one and provides exception formatting.
+    """
+    monkeypatch.delenv("JOURNAL_STREAM", raising=False)
+
+    from stogger import init_early_logging, init_logging
+
+    # Phase 1: bootstrap
+    init_early_logging()
+
+    log = structlog.get_logger("myapp")
+
+    # Exception during early phase — no traceback
+    try:
+        raise RuntimeError("early-failure")
+    except RuntimeError:
+        log.exception("early-phase-exception")
+
+    early_captured = capsys.readouterr()
+    assert "early-phase-exception" in early_captured.err
+    assert "Traceback" not in early_captured.err
+
+    # Phase 2: full pipeline
+    init_logging(logdir=None, log_to_console=True, syslog_identifier="two-phase")
+
+    # Same log.exception() call — now WITH traceback
+    try:
+        raise ValueError("full-pipeline-failure")
+    except ValueError:
+        log.exception("full-phase-exception")
+
+    full_captured = capsys.readouterr()
+    assert "full-phase-exception" in full_captured.err
+    assert "Traceback" in full_captured.err
+    assert "ValueError" in full_captured.err
+    assert "full-pipeline-failure" in full_captured.err
+
+
+# --- Scenario 7: _replace_msg renders human-readable text ---
 
 
 @pytest.mark.e2e

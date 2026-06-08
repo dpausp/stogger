@@ -30,6 +30,86 @@ log.warning("rate-limit-exceeded", _replace_msg="Rate limit exceeded for user {u
 log.error("database-connection-failed", _replace_msg="Database connection failed to {host}", host="db.example.com", timeout=30)
 ```
 
+## Two-Phase Initialization (CLI Apps and Services)
+
+The "Basic Usage" example calls `init_logging()` at module level, which works for scripts.
+CLI apps and long-running services need a different approach: modules get imported before
+CLI flags are parsed, so `init_logging()` can't be called at import time — you don't know
+the log level, logdir, or other settings yet.
+
+stogger solves this with two functions:
+
+### Phase 1: Bootstrap at Import
+
+Call `init_early_logging()` in your package's `__init__.py`. It installs a lightweight
+pipeline (timestamp, level, console renderer) so that import-time log messages appear
+formatted instead of as raw dicts. It's a no-op if structlog is already configured, so it's
+safe to call in tests too.
+
+```python
+# src/myapp/__init__.py
+from stogger import init_early_logging
+
+init_early_logging()
+```
+
+### Phase 2: Full Pipeline After Config
+
+Call `init_logging()` **exactly once**, **unconditionally**, at the earliest point where
+all parameters are known. That's typically the Typer callback — after flags are parsed,
+before any command runs. It replaces the early pipeline with the full one: exception
+formatting, PID, caller info, file logging, systemd journal, multiple render targets.
+
+**Wrong** — gating `init_logging` behind a flag means the early pipeline stays active
+forever when the flag is off:
+
+```python
+# src/myapp/cli.py — BROKEN
+from stogger import init_logging
+import typer
+
+app = typer.Typer()
+
+@app.callback()
+def main(verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False):
+    if verbose:                          # ← WRONG
+        init_logging(verbose=True)       # ← no init_logging() when verbose=False
+```
+
+Without `-v`, `log.exception()` produces no traceback, no PID, no caller info — the
+early pipeline was never replaced.
+
+**Right** — always call `init_logging()`, pass the flags as parameters:
+
+```python
+# src/myapp/cli.py — CORRECT
+from stogger import init_logging
+import typer
+
+app = typer.Typer()
+
+@app.callback()
+def main(verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False):
+    init_logging(verbose=verbose)       # ← ALWAYS, with or without -v
+```
+
+`init_logging(verbose=False)` is the default production setup (info level, console +
+file + journal). `init_logging(verbose=True)` adds debug level. Both get the full
+pipeline. The flag controls *verbosity*, not *whether logging is configured*.
+
+### What the Early Pipeline Does NOT Provide
+
+The early pipeline is intentionally minimal — a bootstrap, not a replacement. Without
+calling `init_logging()`, you get:
+
+- **No exception tracebacks** — `log.exception()` behaves like `log.error()`, no stack trace
+- **No PID, no caller info** — missing context in every log entry
+- **No file logging, no systemd journal** — only console output
+- **No `_replace_msg` formatting** — event names appear raw
+
+If you see `log.exception()` without a traceback, the most likely cause is a missing
+`init_logging()` call — the early pipeline was never replaced.
+
 ## Key Concepts
 
 ### Event-Style Logging
