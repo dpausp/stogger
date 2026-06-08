@@ -93,17 +93,15 @@ def test_exception_renders_traceback_on_stderr_patterns(patterns, capsys, monkey
     p = patterns.maybe_journal
     p.optional("...I...systemd-journal-active...Systemd journal logging active")
 
-    # The single KV line for the error event. The event name and all four KV
-    # pairs must appear on one line, in this order. ``...`` swallows the
-    # variable padding spaces stogger inserts to align KV columns, and the
-    # escaped-newline content of ``exception_traceback``.
+    # The single KV line for the error event. The event name and remaining KV
+    # pairs must appear on one line. ``exception_traceback`` is NOT rendered
+    # inline — it was a double-rendering bug. The traceback appears only in the
+    # human-readable block below.
     p = patterns.kv_event
     p.in_order(
         "...E...db-connect-failed..."
         "exception_class='builtins.ConnectionError'..."
         "exception_msg='database connection refused'..."
-        "exception_traceback='Traceback (most recent call last):..."
-        "ConnectionError: database connection refused'..."
         "host='db.example.com'..."
     )
 

@@ -223,16 +223,30 @@ class ConsoleFileRenderer:
         return DIM + "notimestamp" + RESET_ALL + " "
 
     # stogger: ignore — structlog formatter, output pipeline must not log
-    def _render_output_sections(self, event_dict, write_fn):  # stogger: ignore complexity-needs-log
+    def _pop_output_sections(self, event_dict):  # stogger: ignore
+        """Pop output section keys from event_dict so they don't appear in the KV body."""
+        return {
+            "cmd_output_line": event_dict.pop("cmd_output_line", None),
+            "_output": event_dict.pop("_output", None),
+            "_raw_output": event_dict.pop("_raw_output", None),
+            "_raw_output_prefix": event_dict.pop("_raw_output_prefix", None),
+            "stdout": event_dict.pop("stdout", None),
+            "stderr": event_dict.pop("stderr", None),
+            "stack": event_dict.pop("stack", None),
+            "exception_traceback": event_dict.pop("exception_traceback", None),
+        }
+
+    # stogger: ignore — structlog formatter, output pipeline must not log
+    def _render_output_sections(self, sections, write_fn):  # stogger: ignore complexity-needs-log
         """Render output sections: cmd_output, output, stdout, stderr, stack, traceback."""
-        cmd_output_line = event_dict.pop("cmd_output_line", None)
-        output = event_dict.pop("_output", None)
-        raw_output = event_dict.pop("_raw_output", None)
-        raw_output_prefix = event_dict.pop("_raw_output_prefix", None)
-        stdout = event_dict.pop("stdout", None)
-        stderr = event_dict.pop("stderr", None)
-        stack = event_dict.pop("stack", None)
-        exception_traceback = event_dict.pop("exception_traceback", None)
+        cmd_output_line = sections["cmd_output_line"]
+        output = sections["_output"]
+        raw_output = sections["_raw_output"]
+        raw_output_prefix = sections["_raw_output_prefix"]
+        stdout = sections["stdout"]
+        stderr = sections["stderr"]
+        stack = sections["stack"]
+        exception_traceback = sections["exception_traceback"]
 
         if cmd_output_line is not None:
             write_fn(DIM + "> " + cmd_output_line + RESET_ALL)
@@ -351,9 +365,10 @@ class ConsoleFileRenderer:
 
         formatted_replace_msg = self._format_replace_msg(event_dict)
         self._strip_internal_fields(event_dict)
+        output_sections = self._pop_output_sections(event_dict)
         self._format_header(event_dict, write, log_settings)
         self._format_body(event_dict, write, formatted_replace_msg)
-        self._render_output_sections(event_dict, write)
+        self._render_output_sections(output_sections, write)
 
         return {"console": console_io.getvalue(), "file": log_io.getvalue()}
 

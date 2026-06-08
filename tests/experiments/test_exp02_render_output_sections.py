@@ -89,7 +89,8 @@ def test_render_output_sections_all_types(patterns):
         "stack": "stack trace here",
         "exception_traceback": "traceback details",
     }
-    renderer._render_output_sections(event_dict, buf.write)
+    sections = renderer._pop_output_sections(event_dict)
+    renderer._render_output_sections(sections, buf.write)
     output = _strip_ansi(buf.getvalue())
 
     # Tolerate (do not require) things the renderer adds around the content:

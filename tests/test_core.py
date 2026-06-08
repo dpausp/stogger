@@ -376,7 +376,9 @@ class TestRenderOutputSections:
             "stack": "stack trace here",
             "exception_traceback": "traceback details",
         }
-        renderer._render_output_sections(event_dict, buf.write)
+        sections = renderer._pop_output_sections(event_dict)
+        assert event_dict == {}  # all section keys popped
+        renderer._render_output_sections(sections, buf.write)
         output = buf.getvalue()
 
         assert "cmd> ls -la" in output
@@ -393,7 +395,41 @@ class TestRenderOutputSections:
         assert "traceback details" in output
         assert "=" * 79 in output  # separator between stack and traceback
 
-    def test_raw_output_ansi_passthrough(self):
+    def test_exception_traceback_not_rendered_inline(self):
+        """exception_traceback appears only as multi-line block, never as KV pair.
+
+        Regression test: _pop_output_sections removes exception_traceback (and
+        other output section keys) from event_dict BEFORE _format_body renders
+        the fallback KV pairs. Without this, the traceback appeared twice — once
+        inline with escaped newlines, once as the formatted block.
+        """
+        renderer = ConsoleFileRenderer()
+        traceback_text = "Traceback (most recent call last):\n  File 'app.py', line 1\nConnectionError: refused"
+        event_dict = {
+            "event": "db-connect-failed",
+            "level": "error",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "host": "db.example.com",
+            "exception_traceback": traceback_text,
+        }
+        result = renderer(None, "error", event_dict)
+        assert result is not None
+
+        console = result["console"]
+        file_output = result["file"]
+
+        # The traceback MUST appear as the formatted multi-line block.
+        assert "exception: Traceback (most recent call last):" in console
+        assert "exception: ConnectionError: refused" in console
+
+        # The traceback MUST NOT appear as an inline key=value pair.
+        # The old bug rendered: exception_traceback='Traceback...\\n  File...'
+        assert "exception_traceback=" not in console
+        assert "exception_traceback=" not in file_output
+
+        # Other KV pairs should still be rendered normally.
+        assert "host=" in file_output
+        assert "db.example.com" in console
         """_raw_output preserves ANSI in console, strips for file."""
         renderer = ConsoleFileRenderer()
         ansi_content = RED + "error text" + RESET_ALL
@@ -1149,8 +1185,8 @@ def test_render_stack_without_traceback():
     """Stack section renders without separator when no exception_traceback."""
     renderer = ConsoleFileRenderer()
     buf = io.StringIO()
-    event_dict = {"stack": "stack trace here"}
-    renderer._render_output_sections(event_dict, buf.write)
+    sections = renderer._pop_output_sections({"stack": "stack trace here"})
+    renderer._render_output_sections(sections, buf.write)
     output = buf.getvalue()
     assert "stack trace here" in output
     assert "=" * 79 not in output
