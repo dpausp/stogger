@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatch-vcs"]
+requires = ["hatchling", "versioningit"]
 build-backend = "hatchling.build"
 
 [project]
@@ -12,10 +12,13 @@ dependencies = [
 ]
 
 [tool.hatch.version]
-source = "vcs"
-tag-pattern = "^(?P<version>\\d{4}\\.\\d{1,2}\\.\\d{1,2})$"
-fallback-version = "0.0.0"
-raw-options.root = "../.."
+source = "versioningit"
+default-version = "0.0.0"
+
+[tool.hatch.version.format]
+distance = "{base_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
+dirty = "{base_version}+d{build_date:%Y%m%d}"
+distance-dirty = "{base_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
 
 [tool.hatch.build.targets.wheel.sources]
 "src" = ""
