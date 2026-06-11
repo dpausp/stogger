@@ -298,6 +298,104 @@ print("Still configured:", stogger.logging_initialized())
         assert "Configured:" in lines[0]
         assert "Still configured:" in lines[-1]
 
+    def test_early_to_full_upgrade_no_override_warning(self):
+        """init_early_logging() → init_logging() must NOT warn about overriding.
+
+        The early→full upgrade is the normal two-phase init pattern. Only
+        third-party pipelines (pytest-stogger, etc.) should trigger the
+        override warning.
+        """
+        test_script = """
+import stogger
+import structlog
+
+# Phase 1: early bootstrap (from __init__.py)
+stogger.init_early_logging()
+
+# Phase 2: full init (from CLI callback)
+stogger.init_logging()
+
+# If the override warning fired, it would appear on stderr
+import sys
+sys.stderr.flush()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", test_script],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        assert "init-logging-overriding-existing-config" not in result.stderr, (
+            f"Early→full upgrade should not produce override warning, but got:\n{result.stderr}"
+        )
+
+    def test_third_party_pipeline_override_still_warns(self):
+        """init_logging() must still warn when overriding a non-early pipeline."""
+        test_script = """
+import structlog
+import stogger
+
+# Simulate third-party pipeline (e.g. pytest-structlog)
+structlog.configure(
+    processors=[structlog.dev.ConsoleRenderer()],
+    logger_factory=structlog.PrintLoggerFactory(),
+    wrapper_class=structlog.BoundLogger,
+    cache_logger_on_first_use=False,
+)
+
+# Now init_logging() should warn about overriding this
+stogger.init_logging()
+
+import sys
+sys.stderr.flush()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", test_script],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        assert "init-logging-overriding-existing-config" in result.stderr, (
+            f"Override warning expected when third-party pipeline is active, but stderr was:\n{result.stderr}"
+        )
+
+
+class TestInitLoggingOverrideWarning:
+    """Tests for init_logging() override warning suppression."""
+
+    def test_early_flag_suppresses_override_warning(self, log):
+        """When _early_logging_active is True, init_logging() must not warn."""
+        # Simulate the state after init_early_logging()
+        import stogger.core
+
+        original = stogger.core._early_logging_active
+        stogger.core._early_logging_active = True
+        try:
+            stogger.init_logging()
+        finally:
+            stogger.core._early_logging_active = original
+
+        assert not log.has("init-logging-overriding-existing-config")
+
+    def test_no_early_flag_still_warns(self, log):
+        """When _early_logging_active is False and structlog is configured, warn."""
+        import stogger.core
+
+        original = stogger.core._early_logging_active
+        stogger.core._early_logging_active = False
+        try:
+            stogger.init_logging()
+        finally:
+            stogger.core._early_logging_active = original
+
+        assert log.has("init-logging-overriding-existing-config")
+
 
 # --- Batch 4: Extracted Private Methods ---
 

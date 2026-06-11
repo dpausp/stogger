@@ -21,6 +21,11 @@ from .processors import build_timestamp_processor
 # Get a logger for this module
 log = structlog.get_logger(__name__)
 
+# Module-level state: set by init_early_logging(), read by init_logging().
+# When True, the existing structlog pipeline was installed by stogger's own
+# early bootstrap — init_logging() should silently upgrade it without warning.
+_early_logging_active: bool = False
+
 from ._colors import BACKRED, BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
 from .decorators import LogScope, log_call, log_operation, log_result, log_scope  # noqa: F401
 
@@ -792,7 +797,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
 
     logger = structlog.get_logger()
 
-    if _already_configured:
+    if _already_configured and not _early_logging_active:
         logger.warning(
             "init-logging-overriding-existing-config",
             _replace_msg="init_logging() called but structlog was already configured — "
@@ -826,6 +831,8 @@ def init_early_logging(*, verbose: bool = False) -> None:
             is set.
 
     """
+    global _early_logging_active
+
     if verbose or os.environ.get("STOGGER_DEBUG"):
         import inspect  # noqa: PLC0415 — imported at function level; init_early_logging runs before all modules load, inspect only needed for debug caller info
 
@@ -847,8 +854,10 @@ def init_early_logging(*, verbose: bool = False) -> None:
     )
 
     # Now safe to create StoggerConfig — any logging goes to stderr
+    _drop_debug = _drop_below_info if not (verbose or os.environ.get("STOGGER_DEBUG")) else lambda _, e: e
     processors = [
         structlog.stdlib.add_log_level,
+        _drop_debug,
         build_timestamp_processor(StoggerConfig()),
         ConsoleFileRenderer(),
         SelectRenderedString(
@@ -863,6 +872,8 @@ def init_early_logging(*, verbose: bool = False) -> None:
         wrapper_class=structlog.BoundLogger,
         cache_logger_on_first_use=False,  # Allow reconfiguration
     )
+
+    _early_logging_active = True
 
     # Set up basic stdlib logging
     logging.basicConfig(
