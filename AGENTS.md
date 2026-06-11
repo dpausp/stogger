@@ -17,4 +17,5 @@ geprüft werden:
 - docdisco
 - dompti
 - nixflow
+- prodisco
 - tysy
