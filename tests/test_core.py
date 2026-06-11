@@ -397,6 +397,23 @@ class TestInitLoggingOverrideWarning:
         assert log.has("init-logging-overriding-existing-config")
 
 
+class TestOpenLogFiles:
+    """Tests for atexit cleanup of open log file handles."""
+
+    def test_close_open_log_files_closes_tracked_handles(self):
+        """_close_open_log_files() closes all tracked file handles."""
+        import io
+
+        from stogger.core import _close_open_log_files, _open_log_files
+
+        fh = io.StringIO()
+        _open_log_files.append(fh)
+        assert not fh.closed
+        _close_open_log_files()
+        assert fh.closed
+        assert len(_open_log_files) == 0
+
+
 # --- Batch 4: Extracted Private Methods ---
 
 

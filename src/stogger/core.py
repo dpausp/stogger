@@ -1,5 +1,7 @@
 """Core logging functionality for stogger."""
 
+import atexit
+import contextlib
 import io
 import json
 import logging
@@ -25,6 +27,21 @@ log = structlog.get_logger(__name__)
 # When True, the existing structlog pipeline was installed by stogger's own
 # early bootstrap — init_logging() should silently upgrade it without warning.
 _early_logging_active: bool = False
+
+# Open file handles tracked for cleanup at process exit.
+# Prevents ResourceWarning: unclosed file when the interpreter shuts down.
+_open_log_files: list[io.IOBase] = []
+
+
+def _close_open_log_files() -> None:
+    """Close log files opened by build_logger_factories() and log_cmd_output()."""
+    with contextlib.suppress(OSError):
+        for fh in _open_log_files:
+            fh.close()
+        _open_log_files.clear()
+
+
+atexit.register(_close_open_log_files)
 
 from ._colors import BACKRED, BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
 from .decorators import LogScope, log_call, log_operation, log_result, log_scope  # noqa: F401
@@ -588,6 +605,7 @@ def build_logger_factories(
                 path=str(main_log_file_name),
             )
         else:
+            _open_log_files.append(main_log_file)
             loggers["file"] = structlog.PrintLoggerFactory(main_log_file)
             context["logdir"] = logdir
 
@@ -1190,6 +1208,8 @@ def init_command_logging(log, logdir=None) -> None:
             cmd_log_file=str(cmd_log_file_name),
         )
         return
+
+    _open_log_files.append(cmd_log_file)
 
     log.info(
         "logging-cmd-output",
