@@ -846,8 +846,14 @@ def init_early_logging(*, verbose: bool = False) -> None:
     # Configure stderr FIRST, before any StoggerConfig() creation.
     # StoggerConfig.__init__ loads pyproject.toml which may trigger
     # debug logging — without this, it leaks to stdout (structlog default).
+    # Include _drop_below_info so debug events (e.g. checking-test-dependencies)
+    # don't leak to stderr during the brief window before the second configure.
     structlog.configure(
-        processors=[structlog.dev.ConsoleRenderer()],
+        processors=[
+            structlog.processors.add_log_level,
+            _drop_below_info,
+            structlog.dev.ConsoleRenderer(),
+        ],
         logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
         wrapper_class=structlog.BoundLogger,
         cache_logger_on_first_use=False,
