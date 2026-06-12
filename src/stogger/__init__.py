@@ -28,7 +28,9 @@ __all__ = [
     "log_operation",
     "log_result",
     "log_scope",
+    "log_scope",
     "logging_initialized",
+    "shutdown_logging",
 ]
 
 from pathlib import Path
@@ -79,6 +81,9 @@ from .core import (
 )
 from .core import (
     logging_initialized as logging_initialized,
+)
+from .core import (
+    shutdown_logging as shutdown_logging,
 )
 
 __docs_path__ = Path(__file__).parent

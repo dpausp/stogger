@@ -41,6 +41,20 @@ def _close_open_log_files() -> None:
         _open_log_files.clear()
 
 
+def shutdown_logging() -> None:
+    """Close all open log files and reset structlog to unconfigured state.
+
+    Call before re-configuring structlog (e.g. in test teardown) to prevent
+    ``ResourceWarning: unclosed file`` from orphaned file handles left in
+    discarded ``PrintLoggerFactory`` instances.
+    """
+    global _already_configured, _early_logging_active
+    _close_open_log_files()
+    structlog.reset_defaults()
+    _already_configured = False
+    _early_logging_active = False
+
+
 atexit.register(_close_open_log_files)
 
 from ._colors import BACKRED, BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW

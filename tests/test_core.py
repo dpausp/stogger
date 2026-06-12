@@ -38,6 +38,7 @@ from stogger.core import (
     logging_initialized,
     prefix,
     process_exc_info,
+    shutdown_logging,
 )
 
 
@@ -412,6 +413,61 @@ class TestOpenLogFiles:
         _close_open_log_files()
         assert fh.closed
         assert len(_open_log_files) == 0
+
+
+class TestShutdownLogging:
+    """Tests for shutdown_logging() — proper cleanup before structlog reconfigure."""
+
+    def test_shutdown_closes_open_log_files(self, tmp_path):
+        """shutdown_logging() closes file handles opened by init_logging()."""
+        import warnings
+
+        from stogger.core import _open_log_files, shutdown_logging
+
+        structlog.reset_defaults()
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-shutdown")
+
+        # File handle was opened and tracked
+        assert len(_open_log_files) >= 1
+        fh = _open_log_files[0]
+        assert not fh.closed
+
+        # shutdown_logging() must close the handle — no ResourceWarning
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", ResourceWarning)
+            shutdown_logging()
+
+        assert fh.closed
+        assert not any(isinstance(w.category, ResourceWarning) for w in caught)
+
+    def test_shutdown_resets_configured_flags(self, tmp_path):
+        """shutdown_logging() resets flags so init_logging() can run again."""
+        import stogger.core as core_mod
+
+        structlog.reset_defaults()
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-flags")
+
+        assert structlog.is_configured()
+
+        shutdown_logging()
+
+        assert core_mod._already_configured is False
+        assert core_mod._early_logging_active is False
+        assert not structlog.is_configured()
+
+    def test_shutdown_allows_reinit_without_warning(self, tmp_path, capsys):
+        """After shutdown_logging(), init_logging() works without override warning."""
+        from stogger.core import shutdown_logging
+
+        structlog.reset_defaults()
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-reinit")
+
+        shutdown_logging()
+
+        # Second init should NOT produce override warning
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-reinit")
+        captured = capsys.readouterr()
+        assert "init-logging-overriding-existing-config" not in captured.err
 
 
 # --- Batch 4: Extracted Private Methods ---
