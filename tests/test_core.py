@@ -1057,22 +1057,24 @@ class TestMultiOptimisticLogger:
         with pytest.raises(RuntimeError, match="Sub-logger dispatch failed"):
             mol.msg(target="hello")
 
-    def test_dispatch_failure_logs_event(self, log):
-        """Sub-logger that raises logs sub-logger-dispatch-failed event."""
+    def test_dispatch_failure_writes_stderr(self, capsys):
+        """Sub-logger that raises writes diagnostic to stderr, then RuntimeError."""
         failing_logger = MagicMock(spec=_MsgTarget)
         failing_logger.msg.side_effect = RuntimeError("write failed")
         mol = MultiOptimisticLogger({"target": failing_logger})
         with pytest.raises(RuntimeError, match="Sub-logger dispatch failed"):
             mol.msg(target="hello")
-        log.has("sub-logger-dispatch-failed")
+        captured = capsys.readouterr()
+        assert "sub-logger 'target' dispatch failed" in captured.err
 
-    def test_value_error_logs_event(self, log):
-        """Sub-logger raising ValueError logs sub-logger-value-error event."""
+    def test_value_error_silently_swallowed(self, capsys):
+        """Sub-logger raising ValueError is silently swallowed — no recursion risk."""
         failing_logger = MagicMock(spec=_MsgTarget)
         failing_logger.msg.side_effect = ValueError("file handle closed")
         mol = MultiOptimisticLogger({"target": failing_logger})
-        mol.msg(target="hello")
-        log.has("sub-logger-value-error")
+        mol.msg(target="hello")  # no raise, no output
+        captured = capsys.readouterr()
+        assert captured.err == ""
 
     def test_msg_empty_line(self):
         """Msg with empty/missing line -> logger not called."""
@@ -1080,6 +1082,25 @@ class TestMultiOptimisticLogger:
         mol = MultiOptimisticLogger({"target": mock_logger})
         mol.msg(target="")
         mock_logger.msg.assert_not_called()
+
+    def test_value_error_no_recursion(self):
+        """ValueError during msg() must not re-enter the logging pipeline.
+
+        If the handler used log.debug() / log.exception(), a systemic
+        ValueError (e.g. closed file handle) would recurse: msg() →
+        ValueError → log.debug() → processor chain → msg() → ValueError → …
+        """
+        call_count = 0
+
+        class CountingLogger:
+            def msg(self, line):
+                nonlocal call_count
+                call_count += 1
+                raise ValueError("simulated closed handle")
+
+        mol = MultiOptimisticLogger({"target": CountingLogger()})
+        mol.msg(target="trigger")  # must not recurse
+        assert call_count == 1  # called exactly once, then swallowed
 
 
 @pytest.mark.integration

@@ -1140,22 +1140,23 @@ class MultiOptimisticLogger:
     def __repr__(self) -> str:
         return f"<MultiOptimisticLogger {[repr(logger) for logger in self.loggers]}>"
 
-    def msg(self, **messages) -> None:
+    # stogger: ignore — this IS the logger; calling log.*() here would recurse
+    def msg(self, **messages) -> None:  # stogger: ignore
         for name, logger in self.loggers.items():
             try:
                 line = messages.get(name)
                 if line:
                     logger.msg(line)
-            except ValueError:
-                log.debug(
-                    "sub-logger-value-error",
-                    target=name,
-                )
-            except Exception as err:
-                log.exception(
-                    "sub-logger-dispatch-failed",
-                    target=name,
-                )
+            except ValueError:  # stogger: ignore
+                # NOTE: Do NOT use log.debug() here — this method IS the
+                # logger.  Calling log.debug() would re-enter msg() and
+                # recurse if the underlying issue is systemic.
+                pass
+            except Exception as err:  # stogger: ignore
+                # NOTE: Do NOT use log.exception() here — same recursion
+                # risk as the ValueError handler above.  Write directly to
+                # stderr so the error is at least visible.
+                sys.stderr.write(f"stogger: sub-logger '{name}' dispatch failed: {err}\n")
                 msg = "Sub-logger dispatch failed"
                 raise RuntimeError(msg) from err
 
