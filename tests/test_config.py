@@ -264,7 +264,17 @@ def test_load_config_invalid_toml(log):
             assert config.verbose is False
             assert config.syslog_identifier == "stogger"
 
-        log.has("config-loading-failed")
+        log.has("config-parse-failed")
+
+
+@pytest.mark.integration
+def test_load_config_no_pyproject_returns_defaults():
+    """Missing pyproject.toml means _load_config returns {} — defaults used."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            config = StoggerConfig()
+            assert config.syslog_identifier == "stogger"
 
 
 # ---------------------------------------------------------------------------

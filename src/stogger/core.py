@@ -497,11 +497,11 @@ def format_exc_info(  # stogger: ignore
         exception_class = exc_info[0]
         try:
             formatted_traceback = structlog.processors._format_exception(exc_info)  # noqa: SLF001
-        except Exception:  # noqa: BLE001
+        except Exception as fmt_err:  # noqa: BLE001
             # Formatting itself failed (e.g. RecursionError in linecache
             # when walking a deep __context__ chain). Provide degraded
             # output instead of crashing the entire logging pipeline.
-            formatted_traceback = f"[traceback unavailable: formatting raised {type(exc_info[1]).__name__}]"
+            formatted_traceback = f"[traceback unavailable: formatting raised {type(fmt_err).__name__}: {fmt_err}]"
         event_dict["exception_traceback"] = formatted_traceback
         event_dict["exception_msg"] = str(exc_info[1])
         event_dict["exception_class"] = exception_class.__module__ + "." + exception_class.__name__
@@ -627,7 +627,7 @@ def build_logger_factories(
         if os.environ.get("JOURNAL_STREAM"):
             log.info(
                 "journal-stream-detected",
-                _replace_msg="JOURNAL_STREAM set, switching to systemd journal logging",
+                _replace_msg="JOURNAL_STREAM={journal_stream} set, switching to systemd journal logging",
                 journal_stream=os.environ.get("JOURNAL_STREAM"),
             )
         else:
@@ -1094,18 +1094,15 @@ class MultiRenderer:
     def __repr__(self) -> str:
         return f"<MultiRenderer {[repr(logger) for logger in self.renderers]}>"
 
-    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:
+    # stogger: ignore — this IS the last processor; log.*() here would recurse
+    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
         merged_messages = {}
         for renderer in self.renderers.values():
             try:
                 messages = renderer(logger, method_name, dict(event_dict))
                 merged_messages.update(messages)
-            except Exception as err:
-                log.exception(
-                    "renderer-failed",
-                    renderer=type(renderer).__name__,
-                    event_name=event_dict.get("event"),
-                )
+            except Exception as err:  # stogger: ignore
+                sys.stderr.write(f"stogger: renderer '{type(renderer).__name__}' failed: {err}\n")
                 msg = "Renderer failed"
                 raise RuntimeError(msg) from err
 
@@ -1165,7 +1162,7 @@ class MultiOptimisticLogger:
                 # NOTE: Do NOT use log.debug() here — this method IS the
                 # logger.  Calling log.debug() would re-enter msg() and
                 # recurse if the underlying issue is systemic.
-                pass
+                sys.stderr.write(f"stogger: sub-logger '{name}' dropped message (ValueError)\n")
             except Exception as err:  # stogger: ignore
                 # NOTE: Do NOT use log.exception() here — same recursion
                 # risk as the ValueError handler above.  Write directly to
@@ -1218,9 +1215,10 @@ def init_command_logging(log, logdir=None) -> None:
     try:
         cmd_log_file = cmd_log_file_name.open("w")
     except OSError:
-        log.exception(
+        log.warning(
             "cmd-output-file-open-failed",
-            cmd_log_file=str(cmd_log_file_name),
+            _replace_msg="Cannot open command output file: {path}",
+            path=str(cmd_log_file_name),
         )
         return
 

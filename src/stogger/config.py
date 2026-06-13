@@ -176,8 +176,8 @@ def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
                 "config-loaded-successfully",
                 settings_count=len(stogger_config),
             )
-    except (FileNotFoundError, tomllib.TOMLDecodeError):
-        log.exception("config-loading-failed", stage="load")
+    except tomllib.TOMLDecodeError:
+        log.exception("config-parse-failed", stage="load")
         return {}
     else:
         return stogger_config
@@ -404,7 +404,7 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         log.info(
             "project-structure-detected-from-heuristics",
             method="heuristics",
-            _replace_msg="Project structure detected via heuristics",
+            _replace_msg="Project structure detected via {method}",
         )
         return structure
     except (OSError, ValueError, FileNotFoundError) as e:

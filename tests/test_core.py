@@ -1083,8 +1083,8 @@ class TestMultiRenderer:
         with pytest.raises(RuntimeError, match="Renderer failed"):
             mr(None, "info", {"event": "test"})
 
-    def test_renderer_failure_logs_event(self, log):
-        """Renderer that raises logs renderer-failed event."""
+    def test_renderer_failure_writes_stderr(self, capsys):
+        """Renderer that raises writes to stderr — no log.*() to avoid recursion."""
 
         def bad_renderer(_logger, _method, _event_dict):
             raise RuntimeError("boom")
@@ -1092,7 +1092,9 @@ class TestMultiRenderer:
         mr = MultiRenderer(bad=bad_renderer)
         with pytest.raises(RuntimeError, match="Renderer failed"):
             mr(None, "info", {"event": "test"})
-        log.has("renderer-failed")
+        captured = capsys.readouterr()
+        assert "renderer" in captured.err
+        assert "failed" in captured.err
 
 
 class TestMultiOptimisticLogger:
@@ -1123,14 +1125,14 @@ class TestMultiOptimisticLogger:
         captured = capsys.readouterr()
         assert "sub-logger 'target' dispatch failed" in captured.err
 
-    def test_value_error_silently_swallowed(self, capsys):
-        """Sub-logger raising ValueError is silently swallowed — no recursion risk."""
+    def test_value_error_writes_stderr(self, capsys):
+        """Sub-logger raising ValueError writes diagnostic to stderr — no recursion risk."""
         failing_logger = MagicMock(spec=_MsgTarget)
         failing_logger.msg.side_effect = ValueError("file handle closed")
         mol = MultiOptimisticLogger({"target": failing_logger})
-        mol.msg(target="hello")  # no raise, no output
+        mol.msg(target="hello")  # no raise, stderr diagnostic
         captured = capsys.readouterr()
-        assert captured.err == ""
+        assert "dropped message (ValueError)" in captured.err
 
     def test_msg_empty_line(self):
         """Msg with empty/missing line -> logger not called."""
