@@ -58,6 +58,7 @@ def shutdown_logging() -> None:
 atexit.register(_close_open_log_files)
 
 from ._colors import BACKRED, BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
+from ._colors import should_emit_colors as _should_emit_colors
 from .decorators import LogScope, log_call, log_operation, log_result, log_scope  # noqa: F401
 
 
@@ -167,6 +168,7 @@ class ConsoleFileRenderer:
         format_config=None,
         min_level=None,
         show_caller_info=None,
+        colors=None,
     ) -> None:
         """Initialize the ConsoleFileRenderer with format_config.
 
@@ -175,6 +177,9 @@ class ConsoleFileRenderer:
                       Uses default FormatConfig() if None is provided.
             min_level: Override min_level from format_config
             show_caller_info: Override show_code_info from format_config
+            colors: Override color detection. ``True`` = force colors on,
+                ``False`` = force off, ``None`` = auto-detect (NO_COLOR env,
+                isatty).  See :func:`stogger._colors.should_emit_colors`.
 
         """
         # Use provided FormatConfig or create default
@@ -192,20 +197,30 @@ class ConsoleFileRenderer:
         self.pad_event = format_config.pad_event_width
         self.timestamp_format = format_config.timestamp_precision
 
+        # Resolve color palette — empty strings when colors disabled
+        use_colors = _should_emit_colors(colors)
+        self._bright = BRIGHT if use_colors else ""
+        self._reset = RESET_ALL if use_colors else ""
+        self._dim = DIM if use_colors else ""
+        self._cyan = CYAN if use_colors else ""
+        self._magenta = MAGENTA if use_colors else ""
+
+        level_color_pair = (RED, BRIGHT) if use_colors else ("", "")
+        warn_color_pair = (YELLOW, BRIGHT) if use_colors else ("", "")
+        info_color_pair = (GREEN, BRIGHT) if use_colors else ("", "")
+
         self._level_to_color = {
-            "alert": RED,
-            "critical": RED,
-            "error": RED,
-            "exception": RED,
-            "warn": YELLOW,
-            "warning": YELLOW,
-            "info": GREEN,
-            "debug": GREEN,
-            "trace": GREEN,
-            "notset": BACKRED,
+            "alert": "".join(level_color_pair),
+            "critical": "".join(level_color_pair),
+            "error": "".join(level_color_pair),
+            "exception": "".join(level_color_pair),
+            "warn": "".join(warn_color_pair),
+            "warning": "".join(warn_color_pair),
+            "info": "".join(info_color_pair),
+            "debug": "".join(info_color_pair),
+            "trace": "".join(info_color_pair),
+            "notset": BACKRED if use_colors else "",
         }
-        for key in self._level_to_color:
-            self._level_to_color[key] += BRIGHT
         self._longest_level = len(
             max(self._level_to_color.keys(), key=len),
         )
@@ -255,8 +270,8 @@ class ConsoleFileRenderer:
                 ts = f"+{elapsed:.3f}s"
             elif self.timestamp_format == "iso_no_z" and str(ts).endswith("Z"):
                 ts = str(ts)[:-1]
-            return DIM + str(ts) + RESET_ALL + " "
-        return DIM + "notimestamp" + RESET_ALL + " "
+            return self._dim + str(ts) + self._reset + " "
+        return self._dim + "notimestamp" + self._reset + " "
 
     # stogger: ignore — structlog formatter, output pipeline must not log
     def _pop_output_sections(self, event_dict):  # stogger: ignore
@@ -285,10 +300,10 @@ class ConsoleFileRenderer:
         exception_traceback = sections["exception_traceback"]
 
         if cmd_output_line is not None:
-            write_fn(DIM + "> " + cmd_output_line + RESET_ALL)
+            write_fn(self._dim + "> " + cmd_output_line + self._reset)
 
         if output is not None:
-            write_fn("\n" + prefix("", "\n" + output + "\n") + RESET_ALL)
+            write_fn("\n" + prefix("", "\n" + output + "\n") + self._reset)
 
         if raw_output is not None:
             if raw_output_prefix:
@@ -297,10 +312,10 @@ class ConsoleFileRenderer:
                 write_fn("\n" + raw_output + "\n")
 
         if stdout is not None:
-            write_fn("\n" + DIM + prefix("out", "\n" + stdout + "\n") + RESET_ALL)
+            write_fn("\n" + self._dim + prefix("out", "\n" + stdout + "\n") + self._reset)
 
         if stderr is not None:
-            write_fn("\n" + prefix("err", "\n" + stderr + "\n") + RESET_ALL)
+            write_fn("\n" + prefix("err", "\n" + stderr + "\n") + self._reset)
 
         if stack is not None:
             write_fn("\n" + prefix("stack", stack))
@@ -360,10 +375,10 @@ class ConsoleFileRenderer:
 
         level = event_dict.pop("level", None)
         if level is not None:
-            write(self._level_to_color[level] + level[0].upper() + RESET_ALL + " ")
+            write(self._level_to_color[level] + level[0].upper() + self._reset + " ")
 
         event = event_dict.pop("event")
-        write(BRIGHT + _pad(event, self.pad_event) + RESET_ALL + " ")
+        write(self._bright + _pad(event, self.pad_event) + self._reset + " ")
 
         event_dict.pop("logger", "root")
 
@@ -377,7 +392,7 @@ class ConsoleFileRenderer:
         else:
             write(
                 " ".join(
-                    CYAN + key + RESET_ALL + "=" + MAGENTA + repr(event_dict[key]) + RESET_ALL
+                    self._cyan + key + self._reset + "=" + self._magenta + repr(event_dict[key]) + self._reset
                     for key in sorted(event_dict.keys())
                     if not key.startswith("_")
                 ),
@@ -547,7 +562,7 @@ class SelectRenderedString:
         return str(event_dict)
 
 
-def _build_console_renderer_kwargs(verbose, show_caller_info):
+def _build_console_renderer_kwargs(verbose, show_caller_info, force_colors):
     """Build ConsoleFileRenderer keyword overrides for init_logging."""
     log.debug("building-console-renderer-kwargs", verbose=verbose, show_caller_info=show_caller_info)
     kwargs = {}
@@ -555,6 +570,8 @@ def _build_console_renderer_kwargs(verbose, show_caller_info):
         kwargs["min_level"] = "debug"
     if show_caller_info is not None:
         kwargs["show_caller_info"] = show_caller_info
+    if force_colors is not None:
+        kwargs["colors"] = force_colors
     return kwargs
 
 
@@ -739,6 +756,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     show_caller_info: bool | None = None,
     timestamp_precision: str | None = None,
     systemd: SystemdMode | None = None,
+    force_colors: bool | None = None,
 ) -> None:
     """Initialize full structured logging with console, file, and journal targets.
 
@@ -773,6 +791,10 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
             (error if journal unavailable), or ``SystemdMode.OFF`` (no journal
             integration). When None (default), uses the setting from config or
             ``STOGGER_SYSTEMD`` env var.
+        force_colors: Override ANSI color detection. ``True`` = always emit
+            colors, ``False`` = never, ``None`` (default) = auto-detect via
+            ``NO_COLOR`` / ``CLICOLOR_FORCE`` env vars and ``isatty(stderr)``.
+            See https://no-color.org/.
 
     Raises:
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
@@ -801,7 +823,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
     syslog_identifier = syslog_identifier if syslog_identifier is not None else cfg.syslog_identifier
 
-    console_renderer_kwargs = _build_console_renderer_kwargs(verbose, show_caller_info)
+    console_renderer_kwargs = _build_console_renderer_kwargs(verbose, show_caller_info, force_colors)
     multi_renderer = MultiRenderer(
         journal=SystemdJournalRenderer(syslog_identifier, config_facility),
         postgres=PostgresRenderer(),

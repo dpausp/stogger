@@ -470,6 +470,72 @@ class TestShutdownLogging:
         assert "init-logging-overriding-existing-config" not in captured.err
 
 
+class TestColorDetection:
+    """Tests for NO_COLOR / CLICOLOR_FORCE / isatty color detection."""
+
+    def test_no_color_env_disables_colors(self, monkeypatch):
+        """NO_COLOR env var present → colors disabled (https://no-color.org/)."""
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is False
+
+    def test_no_color_empty_string_still_disables(self, monkeypatch):
+        """NO_COLOR='' (empty string) still disables — presence matters, not value."""
+        monkeypatch.setenv("NO_COLOR", "")
+        monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is False
+
+    def test_clicolor_force_overrides_no_tty(self, monkeypatch):
+        """CLICOLOR_FORCE env var → colors even on non-TTY."""
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("CLICOLOR_FORCE", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is True
+
+    def test_no_color_overrides_clicolor_force(self, monkeypatch):
+        """NO_COLOR takes precedence over CLICOLOR_FORCE."""
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.setenv("CLICOLOR_FORCE", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is False
+
+    def test_force_true_overrides_everything(self, monkeypatch):
+        """Explicit force=True wins over NO_COLOR env."""
+        monkeypatch.setenv("NO_COLOR", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors(force=True) is True
+
+    def test_force_false_overrides_everything(self, monkeypatch):
+        """Explicit force=False wins over CLICOLOR_FORCE env."""
+        monkeypatch.setenv("CLICOLOR_FORCE", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors(force=False) is False
+
+    def test_renderer_colors_false_produces_no_ansi(self):
+        """ConsoleFileRenderer(colors=False) output has zero ANSI escape codes."""
+        renderer = ConsoleFileRenderer(colors=False)
+        result = renderer(None, "info", {"event": "test-event", "level": "info", "timestamp": "2026-01-01T00:00:00Z"})
+        assert result is not None
+        console_output = result["console"]
+        assert "\x1b[" not in console_output, f"Found ANSI codes in: {console_output!r}"
+
+    def test_renderer_colors_true_produces_ansi(self):
+        """ConsoleFileRenderer(colors=True) output contains ANSI escape codes."""
+        renderer = ConsoleFileRenderer(colors=True)
+        result = renderer(None, "info", {"event": "test-event", "level": "info", "timestamp": "2026-01-01T00:00:00Z"})
+        assert result is not None
+        console_output = result["console"]
+        assert "\x1b[" in console_output, f"No ANSI codes in: {console_output!r}"
+
+
 # --- Batch 4: Extracted Private Methods ---
 
 
@@ -945,7 +1011,14 @@ class TestBuildConsoleRendererKwargs:
         """_build_console_renderer_kwargs emits building-console-renderer-kwargs debug event."""
         from stogger.core import _build_console_renderer_kwargs
 
-        _build_console_renderer_kwargs(verbose=True, show_caller_info=False)
+        _build_console_renderer_kwargs(verbose=True, show_caller_info=False, force_colors=None)
+
+    def test_force_colors_passed_through(self, log):
+        """force_colors parameter is passed through to kwargs."""
+        from stogger.core import _build_console_renderer_kwargs
+
+        result = _build_console_renderer_kwargs(verbose=False, show_caller_info=None, force_colors=True)
+        assert result["colors"] is True
         log.has("building-console-renderer-kwargs")
 
 

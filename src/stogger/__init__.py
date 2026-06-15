@@ -30,11 +30,15 @@ __all__ = [
     "log_scope",
     "log_scope",
     "logging_initialized",
+    "should_emit_colors",
     "shutdown_logging",
 ]
 
 from pathlib import Path
 
+from ._colors import (
+    should_emit_colors as should_emit_colors,
+)
 from .config import StoggerConfig as StoggerConfig
 from .config import SystemdMode as SystemdMode
 from .core import (
