@@ -225,7 +225,7 @@ commands = [
 
 [tool.uv.sources]
 stogger-postgres = { workspace = true }
-pytest-stogger = { path = "/pytest-stogger" }
+pytest-stogger = { path = "../pytest-stogger" }
 pytest-patterns = { path = "../pytest-patterns" }
 
 [tool.uv.workspace]
