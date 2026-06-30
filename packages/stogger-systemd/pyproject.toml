@@ -8,7 +8,7 @@ dynamic = ["version"]
 requires-python = ">=3.13"
 dependencies = [
     "stogger",
-    "systemd-python",
+    "systemd-python; sys_platform == 'linux'",
 ]
 classifiers = [
     "Operating System :: POSIX :: Linux",

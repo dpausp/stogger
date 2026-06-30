@@ -56,9 +56,21 @@ log.info("payment-processed",
 
 ## Configuration
 
-Note: The high-level configure API is not finalized; prefer init_logging with kwargs.
+### TOML Configuration
 
-stogger can be configured through various methods:
+For persistent settings, add a ``[tool.stogger]`` section to your ``pyproject.toml``:
+
+```toml
+[tool.stogger]
+verbose = true
+log_format = "simple"
+```
+
+See the feature-specific guides (systemd, postgres) for detailed configuration options.
+
+### Python API
+
+stogger can also be configured programmatically:
 
 ```python
 import stogger
@@ -78,5 +90,4 @@ stogger.init_logging(
 - Set up [Systemd Journal Integration](systemd.md) for services running under systemd
 - Set up [PostgreSQL Integration](postgres.md) for queryable persistent logs
 - Read [Testing with stogger](testing.md) to test your log output
-- Explore [Advanced Features](../features/advanced_assistant.md) for code transformation
 - Check out the [API Reference](../api/index) for detailed documentation

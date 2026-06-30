@@ -6,7 +6,7 @@
 
 **A sophisticated multi-target structured logging system built on structlog**
 
-Welcome to the comprehensive documentation for stogger - your go-to solution for elegant, structured, and powerful logging in Python applications.
+A structured logging library built on structlog with console, systemd journal, and PostgreSQL targets, plus AST-based convention checking via pytest-stogger.
 
 ## Quick Start
 
@@ -28,11 +28,12 @@ log.info("hello-world", user_id=123, action="login")
 
 ## Key Features
 
-- **Advanced AST Assistant** - Revolutionary code transformation
-- **Log Statement Analysis** - Intelligent issue detection
-- **Best Practices** - Proven logging patterns
-- **Beautiful Output** - Colorful and structured logs
-- **Multiple Integrations** - Eliot, systemd, and more
+- **Multi-Target Output** — Simultaneous console (colorized), file, systemd journal, and PostgreSQL targets via `MultiRenderer`
+- **Logging Decorators** — `@log_call`, `@log_result`, `@log_operation` decorators and `log_scope()` context manager with sync/async support
+- **Message Translation** — TOML-based i18n with `_replace_msg` pattern for human-readable formatted log messages
+- **Flexible Timestamps** — Configurable precision: `iso`, `iso_seconds`, `iso_no_z`, or `relative` (process-elapsed)
+- **AST Convention Checking** — pytest-stogger enforces 13 logging rules (except-must-log, no-info-in-except, etc.) at test time
+- **JSON Output** — Switch to structured JSON with `log_format="json"` in `[tool.stogger]`
 
 ## User Guide
 
@@ -40,17 +41,9 @@ log.info("hello-world", user_id=123, action="login")
 :maxdepth: 2
 :caption: User Guide
 
-user_guide/index
+user/index
 ```
 
-## Features
-
-```{toctree}
-:maxdepth: 2
-:caption: Features
-
-features/index
-```
 
 ## API Reference
 
@@ -67,7 +60,7 @@ api/index
 :maxdepth: 2
 :caption: Development
 
-development/index
+dev/index
 ```
 
 

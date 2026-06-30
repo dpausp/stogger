@@ -19,7 +19,7 @@ Short attention span edition. Do these things and your logs will be useful, cons
 - Measure time:
   - Prefer `duration_ms` for operations, or log `*-started` / `*-finished` pairs
 - Never log secrets/PII:
-  - Mask tokens, passwords, and personal data; enable PII scrubbing if available
+  - Mask tokens, passwords, and personal data; consider PII redaction in your logging design
 - Keep the cardinality low (avoid unbounded label values)
 
 ## Exceptions — do this
@@ -97,7 +97,7 @@ log.info(f"order {oid} by user {uid} created with total {total}")
 
 ## FAQ
 
-- Do we still need `exc_info=True`? Yes, if you want a stack trace. Use `log.exception(...)` (preferred) or pass `exc_info=True`/`exc_info=e` on error logs. Nicestlog’s processors will capture and format it into the `exception` field.
+- Do we still need `exc_info=True`? Yes, if you want a stack trace. Use `log.exception(...)` (preferred) or pass `exc_info=True`/`exc_info=e` on error logs. stogger's processors will capture and format it into the `exception` field.
 - Can I log plain strings? Technically yes, but you lose structure. Always prefer event name + fields.
 
 See also: full guide in [Logging Patterns](logging_patterns.md).

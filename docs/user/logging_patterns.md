@@ -338,7 +338,7 @@ def validate_config(config_path: Path):
 log.info("user-authenticated", user_id=123, email_domain="example.com")
 ```
 
-Never log passwords, tokens, or raw PII. Enable PII scrubbing via configuration (`enable_pii_scrubbing=True`).
+Never log passwords, tokens, or raw PII. Note: PII scrubbing via `enable_pii_scrubbing=True` is currently not implemented — the config option is accepted but has no effect.
 
 ## Performance
 
