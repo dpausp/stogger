@@ -5,6 +5,7 @@
 
 getting_started
 logging_patterns
+reference
 systemd
 postgres
 testing

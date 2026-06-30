@@ -51,6 +51,12 @@ The `timestamp_precision` values:
 - [Systemd Journal](docs/user/systemd.md) — native journal integration for services
 - [PostgreSQL](docs/user/postgres.md) — queryable persistent logs via database
 
+## When not to use this
+
+- If you only need basic `print()` or `logging` — stogger adds structure you may not need
+- If you need async log shipping or log aggregation at scale (ELK, Loki) — stogger writes synchronously to each target
+- If you don't use structlog already — stogger is opinionated about structlog as the foundation
+
 ## Documentation
 
 Full docs at `docs/` — build with:

@@ -22,7 +22,7 @@ from .processors import build_timestamp_processor
 log = structlog.get_logger(__name__)
 
 from ._colors import BACKRED, BLUE, BRIGHT, CYAN, DIM, GREEN, MAGENTA, RED, RESET_ALL, YELLOW
-from ._decorators import LogScope, log_call, log_operation, log_result, log_scope  # noqa: F401
+from .decorators import LogScope, log_call, log_operation, log_result, log_scope  # noqa: F401
 
 
 class PartialFormatter(string.Formatter):
@@ -240,17 +240,16 @@ class ConsoleFileRenderer:
         if exception_traceback is not None:
             write_fn("\n" + prefix("exception", exception_traceback))
 
-    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict | None:  # stogger: ignore
-        log_settings = event_dict.pop("_log_settings", {})
-        if log_settings.get("console_ignore", False):
-            return None
+    def _format_replace_msg(self, event_dict):  # stogger: ignore
+        """Pop _replace_msg from event_dict, format with PartialFormatter, or return None."""
+        replace_msg = event_dict.pop("_replace_msg", None)
+        if replace_msg:
+            formatter = PartialFormatter()
+            return formatter.format(replace_msg, **event_dict)
+        return None
 
-        level_name = self._resolve_level_name(method_name, event_dict)
-        if self._should_drop_by_level(level_name, log_settings):
-            raise structlog.DropEvent
-
-        console_io = io.StringIO()
-        log_io = io.StringIO()
+    def _create_write_helper(self, console_io, log_io):  # stogger: ignore
+        """Create a write function that strips ANSI escape codes for the file target."""
 
         def write(line) -> None:
             console_io.write(line)
@@ -270,15 +269,10 @@ class ConsoleFileRenderer:
                     line = line.replace(SYMB, "")
             log_io.write(line)
 
-        replace_msg = event_dict.pop("_replace_msg", None)
-        if replace_msg:
-            formatter = PartialFormatter()
-            formatted_replace_msg = formatter.format(replace_msg, **event_dict)
-        else:
-            formatted_replace_msg = None
+        return write
 
-        self._strip_internal_fields(event_dict)
-
+    def _format_header(self, event_dict, write, log_settings):  # stogger: ignore
+        """Format the log header line: timestamp, PID, level, event name, caller info."""
         ts = event_dict.pop("timestamp", None)
         write(self._format_timestamp(ts, log_settings))
 
@@ -297,6 +291,8 @@ class ConsoleFileRenderer:
         if logger_name and self.show_logger_brackets:
             write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
 
+    def _format_body(self, event_dict, write, formatted_replace_msg):  # stogger: ignore
+        """Format the log body: formatted replace_msg or remaining KV pairs."""
         if formatted_replace_msg:
             write(formatted_replace_msg)
         else:
@@ -307,6 +303,23 @@ class ConsoleFileRenderer:
                 ),
             )
 
+    def __call__(self, _logger: object, method_name: str, event_dict: EventDict) -> EventDict | None:  # stogger: ignore
+        log_settings = event_dict.pop("_log_settings", {})
+        if log_settings.get("console_ignore", False):
+            return None
+
+        level_name = self._resolve_level_name(method_name, event_dict)
+        if self._should_drop_by_level(level_name, log_settings):
+            raise structlog.DropEvent
+
+        console_io = io.StringIO()
+        log_io = io.StringIO()
+        write = self._create_write_helper(console_io, log_io)
+
+        formatted_replace_msg = self._format_replace_msg(event_dict)
+        self._strip_internal_fields(event_dict)
+        self._format_header(event_dict, write, log_settings)
+        self._format_body(event_dict, write, formatted_replace_msg)
         self._render_output_sections(event_dict, write)
 
         return {"console": console_io.getvalue(), "file": log_io.getvalue()}
@@ -319,19 +332,24 @@ class JSONRenderer:
         log.debug("initializing-json-renderer", min_level=min_level)
         self.min_level_idx = ConsoleFileRenderer.LEVELS.index(min_level.lower())
 
-    def __call__(self, _, __, event_dict):  # stogger: ignore complexity-needs-log
+    def __call__(  # stogger: ignore complexity-needs-log
+        self,
+        _logger: object,
+        _method_name: str,
+        event_dict: EventDict,
+    ) -> EventDict:
         if ConsoleFileRenderer.LEVELS.index(event_dict["level"]) > self.min_level_idx:
             raise structlog.DropEvent
         json_output = json.dumps(event_dict, default=str)
         return {"console": json_output, "file": json_output}
 
 
-def add_pid(_, __, event_dict):
+def add_pid(_logger: object, _method_name: str, event_dict: EventDict) -> EventDict:
     event_dict["pid"] = os.getpid()
     return event_dict
 
 
-def add_caller_info(_, __, event_dict):
+def add_caller_info(_logger: object, _method_name: str, event_dict: EventDict) -> EventDict:
     frame, module_str = structlog._frames._find_first_app_frame_and_name(  # ty: ignore[unresolved-attribute]  # noqa: SLF001
         additional_ignores=[__name__],
     )
@@ -342,7 +360,11 @@ def add_caller_info(_, __, event_dict):
     return event_dict
 
 
-def process_exc_info(_, __, event_dict):  # stogger: ignore complexity-needs-log
+def process_exc_info(  # stogger: ignore complexity-needs-log
+    _logger: object,
+    _method_name: str,
+    event_dict: EventDict,
+) -> EventDict:
     if exc_info := event_dict.get("exc_info"):
         if isinstance(exc_info, BaseException):
             event_dict["exc_info"] = (type(exc_info), exc_info, exc_info.__traceback__)
@@ -351,7 +373,11 @@ def process_exc_info(_, __, event_dict):  # stogger: ignore complexity-needs-log
     return event_dict
 
 
-def format_exc_info(_logger, _name, event_dict):  # stogger: ignore complexity-needs-log
+def format_exc_info(  # stogger: ignore complexity-needs-log
+    _logger: object,
+    _name: str,
+    event_dict: EventDict,
+) -> EventDict:
     """Renders exc_info if it's present.
     Expects the tuple format returned by sys.exc_info().
     Compared to structlog's format_exc_info(), this renders the exception
@@ -384,7 +410,12 @@ class SelectRenderedString:
         """
         self.key = key
 
-    def __call__(self, _, __, event_dict):  # stogger: ignore complexity-needs-log
+    def __call__(  # stogger: ignore complexity-needs-log
+        self,
+        _logger: object,
+        _method_name: str,
+        event_dict: EventDict,
+    ) -> str:
         """Select the appropriate rendered string from the dict."""
         # If it's already a string, pass it through
         if isinstance(event_dict, str):
@@ -400,7 +431,11 @@ class SelectRenderedString:
         return str(event_dict)
 
 
-def log_to_stdlib(_logger, _name, event_dict):  # stogger: ignore complexity-needs-log
+def log_to_stdlib(  # stogger: ignore complexity-needs-log
+    _logger: object,
+    _name: str,
+    event_dict: EventDict,
+) -> EventDict:
     """Bridge structlog events to Python's standard library logging module.
 
     This processor forwards every structlog event to ``logging.log()`` so that
@@ -429,7 +464,7 @@ def log_to_stdlib(_logger, _name, event_dict):  # stogger: ignore complexity-nee
 
     """
     # Create a copy of event_dict to avoid modifying the original
-    event_dict_copy = event_dict.copy()
+    event_dict_copy = event_dict.copy()  # ty: ignore[unresolved-attribute]
 
     level = event_dict_copy.get("level", "info")
     level_map = {
@@ -698,7 +733,7 @@ class JournalLoggerFactory:
     the systemd extra installed.
     """
 
-    def __call__(self, *_args):
+    def __call__(self, *_args: object) -> None:
         # systemd journal integration belongs in stogger-systemd package
         return None
 
@@ -825,7 +860,12 @@ class PostgresRenderer:
 
     KNOWN_FIELDS = frozenset({"timestamp", "level", "event", "func", "scope"})
 
-    def __call__(self, _logger, _method_name, event_dict):  # stogger: ignore complexity-needs-log
+    def __call__(  # stogger: ignore complexity-needs-log
+        self,
+        _logger: object,
+        _method_name: str,
+        event_dict: EventDict,
+    ) -> EventDict:
         column_dict = {}
         data = {}
         for key, value in event_dict.items():
@@ -891,7 +931,7 @@ class MultiOptimisticLoggerFactory:
         self.context = context
         self.factories = factories
 
-    def __call__(self, *_args):
+    def __call__(self, *_args: object) -> "MultiOptimisticLogger":
         loggers = {k: f() for k, f in self.factories.items()}
         return MultiOptimisticLogger(loggers)
 

@@ -1,79 +1,55 @@
 # Nix Integration for stogger
 
-This project includes a Nix flake for reproducible development environments.
+Build docs, run tests, develop — all in a Nix shell. Requires Nix with flakes enabled.
 
-## Quick Start
+## Enable flakes
 
-### Prerequisites
+Add to `~/.config/nix/nix.conf` or `/etc/nix/nix.conf`:
 
-- Nix with flakes enabled
-- Optional: direnv for automatic environment loading
-
-### Enable Nix Flakes
-
-Add to your ~/.config/nix/nix.conf or /etc/nix/nix.conf:
 ```
 experimental-features = nix-command flakes
 ```
 
-## Usage
-
-### Build Documentation
+## Development shell
 
 ```bash
-# Build documentation once
-nix run .#build-docs
-
-# Start live documentation server
-nix run .#live-docs
+nix develop
 ```
 
-### Development Environment
+Inside the shell, all tools are available:
 
 ```bash
-# Enter development shell
-nix develop
+build-docs          # build documentation once
+live-docs           # start live docs server
+pytest              # run tests
+ruff check          # lint
+ty check src/       # type check
+```
 
-# Or with direnv (automatic)
+With direnv, the shell loads automatically:
+
+```bash
 echo "use flake" > .envrc
 direnv allow
 ```
 
-Inside the development shell:
-```bash
-# Build documentation
-build-docs
-
-# Live documentation server
-live-docs
-
-# Run tests
-pytest
-
-# Code quality
-ruff check
-ty check src/
-```
-
-### Build Package
+## Build docs
 
 ```bash
-# Build the stogger package
-nix build
-
-# Run all checks (tests, linting)
-nix flake check
+nix run .#build-docs    # build once
+nix run .#live-docs     # live server
 ```
 
-## Features
+## Build package and run checks
 
-### Complete Development Environment
+```bash
+nix build               # build the stogger package
+nix flake check         # run all checks (tests, linting)
+```
 
-The Nix flake provides:
+## What the flake provides
 
 - Python ≥3.13 with all dependencies
 - stogger package built and available
 - Documentation tools (Sphinx, Furo, MyST)
 - Development tools (pytest, ruff, ty, pre-commit)
-
-

@@ -6,6 +6,12 @@ lifecycle:
   design:
     completed_at: "2026-05-05T19:30:00Z"
     git_rev: c17bb39
+  plan:
+    completed_at: "2026-05-15T12:00:00Z"
+    git_rev: e32969d
+  workflow:
+    completed_at: "2026-05-15T12:30:00Z"
+    git_rev: 9316bbd
 ---
 
 # raw-output
@@ -108,3 +114,28 @@ Update `docs/user/cheatsheet.md` with output keys reference.
 | `tests/test_core.py` `TestConsoleFileRenderer` | Extend for _raw_output |
 | `docs/user/logging_patterns.md` | New "Output Rendering" section |
 | `docs/user/cheatsheet.md` | Add output keys reference |
+
+## Appendix
+
+```yaml
+# implementation_plan
+id: raw-output
+description: "Add _raw_output and _raw_output_prefix keys to output rendering pipeline for ANSI-preserving tool output display"
+git_rev: e32969d
+created_at: "2026-05-15T12:00:00Z"
+target_tests:
+  - file: tests/impl_spec/test_raw_output.py
+    tests:
+      - TestRawOutputRendering::test_raw_output_popped_from_event_dict
+      - TestRawOutputRendering::test_raw_output_no_dim_wrapping
+      - TestRawOutputRendering::test_raw_output_with_prefix
+      - TestRawOutputRendering::test_raw_output_without_prefix
+      - TestRawOutputRendering::test_raw_output_rendered_after_output_before_stdout
+      - TestRawOutputRendering::test_raw_output_none_skipped
+      - TestSkipListCleanup::test_required_keys_present
+      - TestSkipListCleanup::test_skip_list_sorted_alphabetically
+      - TestRawOutputAnsiPassthrough::test_ansi_preserved_in_console_stripped_from_file
+      - TestRawOutputAnsiPassthrough::test_raw_output_content_preserved_in_both
+      - TestRawOutputAnsiPassthrough::test_raw_output_with_prefix_through_full_call
+```
+

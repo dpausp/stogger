@@ -31,7 +31,6 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
     if config.verbose:
         log.debug(
             "building-shared-processors",
-            pii_scrubbing=config.enable_pii_scrubbing,
             translation_dir=str(config.translation_dir) if config.translation_dir else None,
         )
 
@@ -60,7 +59,7 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
                     translation_count=len(translations),
                     language=config.language,
                 )
-            processors.append(TranslationProcessor(translations))  # ty: ignore[invalid-argument-type]
+            processors.append(TranslationProcessor(translations))
         except (OSError, tomllib.TOMLDecodeError):
             log.warning(
                 "translation-load-failed",
@@ -79,7 +78,7 @@ def build_shared_processors(config: StoggerConfig) -> list[Any]:
             ),  # ty: ignore[invalid-argument-type]
         )
         # Add SelectRenderedString to convert dict output to string for PrintLogger
-        processors.append(SelectRenderedString(key="console"))
+        processors.append(SelectRenderedString(key="console"))  # ty: ignore[invalid-argument-type]
 
     if config.verbose:
         log.debug("shared-processors-built", processor_count=len(processors))

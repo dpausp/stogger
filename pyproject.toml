@@ -87,7 +87,6 @@ filterwarnings = [ "error", "ignore::UserWarning", "ignore::DeprecationWarning",
 markers = [
   "integration: integration tests that test real module interactions",
   "e2e: end-to-end tests that exercise full pipelines",
-  "slow: tests taking more than 1 second",
 ]
 
 [tool.pytest-stogger]
@@ -95,7 +94,7 @@ source = "src/stogger"
 test_dir = "tests"
 exclude = []
 info_allowed_layers = []
-#KH|infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
+#KH|infrastructure_files = ["core.py", "_colors.py", "decorators.py"]
 exempt_event_ids = []
 
 [tool.pytest-stogger.per-file-ignores]
@@ -123,7 +122,7 @@ skip_covered = false
 precision = 2
 
 [tool.tox]
-env_list = ["fix", "cov", "docs", "build", "3.13"]
+env_list = ["fix", "cov", "docs", "build", "3.13", "integrations"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
@@ -181,9 +180,15 @@ commands = [
     ["uv", "build", { replace = "posargs", extend = true }],
 ]
 
+[tool.tox.env.integrations]
+description = "Integration tests with optional dependencies (systemd, postgres)"
+dependency_groups = ["test"]
+extras = ["systemd", "postgres"]
+commands = [
+    ["pytest", "tests/test_systemd_integration_real.py", "tests/test_postgres_integration_real.py", "-v"],
+]
+
 [tool.uv.sources]
-pytest-stogger = { git = "https://github.com/dpausp/pytest-stogger" }
-stogger-systemd = { git = "https://github.com/dpausp/stogger-systemd" }
 stogger-postgres = { workspace = true }
 
 [tool.uv.workspace]

@@ -91,11 +91,10 @@ def log_call(func=None, *, include_args=None, exclude_args=None):
         async def async_wrapper(*args, **kwargs):
             log = structlog.get_logger()
             all_args = _extract_args(func, args, kwargs, include_args, exclude_args)
-            log.info(
+            log.debug(
                 "called",
-                _replace_msg="{func} called with {args}",
                 func=func_name,
-                args=all_args,
+                **all_args,
             )
             return await func(*args, **kwargs)
 
@@ -105,11 +104,10 @@ def log_call(func=None, *, include_args=None, exclude_args=None):
     def sync_wrapper(*args, **kwargs):
         log = structlog.get_logger()
         all_args = _extract_args(func, args, kwargs, include_args, exclude_args)
-        log.info(
+        log.debug(
             "called",
-            _replace_msg="{func} called with {args}",
             func=func_name,
-            args=all_args,
+            **all_args,
         )
         return func(*args, **kwargs)
 
@@ -177,9 +175,8 @@ def log_result(func=None, *, include_args=None, exclude_args=None):
                 result = await func(*args, **kwargs)
             except Exception as exc:
                 duration_ms = (time.perf_counter() - t0) * 1000
-                log.warning(
+                log.debug(
                     "failed",
-                    _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                     func=func_name,
                     exc_type=type(exc).__name__,
                     exc_msg=str(exc),
@@ -187,9 +184,8 @@ def log_result(func=None, *, include_args=None, exclude_args=None):
                 )
                 raise
             duration_ms = (time.perf_counter() - t0) * 1000
-            log.info(
+            log.debug(
                 "returned",
-                _replace_msg="{func} returned {result} in {duration_ms:.1f}ms",
                 func=func_name,
                 result=result,
                 duration_ms=duration_ms,
@@ -206,9 +202,8 @@ def log_result(func=None, *, include_args=None, exclude_args=None):
             result = func(*args, **kwargs)
         except Exception as exc:
             duration_ms = (time.perf_counter() - t0) * 1000
-            log.warning(
+            log.debug(
                 "failed",
-                _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                 func=func_name,
                 exc_type=type(exc).__name__,
                 exc_msg=str(exc),
@@ -216,9 +211,8 @@ def log_result(func=None, *, include_args=None, exclude_args=None):
             )
             raise
         duration_ms = (time.perf_counter() - t0) * 1000
-        log.info(
+        log.debug(
             "returned",
-            _replace_msg="{func} returned {result} in {duration_ms:.1f}ms",
             func=func_name,
             result=result,
             duration_ms=duration_ms,
@@ -284,9 +278,8 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
                 result = await func(*args, **kwargs)
             except Exception as exc:
                 duration_ms = (time.perf_counter() - t0) * 1000
-                log.warning(
+                log.debug(
                     "failed",
-                    _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                     func=func_name,
                     **all_args,
                     exc_type=type(exc).__name__,
@@ -315,9 +308,8 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
             result = func(*args, **kwargs)
         except Exception as exc:
             duration_ms = (time.perf_counter() - t0) * 1000
-            log.warning(
+            log.debug(
                 "failed",
-                _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                 func=func_name,
                 **all_args,
                 exc_type=type(exc).__name__,
@@ -355,11 +347,11 @@ class LogScope:
 
     Event emitted on clean exit::
 
-        {"event": "scope-end", "scope": "<name>", <bound_fields>,
+        {"event": "scope-end", "scope": "<name>", "duration_ms": <float>, <bound_fields>}
 
     Event emitted on exception::
 
-        {"event": "scope-failed", "scope": "<name>,
+        {"event": "scope-failed", "scope": "<name>", "exc_type": "ValueError", "exc_msg": "...", "duration_ms": <float>}
 
     Example:
         ::
@@ -369,7 +361,7 @@ class LogScope:
             with log_scope("db_transaction", table="users") as scope:
                 insert(user)
                 scope.add_fields(rows_inserted=1)
-                # Exit event: {"event": "scope-end", "scope": "db_transaction",
+                # Exit event: {"event": "scope-end", "scope": "db_transaction", "duration_ms": 12.3, "table": "users"}
 
     """
 

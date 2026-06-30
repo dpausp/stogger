@@ -142,11 +142,11 @@ Module Contents
    .. py:attribute:: min_level_idx
 
 
-.. py:function:: add_pid(_, __, event_dict)
+.. py:function:: add_pid(_logger, _method_name, event_dict)
 
-.. py:function:: add_caller_info(_, __, event_dict)
+.. py:function:: add_caller_info(_logger, _method_name, event_dict)
 
-.. py:function:: process_exc_info(_, __, event_dict)
+.. py:function:: process_exc_info(_logger, _method_name, event_dict)
 
 .. py:function:: format_exc_info(_logger, _name, event_dict)
 

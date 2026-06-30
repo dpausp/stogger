@@ -4,9 +4,9 @@
 :alt: stogger logo
 ```
 
-**A sophisticated multi-target structured logging system built on structlog**
+**Multi-target structured logging built on structlog**
 
-A structured logging library built on structlog with console, systemd journal, and PostgreSQL targets, plus AST-based convention checking via pytest-stogger.
+Console, file, systemd journal, and PostgreSQL targets — plus AST-based convention checking via pytest-stogger.
 
 ## Quick Start
 

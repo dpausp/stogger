@@ -1,67 +1,13 @@
 # Logging Patterns
 
-Proven patterns and conventions for structured logging with stogger and structlog.
-
-## Core Principles
-
-1. Use dash-case event names as the primary message
-2. Add structured keyword arguments for all context
-3. Choose appropriate log levels
-4. Use `log.exception()` in except blocks (not `log.error()` with `exc_info`)
-5. Use `log.info()` for line-oriented user output instead of `print()` or `typer.echo()`
-
-## Event-Style Logging
-
-Structure log messages as events with dash-case names, not prose:
-
-```python
-log.debug("user-login-attempt", user_id=123, ip="192.168.1.1")
-log.info("welcome-new-user", _replace_msg="Welcome {username}!", username=user.name)
-log.error("package-validation-failed", package_name="hello", reason="invalid_version")
-```
-
-## Structured Data
-
-Always provide context through keyword arguments — never via f-strings in the message:
-
-```python
-log.debug("package-processing-completed",
-         package_name="hello",
-         version="2.10.0",
-         processing_time_ms=150,
-         files_processed=42)
-```
-
-## Log Levels
-
-| Level | When to Use | User Output |
-|-------|-------------|-------------|
-| `DEBUG` | Diagnostic info for developers, internal operations | **NEVER** use `_replace_msg` |
-| `INFO` | Important business events, user-facing output | **SHOULD** use `_replace_msg` for user-oriented output |
-| `WARNING` | Expected problems, unusual but non-failing conditions | Use `_replace_msg` for user warnings |
-| `ERROR` | Error conditions that need attention | Use `_replace_msg` for user errors |
-| `CRITICAL` | Severe errors requiring immediate action | Use `_replace_msg` for critical user messages |
-
-```python
-# DEBUG: internal details
-log.debug("cache-lookup", key="user:123", hit=True, ttl=300)
-
-# INFO: business events and user output
-log.info("user-login", _replace_msg="User {user_id} logged in", user_id=123, session_id="sess_abc")
-
-# WARNING: unexpected but non-critical
-log.warning("rate-limit-approaching", _replace_msg="Rate limit approaching for user {user_id}", user_id=123, requests=95, limit=100)
-
-# ERROR: failures
-log.error("payment-gateway-timeout", _replace_msg="Payment gateway timeout for {gateway}", gateway="stripe", timeout_ms=5000)
-
-# CRITICAL: system unusable
-log.critical("database-unavailable", _replace_msg="Database unavailable after {attempts} attempts", attempts=3, last_error="connection refused")
-```
+Common patterns for structured logging with stogger.
+For log level details, decorator API, and output key reference, see
+[Reference](reference.md).
 
 ## User Output with `_replace_msg`
 
-stogger fuses user output with logging. Use `log.info()` instead of `print()` or `typer.echo()` for line-oriented user output. The event name provides structure; `_replace_msg` provides the human-readable sentence:
+Use `log.info()` instead of `print()` or `typer.echo()` for line-oriented user output.
+The event name provides structure; `_replace_msg` provides the human-readable sentence:
 
 ```python
 log.info("package-installed",
@@ -71,11 +17,96 @@ log.info("package-installed",
          size_mb=15.7)
 ```
 
-Benefits: single source of truth for user communication and diagnostics, structured data for analysis, consistent formatting, audit trail of user interactions.
+Single source of truth for user communication and diagnostics — structured data for
+analysis, formatted text for humans, audit trail of user interactions.
+
+## Output Rendering
+
+stogger renders output to two targets: **console** (with ANSI colors) and **file**
+(stripped).
+Use output keys to embed command results, tool output, or tracebacks in a log
+event. The `write()` closure handles the split automatically — console gets raw ANSI,
+file gets stripped text.
+
+| Key | Prefix label | DIM | ANSI behavior |
+| --- | --- | --- | --- |
+| `cmd_output_line` | `> ` | Yes | Stripped via DIM wrapping |
+| `_output` | *(none)* | No | Stripped via `write()` closure |
+| `_raw_output` | configurable via `_raw_output_prefix` | No | **Preserved** in console, stripped in file |
+| `_raw_output_prefix` | Sets prefix for `_raw_output` | — | *(metadata only)* |
+| `stdout` | `out` | Yes | Stripped via DIM wrapping |
+| `stderr` | `err` | No | Stripped via `write()` closure |
+| `stack` | `stack` | No | Stripped via `write()` closure |
+| `exception_traceback` | `exception` | No | Stripped via `write()` closure |
+
+### Tool Output with ANSI Colors
+
+Use `_raw_output` for tool output containing ANSI codes (e.g.,
+`ty check --color always`, `pytest --color yes`). Set `_raw_output_prefix` to label the
+block:
+
+```python
+log.warning(
+    "component-type-errors",
+    _replace_msg="{component}: {count} type error(s)",
+    component=component_name,
+    count=result.output.count("error:"),
+    _raw_output_prefix="ty",
+    _raw_output=result.output.strip(),
+)
+```
+
+Without `_raw_output_prefix`, the output renders without a label.
+
+### Command Invocation
+
+Use `cmd_output_line` for a single command line.
+Renders dimmed with a `>` prefix:
+
+```python
+log.info("deploy-command", cmd_output_line="rsync -avz ./dist/ server:/var/www/")
+```
+
+### Captured Process Output
+
+Use `stdout` and `stderr` for subprocess output.
+Both render dimmed with `out:` / `err:` prefix labels:
+
+```python
+log.error(
+    "build-failed",
+    _replace_msg="Build failed for {package}",
+    package=package_name,
+    stderr=process.stderr,
+)
+```
+
+### Stack Traces and Exceptions
+
+Use `stack` for a formatted stack trace and `exception_traceback` for the exception
+chain. When both are present, they are separated by a divider line:
+
+```python
+log.error("unhandled-exception", stack=formatted_stack, exception_traceback=traceback_str)
+```
+
+Usually you don’t set these manually — `log.exception()` captures the traceback
+automatically.
+
+### Generic Multi-line Output
+
+Use `_output` for arbitrary multi-line content that doesn’t fit the other keys.
+No prefix label, no DIM wrapping:
+
+```python
+log.info("diff-result", _output=diff_text)
+```
 
 ## Exception Handling
 
-Use `log.exception()` in except blocks. It is equivalent to `log.error()` with `exc_info=True` and automatically includes the full traceback. Do not pass `error=str(e)` — the exception context is already captured.
+Use `log.exception()` in except blocks.
+It is equivalent to `log.error()` with `exc_info=True` and automatically includes the
+full traceback. Do not pass `error=str(e)` — the exception context is already captured.
 
 ```python
 try:
@@ -86,22 +117,8 @@ except ValidationError as e:
     raise
 ```
 
-### Alternative: `log.error` with `exc_info`
-
-Use this only when you have a specific reason not to use `log.exception()`:
-
-```python
-try:
-    do_work()
-except Exception as e:
-    log.error(
-        "work-failed",
-        operation="do_work",
-        exc_info=True,
-    )
-```
-
-Never use `exc_info` on `info`/`debug` levels.
+Use `log.error` with `exc_info=True` only when you have a specific reason not to use
+`log.exception()`. Never use `exc_info` on `info`/`debug` levels.
 
 ## Correlation IDs
 
@@ -144,6 +161,8 @@ def process_package(package_name: str):
         raise
 ```
 
+Or use the [`@log_call`](reference.md#log_call--entry-logging) decorator instead — see [Decorators](#decorators) for the full pattern guide.
+
 ### Timing Operations
 
 ```python
@@ -162,6 +181,9 @@ def timed_operation():
 
     return result
 ```
+
+Or use the [`@log_result`](reference.md#log_result--exit-logging-with-timing) decorator
+instead — see [Decorators](#decorators) for the full pattern guide.
 
 ### CLI Command Logging
 
@@ -214,93 +236,99 @@ def process_files(file_list: list[str]):
 
 ## Decorators
 
-Stogger provides decorators and a context manager that automate common logging
-patterns. Import them from the top-level package:
+Automate common logging patterns with decorators instead of manual
+`log.info()` calls.
+All decorators support sync and async functions and are imported from
+the top-level package:
 
 ```python
 from stogger import log_call, log_result, log_operation, log_scope
 ```
 
-All decorators support both sync and async functions.
+### Entry Logging with `@log_call`
 
-### @log_call — Entry Logging
-
-Logs function invocation with resolved arguments. Replaces manual
-`log.info("called", func=..., args={...})` at the top of a function.
+Replace manual "function started" logging:
 
 ```python
-# Before (manual Function Tracing pattern):
-def process_package(package_name: str):
-    log.info("package-processing-started", package_name=package_name)
-    ...
+from stogger import log_call
 
-# After:
 @log_call
 def process_package(package_name: str):
+    # Automatically logs: {"event": "called", "func": "mymodule.process_package",
+    #                      "package_name": "hello"}
     ...
-    # Logs: {"event": "called", "func": "mymodule.process_package",
-    #        "args": {"package_name": "hello"}}
 ```
 
-### @log_result — Exit Logging with Timing
-
-Logs return value and duration on success, exception info on failure.
-Replaces manual timing code from the "Timing Operations" pattern.
+Filter sensitive arguments:
 
 ```python
-# Before (manual timing pattern):
-def timed_operation():
-    start = time.time()
-    result = perform_operation()
-    duration = time.time() - start
-    log.info("operation-completed", duration_ms=round(duration * 1000))
-    return result
+@log_call(exclude_args=["password", "token"])
+def authenticate(username: str, password: str, token: str):
+    # Logs: {"event": "called", "func": "...", "username": "alice"}
+    ...
+```
 
-# After:
+### Exit Logging with `@log_result`
+
+Replace manual "operation completed" + timing:
+
+```python
+from stogger import log_result
+
 @log_result
-def timed_operation():
-    return perform_operation()
-    # Logs: {"event": "returned", "func": "mymodule.timed_operation",
-    #        "result": ..., "duration_ms": 12.3}
-```
-
-On exception, logs `{"event": "failed", "exc_type": "ValueError", "exc_msg": "...", "duration_ms": ...}` and re-raises.
-
-### @log_operation — Full Audit Logging
-
-Combines entry and exit logging in a single event: arguments, return value,
-and duration. Use for audit trails and debugging.
-
-```python
-@log_operation(include_args=["query"], exclude_args=["password"])
-def authenticate(query: str, password: str) -> bool:
+def compute_hash(data: bytes) -> str:
     ...
-    # Logs: {"event": "operation", "func": "mymodule.authenticate",
-    #        "args": {"query": "admin"}, "result": true, "duration_ms": 15.3}
+    # On success: {"event": "returned", "func": "mymodule.compute_hash",
+    #              "result": "abc123", "duration_ms": 12.5}
+    # On failure: {"event": "failed", "func": "mymodule.compute_hash",
+    #              "exc_type": "ValueError", "exc_msg": "...", "duration_ms": 5.1}
 ```
 
-Use `include_args` to whitelist argument names or `exclude_args` to blacklist
-sensitive parameters. Both options strip `self` and `cls` automatically.
+### Full Audit with `@log_operation`
 
-### log_scope() — Scoped Context Logging
-
-Context manager for logging a named scope with structured fields.
-Use for transactions, migrations, or any logical unit of work.
+Combine entry and exit logging — arguments, result, and timing in a
+single event:
 
 ```python
+from stogger import log_operation
+
+@log_operation(exclude_args=["api_key"])
+def fetch_data(endpoint: str, api_key: str) -> dict:
+    ...
+    # On success: {"event": "operation", "func": "mymodule.fetch_data",
+    #              "endpoint": "/users", "result": {...}, "duration_ms": 45.2}
+```
+
+When the function raises, logs `{"event": "failed", ...}` with exception
+info and re-raises.
+
+### Scoped Logging with `log_scope()`
+
+Context manager for code blocks that aren't functions — transactions,
+migrations, multi-step operations:
+
+```python
+from stogger import log_scope
+
 with log_scope("db_transaction", table="users") as scope:
     insert(user)
     scope.add_fields(rows_inserted=1)
-    # Exit event: {"event": "scope-end", "scope": "db_transaction",
-    #   "table": "users", "rows_inserted": 1, "duration_ms": 45.2}
+    # On exit: {"event": "scope-end", "scope": "db_transaction",
+    #           "table": "users", "rows_inserted": 1, "duration_ms": 3.2}
 ```
 
-`add_fields()` accumulates fields during the scope. On exception, logs
-`{"event": "scope-failed", "exc_type": "...", "exc_msg": "...", "duration_ms": ...}`
-and re-raises. Works with `async with` for async code.
+Add fields mid-scope with `add_fields()`.
+On exception, logs `scope-failed` and re-raises.
 
+Async usage:
 
-### Error Context
+```python
+async with log_scope("api-request", endpoint="/orders") as scope:
+    result = await fetch_orders()
+    scope.add_fields(order_count=len(result))
+```
+
+## Error Context
 
 ```python
 def validate_config(config_path: Path):
@@ -330,48 +358,18 @@ def validate_config(config_path: Path):
     return config
 ```
 
-## Output Rendering
-
-Use these keys to render tool output, command results, and tracebacks in log entries:
-
-| Key | Prefix | DIM | ANSI behavior |
-|-----|--------|-----|---------------|
-| `cmd_output_line` | `> ` | Yes | Stripped via DIM wrapping |
-| `_output` | empty | No | Stripped via `write()` closure |
-| `_raw_output` | configurable via `_raw_output_prefix` | No | **Preserved** in console, stripped in file |
-| `_raw_output_prefix` | used as prefix label | — | Sets prefix for `_raw_output` |
-| `stdout` | `out` | Yes | Stripped via DIM wrapping |
-| `stderr` | `err` | Yes | Stripped via DIM wrapping |
-| `stack` | `stack` | No | Stripped via `write()` closure |
-| `exception_traceback` | `exception` | No | Stripped via `write()` closure |
-
-### Raw Output with ANSI Passthrough
-
-Use `_raw_output` for tool output that contains ANSI color codes (e.g., `ty check --color always`, `pytest --color yes`). The console preserves colors; the log file gets stripped output automatically:
-
-```python
-log.warning(
-    "component-type-errors",
-    _replace_msg="{component}: {count} type error(s)",
-    component=component_name,
-    count=result.output.count("error:"),
-    _raw_output_prefix="ty",
-    _raw_output=result.output.strip(),
-)
-```
 ## Security
 
-### Avoid Logging Sensitive Data
+Never log passwords, tokens, or raw PII. Structure log calls to exclude sensitive fields
+from the outset:
 
 ```python
 log.info("user-authenticated", user_id=123, email_domain="example.com")
 ```
 
-Never log passwords, tokens, or raw PII. Note: PII scrubbing via `enable_pii_scrubbing=True` is currently not implemented — the config option is accepted but has no effect.
-
 ## Performance
 
-### Batch Logging in Loops
+Log batch start/end, not every item:
 
 ```python
 log.info("batch-processing-started", item_count=len(large_list))
@@ -379,7 +377,7 @@ log.info("batch-processing-started", item_count=len(large_list))
 log.info("batch-processing-completed", processed_count=processed)
 ```
 
-### Log Sampling for High-Volume Applications
+For high-volume events, sample instead of logging every occurrence:
 
 ```python
 import random
@@ -388,11 +386,12 @@ if random.random() < 0.1:  # 10% sampling
     log.debug("high-frequency-event", event_data=data)
 ```
 
-Avoid chatty `info` logs in tight loops. Use `debug`, sample, or aggregate instead.
+Avoid chatty `info` logs in tight loops.
+Use `debug`, sample, or aggregate instead.
 
 ## Monitoring-Friendly Logging
 
-Design logs to be easily parsed by monitoring systems:
+Design logs for easy parsing by monitoring systems:
 
 ```python
 log.info("api-response",
@@ -401,29 +400,4 @@ log.info("api-response",
          status_code=200,
          response_time_ms=45,
          cache_hit=True)
-```
-
-## Consistent Field Names
-
-Prefer these field names for consistency:
-
-- IDs: `user_id`, `request_id`, `correlation_id`
-- Timing: `duration_ms`
-- HTTP: `method`, `path`, `status_code`
-- Generic: `operation`, `component`
-
-Keep the cardinality low — avoid unbounded label values.
-
-## Do / Don't
-
-Do:
-
-```python
-log.info("order-created", _replace_msg="Order {order_id} created for user {user_id}", order_id=oid, user_id=uid, total_cents=total)
-```
-
-Don't:
-
-```python
-log.info(f"order {oid} by user {uid} created with total {total}")
 ```
