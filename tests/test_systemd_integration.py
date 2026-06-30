@@ -43,6 +43,7 @@ def test_enable_systemd_true_import_succeeds():
             return mock_logger_instance
 
     mock_module.get_journal_logger_factory = MagicMock(return_value=MockFactory())
+    mock_module._journal_socket_available = MagicMock(return_value=False)
     mock_module.JournalLogger = type("JournalLogger", (), {})
     mock_module.DummyJournalLogger = type("DummyJournalLogger", (), {})
     mock_module.JournalLoggerFactory = MockFactory
@@ -58,7 +59,6 @@ def test_enable_systemd_true_import_succeeds():
     factory = config.get("logger_factory")
     assert factory is not None
     assert "journal" in factory.factories
-
 
 
 # --- Test 3: enable_systemd=False → no import attempt ---
@@ -89,11 +89,37 @@ def test_enable_systemd_false_no_import():
 
     mock_module.get_journal_logger_factory.assert_not_called()
 
-def test_dummy_journal_logger_logs_not_available(log):
-    """DummyJournalLogger logs journal-not-available on first msg()."""
+
+def test_dummy_journal_logger_is_silent():
+    """DummyJournalLogger.msg() is a silent no-op — no logging side effects."""
     from stogger.systemd import DummyJournalLogger
 
     dj = DummyJournalLogger()
+    # Must not raise, log, or do anything — pure no-op
     dj.msg({"MESSAGE": "test"})
-    log.has("journal-not-available")
+    dj.msg({"MESSAGE": "another"})
+    dj.msg({})
 
+
+def test_journal_not_available_warns_during_init(log):
+    """init_logging warns once when systemd is enabled but journal socket is missing."""
+    mock_module = types.ModuleType("stogger.systemd")
+
+    class MockFactory:
+        def __call__(self):
+            return MagicMock()
+
+    mock_module.get_journal_logger_factory = MagicMock(return_value=MockFactory())
+    mock_module._journal_socket_available = MagicMock(return_value=False)
+    mock_module.JournalLogger = type("JournalLogger", (), {})
+    mock_module.DummyJournalLogger = type("DummyJournalLogger", (), {})
+    mock_module.JournalLoggerFactory = MockFactory
+
+    with (
+        patch.dict(sys.modules, {"stogger.systemd": mock_module}),
+        patch.dict(os.environ, {}, clear=False),
+    ):
+        os.environ.pop("JOURNAL_STREAM", None)
+        init_logging(logdir=None)
+
+    log.has("journal-not-available")

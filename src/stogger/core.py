@@ -241,7 +241,10 @@ class ConsoleFileRenderer:
         replace_msg = event_dict.pop("_replace_msg", None)
         if replace_msg:
             formatter = PartialFormatter()
-            return formatter.format(replace_msg, **event_dict)
+            try:
+                return formatter.format(replace_msg, **event_dict)
+            except RecursionError:
+                return str(replace_msg)
         return None
 
     def _create_write_helper(self, console_io, log_io):  # stogger: ignore
@@ -386,7 +389,7 @@ def process_exc_info(  # stogger: ignore complexity-needs-log
     return event_dict
 
 
-def format_exc_info(  # stogger: ignore complexity-needs-log
+def format_exc_info(  # stogger: ignore
     _logger: object,
     _name: str,
     event_dict: EventDict,
@@ -399,7 +402,13 @@ def format_exc_info(  # stogger: ignore complexity-needs-log
     exc_info = event_dict.pop("exc_info", None)
     if exc_info is not None:
         exception_class = exc_info[0]
-        formatted_traceback = structlog.processors._format_exception(exc_info)  # noqa: SLF001
+        try:
+            formatted_traceback = structlog.processors._format_exception(exc_info)  # noqa: SLF001
+        except Exception:  # noqa: BLE001
+            # Formatting itself failed (e.g. RecursionError in linecache
+            # when walking a deep __context__ chain). Provide degraded
+            # output instead of crashing the entire logging pipeline.
+            formatted_traceback = f"[traceback unavailable: formatting raised {type(exc_info[1]).__name__}]"
         event_dict["exception_traceback"] = formatted_traceback
         event_dict["exception_msg"] = str(exc_info[1])
         event_dict["exception_class"] = exception_class.__module__ + "." + exception_class.__name__
@@ -486,10 +495,13 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
     # SPEC: legacy-elimination::optional-import-simplification — direct import,
     # stogger.systemd is a built-in module, not an external package.
     if cfg.enable_systemd:
-        from stogger.systemd import get_journal_logger_factory  # noqa: PLC0415
+        from stogger.systemd import _journal_socket_available, get_journal_logger_factory  # noqa: PLC0415
 
         factory = get_journal_logger_factory()
         loggers["journal"] = factory
+
+        if not _journal_socket_available():
+            log.warning("journal-not-available", _replace_msg="Systemd journal not available, journal logging disabled")
 
     # SPEC: postgres-target::package-placement — dynamic import
     # for postgres logger factory, mirrors journal pattern.
