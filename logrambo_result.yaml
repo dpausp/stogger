@@ -1,0 +1,257 @@
+logrambo_result:
+  status: success
+  story: >
+    Audited stogger's own source — the logging library itself. This is a meta-audit:
+    a project whose entire purpose is structured logging must eat its own dog food.
+    The foundation is strong: pytest-stogger configured, conventions documented,
+    event IDs in kebab-case, _replace_msg on every info/warning, no f-strings in log
+    calls. The decorators module and LogScope show disciplined debug-level instrumentation
+    with real test scenarios, not lazy log.has() theater.
+
+    But the dog food has some sharp edges. The most critical: when a renderer crashes
+    inside MultiRenderer, the full structured event is destroyed — only the event name
+    survives in the exception log. The operator sees "renderer-failed" with
+    "event=user-login" but no user_id, no session, no context. The original event is
+    gone, not persisted, not referenced. This is exactly the AP-8 anti-pattern
+    (ephemeral data lost on error) that stogger itself is designed to prevent.
+
+    Second critical: Postgres ImportError is swallowed at debug level. If a user
+    configures enable_postgres=True but the optional package isn't installed, the only
+    evidence is a debug message invisible at production log levels. The operator
+    configures a feature, sees no error, but the feature silently does nothing.
+
+    Third: MultiRenderer's failure handling is a noose — one broken renderer kills ALL
+    output targets for that event. Console, file, journal, postgres all get nothing.
+
+    And the biggest gap in the project's own conventions: after init_logging() completes,
+    there is zero positive confirmation. No "init-logging-complete" with configured
+    targets. At 3AM, the operator has no way to distinguish "logging is working silently"
+    from "logging never started." Silent success is the most expensive kind of failure.
+
+  observations:
+    - severity: critical
+      location: src/stogger/core.py:872-876
+      what: >
+        MultiRenderer failure destroys full event context — only event name logged,
+        all structured key-value pairs lost.
+      impact: >
+        When a renderer crashes (e.g. ConsoleFileRenderer hits a formatting edge case),
+        log.exception() captures only event_name. The complete event_dict with user_id,
+        session_id, transaction data, etc. is in scope but NOT logged. At 3AM the operator
+        sees "renderer-failed" with "event=user-login" but has zero context to trace the
+        failed operation. This is AP-8: ephemeral data lost on error. The data that caused
+        the crash is destroyed by the crash handler itself.
+      fix: >
+        Log the full event_dict (or at minimum the critical non-recoverable context) in
+        the renderer-failed event. Persist event_dict to an artifact file and reference
+        its path in the log if the event is too large. Pattern:
+        log.exception("renderer-failed",
+            renderer=type(renderer).__name__,
+            event=event_dict,
+        )
+
+    - severity: critical
+      location: src/stogger/core.py:866-878
+      what: >
+        MultiRenderer cascading failure — one broken renderer kills ALL output targets
+        for the event (console, file, journal, postgres all get nothing).
+      impact: >
+        If the journal renderer throws (e.g. socket write failure), the exception
+        propagates immediately and NONE of the remaining renderers execute. A transient
+        journal socket issue can take down console output too. No graceful degradation,
+        no isolation between targets.
+      fix: >
+        Catch per-renderer exceptions, log them individually, and continue to the next
+        renderer. Only re-raise after all renderers have had their chance. Or better:
+        collect errors and return partial results instead of crashing the pipeline.
+
+    - severity: critical
+      location: src/stogger/core.py:518-519
+      what: >
+        Postgres ImportError swallowed at debug level — a feature explicitly enabled
+        in configuration silently fails at production log levels.
+      impact: >
+        User sets enable_postgres=True in pyproject.toml or STOGGER_ENABLE_POSTGRES=1.
+        The optional package stogger-postgres is not installed. The ImportError is caught
+        and logged only at debug level. At info level (production default), there is zero
+        indication that postgres logging was requested but unavailable. The operator
+        configured a feature, sees no error, assumes it works. At 3AM when postgres logs
+        are needed, they don't exist.
+      fix: >
+        This must be log.warning() with _replace_msg. The user explicitly configured a
+        feature — if it fails, they must know.
+        log.warning(
+            "stogger-postgres-not-available",
+            _replace_msg="Postgres logging enabled but stogger-postgres package is not installed",
+            reason="optional package not installed",
+        )
+
+    - severity: major
+      location: src/stogger/core.py:634
+      what: >
+        init_logging() completes without any positive confirmation — no summary of
+        what log targets were configured.
+      impact: >
+        After configuring console, file, journal, and postgres targets, the system emits
+        zero info-level messages saying what's active. At 3AM, an operator reviewing logs
+        cannot determine whether file logging is supposed to be active, whether systemd
+        journal integration was enabled, or whether postgres logging was configured.
+        Silent success is indistinguishable from "logging is broken."
+      fix: >
+        Add an info-level completion event after all targets are configured:
+        log.info("init-logging-complete",
+            _replace_msg="Logging initialized: console={console}, file={file}, journal={journal}, postgres={postgres}",
+            console=log_to_console,
+            file=str(logdir / f"{syslog_identifier}.log") if logdir else None,
+            journal=cfg.enable_systemd,
+            postgres=cfg.enable_postgres,
+        )
+
+    - severity: major
+      location: src/stogger/core.py:532-549
+      what: >
+        _ensure_stderr_logging() configures structlog without any log message — the
+        bootstrap configuration is invisible.
+      impact: >
+        Callers cannot confirm whether early init ran. If init_logging() fails between
+        _ensure_stderr_logging() and full configuration, there's no evidence of partial
+        setup. The operator sees nothing and has no entry point for debugging.
+      fix: >
+        Log a debug message when early stderr logging is configured:
+        log.debug("early-stderr-logging-active", file="stderr")
+
+    - severity: major
+      location: src/stogger/decorators.py:178-184, 398-406
+      what: >
+        Inconsistent failure log levels — log_result/log_operation use debug, LogScope
+        uses warning for semantically identical failure events.
+      impact: >
+        "scope-failed" at warning appears in every production log level. "failed" from
+        log_result at debug only appears with -v/verbose. At info (production default),
+        a function decorated with @log_result that throws is invisible in logs. If the
+        calling code catches the exception, there is ZERO trace of a failure that actually
+        occurred. An operator troubleshooting a transaction failure has to guess whether
+        any inner operation failed.
+      fix: >
+        Either promote log_result/log_operation failures to warning (matching LogScope)
+        or document clearly that these are developer-only instrumentation. The half-
+        measure is the problem: same concept, different levels, no documented rationale
+        for the split.
+
+    - severity: minor
+      location: src/stogger/core.py:672
+      what: >
+        init_early_logging uses stdlib logging.debug() with %s format string —
+        bypasses structlog conventions (AP-4, AP-7).
+      impact: >
+        Format-string logging with %s is explicitly forbidden by project conventions
+        (AP-7: Format String Logging). Using stdlib logging directly violates AP-4
+        (stdlib logging usage). While the inline comment explains this is an intentional
+        bridge before structlog pipeline is available, it creates a precedent for
+        format-string logging elsewhere and produces a log line that structlog tools
+        cannot parse or filter.
+      fix: >
+        Acceptable as is given the documented intent, but add a structlog equivalent
+        after the configure() call below so the same information is available in both
+        formats. The stdlib-only version leaves a blind spot for structlog consumers.
+
+    - severity: minor
+      location: src/stogger/config.py:110,121
+      what: >
+        _check_test_dependencies uses warnings.warn() instead of logging — bypasses the
+        project's own logging infrastructure.
+      impact: >
+        Inconsistency: warnings go to stderr via stdlib warnings module, not through
+        structlog. These messages cannot be filtered, captured in log aggregation, or
+        enriched with structured context. In test environments, warnings are often
+        suppressed entirely.
+      fix: >
+        Use log.warning() after ensuring structlog is minimally configured, with
+        warnings.warn() only as fallback for pre-configuration scenarios.
+
+    - severity: minor
+      location: src/stogger/core.py:371-375
+      what: >
+        Info-level event "project-structure-detected-from-pyproject" has _replace_msg
+        "Project structure detected from {path}" — but no store label telling the reader
+        what "path" IS.
+      impact: >
+        Convention requires _replace_msg to name the store: "(pyproject.toml)" or
+        "(config file)". Without the label, the reader sees a bare path and must infer
+        its meaning from context. The reader should not have to guess whether {path}
+        points to a database, a file, or a network resource.
+      fix: >
+        _replace_msg="Project structure detected from pyproject.toml: {path}"
+
+  traps:
+    - scenario: >
+        A renderer crashes during a batch processing event — e.g. ConsoleFileRenderer
+        throws ValueError on a non-UTF8 value in the event dict.
+      expectation: >
+        Log should show: the full event content (batch_id, item_count, current_item,
+        the actual value that caused the crash), the renderer name, and the exception
+        type and traceback. The operator needs the data to reproduce the bug.
+      reality: >
+        Log shows: "renderer-failed" with "event=user-login" and "renderer=ConsoleFileRenderer".
+        The actual event_dict with all context is gone. The operator has the renderer name
+        and the event name, but no batch ID, no item data, no way to find which input
+        triggered the crash. The data was in memory and is now lost.
+
+    - scenario: >
+        An operator configures STOGGER_ENABLE_POSTGRES=1 but forgets to install the
+        stogger-postgres package. The application starts and runs normally.
+      expectation: >
+        Log should show a warning: "Postgres logging enabled but stogger-postgres
+        package is not installed". The operator sees this on startup and fixes it.
+      reality: >
+        No warning, no error, nothing at production log level. The ImportError is
+        caught and logged at debug only. The operator assumes postgres logging works.
+        Days later during an incident investigation, no logs are in postgres. The
+        operator discovers the silent failure.
+
+    - scenario: >
+        init_logging() is called but the systemd journal socket is unavailable, the
+        log directory is not writable, and console logging was explicitly disabled
+        via STOGGER_LOG_TO_CONSOLE=0.
+      expectation: >
+        Log should show a clear message: "No logging targets available — all targets
+        failed to initialize" with details about which targets failed and why.
+      reality: >
+        Each failure is logged separately (warning/journal, warning/permission, etc.)
+        but there is no final summary. The operator reads through startup logs and sees
+        individual warnings but has to manually connect the dots to determine that NO
+        logging is active. The system is running completely dark.
+
+    - scenario: >
+        A production service uses @log_result on a critical function. The function
+        raises ValueError for invalid input. The caller catches this exception and
+        returns a 400 response.
+      expectation: >
+        Log should show a warning or error: the function failed, with the input
+        arguments and exception type. An operator investigating a spike in 400 errors
+        can find the root cause.
+      reality: >
+        Log shows nothing at info level. The "failed" event is at debug level and only
+        visible with -v. The operator sees a 400 response spike but has zero log
+        evidence of the internal failure. The exception was caught and handled, but the
+        diagnostic trail was deliberately hidden.
+
+    - scenario: >
+        A systemd journal transport failure occurs during a high-volume event. The
+        JournalRenderer raises OSError "journal socket full".
+      expectation: >
+        Console and file loggers should still capture the event while the journal
+        failure is logged separately.
+      reality: >
+        MultiRenderer raises immediately on the first renderer exception. Console,
+        file, and postgres all receive nothing for this event. A transient journal
+        socket backpressure takes down the entire logging pipeline for that event.
+
+  verdict: >
+    stogger practices what it preaches on the surface (kebab-case, _replace_msg,
+    structured context) but has critical blind spots in its own core infrastructure:
+    renderer failures destroy diagnostic data, misconfiguration is swallowed silently,
+    and single-point failures cascade to all output targets. The project that
+    preaches "complete auditability" fails to audit its own startup, fails to persist
+    data when its own renderers crash, and silently ignores configuration errors.
+    The conventions are good. The tests are solid. But the dog food has poison in it.

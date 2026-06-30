@@ -14,13 +14,16 @@ Test matrix from spec decision ``test-strategy``:
 import os
 import sys
 import types
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 import structlog
 
-from stogger.config import StoggerConfig
+from stogger.config import StoggerConfig, SystemdMode
 from stogger.core import init_logging
+from stogger.systemd import DummyJournalLogger
 
 
 @pytest.fixture(autouse=True)
@@ -43,9 +46,9 @@ def test_enable_postgres_true_import_succeeds():
     SPEC: api-contract — ``get_postgres_logger_factory()`` returns a callable
     factory whose return value is a structlog-compatible logger.
     """
-    mock_module = types.ModuleType("stogger_postgres")
+    mock_module: Any = types.ModuleType("stogger_postgres")
 
-    mock_logger_instance = MagicMock()
+    mock_logger_instance = MagicMock(spec=DummyJournalLogger)
 
     class MockFactory:
         def __call__(self):
@@ -65,10 +68,13 @@ def test_enable_postgres_true_import_succeeds():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = True
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = "postgresql://test:@/testdb"
         mock_cfg.postgres_table = "stogger_logs"
+        mock_cfg.log_rotation = "none"
+        mock_cfg.log_max_bytes = 10_000_000
+        mock_cfg.log_backup_count = 5
         mock_config_cls.return_value = mock_cfg
 
         init_logging(logdir=None)
@@ -100,10 +106,13 @@ def test_enable_postgres_true_import_error_fallback():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = True
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = "postgresql://test:@/testdb"
         mock_cfg.postgres_table = "stogger_logs"
+        mock_cfg.log_rotation = "none"
+        mock_cfg.log_max_bytes = 10_000_000
+        mock_cfg.log_backup_count = 5
         mock_config_cls.return_value = mock_cfg
 
         init_logging(logdir=None)
@@ -126,9 +135,9 @@ def test_enable_postgres_false_no_import():
     SPEC: acceptance criterion — ``enable_postgres=False`` suppresses all
     postgres behavior.
     """
-    mock_module = types.ModuleType("stogger_postgres")
+    mock_module: Any = types.ModuleType("stogger_postgres")
 
-    mock_module.get_postgres_logger_factory = MagicMock()
+    mock_module.get_postgres_logger_factory = MagicMock(spec=Callable)
     mock_module.PostgresLogger = type("PostgresLogger", (), {})
     mock_module.DummyPostgresLogger = type("DummyPostgresLogger", (), {})
     mock_module.PostgresLoggerFactory = type("PostgresLoggerFactory", (), {})
@@ -142,10 +151,13 @@ def test_enable_postgres_false_no_import():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = False
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = None
         mock_cfg.postgres_table = "stogger_logs"
+        mock_cfg.log_rotation = "none"
+        mock_cfg.log_max_bytes = 10_000_000
+        mock_cfg.log_backup_count = 5
         mock_config_cls.return_value = mock_cfg
 
         init_logging(logdir=None)
@@ -173,10 +185,13 @@ def test_enable_postgres_true_import_error_silent_fallback():
 
         mock_cfg = MagicMock(spec=StoggerConfig)
         mock_cfg.enable_postgres = True
-        mock_cfg.enable_systemd = False
+        mock_cfg.systemd_mode = SystemdMode.OFF
         mock_cfg.systemd_facility = None
         mock_cfg.postgres_dsn = "postgresql://test:@/testdb"
         mock_cfg.postgres_table = "stogger_logs"
+        mock_cfg.log_rotation = "none"
+        mock_cfg.log_max_bytes = 10_000_000
+        mock_cfg.log_backup_count = 5
         mock_config_cls.return_value = mock_cfg
 
         init_logging(logdir=None)

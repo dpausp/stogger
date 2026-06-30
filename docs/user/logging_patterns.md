@@ -39,6 +39,8 @@ file gets stripped text.
 | `stack` | `stack` | No | Stripped via `write()` closure |
 | `exception_traceback` | `exception` | No | Stripped via `write()` closure |
 
+The `_` prefix marks internal keys consumed by dedicated render stages — they never appear in the fallback `key=value` body and cannot be referenced from `_replace_msg` format strings. Don't use `_` for your own fields; see [Reference: Underscore Prefix Convention](reference.md#underscore-prefix-convention).
+
 ### Tool Output with ANSI Colors
 
 Use `_raw_output` for tool output containing ANSI codes (e.g.,

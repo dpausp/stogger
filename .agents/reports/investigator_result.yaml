@@ -1,0 +1,95 @@
+investigator_result:
+  result_status: success
+  review_type: quality-assessment
+  target: /stogger
+  scope: deep
+  metadata:
+    id: tidy-action-plan
+    description: "Extract tidy action plan from quality audit report"
+    created_at: "2026-06-02T11:00:00Z"
+
+  score:
+    value: 88
+    max: 100
+    grade: B
+    summary: "Overall B. Logging stream orange (1 critical). All other streams green. 224/1 tests at 91.68% coverage."
+
+  focus_areas:
+    - focus_area: code-quality
+      assessment: pass
+      details: "ruff 0, ty 0, 14 justified noqa. 281 suppressed rules (ANN/D/CPY — style/doc only, no safety rules)."
+    - focus_area: test-coverage
+      assessment: conditional
+      details: "91.68% overall. 2 modules below 80%: decorators.py (77.58%), systemd.py (74.67%). 0 RED FLAGS."
+    - focus_area: maintainability
+      assessment: conditional
+      details: "94% spec'd mocks, 37/37 arch tests pass. Conftest imports private API. MagicMock fixes in b313743."
+
+  findings:
+    - violation_type: "Logging: Insufficient Error Visibility"
+      findings:
+        - severity: critical
+          description: "Postgres ImportError logged at DEBUG — user who set enable_postgres=True gets zero feedback when optional dep fails."
+          location: "/stogger/src/stogger/core.py:518"
+          evidence: "log.debug(\"stogger-postgres-not-installed\") — debug hides failure. User explicitly enabled postgres, must see the signal."
+        - severity: warning
+          description: "JournalSender OSError logged at DEBUG — production journal failures invisible to ops."
+          location: "/stogger/src/stogger/systemd.py:45"
+          evidence: "log.debug(\"journal-send-failed\") returning False silently. Needs log.warning for ops visibility."
+        - severity: warning
+          description: "MultiRenderer discards full event_dict on renderer failure — violates AP-8."
+          location: "/stogger/src/stogger/core.py:872-876"
+          evidence: "log.exception() logs event_name only. The full event_dict causing the crash never persists."
+
+    - violation_type: "Maintainability: Fragile Dependencies"
+      findings:
+        - severity: warning
+          description: "Conftest imports private API from pytest-stogger — internal renames break config silently."
+          location: "/stogger/conftest.py:14"
+          evidence: "from pytest_stogger.plugin import _CFG_KEY, _load_config — underscore names are internal."
+
+    - violation_type: "Test Double Hygiene"
+      findings:
+        - severity: info
+          description: "MagicMock() calls without spec= risk slippery mocks. 2 fixed in b313743, 4 remain."
+          location: "test_systemd_integration.py:47,112 + test_postgres_integration.py:48,131"
+          evidence: "return MagicMock() and assignment without spec= accept any call pattern."
+
+    - violation_type: "Coverage Gaps"
+      findings:
+        - severity: info
+          description: "2 source modules below 80% coverage threshold."
+          location: "src/stogger/decorators.py 77.58% / systemd.py 74.67%"
+          evidence: "decorators.py misses: 84,164,170-195,272-300,427. systemd.py misses: 28-30,33-35,44-46,53,55,95,101-102."
+
+  suggestions:
+    - description: "core.py:518 — change log.debug to log.warning with _replace_msg for Postgres ImportError"
+      priority: high
+    - description: "systemd.py:45 — change log.debug to log.warning with structured context for journal send failures"
+      priority: high
+    - description: "core.py:872-876 — persist full event_dict to artifact in MultiRenderer failure handler"
+      priority: high
+    - description: "conftest.py:14 — refactor to use public pytest-stogger API instead of _CFG_KEY/_load_config"
+      priority: medium
+    - description: "Add spec= to remaining MagicMock() calls (test_systemd_integration.py:47,112 + test_postgres_integration.py:48,131)"
+      priority: medium
+    - description: "Improve coverage: decorators.py (77.58%) and systemd.py (74.67%) — test missing line ranges"
+      priority: low
+
+  artifacts_reviewed:
+    - artifact_type: report
+      artifact_path: "/stogger/.agents/reports/quality-audit.md"
+      status: reviewed
+      findings:
+        - "Quality audit report: grade B, logging orange, 9 NAV items, 4 on course."
+    - artifact_type: implementation
+      artifact_path: "/stogger/src/stogger/core.py"
+      status: reviewed
+      findings:
+        - "core.py:518 — Postgres ImportError at DEBUG (critical)"
+        - "core.py:872-876 — MultiRenderer event_dict not persisted (warning)"
+    - artifact_type: implementation
+      artifact_path: "/stogger/src/stogger/systemd.py"
+      status: reviewed
+      findings:
+        - "systemd.py:45 — JournalSender OSError at DEBUG (warning)"

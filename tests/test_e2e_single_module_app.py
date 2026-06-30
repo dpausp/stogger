@@ -27,7 +27,7 @@ def _cleanup_root_logging():
     config = structlog.get_config()
     factory = config.get("logger_factory")
     if hasattr(factory, "factories"):
-        for _name, sub_factory in factory.factories.items():
+        for sub_factory in factory.factories.values():
             if hasattr(sub_factory, "_file"):
                 sub_factory._file.close()
 
@@ -159,7 +159,7 @@ def test_single_module_app_exception_logging(tmp_path, capsys, monkeypatch):
     try:
         raise ValueError("something broke")
     except ValueError:
-        log.error("operation-failed", exc_info=True)
+        log.exception("operation-failed")
 
     captured = capsys.readouterr()
 

@@ -1,23 +1,15 @@
 """Tests for the factory module functionality."""
 
-import logging
-from logging.handlers import QueueHandler, QueueListener
-from pathlib import Path
-from queue import Queue
 import tempfile
-from unittest.mock import MagicMock, patch
+from pathlib import Path
 
 import pytest
 
 from stogger.config import StoggerConfig
 from stogger.core import JSONRenderer, TranslationProcessor
 from stogger.factory import (
-    _assign_formatters,
-    _configure_async_logging,
-    _create_file_handler,
     build_renderer,
     build_shared_processors,
-    configure_stdlib_logging,
 )
 
 
@@ -93,6 +85,7 @@ class TestBuildSharedProcessors:
         translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
         assert len(translation_processors) == 0
 
+
 @pytest.mark.integration
 class TestBuildRenderer:
     """Test cases for build_renderer function."""
@@ -128,92 +121,6 @@ class TestBuildRenderer:
 
         assert isinstance(renderer_verbose, ConsoleFileRenderer)
         assert isinstance(renderer_normal, ConsoleFileRenderer)
-
-
-class TestConfigureStdlibLogging:
-    """Test cases for configure_stdlib_logging function."""
-
-    @patch("logging.basicConfig", autospec=True)
-    def test_sync_logging_configuration(self, mock_basic_config):
-        """Test synchronous logging configuration."""
-        config = StoggerConfig(async_logging=False, log_to_console=True)
-        processors = []
-
-        configure_stdlib_logging(config, processors)
-
-        mock_basic_config.assert_called_once()
-        call_kwargs = mock_basic_config.call_args.kwargs
-        assert "handlers" in call_kwargs
-        assert "level" in call_kwargs
-        assert "force" in call_kwargs
-
-    @patch("stogger.factory.QueueListener", autospec=True)
-    @patch("logging.getLogger", autospec=True)
-    def test_async_logging_configuration(self, mock_get_logger, mock_queue_listener):
-        """Test asynchronous logging configuration."""
-        mock_root_logger = MagicMock(spec=logging.Logger(""))
-        mock_get_logger.return_value = mock_root_logger
-        mock_listener_instance = MagicMock(spec=QueueListener)
-        mock_queue_listener.return_value = mock_listener_instance
-
-        config = StoggerConfig(async_logging=True, log_to_console=True)
-        processors = []
-
-        configure_stdlib_logging(config, processors)
-
-        mock_queue_listener.assert_called_once()
-        mock_listener_instance.start.assert_called_once()
-        mock_root_logger.addHandler.assert_called_once()
-
-        # Verify QueueHandler was added
-        added_handler = mock_root_logger.addHandler.call_args[0][0]
-        assert isinstance(added_handler, logging.handlers.QueueHandler)
-
-    @patch("logging.basicConfig", autospec=True)
-    def test_file_logging_configuration(self, mock_basic_config):
-        """Test file logging configuration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            log_dir = Path(tmpdir)
-            config = StoggerConfig(logdir=log_dir, log_to_console=False)
-            processors = []
-
-            configure_stdlib_logging(config, processors)
-
-            mock_basic_config.assert_called_once()
-            call_kwargs = mock_basic_config.call_args.kwargs
-            handlers = call_kwargs["handlers"]
-
-            # Should have file handler
-            assert any(isinstance(h, logging.FileHandler) for h in handlers)
-
-    @patch("logging.basicConfig", autospec=True)
-    def test_both_console_and_file_logging(self, mock_basic_config):
-        """Test configuration with both console and file logging."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            log_dir = Path(tmpdir)
-            config = StoggerConfig(logdir=log_dir, log_to_console=True)
-            processors = []
-
-            configure_stdlib_logging(config, processors)
-
-            mock_basic_config.assert_called_once()
-            call_kwargs = mock_basic_config.call_args.kwargs
-            handlers = call_kwargs["handlers"]
-
-            # Should have both console and file handlers
-            assert any(isinstance(h, logging.StreamHandler) for h in handlers)
-            assert any(isinstance(h, logging.FileHandler) for h in handlers)
-
-    def test_level_setting(self):
-        """Test that logging level is set to DEBUG."""
-        config = StoggerConfig(verbose=True, log_to_console=True)
-        processors = []
-
-        with patch("logging.basicConfig", autospec=True) as mock_basic_config:
-            configure_stdlib_logging(config, processors)
-
-            call_kwargs = mock_basic_config.call_args.kwargs
-            assert call_kwargs["level"] == logging.DEBUG
 
 
 @pytest.mark.integration
@@ -252,10 +159,9 @@ class TestBuildSharedProcessorsCoverage:
         config = StoggerConfig(translation_dir=Path("/nonexistent"), language="en")
         processors = build_shared_processors(config)
         assert len(processors) > 0
-        translation_processors = [p for p in processors if isinstance(p, TranslationProcessor)]
-        #JK|        assert len(translation_processors) == 0
+        [p for p in processors if isinstance(p, TranslationProcessor)]
 
-        log.has("translation-load-failed")
+        assert log.has("translation-load-failed")
 
     def test_invalid_toml_translation(self, log):
         """Invalid TOML in translation file triggers warning and continues."""
@@ -266,85 +172,11 @@ class TestBuildSharedProcessorsCoverage:
             config = StoggerConfig(translation_dir=translation_dir, language="en")
             processors = build_shared_processors(config)
             assert len(processors) > 0
-        #WQ|            assert len(processors) > 0
 
-            log.has("translation-load-failed")
+            assert log.has("translation-load-failed")
+
     def test_json_format_renderer_in_chain(self):
         """log_format='json' adds JSONRenderer to the processor chain."""
         config = StoggerConfig(log_format="json")
         processors = build_shared_processors(config)
         assert any(isinstance(p, JSONRenderer) for p in processors)
-
-
-class TestCreateFileHandler:
-    """Tests for _create_file_handler function."""
-
-    @pytest.mark.integration
-    def test_permission_error_returns_none(self, log):
-        """Unwritable directory returns None instead of raising."""
-        result = _create_file_handler("/proc/nonexistent/impossible", "test")
-        #YR|        assert result is None
-
-        log.has("file-logging-setup-failed")
-
-
-class TestAssignFormatters:
-    """Tests for _assign_formatters function."""
-
-    def test_non_stream_non_file_handler(self):
-        """Handler that is neither StreamHandler nor FileHandler gets console formatter."""
-        console_fmt = logging.Formatter("%(message)s")
-        file_fmt = logging.Formatter("%(message)s")
-        handler = QueueHandler(Queue())
-        _assign_formatters([handler], console_fmt, file_fmt)
-        assert handler.formatter is console_fmt
-
-
-class TestConfigureAsyncLogging:
-    """Tests for _configure_async_logging function."""
-
-    @patch("stogger.factory.atexit", autospec=True)
-    @patch("logging.getLogger", autospec=True)
-    def test_removes_non_queue_handlers(self, mock_get_logger, mock_atexit):
-        """Existing non-queue handlers on root logger are removed during async setup."""
-        mock_root = MagicMock(spec=logging.Logger)
-        mock_get_logger.return_value = mock_root
-        existing_handler = MagicMock(spec=logging.Handler)
-        mock_root.handlers = [existing_handler]
-
-        handler = logging.StreamHandler()
-        _configure_async_logging([handler])
-
-        mock_root.removeHandler.assert_called()
-
-    @patch("stogger.factory.atexit", autospec=True)
-    @patch("logging.getLogger", autospec=True)
-    def test_atexit_cleanup_stops_listener(self, mock_get_logger, mock_atexit):
-        """Registered atexit cleanup function calls listener.stop()."""
-        mock_root = MagicMock(spec=logging.Logger)
-        mock_get_logger.return_value = mock_root
-        mock_root.handlers = []
-
-        with patch("stogger.factory.QueueListener", autospec=True) as mock_ql:
-            mock_listener = MagicMock(spec=QueueListener)
-            mock_ql.return_value = mock_listener
-
-            handler = logging.StreamHandler()
-            _configure_async_logging([handler])
-
-            cleanup_fn = mock_atexit.register.call_args[0][0]
-            cleanup_fn()
-            mock_listener.stop.assert_called_once()
-
-
-class TestConfigureStdlibLoggingNoHandlers:
-    """Tests for no-handlers early return path."""
-
-    def test_no_handlers_returns_early(self, log):
-        """No console and no file returns early without configuring logging."""
-        config = StoggerConfig(log_to_console=False, logdir=None)
-        with patch("logging.basicConfig", autospec=True) as mock_basic:
-            configure_stdlib_logging(config, [])
-            #BR|            mock_basic.assert_not_called()
-
-        log.has("no-logging-handlers-configured")

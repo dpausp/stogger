@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -27,8 +28,8 @@ from stogger.core import (
     SelectRenderedString,
     SystemdJournalRenderer,
     TranslationProcessor,
-    _build_logger_factories,
     _inject_exc_info_for_exception,
+    build_logger_factories,
     drop_cmd_output_logfile,
     format_exc_info,
     init_command_logging,
@@ -37,6 +38,7 @@ from stogger.core import (
     logging_initialized,
     prefix,
     process_exc_info,
+    shutdown_logging,
 )
 
 
@@ -76,6 +78,7 @@ class TestConsoleFileRenderer:
                 "level": "info",
             },
         )
+        assert result is not None
 
         assert "short" + " " * 15 in result["file"]
 
@@ -100,6 +103,7 @@ class TestConsoleFileRenderer:
                 "code_lineno": 42,
             },
         )
+        assert result is not None
 
         assert "2023-01-01T00:00:00" in result["console"]
         assert "2023-01-01T00:00:00Z" not in result["console"]
@@ -114,9 +118,64 @@ class TestConsoleFileRenderer:
             "some_key": "some_value",
         }
         result = renderer(None, "info", event_dict.copy())
+        assert result is not None
         assert "test-event" in result["console"]
         assert "some_value" in result["console"]
         assert "\x1b" not in result["file"]  # No ANSI codes in file output
+
+    def test_underscore_keys_dropped_from_fallback_body(self):
+        """Fallback KV body skips `_`-prefixed keys (spec: body-skip-underscore-keys)."""
+        renderer = ConsoleFileRenderer()
+        event_dict = {
+            "event": "test-event",
+            "level": "info",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "visible_key": "visible_value",
+            "_internal_key": "secret_internal_value",
+            "_output": "command output line",
+        }
+        result = renderer(None, "info", event_dict)
+        assert result is not None
+        assert "visible_key" in result["file"]
+        assert "visible_value" in result["file"]
+        # `_`-prefixed keys MUST NOT appear in the fallback body.
+        # `_internal_key` has no dedicated render stage so it must vanish entirely.
+        assert "_internal_key" not in result["file"]
+        assert "secret_internal_value" not in result["file"]
+        # `_output` is consumed by the dedicated output-section stage, so the value
+        # appears exactly once (as the rendered output section), not duplicated in body.
+        assert result["file"].count("command output line") == 1
+
+    def test_replace_msg_cannot_reference_underscore_key(self):
+        """`_replace_msg` format strings cannot reference `_`-prefixed keys."""
+        renderer = ConsoleFileRenderer()
+        event_dict = {
+            "event": "test-event",
+            "level": "info",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "_replace_msg": "leaked: {_internal}",
+            "_internal": "secret_value",
+        }
+        result = renderer(None, "info", event_dict)
+        assert result is not None
+        # Internal value must not be reachable via format string
+        assert "secret_value" not in result["file"]
+        # PartialFormatter emits '<missing>' for unavailable keys
+        assert "<missing>" in result["file"]
+
+    def test_underscore_output_key_not_duplicated_in_body(self):
+        """`_output` value appears once (via output-section stage), not duplicated in body."""
+        renderer = ConsoleFileRenderer()
+        event_dict = {
+            "event": "test-event",
+            "level": "info",
+            "timestamp": "2025-01-01T00:00:00Z",
+            "_output": "command output line",
+        }
+        result = renderer(None, "info", event_dict)
+        assert result is not None
+        # The output appears once (via the dedicated stage), not twice (body + stage)
+        assert result["file"].count("command output line") == 1
 
     def test_json_renderer_output(self, log):
         """Test the output of the JSONRenderer."""
@@ -163,6 +222,7 @@ class TestCoreEdgeCases:
                 "code_lineno": 42,
             },
         )
+        assert result is not None
 
         assert "2023-01-01T00:00:00" in result["console"]
         assert "2023-01-01T00:00:00Z" not in result["console"]
@@ -238,6 +298,287 @@ print("Still configured:", stogger.logging_initialized())
 
         assert "Configured:" in lines[0]
         assert "Still configured:" in lines[-1]
+
+    def test_early_to_full_upgrade_no_override_warning(self):
+        """init_early_logging() → init_logging() must NOT warn about overriding.
+
+        The early→full upgrade is the normal two-phase init pattern. Only
+        third-party pipelines (pytest-stogger, etc.) should trigger the
+        override warning.
+        """
+        test_script = """
+import stogger
+import structlog
+
+# Phase 1: early bootstrap (from __init__.py)
+stogger.init_early_logging()
+
+# Phase 2: full init (from CLI callback)
+stogger.init_logging()
+
+# If the override warning fired, it would appear on stderr
+import sys
+sys.stderr.flush()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", test_script],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        assert "init-logging-overriding-existing-config" not in result.stderr, (
+            f"Early→full upgrade should not produce override warning, but got:\n{result.stderr}"
+        )
+
+    def test_early_to_full_upgrade_with_preconfigured_no_override_warning(self):
+        """Two-phase init must not warn even when structlog is pre-configured
+        before init_early_logging() runs (e.g. gunicorn --preload, uv wrapper).
+
+        Regression test for: _early_logging_active was not set when
+        init_early_logging() early-returned due to structlog already being
+        configured.
+        """
+        test_script = """
+import structlog
+import stogger
+
+# Simulate gunicorn preload / uv wrapper / another library
+# configuring structlog BEFORE the application's __init__.py runs.
+structlog.configure(
+    processors=[structlog.dev.ConsoleRenderer()],
+    logger_factory=structlog.PrintLoggerFactory(),
+    wrapper_class=structlog.BoundLogger,
+    cache_logger_on_first_use=False,
+)
+
+# Phase 1: application __init__.py calls init_early_logging().
+# This is a documented no-op when structlog is already configured,
+# but must still mark the two-phase pattern as active.
+stogger.init_early_logging()
+
+# Phase 2: CLI/service entry point calls init_logging().
+stogger.init_logging()
+
+import sys
+sys.stderr.flush()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", test_script],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        assert "init-logging-overriding-existing-config" not in result.stderr, (
+            f"Two-phase upgrade with pre-configured structlog should not "
+            f"produce override warning, but got:\n{result.stderr}"
+        )
+
+    def test_third_party_pipeline_override_still_warns(self):
+        """init_logging() must still warn when overriding a non-early pipeline."""
+        test_script = """
+import structlog
+import stogger
+
+# Simulate third-party pipeline (e.g. pytest-structlog)
+structlog.configure(
+    processors=[structlog.dev.ConsoleRenderer()],
+    logger_factory=structlog.PrintLoggerFactory(),
+    wrapper_class=structlog.BoundLogger,
+    cache_logger_on_first_use=False,
+)
+
+# Now init_logging() should warn about overriding this
+stogger.init_logging()
+
+import sys
+sys.stderr.flush()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", test_script],
+            check=False,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 0, f"Script failed: {result.stderr}"
+        assert "init-logging-overriding-existing-config" in result.stderr, (
+            f"Override warning expected when third-party pipeline is active, but stderr was:\n{result.stderr}"
+        )
+
+
+class TestInitLoggingOverrideWarning:
+    """Tests for init_logging() override warning suppression."""
+
+    def test_early_flag_suppresses_override_warning(self, log):
+        """When _early_logging_active is True, init_logging() must not warn."""
+        # Simulate the state after init_early_logging()
+        import stogger.core
+
+        original = stogger.core._early_logging_active
+        stogger.core._early_logging_active = True
+        try:
+            stogger.init_logging()
+        finally:
+            stogger.core._early_logging_active = original
+
+        assert not log.has("init-logging-overriding-existing-config")
+
+    def test_no_early_flag_still_warns(self, log):
+        """When _early_logging_active is False and structlog is configured, warn."""
+        import stogger.core
+
+        original = stogger.core._early_logging_active
+        stogger.core._early_logging_active = False
+        try:
+            stogger.init_logging()
+        finally:
+            stogger.core._early_logging_active = original
+
+        assert log.has("init-logging-overriding-existing-config")
+
+
+class TestOpenLogFiles:
+    """Tests for atexit cleanup of open log file handles."""
+
+    def test_close_open_log_files_closes_tracked_handles(self):
+        """_close_open_log_files() closes all tracked file handles."""
+        import io
+
+        from stogger.core import _close_open_log_files, _open_log_files
+
+        fh = io.StringIO()
+        _open_log_files.append(fh)
+        assert not fh.closed
+        _close_open_log_files()
+        assert fh.closed
+        assert len(_open_log_files) == 0
+
+
+class TestShutdownLogging:
+    """Tests for shutdown_logging() — proper cleanup before structlog reconfigure."""
+
+    def test_shutdown_closes_open_log_files(self, tmp_path):
+        """shutdown_logging() closes file handles opened by init_logging()."""
+        import warnings
+
+        from stogger.core import _open_log_files, shutdown_logging
+
+        structlog.reset_defaults()
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-shutdown")
+
+        # File handle was opened and tracked
+        assert len(_open_log_files) >= 1
+        fh = _open_log_files[0]
+        assert not fh.closed
+
+        # shutdown_logging() must close the handle — no ResourceWarning
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", ResourceWarning)
+            shutdown_logging()
+
+        assert fh.closed
+        assert not any(isinstance(w.category, ResourceWarning) for w in caught)
+
+    def test_shutdown_resets_configured_flags(self, tmp_path):
+        """shutdown_logging() resets flags so init_logging() can run again."""
+        import stogger.core as core_mod
+
+        structlog.reset_defaults()
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-flags")
+
+        assert structlog.is_configured()
+
+        shutdown_logging()
+
+        assert core_mod._early_logging_active is False
+        assert not structlog.is_configured()
+
+    def test_shutdown_allows_reinit_without_warning(self, tmp_path, capsys):
+        """After shutdown_logging(), init_logging() works without override warning."""
+        from stogger.core import shutdown_logging
+
+        structlog.reset_defaults()
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-reinit")
+
+        shutdown_logging()
+
+        # Second init should NOT produce override warning
+        init_logging(logdir=str(tmp_path), syslog_identifier="test-reinit")
+        captured = capsys.readouterr()
+        assert "init-logging-overriding-existing-config" not in captured.err
+
+
+class TestColorDetection:
+    """Tests for NO_COLOR / CLICOLOR_FORCE / isatty color detection."""
+
+    def test_no_color_env_disables_colors(self, monkeypatch):
+        """NO_COLOR env var present → colors disabled (https://no-color.org/)."""
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is False
+
+    def test_no_color_empty_string_still_disables(self, monkeypatch):
+        """NO_COLOR='' (empty string) still disables — presence matters, not value."""
+        monkeypatch.setenv("NO_COLOR", "")
+        monkeypatch.delenv("CLICOLOR_FORCE", raising=False)
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is False
+
+    def test_clicolor_force_overrides_no_tty(self, monkeypatch):
+        """CLICOLOR_FORCE env var → colors even on non-TTY."""
+        monkeypatch.delenv("NO_COLOR", raising=False)
+        monkeypatch.setenv("CLICOLOR_FORCE", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is True
+
+    def test_no_color_overrides_clicolor_force(self, monkeypatch):
+        """NO_COLOR takes precedence over CLICOLOR_FORCE."""
+        monkeypatch.setenv("NO_COLOR", "1")
+        monkeypatch.setenv("CLICOLOR_FORCE", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors() is False
+
+    def test_force_true_overrides_everything(self, monkeypatch):
+        """Explicit force=True wins over NO_COLOR env."""
+        monkeypatch.setenv("NO_COLOR", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors(force=True) is True
+
+    def test_force_false_overrides_everything(self, monkeypatch):
+        """Explicit force=False wins over CLICOLOR_FORCE env."""
+        monkeypatch.setenv("CLICOLOR_FORCE", "1")
+        from stogger._colors import should_emit_colors
+
+        assert should_emit_colors(force=False) is False
+
+    def test_renderer_colors_false_produces_no_ansi(self):
+        """ConsoleFileRenderer(colors=False) output has zero ANSI escape codes."""
+        renderer = ConsoleFileRenderer(colors=False)
+        result = renderer(None, "info", {"event": "test-event", "level": "info", "timestamp": "2026-01-01T00:00:00Z"})
+        assert result is not None
+        console_output = result["console"]
+        assert "\x1b[" not in console_output, f"Found ANSI codes in: {console_output!r}"
+
+    def test_renderer_colors_true_produces_ansi(self):
+        """ConsoleFileRenderer(colors=True) output contains ANSI escape codes."""
+        renderer = ConsoleFileRenderer(colors=True)
+        result = renderer(None, "info", {"event": "test-event", "level": "info", "timestamp": "2026-01-01T00:00:00Z"})
+        assert result is not None
+        console_output = result["console"]
+        assert "\x1b[" in console_output, f"No ANSI codes in: {console_output!r}"
 
 
 # --- Batch 4: Extracted Private Methods ---
@@ -317,7 +658,9 @@ class TestRenderOutputSections:
             "stack": "stack trace here",
             "exception_traceback": "traceback details",
         }
-        renderer._render_output_sections(event_dict, buf.write)
+        sections = renderer._pop_output_sections(event_dict)
+        assert event_dict == {}  # all section keys popped
+        renderer._render_output_sections(sections, buf.write)
         output = buf.getvalue()
 
         assert "cmd> ls -la" in output
@@ -334,7 +677,41 @@ class TestRenderOutputSections:
         assert "traceback details" in output
         assert "=" * 79 in output  # separator between stack and traceback
 
-    def test_raw_output_ansi_passthrough(self):
+    def test_exception_traceback_not_rendered_inline(self):
+        """exception_traceback appears only as multi-line block, never as KV pair.
+
+        Regression test: _pop_output_sections removes exception_traceback (and
+        other output section keys) from event_dict BEFORE _format_body renders
+        the fallback KV pairs. Without this, the traceback appeared twice — once
+        inline with escaped newlines, once as the formatted block.
+        """
+        renderer = ConsoleFileRenderer()
+        traceback_text = "Traceback (most recent call last):\n  File 'app.py', line 1\nConnectionError: refused"
+        event_dict = {
+            "event": "db-connect-failed",
+            "level": "error",
+            "timestamp": "2026-01-01T00:00:00Z",
+            "host": "db.example.com",
+            "exception_traceback": traceback_text,
+        }
+        result = renderer(None, "error", event_dict)
+        assert result is not None
+
+        console = result["console"]
+        file_output = result["file"]
+
+        # The traceback MUST appear as the formatted multi-line block.
+        assert "exception: Traceback (most recent call last):" in console
+        assert "exception: ConnectionError: refused" in console
+
+        # The traceback MUST NOT appear as an inline key=value pair.
+        # The old bug rendered: exception_traceback='Traceback...\\n  File...'
+        assert "exception_traceback=" not in console
+        assert "exception_traceback=" not in file_output
+
+        # Other KV pairs should still be rendered normally.
+        assert "host=" in file_output
+        assert "db.example.com" in console
         """_raw_output preserves ANSI in console, strips for file."""
         renderer = ConsoleFileRenderer()
         ansi_content = RED + "error text" + RESET_ALL
@@ -343,6 +720,7 @@ class TestRenderOutputSections:
             "_raw_output": ansi_content,
         }
         result = renderer(None, "info", event_dict.copy())
+        assert result is not None
 
         # ANSI codes present in console (RED is non-empty when isatty)
         if RED:
@@ -363,7 +741,7 @@ class TestPartialFormatter:
         fmt = PartialFormatter()
         result = fmt.get_field("nonexistent", [], {})
         assert result == (None, "nonexistent")
-        assert log.has("format-field-missing")
+        assert log.has("format-field-absent")
 
     def test_get_field_present(self):
         """Normal field lookup returns (value, rest)."""
@@ -414,6 +792,32 @@ class TestTranslationProcessor:
         """TranslationProcessor.__init__ logs initializing-translation-processor."""
         TranslationProcessor({"greeting": "Hello {name}!"})
         log.has("initializing-translation-processor")
+
+    def test_translation_processor_replace_msg_excludes_underscore_keys(self):
+        """`_replace_msg` format strings cannot reference `_`-prefixed keys."""
+        proc = TranslationProcessor({})
+        event_dict = {
+            "event": "something",
+            "_replace_msg": "leaked: {_internal}",
+            "_internal": "secret_value",
+        }
+        result = proc(None, "info", event_dict)
+        assert "secret_value" not in result["_translated_msg"]
+        # PartialFormatter emits '<missing>' for unavailable keys
+        assert "<missing>" in result["_translated_msg"]
+
+    def test_translation_processor_template_excludes_underscore_keys(self):
+        """Translation templates cannot reference `_`-prefixed keys."""
+        proc = TranslationProcessor({"greeting": "visible: {ok} leaked: {_internal}"})
+        event_dict = {
+            "event": "greeting",
+            "ok": "ok",
+            "_internal": "secret_value",
+        }
+        result = proc(None, "info", event_dict)
+        assert "secret_value" not in result["_translated_msg"]
+        assert "<missing>" in result["_translated_msg"]
+        assert "visible: ok" in result["_translated_msg"]
 
 
 class TestPrefix:
@@ -538,7 +942,8 @@ class TestSelectRenderedString:
     def test_select_rendered_string_passthrough(self):
         """String input -> returned as-is."""
         proc = SelectRenderedString()
-        assert proc(None, "info", "already a string") == "already a string"
+        event: Any = "already a string"
+        assert proc(None, "info", event) == "already a string"
 
     def test_select_rendered_string_dict(self):
         """Dict with key -> returns value."""
@@ -603,6 +1008,57 @@ class TestInitEarlyLogging:
         init_early_logging(verbose=True)
         log.has("init-early-logging-called")
 
+    @pytest.mark.integration
+    def test_init_early_logging_verbose_processor_accepts_three_args(self):
+        """Regression: verbose=True identity processor must accept 3 structlog args.
+
+        structlog invokes processors as ``(logger, method_name, event_dict)``.
+        The verbose identity lambda was declared with only 2 parameters,
+        crashing with ``TypeError`` on the first log event emitted after
+        ``init_early_logging(verbose=True)`` — i.e. any ``-v`` CLI startup
+        that reaches the full processor chain. This test drives an event
+        through that chain to guard the signature.
+        """
+        structlog.reset_defaults()
+        init_early_logging(verbose=True)
+        # Drive an event through the configured chain — the identity
+        # processor must accept all three structlog arguments.
+        structlog.get_logger().info(
+            "verbose-chain-probe",
+            _replace_msg="Probe {x}",
+            x=1,
+        )
+
+    def test_init_early_logging_sets_flag_when_already_configured(self):
+        """Regression: _early_logging_active must be set even when
+        init_early_logging() early-returns because structlog was already
+        configured (e.g. gunicorn preload, uv wrapper, another library).
+
+        Without this, init_logging() emits a spurious override warning on
+        every startup of services that follow the documented two-phase
+        pattern but have structlog pre-configured.
+        """
+        import stogger.core
+
+        # Simulate third-party pre-configuration (gunicorn preload, etc.)
+        structlog.configure(
+            processors=[structlog.dev.ConsoleRenderer()],
+            logger_factory=structlog.PrintLoggerFactory(),
+            wrapper_class=structlog.BoundLogger,
+            cache_logger_on_first_use=False,
+        )
+
+        original = stogger.core._early_logging_active
+        try:
+            init_early_logging()
+            assert stogger.core._early_logging_active is True, (
+                "init_early_logging() must set _early_logging_active even "
+                "when structlog is already configured — otherwise init_logging() "
+                "emits a spurious override warning in two-phase pattern users."
+            )
+        finally:
+            stogger.core._early_logging_active = original
+
 
 class TestLoggingInitialized:
     """Tests for logging_initialized."""
@@ -635,6 +1091,42 @@ class TestLoggingInitialized:
             init_logging(logdir=None)
 
         log.has("init-logging-overriding-existing-config")
+
+    def test_init_logging_emits_started_event(self, log):
+        """init_logging() emits init-logging-started debug event at entry."""
+        with patch("os.environ", {**os.environ}):
+            os.environ.pop("JOURNAL_STREAM", None)
+            init_logging(logdir=None)
+        log.has("init-logging-started")
+
+
+class TestBuildConsoleRendererKwargs:
+    """Tests for _build_console_renderer_kwargs logging."""
+
+    def test_emits_building_event(self, log):
+        """_build_console_renderer_kwargs emits building-console-renderer-kwargs debug event."""
+        from stogger.core import _build_console_renderer_kwargs
+
+        _build_console_renderer_kwargs(verbose=True, show_caller_info=False, force_colors=None)
+
+    def test_force_colors_passed_through(self, log):
+        """force_colors parameter is passed through to kwargs."""
+        from stogger.core import _build_console_renderer_kwargs
+
+        result = _build_console_renderer_kwargs(verbose=False, show_caller_info=None, force_colors=True)
+        assert result["colors"] is True
+        log.has("building-console-renderer-kwargs")
+
+
+class TestEnsureStderrLogging:
+    """Tests for _ensure_stderr_logging logging."""
+
+    def test_emits_ensuring_event(self, log):
+        """_ensure_stderr_logging emits ensuring-stderr-logging debug event."""
+        from stogger.core import _ensure_stderr_logging
+
+        _ensure_stderr_logging()
+        log.has("ensuring-stderr-logging")
 
 
 @pytest.mark.integration
@@ -704,6 +1196,25 @@ class TestSystemdJournalRenderer:
         # kv renderer should include the extra key
         assert "extra_key" in journal["MESSAGE"] or "extra_val" in journal["MESSAGE"]
 
+    def test_journal_replace_msg_excludes_underscore_keys(self):
+        """Journal renderer `_replace_msg` excludes `_`-prefixed keys from interpolation."""
+        renderer = SystemdJournalRenderer("test-id")
+        event_dict = {
+            "event": "base",
+            "_replace_msg": "leaked: {_internal}",
+            "_internal": "secret_value",
+            "level": "info",
+        }
+        result = renderer(None, "info", event_dict)
+        message = result["journal"]["MESSAGE"]
+        # Internal value must not be reachable via format string
+        assert "secret_value" not in message
+        # PartialFormatter emits '<missing>' for unavailable keys
+        assert "<missing>" in message
+        # When _replace_msg is set, the formatted message replaces the kv body.
+        # Visible keys are not auto-rendered in this branch.
+        assert "base: leaked: <missing>" in message
+
 
 @pytest.mark.integration
 class TestCmdOutputFileRenderer:
@@ -741,8 +1252,8 @@ class TestMultiRenderer:
         with pytest.raises(RuntimeError, match="Renderer failed"):
             mr(None, "info", {"event": "test"})
 
-    def test_renderer_failure_logs_event(self, log):
-        """Renderer that raises logs renderer-failed event."""
+    def test_renderer_failure_writes_stderr(self, capsys):
+        """Renderer that raises writes to stderr — no log.*() to avoid recursion."""
 
         def bad_renderer(_logger, _method, _event_dict):
             raise RuntimeError("boom")
@@ -750,7 +1261,9 @@ class TestMultiRenderer:
         mr = MultiRenderer(bad=bad_renderer)
         with pytest.raises(RuntimeError, match="Renderer failed"):
             mr(None, "info", {"event": "test"})
-        log.has("renderer-failed")
+        captured = capsys.readouterr()
+        assert "renderer" in captured.err
+        assert "failed" in captured.err
 
 
 class TestMultiOptimisticLogger:
@@ -771,22 +1284,30 @@ class TestMultiOptimisticLogger:
         with pytest.raises(RuntimeError, match="Sub-logger dispatch failed"):
             mol.msg(target="hello")
 
-    def test_dispatch_failure_logs_event(self, log):
-        """Sub-logger that raises logs sub-logger-dispatch-failed event."""
+    def test_dispatch_failure_writes_stderr(self, capsys):
+        """Sub-logger that raises writes diagnostic to stderr, then RuntimeError."""
         failing_logger = MagicMock(spec=_MsgTarget)
         failing_logger.msg.side_effect = RuntimeError("write failed")
         mol = MultiOptimisticLogger({"target": failing_logger})
         with pytest.raises(RuntimeError, match="Sub-logger dispatch failed"):
             mol.msg(target="hello")
-        log.has("sub-logger-dispatch-failed")
+        captured = capsys.readouterr()
+        assert "sub-logger 'target' dispatch failed" in captured.err
 
-    def test_value_error_logs_event(self, log):
-        """Sub-logger raising ValueError logs sub-logger-value-error event."""
+    def test_value_error_writes_stderr(self, capsys):
+        """Sub-logger raising ValueError writes diagnostic to stderr — no recursion risk.
+
+        Regression: the diagnostic must include the ValueError repr so
+        downstream debuggers see the actual cause (e.g. 'I/O operation on
+        closed file') instead of just the type.
+        """
         failing_logger = MagicMock(spec=_MsgTarget)
         failing_logger.msg.side_effect = ValueError("file handle closed")
         mol = MultiOptimisticLogger({"target": failing_logger})
-        mol.msg(target="hello")
-        log.has("sub-logger-value-error")
+        mol.msg(target="hello")  # no raise, stderr diagnostic
+        captured = capsys.readouterr()
+        assert "dropped message" in captured.err
+        assert "ValueError('file handle closed')" in captured.err
 
     def test_msg_empty_line(self):
         """Msg with empty/missing line -> logger not called."""
@@ -795,13 +1316,34 @@ class TestMultiOptimisticLogger:
         mol.msg(target="")
         mock_logger.msg.assert_not_called()
 
+    def test_value_error_no_recursion(self):
+        """ValueError during msg() must not re-enter the logging pipeline.
+
+        If the handler used log.debug() / log.exception(), a systemic
+        ValueError (e.g. closed file handle) would recurse: msg() →
+        ValueError → log.debug() → processor chain → msg() → ValueError → …
+        """
+        call_count = 0
+
+        class CountingLogger:
+            def msg(self, line):
+                nonlocal call_count
+                call_count += 1
+                raise ValueError("simulated closed handle")
+
+        mol = MultiOptimisticLogger({"target": CountingLogger()})
+        mol.msg(target="trigger")  # must not recurse
+        assert call_count == 1  # called exactly once, then swallowed
+
 
 @pytest.mark.integration
 class TestInitCommandLogging:
     """Tests for init_command_logging."""
 
-    def test_init_command_logging(self, tmp_path):
+    def test_init_command_logging(self, monkeypatch, tmp_path):
         """Creates cmd_output_file factory in multi-logger."""
+        # Explicitly set INVOCATION_ID to cover the timestamped-filename branch
+        monkeypatch.setenv("INVOCATION_ID", "test-invocation-id")
         # Set up structlog with MultiOptimisticLoggerFactory
         factories = {}
         factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)
@@ -820,7 +1362,7 @@ class TestInitCommandLogging:
         factories["cmd_output_file"]._file.close()  # noqa: SLF001, RUF100
 
     def test_init_command_logging_no_logdir(self):
-        """No logdir and no context logdir -> logs warning and returns."""
+        """No logdir and no context logdir -> logs warning and returns early."""
         factory = MultiOptimisticLoggerFactory({}, {})
         structlog.configure(
             processors=[],
@@ -828,12 +1370,12 @@ class TestInitCommandLogging:
             logger_factory=factory,
         )
         log = structlog.get_logger()
-        # Should not raise
-        # KV|        init_command_logging(log)
-
+        # Should not raise; warning logged, no cmd_output_file registered
+        init_command_logging(log)
         log.has("logging-cmd-output-no-logdir")
+        assert "cmd_output_file" not in factory.factories
 
-    def test_cmd_output_file_open_failure_logs_event(self, log, tmp_path):
+    def test_cmd_output_file_open_failure_logs_event(self, tmp_path):
         """OSError opening cmd output file logs cmd-output-file-open-failed event."""
         factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, {})
         structlog.configure(
@@ -841,10 +1383,11 @@ class TestInitCommandLogging:
             wrapper_class=structlog.BoundLogger,
             logger_factory=factory,
         )
-        test_log = structlog.get_logger()
+        log = structlog.get_logger()
         with patch.object(Path, "open", side_effect=OSError("permission denied")):
-            init_command_logging(test_log, tmp_path)
+            init_command_logging(log, tmp_path)
         log.has("cmd-output-file-open-failed")
+        assert "cmd_output_file" not in factory.factories
 
 
 @pytest.mark.integration
@@ -901,33 +1444,263 @@ class TestDropCmdOutputLogfile:
 
 @pytest.mark.integration
 class TestBuildLoggerFactories:
-    """Tests for _build_logger_factories."""
+    """Tests for build_logger_factories."""
+
+    def test_logdir_missing_is_created(self, log, tmp_path):
+        """Logdir that does not exist is created automatically.
+
+        Regression test for the FileNotFoundError crash: ``init_logging(logdir=...)``
+        used to crash when the directory did not exist because
+        ``Path.open("a")`` does not create parent directories. The
+        ``stogger-self-logging`` ADR contract is "file-setup failure → warn
+        and continue", which requires stogger to create the directory itself
+        rather than crash.
+        """
+        from stogger.config import StoggerConfig, SystemdMode
+
+        missing_logdir = tmp_path / "nested" / "missing" / "logdir"
+        assert not missing_logdir.exists()
+
+        cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
+        loggers, context = build_logger_factories(
+            logdir=missing_logdir,
+            log_to_console=False,
+            syslog_identifier="test-app",
+            cfg=cfg,
+        )
+
+        # Directory was created and file logger was registered
+        assert missing_logdir.exists()
+        assert "file" in loggers
+        assert context["logdir"] == missing_logdir
+        assert (missing_logdir / "test-app.log").exists()
+
+    def test_oserror_falls_back_to_warn_and_continue(self, log, tmp_path):
+        """Non-permission OSError is caught, logged, and stogger continues.
+
+        Original implementation only caught ``PermissionError``, leaving
+        ``FileNotFoundError``, ``NotADirectoryError`` and other ``OSError``
+        subclasses to crash ``init_logging``. The fix broadens the catch to
+        ``OSError`` (``PermissionError`` is a subclass) and logs the same
+        ``file-logging-setup-failed`` event for every failure variant.
+        """
+        from stogger.config import StoggerConfig, SystemdMode
+
+        # Path whose parent is a file, not a directory — triggers NotADirectoryError
+        blocking_file = tmp_path / "blocker"
+        blocking_file.write_text("i block mkdir")
+        impossible_logdir = blocking_file / "subdir"
+
+        cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
+        loggers, _context = build_logger_factories(
+            logdir=impossible_logdir,
+            log_to_console=False,
+            syslog_identifier="test-app",
+            cfg=cfg,
+        )
+
+        # No file logger registered — setup failed gracefully
+        assert "file" not in loggers
+        assert log.has("file-logging-setup-failed")
 
     def test_permission_denied_logs_warning(self, log):
-        """PermissionError opening log file logs file-open-permission-denied."""
-        from stogger.config import StoggerConfig
+        """PermissionError during log file setup logs file-logging-setup-failed."""
+        from stogger.config import StoggerConfig, SystemdMode
 
-        cfg = StoggerConfig(enable_systemd=False, enable_postgres=False)
+        cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
         with patch.object(Path, "open", side_effect=PermissionError("denied")):
-            _build_logger_factories(
+            build_logger_factories(
                 logdir=Path("/fake"),
                 log_to_console=False,
                 syslog_identifier="test",
                 cfg=cfg,
             )
-        log.has("file-open-permission-denied")
+        assert log.has("file-logging-setup-failed")
 
+
+class TestBuildLoggerFactoriesRotation:
+    """Tests for log_rotation integration in build_logger_factories."""
+
+    def test_default_log_rotation_uses_plain_file(self, tmp_path):
+        """Default log_rotation='none' opens a plain file handle, not RotatingFileWriter."""
+        from stogger.config import StoggerConfig, SystemdMode
+        from stogger.rotation import RotatingFileWriter
+
+        cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
+        loggers, _context = build_logger_factories(
+            logdir=tmp_path,
+            log_to_console=False,
+            syslog_identifier="test",
+            cfg=cfg,
+        )
+
+        assert "file" in loggers
+        assert not isinstance(loggers["file"]._file, RotatingFileWriter)
+
+    def test_size_rotation_uses_rotating_writer(self, tmp_path):
+        """log_rotation='size' wraps the file in a RotatingFileWriter."""
+        from stogger.config import StoggerConfig, SystemdMode
+        from stogger.rotation import RotatingFileWriter
+
+        cfg = StoggerConfig(
+            systemd=SystemdMode.OFF.value,
+            enable_postgres=False,
+            log_rotation="size",
+            log_max_bytes=1000,
+            log_backup_count=3,
+        )
+        loggers, _context = build_logger_factories(
+            logdir=tmp_path,
+            log_to_console=False,
+            syslog_identifier="test",
+            cfg=cfg,
+        )
+
+        assert "file" in loggers
+        writer = loggers["file"]._file
+        assert isinstance(writer, RotatingFileWriter)
+        assert writer._max_bytes == 1000
+        assert writer._backup_count == 3
+
+    def test_size_rotation_writes_and_rotates_real_file(self, tmp_path):
+        """End-to-end: log Rotation triggers real .1 file on size overflow.
+
+        Writes incrementally: fill file to exactly max_bytes (no rotation),
+        then next write triggers rollover and the old content lands in .1.
+        """
+        from stogger.config import StoggerConfig, SystemdMode
+
+        cfg = StoggerConfig(
+            systemd=SystemdMode.OFF.value,
+            enable_postgres=False,
+            log_rotation="size",
+            log_max_bytes=20,
+            log_backup_count=2,
+        )
+        loggers, _context = build_logger_factories(
+            logdir=tmp_path,
+            log_to_console=False,
+            syslog_identifier="rotate-test",
+            cfg=cfg,
+        )
+
+        writer = loggers["file"]._file
+        writer.write("0123456789")  # 10 bytes, file = 10
+        writer.write("0123456789")  # +10 = 20, file = 20 (still valid, no rotation)
+        writer.write("X")  # would push to 21 > 20 → rotation
+        writer.flush()
+
+        # Old content rotated to .1, triggering write lands in fresh current
+        assert (tmp_path / "rotate-test.log.1").exists()
+        assert (tmp_path / "rotate-test.log.1").read_text() == "01234567890123456789"
+        assert (tmp_path / "rotate-test.log").read_text() == "X"
+
+    def test_invalid_log_rotation_value_raises(self, tmp_path):
+        """log_rotation value other than 'none' or 'size' raises ValueError."""
+        from stogger.config import StoggerConfig, SystemdMode
+
+        cfg = StoggerConfig(
+            systemd=SystemdMode.OFF.value,
+            enable_postgres=False,
+            log_rotation="bogus",
+        )
+        with pytest.raises(ValueError, match="log_rotation"):
+            build_logger_factories(
+                logdir=tmp_path,
+                log_to_console=False,
+                syslog_identifier="test",
+                cfg=cfg,
+            )
+
+
+class TestInitLoggingRotation:
+    """Tests for log_rotation kwargs in the init_logging public API."""
+
+    def test_init_logging_accepts_rotation_kwargs(self, tmp_path, monkeypatch):
+        """init_logging accepts log_rotation, log_max_bytes, log_backup_count."""
+        monkeypatch.delenv("JOURNAL_STREAM", raising=False)
+
+        # Should not raise; kwargs are wired through to StoggerConfig
+        init_logging(
+            logdir=tmp_path,
+            log_rotation="size",
+            log_max_bytes=500,
+            log_backup_count=2,
+            syslog_identifier="kwarg-test",
+        )
+        # Config verification via the logger factory's underlying writer
+        log = structlog.get_logger()
+        log.info("rotation-kwarg-test")
+
+        from stogger.rotation import RotatingFileWriter
+
+        # The factory was set up with the rotation config; reach in via the
+        # active logger factory to verify the RotatingFileWriter was installed.
+        config = structlog.get_config()
+        factory = config["logger_factory"]
+        file_factory = factory.factories["file"]
+        assert isinstance(file_factory._file, RotatingFileWriter)
+        assert file_factory._file._max_bytes == 500
+        assert file_factory._file._backup_count == 2
+
+    def test_init_logging_default_rotation_is_plain_file(self, tmp_path, monkeypatch):
+        """init_logging without rotation kwargs uses a plain file handle."""
+        monkeypatch.delenv("JOURNAL_STREAM", raising=False)
+
+        init_logging(
+            logdir=tmp_path,
+            syslog_identifier="plain-test",
+        )
+
+        from stogger.rotation import RotatingFileWriter
+
+        config = structlog.get_config()
+        factory = config["logger_factory"]
+        file_factory = factory.factories["file"]
+        assert not isinstance(file_factory._file, RotatingFileWriter)
+
+    def test_init_logging_rotation_triggers_real_rollover(self, tmp_path, monkeypatch):
+        """End-to-end: logs via init_logging with rotation produce .1 file on overflow."""
+        monkeypatch.delenv("JOURNAL_STREAM", raising=False)
+
+        init_logging(
+            logdir=tmp_path,
+            log_rotation="size",
+            log_max_bytes=200,
+            log_backup_count=2,
+            syslog_identifier="e2e-rotate",
+        )
+
+        log = structlog.get_logger()
+        # Write enough events to push file past 200 bytes
+        for i in range(50):
+            log.info("rotation-test-event", index=i, payload="x" * 20)
+
+        # Rotation should have produced .1 backup
+        assert (tmp_path / "e2e-rotate.log.1").exists()
+
+
+class TestBuildLoggerFactoriesBootstrap:
     def test_early_init_propagates_errors(self):
         """init_early_logging must propagate errors, not suppress them."""
-        with patch("stogger.core.build_timestamp_processor", side_effect=RuntimeError("boom")):
-            with pytest.raises(RuntimeError, match="boom"):
-                init_early_logging()
+        with (
+            patch("stogger.core.build_timestamp_processor", side_effect=RuntimeError("boom")),
+            pytest.raises(RuntimeError, match="boom"),
+        ):
+            init_early_logging()
 
-    def test_postgres_import_error_logs_debug(self, log):
-        """_build_logger_factories logs debug when stogger_postgres ImportError."""
-        from stogger.config import StoggerConfig
+    def test_postgres_import_error_logs_warning(self, log):
+        """build_logger_factories logs warning when stogger_postgres ImportError.
 
-        cfg = StoggerConfig(enable_postgres=True, enable_systemd=False)
+        Level changed from debug to warning — user explicitly enabled postgres logging
+        but the optional package is not installed, so they must know.
+        """
+        """build_logger_factories logs debug when stogger_postgres ImportError."""
+        from stogger.config import StoggerConfig, SystemdMode
+
+        cfg = StoggerConfig(
+            enable_postgres=True, systemd=SystemdMode.OFF.value, postgres_dsn="postgresql://localhost/test"
+        )
         real_import = __import__
 
         def blocking_import(name, *args, **kwargs):
@@ -936,24 +1709,201 @@ class TestBuildLoggerFactories:
             return real_import(name, *args, **kwargs)
 
         with patch("builtins.__import__", side_effect=blocking_import):
-            _build_logger_factories(
+            build_logger_factories(
                 logdir=None,
                 log_to_console=False,
                 syslog_identifier="test",
                 cfg=cfg,
             )
-        log.has("stogger-postgres-not-installed")
+        assert log.has("stogger-postgres-not-installed")
+        assert log.has(
+            "stogger-postgres-not-installed",
+            _replace_msg="PostgreSQL logging enabled but stogger-postgres package is not installed",
+        )
 
     def test_journal_stream_detected_logs_event(self, log):
         """JOURNAL_STREAM env var set logs journal-stream-detected event."""
-        from stogger.config import StoggerConfig
+        from stogger.config import StoggerConfig, SystemdMode
 
-        cfg = StoggerConfig(enable_systemd=False, enable_postgres=False)
+        cfg = StoggerConfig(systemd=SystemdMode.OFF.value, enable_postgres=False)
         with patch.dict(os.environ, {"JOURNAL_STREAM": "123:456"}):
-            _build_logger_factories(
+            build_logger_factories(
                 logdir=None,
                 log_to_console=True,
                 syslog_identifier="test",
                 cfg=cfg,
             )
-        log.has("journal-stream-detected")
+        assert log.has("journal-stream-detected")
+
+    def test_postgres_enabled_without_dsn_raises(self):
+        """enable_postgres=True without postgres_dsn raises ValueError."""
+        from stogger.config import StoggerConfig, SystemdMode
+
+        cfg = StoggerConfig(enable_postgres=True, systemd=SystemdMode.OFF.value)
+        with pytest.raises(ValueError, match="postgres_dsn is not configured"):
+            build_logger_factories(
+                logdir=None,
+                log_to_console=False,
+                syslog_identifier="test",
+                cfg=cfg,
+            )
+
+
+# ---------------------------------------------------------------------------
+# Coverage gap closures for core.py
+# ---------------------------------------------------------------------------
+
+
+def test_translation_processor_preserves_existing_original_event():
+    """_original_event is not overwritten when already present in event_dict."""
+    proc = TranslationProcessor({"greeting": "Hello!"})
+    event_dict = {"event": "greeting", "_original_event": "preset"}
+    result = proc(None, "info", event_dict)
+    assert result["_original_event"] == "preset"
+
+
+def test_format_timestamp_relative():
+    """Relative timestamp format shows elapsed seconds with '+' prefix."""
+    settings = FormatConfig(timestamp_precision="relative")
+    renderer = ConsoleFileRenderer(format_config=settings)
+    result = renderer._format_timestamp("2026-01-01T00:00:00Z", {})
+    assert "+" in result
+    assert "s" in result
+
+
+def test_render_stack_without_traceback():
+    """Stack section renders without separator when no exception_traceback."""
+    renderer = ConsoleFileRenderer()
+    buf = io.StringIO()
+    sections = renderer._pop_output_sections({"stack": "stack trace here"})
+    renderer._render_output_sections(sections, buf.write)
+    output = buf.getvalue()
+    assert "stack trace here" in output
+    assert "=" * 79 not in output
+
+
+def test_format_replace_msg_recursion_fallback():
+    """RecursionError in _replace_msg formatting falls back to raw string."""
+
+    class Recursive:
+        def __format__(self, spec):
+            return format(self, spec)  # infinite recursion
+
+    renderer = ConsoleFileRenderer()
+    event_dict = {"_replace_msg": "val={x}", "x": Recursive()}
+    result = renderer._format_replace_msg(event_dict)
+    assert result == "val={x}"
+
+
+def test_select_rendered_string_dict_non_str_fallback():
+    """Dict with non-str key value falls back to str()."""
+    selector = SelectRenderedString("console")
+    result = selector(None, "info", {"console": 12345})
+    assert result == str({"console": 12345})
+
+
+def test_init_command_logging_non_multi_factory_is_noop():
+    """Returns early when logger_factory is not a MultiOptimisticLoggerFactory."""
+    structlog.configure(processors=[], logger_factory=structlog.PrintLoggerFactory())
+    log = structlog.get_logger()
+    # Must not raise — early return path
+    init_command_logging(log)
+
+
+def test_init_command_logging_logdir_from_context(tmp_path):
+    """logdir=None falls back to factory context logdir."""
+    factories = {}
+    factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)
+    structlog.configure(processors=[], wrapper_class=structlog.BoundLogger, logger_factory=factory)
+    log = structlog.get_logger()
+    init_command_logging(log)  # no explicit logdir → context fallback
+    assert "cmd_output_file" in factories
+    factories["cmd_output_file"]._file.close()
+
+
+def test_init_logging_sets_systemd_kwarg():
+    """init_logging(systemd=...) passes the mode value into StoggerConfig."""
+    from stogger.config import SystemdMode
+
+    with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
+        init_logging(systemd=SystemdMode.OFF)
+    args, _kwargs = mock_factories.call_args
+    cfg = args[3]
+    assert cfg.systemd_mode is SystemdMode.OFF
+
+
+def test_init_logging_sets_timestamp_precision():
+    """init_logging(timestamp_precision=...) applies to cfg.format."""
+    with patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories:
+        init_logging(timestamp_precision="iso_seconds")
+    args, _kwargs = mock_factories.call_args
+    assert args[3].format.timestamp_precision == "iso_seconds"
+
+
+def test_init_logging_log_cmd_output_without_logdir_raises():
+    """log_cmd_output=True without logdir raises ValueError."""
+    with (
+        patch("stogger.core.build_logger_factories", return_value=({}, {})),
+        pytest.raises(ValueError, match=r"A logdir is required for command logging."),
+    ):
+        init_logging(log_cmd_output=True, logdir=None)
+
+
+def test_build_logger_factories_required_with_available_socket():
+    """SystemdMode.REQUIRED with available socket registers journal factory."""
+    from stogger.config import StoggerConfig, SystemdMode
+
+    cfg = StoggerConfig(systemd=SystemdMode.REQUIRED.value)
+    mock_journal_factory = MagicMock()
+    with (
+        patch("stogger.systemd._journal_socket_available", return_value=True),
+        patch("stogger.systemd.get_journal_logger_factory", return_value=mock_journal_factory),
+    ):
+        loggers, _context = build_logger_factories(
+            logdir=None,
+            log_to_console=False,
+            syslog_identifier="test",
+            cfg=cfg,
+        )
+    assert loggers["journal"] is mock_journal_factory
+
+
+def test_select_rendered_string_non_dict_fallback():
+    """Non-dict, non-str event_dict falls back to str()."""
+    selector = SelectRenderedString("console")
+    event: Any = 12345
+    result = selector(None, "info", event)
+    assert result == "12345"
+
+
+def test_init_logging_log_cmd_output_with_logdir(tmp_path):
+    """log_cmd_output=True with valid logdir reaches init_command_logging."""
+    with patch("stogger.core.build_logger_factories", return_value=({}, {})):
+        # Should not raise; command logging path exercised
+        init_logging(log_cmd_output=True, logdir=tmp_path)
+
+
+def test_init_command_logging_without_invocation_name(monkeypatch, tmp_path):
+    """Without INVOCATION_ID env var, cmd log file is named build-output.log."""
+    monkeypatch.delenv("INVOCATION_ID", raising=False)
+    factories = {}
+    factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)
+    structlog.configure(processors=[], wrapper_class=structlog.BoundLogger, logger_factory=factory)
+    log = structlog.get_logger()
+    init_command_logging(log, tmp_path)
+    assert (tmp_path / "build-output.log").exists()
+    factories["cmd_output_file"]._file.close()
+
+
+def test_write_helper_skips_ansi_stripping_without_reset_all():
+    """When RESET_ALL is falsy (no colorama), write helper skips ANSI stripping loop."""
+    from unittest.mock import MagicMock
+
+    renderer = ConsoleFileRenderer()
+    console_io = MagicMock()
+    log_io = MagicMock()
+    write = renderer._create_write_helper(console_io, log_io)
+    with patch("stogger.core.RESET_ALL", ""):
+        write("some line")
+    # Without RESET_ALL, line is passed through unmodified to log_io
+    log_io.write.assert_called_once_with("some line")

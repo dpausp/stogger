@@ -7,12 +7,9 @@ is the primary agent entry point.
 Discover via ``__docs_path__ / '_docs' / 'llms.txt'``.
 """
 
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import version
 
-try:
-    __version__ = version("stogger")
-except PackageNotFoundError:
-    __version__ = "0.0.0"
+__version__ = version("stogger")
 
 __all__ = [
     "LogScope",
@@ -20,6 +17,9 @@ __all__ = [
     "MultiOptimisticLoggerFactory",
     "StoggerConfig",
     "SystemdJournalRenderer",
+    "SystemdMode",
+    "build_logger_factories",
+    "configure_structlog",
     "drop_cmd_output_logfile",
     "init_command_logging",
     "init_early_logging",
@@ -28,12 +28,19 @@ __all__ = [
     "log_operation",
     "log_result",
     "log_scope",
+    "log_scope",
     "logging_initialized",
+    "should_emit_colors",
+    "shutdown_logging",
 ]
 
 from pathlib import Path
 
+from ._colors import (
+    should_emit_colors as should_emit_colors,
+)
 from .config import StoggerConfig as StoggerConfig
+from .config import SystemdMode as SystemdMode
 from .core import (
     LogScope as LogScope,
 )
@@ -45,6 +52,12 @@ from .core import (
 )
 from .core import (
     SystemdJournalRenderer as SystemdJournalRenderer,
+)
+from .core import (
+    build_logger_factories as build_logger_factories,
+)
+from .core import (
+    configure_structlog as configure_structlog,
 )
 from .core import (
     drop_cmd_output_logfile as drop_cmd_output_logfile,
@@ -72,6 +85,9 @@ from .core import (
 )
 from .core import (
     logging_initialized as logging_initialized,
+)
+from .core import (
+    shutdown_logging as shutdown_logging,
 )
 
 __docs_path__ = Path(__file__).parent

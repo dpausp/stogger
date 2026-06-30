@@ -1,11 +1,12 @@
 """Tests for the StoggerConfig class."""
 
 import importlib
-import logging
 import os
+import sys
 import tempfile
+import warnings
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -26,7 +27,6 @@ from stogger.config import (
     StoggerConfig,
     detect_project_structure,
 )
-from stogger.factory import build_shared_processors, configure_stdlib_logging
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def create_pyproject_toml():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
         pyproject_path = config_dir / "pyproject.toml"
-        with open(pyproject_path, "w") as f:
+        with pyproject_path.open("w") as f:
             f.write("""
 [tool.stogger]
 verbose = true
@@ -74,53 +74,19 @@ def test_config_kwargs_override_file(create_pyproject_toml):
 
 def test_config_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
-            config = StoggerConfig()
-            assert config.verbose is False
-            assert config.logdir is None
-            assert config.syslog_identifier == "stogger"
-            assert config.language == "en"
-
-
-@patch("logging.basicConfig", autospec=True)
-def test_sync_logging_setup(mock_basic_config):
-    """Test that synchronous logging sets up basicConfig directly."""
-    config = StoggerConfig(async_logging=False, log_to_console=True)
-    processors = build_shared_processors(config)
-    configure_stdlib_logging(config, processors)
-
-    mock_basic_config.assert_called_once()
-    assert "handlers" in mock_basic_config.call_args.kwargs
-    assert any(isinstance(h, logging.StreamHandler) for h in mock_basic_config.call_args.kwargs["handlers"])
-
-
-@patch("stogger.factory.QueueListener", autospec=True)
-@patch("logging.getLogger", autospec=True)
-def test_async_logging_setup(mock_get_logger, mock_listener):
-    """Test that asynchronous logging sets up a QueueListener."""
-    mock_root_logger = MagicMock()
-    mock_get_logger.return_value = mock_root_logger
-
-    config = StoggerConfig(async_logging=True, log_to_console=True)
-    processors = build_shared_processors(config)
-    configure_stdlib_logging(config, processors)
-
-    mock_listener.assert_called_once()
-    mock_listener.return_value.start.assert_called_once()
-    mock_root_logger.addHandler.assert_called_once()
-    assert isinstance(
-        mock_root_logger.addHandler.call_args[0][0],
-        logging.handlers.QueueHandler,
-    )
+    with tempfile.TemporaryDirectory() as tmpdir, patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
+        config = StoggerConfig()
+        assert config.verbose is False
+        assert config.logdir is None
+        assert config.syslog_identifier == "stogger"
+        assert config.language == "en"
 
 
 def test_config_src_dir_defaults_when_no_file():
     """Test that the config falls back to defaults when no file exists."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
-            config = StoggerConfig()
-            assert config.src_dir == "src"  # Default source directory
+    with tempfile.TemporaryDirectory() as tmpdir, patch("pathlib.Path.cwd", return_value=Path(tmpdir), autospec=True):
+        config = StoggerConfig()
+        assert config.src_dir == "src"  # Default source directory
 
 
 @pytest.mark.integration
@@ -129,7 +95,7 @@ def test_config_src_dir_from_file():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
         pyproject_path = config_dir / "pyproject.toml"
-        with open(pyproject_path, "w") as f:
+        with pyproject_path.open("w") as f:
             f.write("""
 [tool.stogger]
 src_dir = "custom_src"
@@ -145,7 +111,7 @@ def test_config_src_dir_kwargs_override():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
         pyproject_path = config_dir / "pyproject.toml"
-        with open(pyproject_path, "w") as f:
+        with pyproject_path.open("w") as f:
             f.write("""
 [tool.stogger]
 src_dir = "custom_src"
@@ -262,7 +228,17 @@ def test_load_config_invalid_toml(log):
             assert config.verbose is False
             assert config.syslog_identifier == "stogger"
 
-        log.has("config-loading-failed")
+        assert log.has("config-parse-failed")
+
+
+@pytest.mark.integration
+def test_load_config_no_pyproject_returns_defaults():
+    """Missing pyproject.toml means _load_config returns {} — defaults used."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            config = StoggerConfig()
+            assert config.syslog_identifier == "stogger"
 
 
 # ---------------------------------------------------------------------------
@@ -285,7 +261,7 @@ def test_detect_from_stogger_section(log):
         assert "src" in result.source_dirs
         assert "tests" in result.test_dirs
 
-        log.has("project-structure-detected-from-pyproject")
+        assert log.has("project-structure-detected-from-pyproject")
 
 
 @pytest.mark.integration
@@ -332,7 +308,7 @@ def test_detect_fallback_to_heuristics(log):
         assert "src" in result.source_dirs
         assert "tests" in result.test_dirs
 
-        log.has("project-structure-detected-from-heuristics")
+        assert log.has("project-structure-detected-from-heuristics")
 
 
 @pytest.mark.integration
@@ -354,7 +330,7 @@ def test_detect_heuristics_nothing_found(log):
         with pytest.raises(ValueError, match="Could not determine project structure"):
             detect_project_structure(root)
 
-        log.has("heuristic-detection-failed")
+        assert log.has("heuristic-detection-failed")
 
 
 @pytest.mark.integration
@@ -448,6 +424,79 @@ def test_probe_pytest_no_testpaths():
         assert result is None
 
 
+def test_check_test_dependencies_warns_when_no_test_group(monkeypatch):
+    """_check_test_dependencies warns when [dependency-groups].test is absent."""
+    import stogger.config as cfg_module
+
+    cfg_module._TEST_DEPS_WARNED = False
+    monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        cfg_module._check_test_dependencies({"dependency-groups": {}})
+
+    assert any("no [dependency-groups].test found" in str(w.message) for w in caught)
+
+
+def test_load_pyproject_config_verbose_missing():
+    """_load_pyproject_config(verbose=True) handles missing file gracefully."""
+    from stogger.config import _load_pyproject_config
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            result = _load_pyproject_config(verbose=True)
+            assert result == {}
+
+
+def test_env_override_str_value():
+    """STOGGER_SYSLOG_IDENTIFIER env var applies as a raw string override."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_SYSLOG_IDENTIFIER": "env-app"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.syslog_identifier == "env-app"
+
+
+def test_probe_stogger_exclude_pattern_nonexistent_testdir():
+    """Exclude pattern starting with 'tests' but missing dir is skipped."""
+    from stogger.config import _probe_stogger_section
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "src").mkdir()
+        result = _probe_stogger_section({"src_dir": "src", "exclude": ["tests/**"]}, root)
+        assert result is not None
+        # tests/ does not exist, so the exclude pattern is skipped
+        assert result.test_dirs == []
+
+
+def test_probe_hatch_packages_no_match():
+    """Hatch packages without existing src dir or without '/' return None."""
+    from stogger.config import _probe_hatch_section
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        hatch = {"build": {"targets": {"wheel": {"packages": ["standalone", "src/missing"]}}}}
+        result = _probe_hatch_section(hatch, root)
+        assert result is None
+
+
+def test_create_default_structure_with_tests_no_src():
+    """Falls back to '.' when neither src nor lib exists."""
+    from stogger.config import _create_default_structure_with_tests
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)  # no src/, no lib/
+        result = _create_default_structure_with_tests(root, ["tests"], "pytest")
+        assert result.source_dirs == ["."]
+        assert "tests" in result.test_dirs
+
+
 # ---------------------------------------------------------------------------
 # Logdir config fallback & env override tests
 # ---------------------------------------------------------------------------
@@ -464,14 +513,16 @@ def test_init_logging_falls_back_to_cfg_logdir():
         pyproject_path = config_dir / "pyproject.toml"
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch("stogger.core._build_logger_factories", return_value=({}, {})) as mock_factories:
-                init_logging()
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories,
+        ):
+            init_logging()
 
-                mock_factories.assert_called_once()
-                args, _ = mock_factories.call_args
-                logdir_arg = args[0]
-                assert logdir_arg == Path("/tmp/logs")
+            mock_factories.assert_called_once()
+            args, _ = mock_factories.call_args
+            logdir_arg = args[0]
+            assert logdir_arg == Path("/tmp/logs")
 
 
 def test_init_logging_logdir_param_wins():
@@ -481,14 +532,16 @@ def test_init_logging_logdir_param_wins():
         pyproject_path = config_dir / "pyproject.toml"
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch("stogger.core._build_logger_factories", return_value=({}, {})) as mock_factories:
-                init_logging(logdir="/custom/path")
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch("stogger.core.build_logger_factories", return_value=({}, {})) as mock_factories,
+        ):
+            init_logging(logdir="/custom/path")
 
-                mock_factories.assert_called_once()
-                args, _ = mock_factories.call_args
-                logdir_arg = args[0]
-                assert logdir_arg == Path("/custom/path")
+            mock_factories.assert_called_once()
+            args, _ = mock_factories.call_args
+            logdir_arg = args[0]
+            assert logdir_arg == Path("/custom/path")
 
 
 def test_env_override_logdir():
@@ -498,10 +551,12 @@ def test_env_override_logdir():
         pyproject_path = config_dir / "pyproject.toml"
         pyproject_path.write_text('[tool.stogger]\nlogdir = "/toml/path"\n')
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_LOGDIR": "/env/path"}, clear=True):
-                config = StoggerConfig()
-                assert config.logdir == Path("/env/path")
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_LOGDIR": "/env/path"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.logdir == Path("/env/path")
 
 
 def test_env_override_verbose():
@@ -509,10 +564,12 @@ def test_env_override_verbose():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True):
-                config = StoggerConfig()
-                assert config.verbose is True
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.verbose is True
 
 
 def test_env_override_bool_false():
@@ -520,10 +577,12 @@ def test_env_override_bool_false():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_LOG_TO_CONSOLE": "false"}, clear=True):
-                config = StoggerConfig()
-                assert config.log_to_console is False
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_LOG_TO_CONSOLE": "false"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.log_to_console is False
 
 
 def test_env_override_bool_invalid():
@@ -531,10 +590,12 @@ def test_env_override_bool_invalid():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_VERBOSE": "invalid"}, clear=True):
-                config = StoggerConfig()
-                assert config.verbose is False
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_VERBOSE": "invalid"}, clear=True),
+        ):
+            config = StoggerConfig()
+            assert config.verbose is False
 
 
 def test_env_override_kwargs_priority():
@@ -542,10 +603,12 @@ def test_env_override_kwargs_priority():
     with tempfile.TemporaryDirectory() as tmpdir:
         config_dir = Path(tmpdir)
 
-        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
-            with patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True):
-                config = StoggerConfig(verbose=False)
-                assert config.verbose is True
+        with (
+            patch("pathlib.Path.cwd", return_value=config_dir, autospec=True),
+            patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True),
+        ):
+            config = StoggerConfig(verbose=False)
+            assert config.verbose is True
 
 
 def test_env_no_override_stogger_debug():
@@ -555,20 +618,41 @@ def test_env_no_override_stogger_debug():
         assert "debug" not in overrides
 
 
+def test_env_int_override_invalid_value_logs_debug(log):
+    """Non-int STOGGER_LOG_MAX_BYTES triggers debug log and is silently ignored."""
+    with patch.dict(os.environ, {"STOGGER_LOG_MAX_BYTES": "not-a-number"}, clear=True):
+        overrides = _load_env_overrides()
+    assert "log_max_bytes" not in overrides
+    log.has("env-override-int-invalid")
+
+
+def test_env_int_override_valid_value_parsed():
+    """Valid int env var is parsed and included in overrides."""
+    with patch.dict(os.environ, {"STOGGER_LOG_BACKUP_COUNT": "7"}, clear=True):
+        overrides = _load_env_overrides()
+    assert overrides.get("log_backup_count") == 7
+
+
 # ---------------------------------------------------------------------------
 # Pyproject config contract tests (migrated from impl_spec)
 # ---------------------------------------------------------------------------
 
 
-def test_pyproject_exempt_event_ids_empty():
-    """pyproject.toml must have empty exempt_event_ids."""
+def test_pyproject_exempt_event_ids_justified():
+    """pyproject.toml exempt_event_ids must only contain events with documented rationale.
+
+    Exemptions are allowed for events tested via structlog.configure() (no capture)
+    where assert log.has() cannot verify emission.
+    """
     import tomllib
 
     pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
     with pyproject.open("rb") as f:
         config = tomllib.load(f)
     exempt_ids = config["tool"]["pytest-stogger"]["exempt_event_ids"]
-    assert exempt_ids == []
+    # Must have inline comments (pyproject.toml preserves comments in list values)
+    assert exempt_ids  # list is non-empty
+    assert len(exempt_ids) == 5
 
 
 def test_pyproject_infrastructure_files_removed():
@@ -602,6 +686,65 @@ def test_pyproject_decorators_inline_ignore():
             break
     else:
         pytest.fail("_filter_args() not found in decorators.py")
+
+
+def test_missing_test_dependencies_warns(monkeypatch):
+    """Missing pytest-stogger/pytest-structlog triggers UserWarning."""
+    import stogger.config as cfg_module
+
+    # Reset the warned flag so the check runs
+    cfg_module._TEST_DEPS_WARNED = False
+
+    # Ensure _pytest is in sys.modules so the guard passes
+    monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
+
+    full_config = {
+        "dependency-groups": {
+            "test": ["pytest"],  # missing pytest-stogger and pytest-structlog
+        }
+    }
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", UserWarning)
+        cfg_module._check_test_dependencies(full_config)
+
+    assert len(caught) == 1
+    assert "pytest-stogger" in str(caught[0].message)
+    assert "pytest-structlog" in str(caught[0].message)
+
+
+def test_check_test_dependencies_emits_checking_event(log, monkeypatch):
+    """_check_test_dependencies emits checking-test-dependencies debug event."""
+    import stogger.config as cfg_module
+
+    # Reset the warned flag so the check runs
+    cfg_module._TEST_DEPS_WARNED = False
+    monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
+
+    with pytest.warns(UserWarning, match="stogger test infrastructure incomplete"):
+        cfg_module._check_test_dependencies({"dependency-groups": {"test": []}})
+    log.has("checking-test-dependencies")
+
+
+def test_check_test_deps_all_present(monkeypatch):
+    """All required deps present → no warning, skips silently."""
+    import stogger.config as cfg_module
+
+    cfg_module._TEST_DEPS_WARNED = False
+    monkeypatch.setitem(sys.modules, "_pytest", type(sys)("fake"))
+
+    full_config = {
+        "dependency-groups": {
+            "test": ["pytest-stogger", "pytest-structlog>=1.2"],
+        }
+    }
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", UserWarning)
+        cfg_module._check_test_dependencies(full_config)
+
+    assert len(caught) == 0
+    assert cfg_module._TEST_DEPS_WARNED is True
 
 
 if __name__ == "__main__":

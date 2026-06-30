@@ -6,7 +6,6 @@ import pytest
 
 from stogger.decorators import log_call, log_operation, log_result, log_scope
 
-
 # --- log_call ---
 
 
@@ -133,9 +132,8 @@ def test_log_scope_context_manager(log):
 
 
 def test_log_scope_exception_logs_failed(log):
-    with pytest.raises(ValueError, match="bad"):
-        with log_scope("failing"):
-            raise ValueError("bad")
+    with pytest.raises(ValueError, match="bad"), log_scope("failing"):
+        raise ValueError("bad")
 
     evt = log.events[-1]
     assert evt["event"] == "scope-failed"
@@ -152,7 +150,7 @@ def test_log_call_async(log):
     async def async_greet(name: str) -> str:
         return f"hi {name}"
 
-    result = asyncio.get_event_loop().run_until_complete(async_greet("world"))
+    result = asyncio.run(async_greet("world"))
 
     assert result == "hi world"
     evt = log.events[0]
@@ -166,7 +164,7 @@ def test_log_scope_async(log):
         async with log_scope("async_ctx", x=1) as scope:
             scope.add_fields(y=2)
 
-    asyncio.get_event_loop().run_until_complete(run())
+    asyncio.run(run())
 
     evt = log.events[-1]
     assert evt["event"] == "scope-end"
@@ -174,6 +172,89 @@ def test_log_scope_async(log):
     assert evt["x"] == 1
     assert evt["y"] == 2
     assert log.has("scope-end")
+
+
+def test_log_result_async(log):
+    @log_result
+    async def async_work() -> str:
+        return "done"
+
+    result = asyncio.run(async_work())
+
+    assert result == "done"
+    evt = log.events[0]
+    assert evt["event"] == "returned"
+    assert evt["result"] == "done"
+    assert isinstance(evt["duration_ms"], float)
+    assert evt["duration_ms"] >= 0
+    assert log.has("returned")
+
+
+def test_log_result_async_exception(log):
+    @log_result
+    async def async_risky():
+        raise ValueError("boom")
+
+    with pytest.raises(ValueError, match="boom"):
+        asyncio.run(async_risky())
+
+    evt = log.events[-1]
+    assert evt["event"] == "failed"
+    assert evt["exc_type"] == "ValueError"
+    assert evt["exc_msg"] == "boom"
+    assert isinstance(evt["duration_ms"], float)
+    assert evt["duration_ms"] >= 0
+    assert log.has("failed")
+
+
+def test_log_operation_async(log):
+    @log_operation
+    async def async_multiply(a: int, b: int) -> int:
+        return a * b
+
+    result = asyncio.run(async_multiply(3, 7))
+
+    assert result == 21
+    evt = log.events[0]
+    assert evt["event"] == "operation"
+    assert evt["a"] == 3
+    assert evt["b"] == 7
+    assert evt["result"] == 21
+    assert "duration_ms" in evt
+    assert log.has("operation")
+
+
+def test_log_operation_async_exception(log):
+    @log_operation(include_args=["x"])
+    async def async_crash(x: int):
+        raise TypeError("ouch")
+
+    with pytest.raises(TypeError, match="ouch"):
+        asyncio.run(async_crash(x=5))
+
+    evt = log.events[-1]
+    assert evt["event"] == "failed"
+    assert evt["exc_type"] == "TypeError"
+    assert evt["exc_msg"] == "ouch"
+    assert evt["x"] == 5
+    assert isinstance(evt["duration_ms"], float)
+    assert log.has("failed")
+
+
+def test_log_scope_async_exception(log):
+    async def run():
+        async with log_scope("failing"):
+            raise ValueError("bad")
+
+    with pytest.raises(ValueError, match="bad"):
+        asyncio.run(run())
+
+    evt = log.events[-1]
+    assert evt["event"] == "scope-failed"
+    assert evt["scope"] == "failing"
+    assert evt["exc_type"] == "ValueError"
+    assert evt["exc_msg"] == "bad"
+    assert log.has("scope-failed")
 
 
 # --- include/exclude args ---
@@ -201,6 +282,36 @@ def test_exclude_args_filters(log):
     evt = log.events[0]
     assert "password" not in evt
     assert evt["user"] == "admin"
+
+
+# --- decorator used with filters returns partial (func=None branch) ---
+
+
+def test_log_call_with_filter_returns_partial(log):
+    @log_call(include_args=["name"])
+    def greet(name: str, greeting: str = "hello") -> str:
+        return f"{greeting} {name}"
+
+    result = greet("world")
+
+    assert result == "hello world"
+    evt = log.events[0]
+    assert evt["event"] == "called"
+    assert evt["name"] == "world"
+    assert "greeting" not in evt
+
+
+def test_log_result_with_filter_returns_partial(log):
+    @log_result(exclude_args=["secret"])
+    def fetch(key: str, secret: str) -> str:
+        return key
+
+    result = fetch("k", "s")
+
+    assert result == "k"
+    evt = log.events[0]
+    assert evt["event"] == "returned"
+    assert "secret" not in evt
 
 
 # --- self/cls stripping ---

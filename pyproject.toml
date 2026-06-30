@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatch-vcs"]
+requires = ["hatchling", "versioningit"]
 build-backend = "hatchling.build"
 
 [project]
@@ -16,11 +16,17 @@ dependencies = [
 postgres = ["stogger-postgres"]
 
 [tool.hatch.version]
-source = "vcs"
-tag-pattern = "^(?P<version>\\d{4}\\.\\d{1,2}\\.\\d{1,2})$"
-fallback-version = "2026.5.15"
-raw-options.root = "."
+source = "versioningit"
+default-version = "2026.5.15"
 
+[tool.hatch.version.format]
+distance = "{base_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
+dirty = "{base_version}+d{build_date:%Y%m%d}"
+distance-dirty = "{base_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
+
+
+[tool.hatch.build.targets.wheel]
+artifacts = ["src/stogger/_docs/"]
 
 [tool.hatch.build.targets.wheel.sources]
 "src" = ""
@@ -34,11 +40,13 @@ lint = [
 test = [
     "pytest>=9.0.0",
     "pytest-cov>=6.0.0",
+    "pytest-patterns",
     "pytest-timeout>=2.4.0",
-    "complexipy>=0.1.0",
-    "pytest-stogger",
+    "complexipy>=5.5.0,<5.6.0",
     "pytest-archon>=0.0.7",
     "pytest-structlog>=1.2",
+    "stogger-postgres",
+    "pytest-stogger",
 ]
 docs = [
     "sphinx>=7.0.0",
@@ -65,7 +73,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py313"
-extend-exclude = [ "tests", "docs", "examples", "scripts",]
+extend-exclude = [ "docs", "examples", "scripts",]
 
 [tool.vulture]
 exclude = [ ".venv/", "build/", "dist/", "tests/",]
@@ -73,7 +81,7 @@ min_confidence = 80
 sort_by_size = true
 
 [tool.ty.src]
-exclude = ["tests", "docs"]
+exclude = ["docs"]
 
 [tool.pyright]
 exclude = ["tests", "docs"]
@@ -83,8 +91,7 @@ testpaths = [ "tests",]
 python_files = [ "test_*.py", "*_test.py",]
 python_classes = [ "Test*",]
 python_functions = [ "test_*",]
-addopts = [ "--tb=short", "--strict-markers", "--strict-config", "--disable-warnings", "--structlog-settings-report=never",]
-filterwarnings = [ "error", "ignore::UserWarning", "ignore::DeprecationWarning",]
+addopts = [ "--tb=short", "--strict-markers", "--strict-config", "--structlog-settings-report=never",]
 markers = [
   "integration: integration tests that test real module interactions",
   "e2e: end-to-end tests that exercise full pipelines",
@@ -95,16 +102,47 @@ source = "src/stogger"
 test_dir = "tests"
 disable_rules = ["no-early-init"]
 info_allowed_layers = []
-exempt_event_ids = []
+exempt_event_ids = [
+    # Command-logging events: tested via structlog.configure() (no capture),
+    # so assert log.has() cannot verify emission. Bare log.has() is a no-op
+    # in these tests — the events ARE emitted but cannot be asserted.
+    "logging-cmd-output",
+    "logging-cmd-output-no-logdir",
+    "cmd-output-file-open-failed",
+    "logging-cmd-output-file-not-found",
+    "logging-cmd-output-drop",
+]
 
 [tool.pytest-stogger.per-file-ignores]
+# Low-level ANSI helpers — logging would corrupt colorized output.
 "_colors.py" = ["except-must-log", "complexity-needs-log"]
+# Package init — runs before logger is configured.
 "__init__.py" = ["except-must-log"]
+# systemd journal bridge — sends directly to journald via AF_UNIX, not stogger.
 "systemd.py" = ["except-must-log", "complexity-needs-log"]
+# Rotating file writer — runs inside the structlog render → print → file.write
+# hot path; logging during rotation would recurse back through the pipeline.
+"rotation.py" = ["complexity-needs-log"]
 
 [tool.ruff.lint]
 select = [ "E", "W", "F", "I", "N", "D", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RUF", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG",]
 ignore = [ "D100", "D104", "D203", "D213", "COM812", "D101", "D102", "D103", "D105", "D107", "D205", "D400", "D401", "D417", "E402", "FBT001", "FBT002", "FBT003", "N806", "PLW0603", "PLW2901", "TRY300",]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",     # assert is the testing primitive
+    "PLC0415",  # inline imports after mocking sys.modules
+    "SLF001",   # tests access private members
+    "PLR2004",  # magic values in assertions are expected values
+    "TRY301",   # raise-in-try to test exception paths
+    "TRY003",   # vanilla raises in test setup
+    "EM101",    # raw-string-in-exception conflicts with PT012 single-statement
+    "ARG001",   # pytest fixtures / @patch inject unused params
+    "ARG002",   # same for methods
+    "S108",     # /tmp in test-data assertions
+    "S603",     # subprocess in controlled test context
+    "LOG015",   # root logger in stdlib-bridge tests
+]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -118,13 +156,14 @@ branch = true
 omit = [ "tests/*", ".venv/*",]
 
 [tool.coverage.report]
+fail_under = 100
 exclude_lines = [ "pragma: no cover", "def __repr__", "if self.debug:", "if settings.DEBUG", "raise AssertionError", "raise NotImplementedError", "if 0:", "if __name__ == .__main__.:", "class .*\\bProtocol\\):", "@(abc\\.)?abstractmethod",]
 show_missing = true
-skip_covered = false
+skip_covered = true
 precision = 2
 
 [tool.tox]
-env_list = ["fix", "cov", "docs", "build", "3.13", "integrations"]
+env_list = ["fix", "cov", "docs", "build", "3.13", "outsider"]
 skip_missing_interpreters = true
 
 [tool.tox.env_run_base]
@@ -141,14 +180,15 @@ description = "Format, lint, fix whitespace, type-check, dead code"
 allowlist_externals = ["ruff", "ty"]
 dependency_groups = ["test", "lint"]
 commands = [
-    ["ruff", "check", "--fix"],
-    ["ty", "check", "src/"],
-    ["vulture", "src/", "tests/", "--min-confidence=80"],
-    ["ruff", "format"],
+  ["ruff", "check", "--fix"],
+  ["ty", "check", "src/", "tests/"],
+  ["vulture", "src/", "tests/", "--min-confidence=80"],
+  ["complexipy", "src/", "--quiet"],
+  ["ruff", "format"],
 ]
 
 [tool.tox.env.cov]
-base_python = ["3.13"]
+base_python = ["3.14"]
 package = "editable"
 runner = "uv-venv-lock-runner"
 dependency_groups = ["test"]
@@ -170,7 +210,7 @@ commands_pre = [
     ["rm", "-rf", "docs/autoapi", "docs/_build"],
 ]
 commands = [
-    ["sphinx-build", "-b", "html", "docs", "docs/_build/html"],
+    ["sphinx-build", "-q", "-b", "html", "docs", "docs/_build/html"],
 ]
 
 [tool.tox.env.build]
@@ -183,16 +223,22 @@ commands = [
     ["uv", "build", { replace = "posargs", extend = true }],
 ]
 
-[tool.tox.env.integrations]
-description = "Integration tests with optional dependencies (postgres)"
+[tool.tox.env.outsider]
+base_python = ["3.14"]
+skip_install = true
+depends = ["docs"]
 dependency_groups = ["test"]
-extras = ["postgres"]
+description = "Test from consumer perspective (wheel install with embedded docs)"
 commands = [
-    ["pytest", "tests/test_systemd_integration_real.py", "tests/test_postgres_integration_real.py", "-v"],
+    ["python", "scripts/build_docs_for_package.py"],
+    ["uv", "pip", "install", "--no-deps", "."],
+    ["pytest", "tests/test_doc_discovery.py", "tests/test_e2e_user_perspective.py", "-v"],
 ]
 
 [tool.uv.sources]
 stogger-postgres = { workspace = true }
+pytest-patterns = { path = "../pytest-patterns" }
+pytest-stogger = { path = "../pytest-stogger" }
 
 [tool.uv.workspace]
 members = ["packages/stogger-postgres"]

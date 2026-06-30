@@ -163,8 +163,7 @@ def test_translation_pipeline(tmp_path, capsys, monkeypatch):
     translation_dir = tmp_path / "translations"
     translation_dir.mkdir()
     (translation_dir / "en.toml").write_text(
-        'welcome = "Welcome {user} to {app}!"\n'
-        'goodbye = "Goodbye {user}!"\n',
+        'welcome = "Welcome {user} to {app}!"\ngoodbye = "Goodbye {user}!"\n',
     )
 
     # Build real pipeline with translations + JSON rendering

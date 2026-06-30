@@ -33,7 +33,7 @@ New log statements need a level respecting stogger conventions CR-4/CR-5.
 
 #### Decision
 
-All new statements at `log.debug()` (no `_replace_msg` needed per CR-5). One exception: `PermissionError` in `_build_logger_factories()` at `log.warning()` with `_replace_msg` because a missing log file is a real operational problem.
+All new statements at `log.debug()` (no `_replace_msg` needed per CR-5). One exception: `OSError` in `build_logger_factories()` at `log.warning()` with `_replace_msg` because a missing log file is a real operational problem. The catch is broad (`OSError`, not `PermissionError`) so that every file-setup failure variant — permission denied, missing directory, not-a-directory, etc. — surfaces as a warning rather than crashing `init_logging`. The directory is created via `mkdir(parents=True, exist_ok=True)` before opening, so a missing logdir is a non-event for the caller.
 
 #### Alternatives
 
@@ -42,7 +42,7 @@ b. All info — violates stogger convention that infra logging should be debug
 
 #### Consequences
 
-Debug statements invisible unless `verbose=True`. Warning event `file-open-permission-denied` needs `_replace_msg` and addition to `exempt_event_ids`.
+Debug statements invisible unless `verbose=True`. Warning event `file-logging-setup-failed` needs `_replace_msg` and addition to `exempt_event_ids`.
 
 ### recursion-safety
 
@@ -90,7 +90,7 @@ New event IDs need kebab-case, max 4 words per CR-1.
 
 #### Decision
 
-Negative naming as drafted: `no-stogger-section`, `no-hatch-section`, `no-pytest-section`, `format-field-missing`, `format-field-bad-format`, `early-init-failed`, `stogger-postgres-not-installed`, `file-open-permission-denied`. All are precise, grepable, under 4 words.
+Negative naming as drafted: `no-stogger-section`, `no-hatch-section`, `no-pytest-section`, `format-field-missing`, `format-field-bad-format`, `early-init-failed`, `stogger-postgres-not-installed`, `file-logging-setup-failed`. All are precise, grepable, under 4 words.
 
 #### Alternatives
 
@@ -99,7 +99,7 @@ b. Parameterized (`no-config-section` with `section=` key) — DRYer but harder 
 
 #### Consequences
 
-8 new event IDs, all kebab-case, all under 4 words. `file-open-permission-denied` added to `exempt_event_ids`.
+8 new event IDs, all kebab-case, all under 4 words. `file-logging-setup-failed` added to `exempt_event_ids`.
 
 ### test-strategy
 
@@ -118,7 +118,19 @@ b. No new tests — acceptable but new warning event should have coverage
 
 #### Consequences
 
-New test cases for: `file-open-permission-denied` warning, `early-init-failed` debug, `stogger-postgres-not-installed` debug, probe early-exit debugs. ~4-5 new test functions.
+New test cases for: `file-logging-setup-failed` warning, `early-init-failed` debug, `stogger-postgres-not-installed` debug, probe early-exit debugs. ~4-5 new test functions.
 
 ## Verified By
+
+## Addendum: Bug-Fix for Missing-Logdir Crash
+
+The original decision covered only `PermissionError`. A downstream consumer reported
+that `init_logging(logdir=path)` crashed with `FileNotFoundError` when `path`
+did not exist, because `Path.open("a")` does not create parent directories and the
+narrow `PermissionError` catch left every other `OSError` subclass uncaught. Resolution
+broadens the catch to `OSError` (subsuming `PermissionError`) and adds the missing
+`mkdir(parents=True, exist_ok=True)` before the open. The event-id was renamed from
+`file-open-permission-denied` to `file-logging-setup-failed` because the original name
+implied a permission problem when the actual cause could be any file-setup failure.
+The contract "warn and continue" is unchanged — only its scope is corrected.
 

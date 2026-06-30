@@ -9,6 +9,7 @@ logging_patterns
 reference
 systemd
 postgres
+file_rotation
 testing
 cheatsheet
 nix_integration

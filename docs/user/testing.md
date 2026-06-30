@@ -133,6 +133,35 @@ intentionally not part of the default pipeline. Adding it causes every event
 to appear twice.
 ```
 
+## Bekannte Einschränkung: `get_logger().bind()` auf Modulebene
+
+`structlog.get_logger()` gibt einen lazy Proxy zurück, der bei jedem Log-Aufruf
+die aktuellen Processors aus der globalen Konfiguration liest. Das `log`-Fixture
+von pytest-structlog kann daher alle Events erfassen — auch `log.debug()`.
+
+**Aber**: `structlog.get_logger().bind(...)` auf Modulebene erzeugt sofort einen
+`BoundLogger`, der die Processors zum Erstellungszeitpunkt snapshotet:
+
+```python
+# OK — lazy proxy, funktioniert mit dem log-Fixture
+log = structlog.get_logger()
+
+# PROBLEM — direkter BoundLogger, ignoriert spätere structlog.configure()-Aufrufe
+log = structlog.get_logger().bind(module="cache")
+```
+
+**Empfehlung**: `.bind()` erst in Funktionen aufrufen, nicht auf Modulebene:
+
+```python
+log = structlog.get_logger()
+
+def process(data):
+    log.bind(data_size=len(data)).info("processing-data")
+```
+
+Das structlog-Problem ist bekannt: `BoundLoggerBase._processers` wird in
+`__init__` gesetzt und von `structlog.configure()` nicht aktualisiert.
+
 ## Anti-Patterns
 
 - **Don't reconfigure structlog in test conftests.** Replacing stogger's

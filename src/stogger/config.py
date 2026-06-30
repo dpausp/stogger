@@ -7,11 +7,31 @@ import time
 import tomllib
 import warnings
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import attrs
 import structlog
+
+
+class SystemdMode(Enum):
+    """Systemd journal integration mode.
+
+    Controls how stogger handles systemd journal logging.
+
+    Attributes:
+        AUTO: Try journal if available, silently skip registration if not.
+        REQUIRED: Systemd journal must be available — raises RuntimeError at
+            init time if journal socket is missing.
+        OFF: No systemd journal integration at all.
+
+    """
+
+    AUTO = "auto"
+    REQUIRED = "required"
+    OFF = "off"
+
 
 _TEST_DEPS_WARNED = False
 
@@ -88,13 +108,12 @@ class ProjectStructure:
 
 def _check_test_dependencies(full_config: dict[str, Any]) -> None:
     """Warn if pytest-stogger or pytest-structlog are missing during pytest."""
+    log = structlog.get_logger(__name__)
+    log.debug("checking-test-dependencies", in_pytest="_pytest" in sys.modules)
     global _TEST_DEPS_WARNED
 
     if _TEST_DEPS_WARNED or "_pytest" not in sys.modules:
         return
-
-    log = structlog.get_logger(__name__)
-    log.debug("checking-test-dependencies", has_dependency_groups="dependency-groups" in full_config)
 
     _TEST_DEPS_WARNED = True
 
@@ -157,8 +176,8 @@ def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
                 "config-loaded-successfully",
                 settings_count=len(stogger_config),
             )
-    except (FileNotFoundError, tomllib.TOMLDecodeError):
-        log.exception("config-loading-failed", stage="load")
+    except tomllib.TOMLDecodeError:
+        log.exception("config-parse-failed", _replace_msg="Failed to parse config (stage: {stage})", stage="load")
         return {}
     else:
         return stogger_config
@@ -191,12 +210,15 @@ def _load_env_overrides() -> dict[str, Any]:
         "LANGUAGE": ("language", str),
         "LOG_FORMAT": ("log_format", str),
         "ASYNC_LOGGING": ("async_logging", bool),
-        "ENABLE_SYSTEMD": ("enable_systemd", bool),
+        "SYSTEMD": ("systemd", str),
         "SYSTEMD_FACILITY": ("systemd_facility", str),
         "ENABLE_POSTGRES": ("enable_postgres", bool),
         "POSTGRES_DSN": ("postgres_dsn", str),
         "POSTGRES_TABLE": ("postgres_table", str),
         "SRC_DIR": ("src_dir", str),
+        "LOG_ROTATION": ("log_rotation", str),
+        "LOG_MAX_BYTES": ("log_max_bytes", int),
+        "LOG_BACKUP_COUNT": ("log_backup_count", int),
     }
 
     for env_suffix, (config_key, target_type) in env_mapping.items():
@@ -219,6 +241,15 @@ def _load_env_overrides() -> dict[str, Any]:
                 )
         elif target_type is Path:
             overrides[config_key] = Path(raw)
+        elif target_type is int:
+            try:
+                overrides[config_key] = int(raw)
+            except ValueError:
+                log.debug(
+                    "env-override-int-invalid",
+                    env=env_name,
+                    value=raw,
+                )
         else:
             overrides[config_key] = raw
 
@@ -264,7 +295,9 @@ class StoggerConfig:
         language (str): Language code for log messages. Default ``"en"``.
         log_format (str): Output format — ``"simple"`` or ``"json"``. Default ``"simple"``.
         async_logging (bool): Use asynchronous log writing. Default ``False``.
-        enable_systemd (bool): Enable systemd/journal integration. Default ``True``.
+        systemd_mode (SystemdMode): Systemd journal integration mode.
+            ``"auto"`` (try if available, silent fallback), ``"required"`` (must
+            have journal), ``"off"`` (no integration). Default ``SystemdMode.AUTO``.
         systemd_facility (str | None): Syslog facility for systemd output. Default ``None``.
         src_dir (str): Primary source directory name. Default ``"src"``.
         format (FormatConfig): Format configuration. Default ``FormatConfig()``.
@@ -272,6 +305,13 @@ class StoggerConfig:
         ast_max_parameters (int): Max parameters before flagging a function. Default ``8``.
         ast_logging_focus (bool): Focus AST analysis on logging patterns. Default ``True``.
         ast_enabled_patterns (list | None): Specific AST patterns to enable. Default ``None``.
+        log_rotation (str): File rotation mode — ``"none"`` (no rotation, default)
+            or ``"size"`` (rotate when file would exceed ``log_max_bytes``).
+        log_max_bytes (int): Size threshold in bytes for ``log_rotation="size"``.
+            Default ``10_000_000`` (10 MB).
+        log_backup_count (int): Number of rotated backup files (``base.log.1``
+            through ``base.log.N``) to keep when ``log_rotation="size"``.
+            Default ``5``. ``0`` disables rotation.
 
     """
 
@@ -285,7 +325,7 @@ class StoggerConfig:
     language: str = "en"
     log_format: str = "simple"
     async_logging: bool = False
-    enable_systemd: bool = True
+    systemd_mode: SystemdMode = SystemdMode.AUTO
     systemd_facility: str | None = None
     enable_postgres: bool = False
     postgres_dsn: str | None = None
@@ -296,6 +336,9 @@ class StoggerConfig:
     ast_max_parameters: int = 8
     ast_logging_focus: bool = True
     ast_enabled_patterns: list | None = None
+    log_rotation: str = "none"
+    log_max_bytes: int = 10_000_000
+    log_backup_count: int = 5
 
     def __init__(self, **kwargs: Any) -> None:
         """Initialize configuration from TOML file merged with kwargs.
@@ -330,7 +373,7 @@ class StoggerConfig:
             language=config.get("language", "en"),
             log_format=config.get("log_format", "simple"),
             async_logging=config.get("async_logging", False),
-            enable_systemd=config.get("enable_systemd", True),
+            systemd_mode=SystemdMode(config["systemd"]) if "systemd" in config else SystemdMode.AUTO,
             systemd_facility=config.get("systemd_facility", None),
             enable_postgres=config.get("enable_postgres", False),
             postgres_dsn=config.get("postgres_dsn", None),
@@ -341,6 +384,9 @@ class StoggerConfig:
             ast_max_parameters=config.get("ast", {}).get("max_parameters", 8),
             ast_logging_focus=config.get("ast", {}).get("logging_focus", True),
             ast_enabled_patterns=config.get("ast", {}).get("enabled_patterns", None),
+            log_rotation=config.get("log_rotation", "none"),
+            log_max_bytes=config.get("log_max_bytes", 10_000_000),
+            log_backup_count=config.get("log_backup_count", 5),
         )
 
 
@@ -383,11 +429,15 @@ def detect_project_structure(project_root: Path | None = None) -> ProjectStructu
         log.info(
             "project-structure-detected-from-heuristics",
             method="heuristics",
-            _replace_msg="Project structure detected via heuristics",
+            _replace_msg="Project structure detected via {method}",
         )
         return structure
     except (OSError, ValueError, FileNotFoundError) as e:
-        log.exception("heuristic-detection-failed", project_root=str(project_root))
+        log.exception(
+            "heuristic-detection-failed",
+            _replace_msg="Failed to detect project structure for {project_root}",
+            project_root=str(project_root),
+        )
         msg = (
             f"Could not determine project structure for {project_root}. "
             "Please configure [tool.stogger] section in pyproject.toml with 'src_dir' and 'exclude' settings."

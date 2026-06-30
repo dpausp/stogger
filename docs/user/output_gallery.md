@@ -22,7 +22,7 @@ Dimmed ISO timestamp, colored level letter (green D/I, yellow W, red E/C), brigh
 
 ## Raw KV Pairs (no `_replace_msg`)
 
-Without `_replace_msg`, remaining fields render as `key=value` pairs — cyan keys, magenta values, sorted alphabetically:
+Without `_replace_msg`, remaining fields render as `key=value` pairs — cyan keys, magenta values, sorted alphabetically. Underscore-prefixed keys (`_output`, `_raw_output`, `_replace_msg`, …) are not rendered here — they're consumed by their own render stages (see [Reference](reference.md#underscore-prefix-convention)).
 
 ```{eval-rst}
 .. erbsland-ansi::

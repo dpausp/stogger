@@ -6,7 +6,6 @@ _ = pytest.importorskip("stogger_postgres")
 
 from stogger_postgres import (
     DummyPostgresLogger,
-    PostgresLogger,
     PostgresLoggerFactory,
     get_postgres_logger_factory,
 )

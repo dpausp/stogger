@@ -24,16 +24,21 @@ Settings live in `[tool.stogger]` in `pyproject.toml`:
 
 ```toml
 [tool.stogger]
-enable_systemd = true
-systemd_facility = 128            # optional: syslog facility code (default: LOG_LOCAL0 = 128)
+systemd = "auto"                     # auto | required | off
+systemd_facility = 128               # optional: syslog facility code (default: LOG_LOCAL0 = 128)
 ```
 
-### enable_systemd
+### systemd
 
-Controls whether `init_logging()` attempts to register the journal target.
+Controls how `init_logging()` handles systemd journal integration.
 
-- `true` (default) — import `stogger-systemd` and register the journal logger.
-- `false` — skip journal registration entirely. No import attempt.
+| Value | Behavior |
+|-------|----------|
+| `"auto"` (default) | Try journal if available, silently fall back to no-op if not. |
+| `"required"` | Journal must be available — raises `RuntimeError` at init if missing. |
+| `"off"` | Skip journal registration entirely. No import attempt. |
+
+Also configurable via `init_logging(systemd=SystemdMode.AUTO)` or `STOGGER_SYSTEMD=auto` env var.
 
 ### systemd_facility
 
@@ -50,18 +55,19 @@ Most services never need to change this. It matters only when filtering journal 
 
 1. Build the loggers dict (file, console).
 2. Suppress console output when `JOURNAL_STREAM` env var is set (systemd sets this for every service).
-3. If `enable_systemd` is `true`, attempt `from stogger_systemd import get_journal_logger_factory`.
-4. On `ImportError` (package not installed), log a one-time info message and continue without journal.
+3. If `systemd` mode is `"auto"` or `"required"`, attempt `from stogger.systemd import get_journal_logger_factory`.
+4. If `systemd` mode is `"required"` and journal is unavailable, raise `RuntimeError`.
 5. Configure structlog with all available targets.
 
 ### Fallback Behavior
 
 | Condition | Behavior |
 |-----------|----------|
-| `stogger-systemd` installed, running under systemd | Journal + file. Console suppressed. |
-| `stogger-systemd` installed, not under systemd | Journal target registers but writes nothing. Console + file active. |
-| `stogger-systemd` not installed, `JOURNAL_STREAM` set | Info message logged. Console + file active. |
-| `stogger-systemd` not installed, no `JOURNAL_STREAM` | Silent skip. Console + file active. |
+| `systemd = "auto"`, journal available | Journal + file. Console suppressed when `JOURNAL_STREAM` set. |
+| `systemd = "auto"`, no journal | Silent fallback to no-op. Console + file active. |
+| `systemd = "required"`, journal available | Journal + file. Console suppressed when `JOURNAL_STREAM` set. |
+| `systemd = "required"`, no journal | `RuntimeError` raised at init. |
+| `systemd = "off"` | No journal integration. Console + file active. |
 
 No configuration produces errors or warnings in non-systemd environments.
 
@@ -165,7 +171,7 @@ uv add stogger-systemd
 
 ### Journal fields are empty or missing
 
-Check that `enable_systemd` is not set to `false` in `[tool.stogger]`. The default is `true`, so this only applies if explicitly disabled.
+Check that `systemd` is not set to `"off"` in `[tool.stogger]`. The default is `"auto"`, so this only applies if explicitly disabled.
 
 ### systemd-python fails to install
 

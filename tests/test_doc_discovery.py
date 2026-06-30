@@ -8,7 +8,13 @@ import re
 from importlib.resources import files
 from pathlib import Path
 
+import pytest
+
 import stogger
+
+_docs_path = Path(__file__).resolve().parent.parent / "src" / "stogger" / "_docs"
+if not _docs_path.exists():
+    pytest.skip("Embedded docs not generated — run build_docs_for_package.py", allow_module_level=True)
 
 
 def test_llms_txt_exists_and_readable() -> None:
