@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import string
-import subprocess
 import sys
 import syslog
 import time
@@ -209,6 +208,8 @@ class ConsoleFileRenderer:
         """Render output sections: cmd_output, output, stdout, stderr, stack, traceback."""
         cmd_output_line = event_dict.pop("cmd_output_line", None)
         output = event_dict.pop("_output", None)
+        raw_output = event_dict.pop("_raw_output", None)
+        raw_output_prefix = event_dict.pop("_raw_output_prefix", None)
         stdout = event_dict.pop("stdout", None)
         stderr = event_dict.pop("stderr", None)
         stack = event_dict.pop("stack", None)
@@ -219,6 +220,12 @@ class ConsoleFileRenderer:
 
         if output is not None:
             write_fn("\n" + prefix("", "\n" + output + "\n") + RESET_ALL)
+
+        if raw_output is not None:
+            if raw_output_prefix:
+                write_fn("\n" + prefix(raw_output_prefix, raw_output) + "\n")
+            else:
+                write_fn("\n" + raw_output + "\n")
 
         if stdout is not None:
             write_fn("\n" + DIM + prefix("out", "\n" + stdout + "\n") + RESET_ALL)
@@ -481,8 +488,6 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):
     if log_to_console:
         if os.environ.get("JOURNAL_STREAM"):
             print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
-            pid = os.getpid()
-            subprocess.run(["systemctl", "status", str(pid)], check=False, capture_output=True, text=True)  # noqa: S603, S607
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
@@ -624,20 +629,27 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen
         init_command_logging(log, logdir)
 
 
-def init_early_logging() -> None:
+def init_early_logging(*, verbose: bool = False) -> None:
     """Initialize minimal structured logging before full setup.
 
     Configures a lightweight structlog pipeline (timestamp, level, console renderer)
     so that early startup messages are properly formatted instead of appearing as
     raw dicts. No-op if structlog is already configured. Errors during setup are
     suppressed silently to avoid crashing during early initialization.
-    """
-    import inspect  # noqa: PLC0415 — imported at function level; init_early_logging runs before all modules load, inspect only needed for debug caller info
 
-    frame = inspect.stack()[1]
-    caller_info = f"{frame.filename}:{frame.lineno} in {frame.function}"
-    log.debug("init-early-logging-called", caller=caller_info)
-    logging.debug("[stogger-early] init_early_logging called from %s", caller_info)  # noqa: LOG015 — intentional bridge to stdlib logging for early-init messages before structlog pipeline is available
+    Args:
+        verbose: When ``True``, emit debug messages showing the caller that invoked
+            this function. Also enabled when the ``STOGGER_DEBUG`` environment variable
+            is set.
+
+    """
+    if verbose or os.environ.get("STOGGER_DEBUG"):
+        import inspect  # noqa: PLC0415 — imported at function level; init_early_logging runs before all modules load, inspect only needed for debug caller info
+
+        frame = inspect.stack()[1]
+        caller_info = f"{frame.filename}:{frame.lineno} in {frame.function}"
+        log.debug("init-early-logging-called", caller=caller_info)
+        logging.debug("[stogger-early] init_early_logging called from %s", caller_info)  # noqa: LOG015 — intentional bridge to stdlib logging for early-init messages before structlog pipeline is available
 
     if structlog.is_configured():
         return  # Already configured
@@ -695,6 +707,9 @@ JOURNAL_LEVELS = {
 }
 
 KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
+    "_output",
+    "_raw_output",
+    "_raw_output_prefix",
     "_replace_msg",
     "code_file",
     "code_func",
@@ -707,6 +722,8 @@ KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
     "message",
     "output",
     "pid",
+    "stderr",
+    "stdout",
     "timestamp",
 ]
 

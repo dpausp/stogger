@@ -330,6 +330,35 @@ def validate_config(config_path: Path):
     return config
 ```
 
+## Output Rendering
+
+Use these keys to render tool output, command results, and tracebacks in log entries:
+
+| Key | Prefix | DIM | ANSI behavior |
+|-----|--------|-----|---------------|
+| `cmd_output_line` | `> ` | Yes | Stripped via DIM wrapping |
+| `_output` | empty | No | Stripped via `write()` closure |
+| `_raw_output` | configurable via `_raw_output_prefix` | No | **Preserved** in console, stripped in file |
+| `_raw_output_prefix` | used as prefix label | — | Sets prefix for `_raw_output` |
+| `stdout` | `out` | Yes | Stripped via DIM wrapping |
+| `stderr` | `err` | Yes | Stripped via DIM wrapping |
+| `stack` | `stack` | No | Stripped via `write()` closure |
+| `exception_traceback` | `exception` | No | Stripped via `write()` closure |
+
+### Raw Output with ANSI Passthrough
+
+Use `_raw_output` for tool output that contains ANSI color codes (e.g., `ty check --color always`, `pytest --color yes`). The console preserves colors; the log file gets stripped output automatically:
+
+```python
+log.warning(
+    "component-type-errors",
+    _replace_msg="{component}: {count} type error(s)",
+    component=component_name,
+    count=result.output.count("error:"),
+    _raw_output_prefix="ty",
+    _raw_output=result.output.strip(),
+)
+```
 ## Security
 
 ### Avoid Logging Sensitive Data

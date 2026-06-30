@@ -68,6 +68,18 @@ log.info(
 )
 ```
 
+## Output Blocks
+
+- Use `_raw_output` to embed tool output with ANSI colors (console gets colors, file gets stripped):
+
+```python
+log.warning("type-errors",
+         _raw_output_prefix="ty",
+         _raw_output=ty_result.output.strip())
+```
+
+- See [Logging Patterns: Output Rendering](logging_patterns.md#output-rendering) for the full table of output keys.
+
 ## Naming and consistency
 
 - Prefer these field names (keep them consistent):
