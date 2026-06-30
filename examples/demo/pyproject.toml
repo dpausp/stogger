@@ -1,0 +1,26 @@
+[project]
+name = "demo"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "structlog>=25.0.0",
+]
+
+[dependency-groups]
+test = [
+    "pytest>=9.0.0",
+    "pytest-structlog>=1.1.0",
+    "pytest-stogger",
+    "complexipy>=0.1.0",
+]
+
+[tool.pytest-stogger]
+source = "src/demo"
+test_dir = "tests"
+exclude = []
+info_allowed_layers = ["service"]
+infrastructure_files = []
+exempt_event_ids = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
