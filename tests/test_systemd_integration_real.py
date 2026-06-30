@@ -1,10 +1,8 @@
-"""Real integration tests for stogger-systemd (requires installed package)."""
+"""Integration tests for stogger.systemd (built-in module)."""
 
 import pytest
 
-_ = pytest.importorskip("stogger_systemd")
-
-from stogger_systemd import (
+from stogger.systemd import (
     DummyJournalLogger,
     JournalLogger,
     JournalLoggerFactory,

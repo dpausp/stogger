@@ -141,24 +141,16 @@ def test_partial_formatter_format_field_logs_debug(captured_logs):
 # ---------------------------------------------------------------------------
 
 
-def test_early_init_logs_on_failure(captured_logs):
-    """init_early_logging must log debug and NOT crash on failure.
+def test_early_init_crashes_on_failure():
+    """init_early_logging must propagate errors, not suppress them.
 
-    SPEC: overall-strategy — replace suppress(Exception) with try/except + debug.
-    SPEC: logging-level — debug, no _replace_msg per CR-5.
+    SPEC: legacy-elimination::broad-exception-cleanup — remove try/except entirely.
     """
     from stogger.core import init_early_logging
 
     with patch("stogger.core.build_timestamp_processor", side_effect=RuntimeError("boom")):
-        # Must NOT raise — suppression stays
-        init_early_logging()
-
-    debug_events = [
-        e
-        for e in captured_logs
-        if e.get("event") == "early-init-failed"
-    ]
-    assert len(debug_events) >= 1
+        with pytest.raises(RuntimeError, match="boom"):
+            init_early_logging()
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +288,7 @@ def test_config_decorators_inline_ignore():
             )
             break
     else:
-    pytest.fail("_filter_args() not found in decorators.py")
+        pytest.fail("_filter_args() not found in decorators.py")
 
 
 # ---------------------------------------------------------------------------

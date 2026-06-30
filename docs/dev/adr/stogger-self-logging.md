@@ -122,4 +122,3 @@ New test cases for: `file-open-permission-denied` warning, `early-init-failed` d
 
 ## Verified By
 
-<!-- Tests will be added after implementation -->

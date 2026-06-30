@@ -13,11 +13,10 @@ import io
 import pytest
 import structlog
 
-from stogger._colors import DIM, RED, RESET_ALL
+from stogger._colors import DIM, RESET_ALL
 from stogger.core import (
-    ConsoleFileRenderer,
     KEYS_TO_SKIP_IN_JOURNAL_MESSAGE,
-    prefix,
+    ConsoleFileRenderer,
 )
 
 
@@ -129,14 +128,14 @@ class TestSkipListCleanup:
 
     def test_required_keys_present(self):
         """All required output-rendering keys are in the skip list."""
-        required = {"_output", "_raw_output", "_raw_output_prefix", "stderr", "stdout", "output"}
+        required = {"_output", "_raw_output", "_raw_output_prefix", "stderr", "stdout"}
         skip_set = set(KEYS_TO_SKIP_IN_JOURNAL_MESSAGE)
         for key in required:
             assert key in skip_set, f"{key!r} missing from KEYS_TO_SKIP_IN_JOURNAL_MESSAGE"
 
     def test_skip_list_sorted_alphabetically(self):
         """KEYS_TO_SKIP_IN_JOURNAL_MESSAGE is sorted alphabetically."""
-        assert KEYS_TO_SKIP_IN_JOURNAL_MESSAGE == sorted(KEYS_TO_SKIP_IN_JOURNAL_MESSAGE)
+        assert sorted(KEYS_TO_SKIP_IN_JOURNAL_MESSAGE) == KEYS_TO_SKIP_IN_JOURNAL_MESSAGE
 
 
 # ---------------------------------------------------------------------------

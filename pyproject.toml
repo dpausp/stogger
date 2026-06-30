@@ -13,14 +13,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-systemd = ["stogger-systemd"]
 postgres = ["stogger-postgres"]
 
 [tool.hatch.version]
 source = "vcs"
 tag-pattern = "^(?P<version>\\d{4}\\.\\d{1,2}\\.\\d{1,2})$"
-fallback-version = "0.0.0"
+fallback-version = "2026.5.15"
 raw-options.root = "."
+
 
 [tool.hatch.build.targets.wheel.sources]
 "src" = ""
@@ -92,13 +92,14 @@ markers = [
 [tool.pytest-stogger]
 source = "src/stogger"
 test_dir = "tests"
-exclude = []
+disable_rules = ["no-early-init"]
 info_allowed_layers = []
-#KH|infrastructure_files = ["core.py", "_colors.py", "decorators.py"]
 exempt_event_ids = []
 
 [tool.pytest-stogger.per-file-ignores]
 "_colors.py" = ["except-must-log", "complexity-needs-log"]
+"__init__.py" = ["except-must-log"]
+"systemd.py" = ["except-must-log", "complexity-needs-log"]
 
 [tool.ruff.lint]
 select = [ "E", "W", "F", "I", "N", "D", "UP", "YTT", "S", "BLE", "FBT", "B", "A", "COM", "C4", "DTZ", "T10", "DJ", "EM", "EXE", "FA", "ISC", "ICN", "G", "INP", "PIE", "T20", "PYI", "PT", "Q", "RUF", "SLF", "SLOT", "SIM", "TID", "TCH", "INT", "ARG", "PTH", "TD", "FIX", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "AIR", "PERF", "FURB", "LOG",]
@@ -181,9 +182,9 @@ commands = [
 ]
 
 [tool.tox.env.integrations]
-description = "Integration tests with optional dependencies (systemd, postgres)"
+description = "Integration tests with optional dependencies (postgres)"
 dependency_groups = ["test"]
-extras = ["systemd", "postgres"]
+extras = ["postgres"]
 commands = [
     ["pytest", "tests/test_systemd_integration_real.py", "tests/test_postgres_integration_real.py", "-v"],
 ]

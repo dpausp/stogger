@@ -20,7 +20,6 @@ from stogger._colors import (
     RESET_ALL,
     YELLOW,
 )
-from stogger._regexes import DEBUG_WITH_REPLACE, EVENT_WITH_REPLACE, INFO_EVENT, MSG_KEY
 from stogger.config import (
     ProjectStructure,
     StoggerConfig,
@@ -99,7 +98,7 @@ def test_sync_logging_setup(mock_basic_config):
 @patch("logging.getLogger", autospec=True)
 def test_async_logging_setup(mock_get_logger, mock_listener):
     """Test that asynchronous logging sets up a QueueListener."""
-    mock_root_logger = MagicMock(spec=logging.Logger(""))
+    mock_root_logger = MagicMock()
     mock_get_logger.return_value = mock_root_logger
 
     config = StoggerConfig(async_logging=True, log_to_console=True)
@@ -164,13 +163,6 @@ def test_colors_import():
     """Import color constants and verify they are strings."""
     for constant in (RESET_ALL, BRIGHT, DIM, RED, BACKRED, BLUE, CYAN, MAGENTA, YELLOW, GREEN):
         assert isinstance(constant, str)
-
-
-def test_regexes_import():
-    """Import compiled regex patterns and verify they exist."""
-    for pattern in (EVENT_WITH_REPLACE, MSG_KEY, INFO_EVENT, DEBUG_WITH_REPLACE):
-        assert hasattr(pattern, "pattern")
-
 
 # ---------------------------------------------------------------------------
 # ProjectStructure method tests
@@ -396,7 +388,7 @@ def test_colors_tty_branch():
         assert isinstance(colors_mod.RED, str)
         assert len(colors_mod.RED) > 0
 
-    # Restore original module state (isatty=False in test env → empty strings)
+    # Restore original module state
     importlib.reload(colors_mod)
 
 

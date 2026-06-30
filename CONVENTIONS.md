@@ -9,7 +9,7 @@ Follow [PEP 8](https://peps.python.org/pep-0008/)
 Configuration is in `pyproject.toml`:
 
 - **ruff**: Linting and formatting (88 char line length)
-- **mypy**: Strict type checking (Python 3.13+)
+- **ty**: Strict type checking (Python 3.13+)
 - **pytest**: Testing with 90% coverage target
 
 ### Code Quality Standards
@@ -41,9 +41,9 @@ Configuration is in `pyproject.toml`:
 
 ### Important Packages
 
-- **Typer** for CLI
-- **Rich** for colored output and progress bars
-- **structlog** for structured logging key value logging
+- **structlog** for structured key-value logging
+- **attrs** for configuration class definitions
+- **colorama** for terminal color output
 
 ### CLI Design (AI- and human-friendly, annotated)
 
@@ -55,8 +55,8 @@ Configuration is in `pyproject.toml`:
 #### CLI Best Practices
 
 **Command Structure:**
-- Use verb-noun pattern: `stoggertools check file.py`, `stoggertools migrate project/`
-- Group related commands in sub-apps: `stoggertools tools review`, `stoggertools tools journal`
+- Use verb-noun pattern: `mytool check file.py`, `mytool migrate project/`
+- Group related commands in sub-apps: `mytool tools review`, `mytool tools journal`
 - Provide both short and long options: `-v/--verbose`, `-o/--output`
 
 **Help and Documentation:**
@@ -162,14 +162,12 @@ def process(
 
 ### Core Components
 
-- **stogger.core**: Main logging initialization and configuration
-- **stoggertools.cli**: Command-line interface with Typer
-- **stogger.advanced_assistant**: AST-based code analysis and transformation
-- **stoggertools.interactive_transformer**: Interactive code transformation with user prompts
-- **stoggertools.linter**: Code quality checking for logging best practices
-- **stogger.factory**: Logger factory and configuration management
-- **stogger.i18n**: Internationalization support and translation checking
-
+- **stogger.core**: Main logging initialization, renderers, and processors
+- **stogger.config**: Configuration loading from pyproject.toml, project structure detection
+- **stogger.decorators**: Logging decorators (log_call, log_result, log_operation, log_scope)
+- **stogger.processors**: Processor factory functions (build_timestamp_processor)
+- **stogger.factory**: Stdlib logging bridge and async logging setup
+- **stogger.systemd**: systemd journal I/O via AF_UNIX socket
 ### Testing
 
 - Use pytest conventions for Python tests (unit, functional, integration)
@@ -326,7 +324,7 @@ test: boost coverage to 90%
 
 **Pre-commit Hooks:**
 - Automatic formatting with ruff
-- Type checking with mypy
+- Type checking with ty
 - Test execution for changed files
 - Conventional commit message validation
 

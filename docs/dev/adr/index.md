@@ -7,4 +7,5 @@ format-config-extension
 postgres-target
 stogger-systemd
 stogger-self-logging
+legacy-elimination
 ```

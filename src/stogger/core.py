@@ -137,11 +137,7 @@ class ConsoleFileRenderer:
         self.min_level = self.LEVELS.index(effective_min_level.lower())
         self.show_caller_info = effective_show_code_info
         self.pad_event = format_config.pad_event_width
-        self.show_logger_brackets = False
-        self.show_pid = False
         self.timestamp_format = format_config.timestamp_precision
-
-        sys.stdout.isatty()
 
         self._level_to_color = {
             "alert": RED,
@@ -276,9 +272,7 @@ class ConsoleFileRenderer:
         ts = event_dict.pop("timestamp", None)
         write(self._format_timestamp(ts, log_settings))
 
-        pid = event_dict.pop("pid", None)
-        if self.show_pid and pid is not None:
-            write("[" + DIM + str(pid) + RESET_ALL + "] ")
+        event_dict.pop("pid", None)
 
         level = event_dict.pop("level", None)
         if level is not None:
@@ -287,9 +281,7 @@ class ConsoleFileRenderer:
         event = event_dict.pop("event")
         write(BRIGHT + _pad(event, self.pad_event) + RESET_ALL + " ")
 
-        logger_name = event_dict.pop("logger", "root")
-        if logger_name and self.show_logger_brackets:
-            write("[" + BLUE + BRIGHT + logger_name + RESET_ALL + "] ")
+        event_dict.pop("logger", "root")
 
     def _format_body(self, event_dict, write, formatted_replace_msg):  # stogger: ignore
         """Format the log body: formatted replace_msg or remaining KV pairs."""
@@ -431,69 +423,6 @@ class SelectRenderedString:
         return str(event_dict)
 
 
-def log_to_stdlib(  # stogger: ignore complexity-needs-log
-    _logger: object,
-    _name: str,
-    event_dict: EventDict,
-) -> EventDict:
-    """Bridge structlog events to Python's standard library logging module.
-
-    This processor forwards every structlog event to ``logging.log()`` so that
-    tools relying on stdlib handlers (e.g. ``pytest caplog``) can capture them.
-
-    **Do NOT add this to the default processor pipeline.** Stogger configures
-    its own renderers and file handlers. Adding this processor causes every
-    event to appear twice — once via stogger's ``MultiRenderer`` and once via
-    the stdlib root logger.
-
-    Use cases where this *is* useful:
-
-    - Legacy code that reads from stdlib ``logging`` handlers
-    - Ad-hoc debugging with ``logging.basicConfig()``
-
-    For test assertions, prefer ``pytest-structlog`` which captures events
-    directly from the structlog pipeline without needing a stdlib bridge.
-
-    Args:
-        _logger: The structlog logger (unused).
-        _name: The log method name (unused).
-        event_dict: The structured event dictionary.
-
-    Returns:
-        The unmodified ``event_dict`` (pass-through processor).
-
-    """
-    # Create a copy of event_dict to avoid modifying the original
-    event_dict_copy = event_dict.copy()  # ty: ignore[unresolved-attribute]
-
-    level = event_dict_copy.get("level", "info")
-    level_map = {
-        "debug": logging.DEBUG,
-        "info": logging.INFO,
-        "warning": logging.WARNING,
-        "error": logging.ERROR,
-        "critical": logging.CRITICAL,
-    }
-    logging_level = level_map.get(level, logging.INFO)
-    msg = event_dict_copy.get("_replace_msg", event_dict_copy.get("event", ""))
-
-    # Extract standard logging parameters
-    exc_info = event_dict_copy.get("exc_info")
-
-    # Remove non-standard parameters that might cause issues
-    for key in list(event_dict_copy.keys()):
-        if key not in {"level", "_replace_msg", "event", "exc_info"}:
-            event_dict_copy.pop(key, None)
-
-    # Log to standard logging - only pass standard parameters
-    if exc_info:
-        logging.log(logging_level, msg, exc_info=exc_info)  # noqa: LOG015
-    else:
-        logging.log(logging_level, msg)  # noqa: LOG015
-
-    return event_dict
-
-
 def _build_console_renderer_kwargs(verbose, show_caller_info):  # stogger: ignore complexity-needs-log
     """Build ConsoleFileRenderer keyword overrides for init_logging."""
     kwargs = {}
@@ -529,21 +458,13 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
-    # SPEC: stogger-systemd::journal-registration-flow — dynamic import
-    # for journal logger factory, independent of console suppression.
+    # SPEC: legacy-elimination::optional-import-simplification — direct import,
+    # stogger.systemd is a built-in module, not an external package.
     if cfg.enable_systemd:
-        try:
-            from stogger_systemd import get_journal_logger_factory  # noqa: PLC0415  # ty: ignore[unresolved-import]
+        from stogger.systemd import get_journal_logger_factory  # noqa: PLC0415
 
-            factory = get_journal_logger_factory()
-            loggers["journal"] = factory
-        except ImportError:
-            if os.environ.get("JOURNAL_STREAM"):
-                print(  # noqa: T201
-                    "systemd journal detected but stogger-systemd not available."
-                    " Install stogger-systemd package for journal integration.",
-                    file=sys.stderr,
-                )
+        factory = get_journal_logger_factory()
+        loggers["journal"] = factory
 
     # SPEC: postgres-target::package-placement — dynamic import
     # for postgres logger factory, mirrors journal pattern.
@@ -557,7 +478,7 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
             )
             loggers["postgres"] = factory
         except ImportError:
-            log.debug("stogger-postgres-not-installed", import_error=True)
+            log.debug("stogger-postgres-not-installed", reason="optional package not installed")
 
     return loggers, context
 
@@ -598,6 +519,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     syslog_identifier: str | None = None,
     verbose: bool | None = None,
     show_caller_info: bool | None = None,
+    timestamp_precision: str | None = None,
 ) -> None:
     """Initialize full structured logging with console, file, and journal targets.
 
@@ -621,6 +543,10 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
         show_caller_info: Whether to display code location (file, function, line)
             in console output. When None (default), uses the setting from
             ``FormatConfig.show_code_info``.
+        timestamp_precision: Timestamp format override. One of ``"iso"``,
+            ``"iso_seconds"``, ``"iso_no_z"``, or ``"relative"``. When None
+            (default), uses the setting from ``FormatConfig.timestamp_precision``
+            (typically ``"iso_seconds"``).
 
     Raises:
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
@@ -632,6 +558,8 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     _ensure_stderr_logging()
 
     cfg = StoggerConfig(verbose=bool(verbose))
+    if timestamp_precision is not None:
+        cfg.format.timestamp_precision = timestamp_precision
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
     syslog_identifier = syslog_identifier if syslog_identifier is not None else cfg.syslog_identifier
 
@@ -675,8 +603,7 @@ def init_early_logging(*, verbose: bool = False) -> None:
 
     Configures a lightweight structlog pipeline (timestamp, level, console renderer)
     so that early startup messages are properly formatted instead of appearing as
-    raw dicts. No-op if structlog is already configured. Errors during setup are
-    suppressed to avoid crashing during early initialization, but logged at debug level.
+    raw dicts. No-op if structlog is already configured.
 
     Args:
         verbose: When ``True``, emit debug messages showing the caller that invoked
@@ -695,47 +622,30 @@ def init_early_logging(*, verbose: bool = False) -> None:
     if structlog.is_configured():
         return  # Already configured
 
-    try:
-        # Minimal processors for early initialization
-        processors = [
-            structlog.stdlib.add_log_level,
-            build_timestamp_processor(StoggerConfig()),
-            ConsoleFileRenderer(),
-            SelectRenderedString(
-                key="console",
-            ),  # Convert dict to string for PrintLogger
-        ]
+    # Minimal processors for early initialization
+    processors = [
+        structlog.stdlib.add_log_level,
+        build_timestamp_processor(StoggerConfig()),
+        ConsoleFileRenderer(),
+        SelectRenderedString(
+            key="console",
+        ),  # Convert dict to string for PrintLogger
+    ]
 
-        # Configure structlog with minimal setup
-        structlog.configure(
-            processors=processors,  # ty: ignore[invalid-argument-type]
-            logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
-            wrapper_class=structlog.BoundLogger,
-            cache_logger_on_first_use=False,  # Allow reconfiguration
-        )
+    # Configure structlog with minimal setup
+    structlog.configure(
+        processors=processors,  # ty: ignore[invalid-argument-type]
+        logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
+        wrapper_class=structlog.BoundLogger,
+        cache_logger_on_first_use=False,  # Allow reconfiguration
+    )
 
-        # Set up basic stdlib logging
-        logging.basicConfig(
-            level=logging.INFO,  # Allow info messages through
-            format="%(message)s",
-            force=True,
-        )
-    except Exception as e:  # noqa: BLE001
-        log.debug("early-init-failed", exc=str(e))
-
-
-class JournalLoggerFactory:
-    """Stub factory for systemd journal logger integration.
-
-    Returns ``None`` by default. Actual systemd journal support is provided by
-    the ``stogger-systemd`` package, which replaces this factory with a real
-    journal writer. Use this as a placeholder so logging pipelines work without
-    the systemd extra installed.
-    """
-
-    def __call__(self, *_args: object) -> None:
-        # systemd journal integration belongs in stogger-systemd package
-        return None
+    # Set up basic stdlib logging
+    logging.basicConfig(
+        level=logging.INFO,  # Allow info messages through
+        format="%(message)s",
+        force=True,
+    )
 
 
 JOURNAL_LEVELS = {
@@ -763,7 +673,6 @@ KEYS_TO_SKIP_IN_JOURNAL_MESSAGE = [
     "invocation_id",
     "level",
     "message",
-    "output",
     "pid",
     "stderr",
     "stdout",
@@ -893,7 +802,6 @@ class MultiRenderer:
     rendered output as values. It doesn't care about the rendered messages
     so different logger types can get different types of messages.
     Normally, this should be placed last in the processors chain.
-    Errors in renderers are ignored silently.
     """
 
     def __init__(self, **renderers) -> None:
@@ -908,8 +816,9 @@ class MultiRenderer:
             try:
                 messages = renderer(logger, method_name, dict(event_dict))
                 merged_messages.update(messages)
-            except Exception:  # stogger: ignore except-must-log
-                logging.getLogger(__name__).exception("Renderer failed, using fallback")
+            except Exception as err:  # stogger: ignore except-must-log
+                msg = "Renderer failed"
+                raise RuntimeError(msg) from err
 
         return merged_messages
 
@@ -962,8 +871,9 @@ class MultiOptimisticLogger:
                 line = messages.get(name)
                 if line:
                     logger.msg(line)
-            except Exception:
-                logging.getLogger(__name__).exception("Renderer failed, using fallback")
+            except Exception as err:
+                msg = "Sub-logger dispatch failed"
+                raise RuntimeError(msg) from err
 
     def __getattr__(self, name):
         return self.msg
@@ -1045,11 +955,7 @@ def drop_cmd_output_logfile(log) -> None:
     except KeyError:
         log.exception(
             "logging-cmd-output-file-not-found",
-            _replace_msg=(
-                "cmd_output_file logger factory not found, there's something "
-                "wrong with the logging configuration! Probably "
-                "init_command_logging has never been called."
-            ),
+            factory_key="cmd_output_file",
         )
         raise
 

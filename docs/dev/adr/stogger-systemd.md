@@ -200,4 +200,3 @@ Stogger stays on current version. stogger-systemd is a pure addition.
 
 ## Verified By
 
-<!-- Tests will be added after implementation -->

@@ -97,7 +97,7 @@ Stogger uses `ty: ignore` (not `type: ignore`) for the Astral type checker. Alwa
 
 ```python
 # ty: ignore[unresolved-import] — dynamic import of optional package
-from stogger_systemd import get_journal_logger_factory  # ty: ignore[unresolved-import]
+from stogger.systemd import get_journal_logger_factory  # ty: ignore[unresolved-import]
 
 # ty: ignore[unresolved-attribute] — accessing private structlog API
 structlog._frames._find_first_app_frame_and_name(...)  # ty: ignore[unresolved-attribute]

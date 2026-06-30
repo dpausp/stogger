@@ -29,7 +29,6 @@ Classes
    stogger.core.ConsoleFileRenderer
    stogger.core.JSONRenderer
    stogger.core.SelectRenderedString
-   stogger.core.JournalLoggerFactory
    stogger.core.SystemdJournalRenderer
    stogger.core.PostgresRenderer
    stogger.core.CmdOutputFileRenderer
@@ -48,7 +47,6 @@ Functions
    stogger.core.add_caller_info
    stogger.core.process_exc_info
    stogger.core.format_exc_info
-   stogger.core.log_to_stdlib
    stogger.core.init_logging
    stogger.core.init_early_logging
    stogger.core.init_command_logging
@@ -121,16 +119,6 @@ Module Contents
    .. py:attribute:: pad_event
 
 
-   .. py:attribute:: show_logger_brackets
-      :value: False
-
-
-
-   .. py:attribute:: show_pid
-      :value: False
-
-
-
    .. py:attribute:: timestamp_format
 
 
@@ -169,37 +157,7 @@ Module Contents
 
 
 
-.. py:function:: log_to_stdlib(_logger, _name, event_dict)
-
-   Bridge structlog events to Python's standard library logging module.
-
-   This processor forwards every structlog event to ``logging.log()`` so that
-   tools relying on stdlib handlers (e.g. ``pytest caplog``) can capture them.
-
-   **Do NOT add this to the default processor pipeline.** Stogger configures
-   its own renderers and file handlers. Adding this processor causes every
-   event to appear twice — once via stogger's ``MultiRenderer`` and once via
-   the stdlib root logger.
-
-   Use cases where this *is* useful:
-
-   - Legacy code that reads from stdlib ``logging`` handlers
-   - Ad-hoc debugging with ``logging.basicConfig()``
-
-   For test assertions, prefer ``pytest-structlog`` which captures events
-   directly from the structlog pipeline without needing a stdlib bridge.
-
-   Args:
-       _logger: The structlog logger (unused).
-       _name: The log method name (unused).
-       event_dict: The structured event dictionary.
-
-   Returns:
-       The unmodified ``event_dict`` (pass-through processor).
-
-
-
-.. py:function:: init_logging(*, logdir = None, log_cmd_output = False, log_to_console = True, syslog_identifier = None, verbose = None, show_caller_info = None)
+.. py:function:: init_logging(*, logdir = None, log_cmd_output = False, log_to_console = True, syslog_identifier = None, verbose = None, show_caller_info = None, timestamp_precision = None)
 
    Initialize full structured logging with console, file, and journal targets.
 
@@ -223,6 +181,10 @@ Module Contents
        show_caller_info: Whether to display code location (file, function, line)
            in console output. When None (default), uses the setting from
            ``FormatConfig.show_code_info``.
+       timestamp_precision: Timestamp format override. One of ``"iso"``,
+           ``"iso_seconds"``, ``"iso_no_z"``, or ``"relative"``. When None
+           (default), uses the setting from ``FormatConfig.timestamp_precision``
+           (typically ``"iso_seconds"``).
 
    Raises:
        ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
@@ -235,24 +197,13 @@ Module Contents
 
    Configures a lightweight structlog pipeline (timestamp, level, console renderer)
    so that early startup messages are properly formatted instead of appearing as
-   raw dicts. No-op if structlog is already configured. Errors during setup are
-   suppressed to avoid crashing during early initialization, but logged at debug level.
+   raw dicts. No-op if structlog is already configured.
 
    Args:
        verbose: When ``True``, emit debug messages showing the caller that invoked
            this function. Also enabled when the ``STOGGER_DEBUG`` environment variable
            is set.
 
-
-
-.. py:class:: JournalLoggerFactory
-
-   Stub factory for systemd journal logger integration.
-
-   Returns ``None`` by default. Actual systemd journal support is provided by
-   the ``stogger-systemd`` package, which replaces this factory with a real
-   journal writer. Use this as a placeholder so logging pipelines work without
-   the systemd extra installed.
 
 
 .. py:data:: JOURNAL_LEVELS
@@ -322,7 +273,6 @@ Module Contents
    rendered output as values. It doesn't care about the rendered messages
    so different logger types can get different types of messages.
    Normally, this should be placed last in the processors chain.
-   Errors in renderers are ignored silently.
 
 
    .. py:attribute:: renderers
