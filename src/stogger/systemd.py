@@ -9,6 +9,11 @@ import stat
 from pathlib import Path
 from typing import Self
 
+import structlog
+
+log = structlog.get_logger(__name__)
+
+
 JOURNAL_SOCKET_PATH = "/run/systemd/journal/socket"
 
 
@@ -36,7 +41,8 @@ class JournalSender:
                 sock.connect(self._socket_path)
                 sock.sendall(payload)
                 return True
-        except OSError:
+        except OSError as e:
+            log.debug("journal-send-failed", socket_path=self._socket_path, error=str(e))
             return False
 
     @staticmethod
@@ -73,8 +79,13 @@ class JournalLogger:
 class DummyJournalLogger:
     """No-op journal logger for non-systemd environments."""
 
-    def msg(self, messages: dict) -> None:
-        pass
+    def __init__(self) -> None:
+        self._warned = False
+
+    def msg(self, messages: dict) -> None:  # noqa: ARG002
+        if not self._warned:
+            log.warning("journal-not-available", _replace_msg="Systemd journal not available, journal logging disabled")
+            self._warned = True
 
 
 class JournalLoggerFactory:

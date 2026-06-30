@@ -288,6 +288,19 @@ wheels = [
 ]
 
 [[package]]
+name = "erbsland-sphinx-ansi"
+version = "1.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docutils" },
+    { name = "sphinx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/62/cc/2fdb1a58b8041142cb838c23a00f65b3afb88b0e2760fac88b1b30962839/erbsland_sphinx_ansi-1.2.2.tar.gz", hash = "sha256:4e26b3a1d61d7563ce1a29a1d1394e34c68772c9fdb326f61557831b07009815", size = 37800, upload-time = "2026-05-28T09:55:51.501Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/3f/e737e79776fcd46b38d97cfeb31b10d20ef1f95bda8b81f3ef935b653422/erbsland_sphinx_ansi-1.2.2-py3-none-any.whl", hash = "sha256:0017a2968f03dd1bd8ff92cb191b16a524b818d20fe92af5755bd6dbc6882705", size = 15146, upload-time = "2026-05-28T09:55:50.209Z" },
+]
+
+[[package]]
 name = "furo"
 version = "2025.12.19"
 source = { registry = "https://pypi.org/simple" }
@@ -988,6 +1001,7 @@ dev = [
     { name = "pytest-ty" },
 ]
 docs = [
+    { name = "erbsland-sphinx-ansi" },
     { name = "furo" },
     { name = "linkify-it-py" },
     { name = "myst-parser" },
@@ -1033,6 +1047,7 @@ dev = [
     { name = "pytest-ty", specifier = ">=0.2.1" },
 ]
 docs = [
+    { name = "erbsland-sphinx-ansi", specifier = ">=1.2.2" },
     { name = "furo", specifier = ">=2024.1.29" },
     { name = "linkify-it-py", specifier = ">=2.0.3" },
     { name = "myst-parser", specifier = ">=2.0.0" },

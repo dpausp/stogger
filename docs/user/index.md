@@ -4,6 +4,7 @@
 :maxdepth: 1
 
 getting_started
+output_gallery
 logging_patterns
 reference
 systemd

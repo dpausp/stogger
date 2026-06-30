@@ -352,6 +352,27 @@ def add_caller_info(_logger: object, _method_name: str, event_dict: EventDict) -
     return event_dict
 
 
+def _inject_exc_info_for_exception(  # stogger: ignore complexity-needs-log
+    _logger: object,
+    method_name: str,
+    event_dict: EventDict,
+) -> EventDict:
+    """Inject ``exc_info`` when ``exception()`` is used and no ``exc_info`` is present.
+
+    ``structlog._generic.BoundLogger`` (the wrapper class stogger uses) has no
+    special ``exception()`` method — it treats ``exception`` like any other
+    method name and does **not** inject ``exc_info`` automatically. Without this
+    processor, ``log.exception()`` inside an ``except`` block produces no traceback
+    and behaves identically to ``log.error()``.
+
+    Must be placed **before** ``process_exc_info`` in the processor chain so the
+    injected ``exc_info`` tuple is normalized and rendered downstream.
+    """
+    if method_name == "exception" and "exc_info" not in event_dict:
+        event_dict["exc_info"] = sys.exc_info()
+    return event_dict
+
+
 def process_exc_info(  # stogger: ignore complexity-needs-log
     _logger: object,
     _method_name: str,
@@ -433,7 +454,7 @@ def _build_console_renderer_kwargs(verbose, show_caller_info):  # stogger: ignor
     return kwargs
 
 
-def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore
+def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # stogger: ignore private-no-log-info
     """Build file, console, and journal logger factories for init_logging."""
     context = {}
     loggers = {}
@@ -454,7 +475,11 @@ def _build_logger_factories(logdir, log_to_console, syslog_identifier, cfg):  # 
 
     if log_to_console:
         if os.environ.get("JOURNAL_STREAM"):
-            print("stogger: JOURNAL_STREAM set, switching to systemd journal logging", file=sys.stderr)  # noqa: T201
+            log.info(
+                "journal-stream-detected",
+                _replace_msg="JOURNAL_STREAM set, switching to systemd journal logging",
+                journal_stream=os.environ.get("JOURNAL_STREAM"),
+            )
         else:
             loggers["console"] = structlog.PrintLoggerFactory(sys.stderr)
 
@@ -529,7 +554,9 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
 
     Args:
         logdir: Directory for log files. A ``{syslog_identifier}.log`` file is created
-            here when writable. Required if ``log_cmd_output`` is True.
+            here when writable. Falls back to the ``logdir`` setting from
+            ``[tool.stogger]`` config (or ``STOGGER_LOGDIR`` env var) when not
+            provided. Required if ``log_cmd_output`` is True.
         log_cmd_output: Enable separate command output logging to a dedicated file
             in ``logdir``. Requires ``logdir`` to be set.
         log_to_console: Log to stderr. Disabled automatically when running under
@@ -552,12 +579,17 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
         ValueError: If ``log_cmd_output`` is True but ``logdir`` is not set.
 
     """
+    _already_configured = structlog.is_configured()
+
     logdir = Path(logdir) if logdir else None
 
     # Ensure structlog never writes to stdout during bootstrap
     _ensure_stderr_logging()
 
     cfg = StoggerConfig(verbose=bool(verbose))
+    if logdir is None:
+        logdir = cfg.logdir
+        structlog.get_logger(__name__).debug("logging-logdir-fallback", logdir=str(logdir))
     if timestamp_precision is not None:
         cfg.format.timestamp_precision = timestamp_precision
     config_facility = cfg.systemd_facility if cfg.systemd_facility is not None else syslog.LOG_LOCAL0
@@ -575,6 +607,7 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     )
 
     processors = [
+        _inject_exc_info_for_exception,
         add_pid,
         structlog.processors.add_log_level,
         process_exc_info,
@@ -589,6 +622,13 @@ def init_logging(  # noqa: PLR0913 — stable public API, signature frozen  # st
     _configure_structlog(processors, context, loggers)
 
     log = structlog.get_logger()
+
+    if _already_configured:
+        log.warning(
+            "init-logging-overriding-existing-config",
+            _replace_msg="init_logging() called but structlog was already configured — "
+            "this overrides the existing pipeline (test capture, etc.)",
+        )
 
     if log_cmd_output:
         if not logdir:
@@ -810,13 +850,18 @@ class MultiRenderer:
     def __repr__(self) -> str:
         return f"<MultiRenderer {[repr(logger) for logger in self.renderers]}>"
 
-    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:  # stogger: ignore
+    def __call__(self, logger: object, method_name: str, event_dict: EventDict) -> EventDict:
         merged_messages = {}
         for renderer in self.renderers.values():
             try:
                 messages = renderer(logger, method_name, dict(event_dict))
                 merged_messages.update(messages)
-            except Exception as err:  # stogger: ignore except-must-log
+            except Exception as err:
+                log.exception(
+                    "renderer-failed",
+                    renderer=type(renderer).__name__,
+                    event_name=event_dict.get("event"),
+                )
                 msg = "Renderer failed"
                 raise RuntimeError(msg) from err
 
@@ -865,13 +910,22 @@ class MultiOptimisticLogger:
     def __repr__(self) -> str:
         return f"<MultiOptimisticLogger {[repr(logger) for logger in self.loggers]}>"
 
-    def msg(self, **messages) -> None:  # stogger: ignore
+    def msg(self, **messages) -> None:
         for name, logger in self.loggers.items():
             try:
                 line = messages.get(name)
                 if line:
                     logger.msg(line)
+            except ValueError:
+                log.debug(
+                    "sub-logger-value-error",
+                    target=name,
+                )
             except Exception as err:
+                log.exception(
+                    "sub-logger-dispatch-failed",
+                    target=name,
+                )
                 msg = "Sub-logger dispatch failed"
                 raise RuntimeError(msg) from err
 
@@ -889,8 +943,7 @@ def init_command_logging(log, logdir=None) -> None:
 
     Args:
         log: A structlog BoundLogger instance (typically from ``structlog.get_logger()``).
-        logdir: Directory for the command output file. Falls back to the
-            ``logdir`` stored in the current ``MultiOptimisticLoggerFactory`` context.
+        logdir: Directory for the command output file, or factory context ``logdir`` fallback.
 
     """
     logger_factory = structlog.get_config()["logger_factory"]
@@ -917,7 +970,14 @@ def init_command_logging(log, logdir=None) -> None:
     else:
         cmd_log_file_name = logdir / "build-output.log"
 
-    cmd_log_file = cmd_log_file_name.open("w")
+    try:
+        cmd_log_file = cmd_log_file_name.open("w")
+    except OSError:
+        log.exception(
+            "cmd-output-file-open-failed",
+            cmd_log_file=str(cmd_log_file_name),
+        )
+        return
 
     log.info(
         "logging-cmd-output",

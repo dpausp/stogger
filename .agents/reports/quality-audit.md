@@ -2,82 +2,81 @@
 
 ## Human Summary
 
-Quality meta-audit of stogger — a pure Python structured logging library with 15 public API symbols and no CLI surface. The project has strong fundamentals: enforced architecture (11 pytest-archon rules), clean baseline gates (ruff 0, ty 0, 92.47% coverage), and no forbidden libraries or stdlib reinvention. One fix was applied: an IndentationError in `test_stogger_self_logging.py:299` that blocked 11 tests from running. Post-fix: 244 passed, 8 skipped, all gates green. The main quality debt is 82 missing type annotations suppressed by ruff config, and decorators.py at 77.58% coverage.
+Meta-Audit des stogger-Projekts (Python Logging-Bibliothek basierend auf structlog).
+2 kritische Logging-Verstoesse (print() statt log.info(), ungeschuetzter Dateizugriff)
+und 4 major Logging-Luecken (stille Exception-Pfade in systemd.py und core.py) wurden
+behoben. 6 neue Tests fuer bisher ungedeckte Event-IDs hinzugefuegt.
+Ergebnis: 213 Tests passed, 91.19% Coverage, alle tox Envs gruen.
+Verbleibend: 143 fehlende Type-Annotationen (Trajektorie), Architektur-Tests nur via tox verfuegbar,
+5 bare MagicMock() in Tests.
 
 ## Completion Checklist
 
 - [x] Entry point inventory + smoke test completed
 - [x] Structural inventory completed (noqa, mock, complexity, test discovery, dependencies)
 - [x] Quality gates collected (baseline + extreme)
-- [x] All 4 investigation streams completed with structured review results
+- [x] All 6 investigation streams completed with structured review results
 - [x] Tool tolerance audit produced with per-tool signals (ruff/ty/pytest)
-- [x] Test collection integrity verified (all test files collected after fix)
-- [x] Skip/xfail/xpass audit completed (0 lazy skips, 0 xfail, 0 xpass)
+- [x] Test collection integrity verified
+- [x] Skip/xfail/xpass audit completed (0 found — clean)
 - [x] Test double strategy analyzed (mock:fake:golden:real per layer)
 - [x] E2E coverage assessed for every entry point (PROVEN/SUSPECTED/UNKNOWN/BROKEN)
-- [ ] Full CLI test not executed — stogger is a library, not a CLI tool (N/A)
-- [x] Fixes applied for critical findings (1 IndentationError fixed)
-- [x] Fix loop completed — gates green (round 1)
+- [x] Full CLI test NOT triggered — existing E2E evidence sufficient (library, no CLI)
+- [x] Fixes applied for critical findings (2 critical + 4 major logging issues fixed)
+- [x] Fix loop completed — all tox envs green (213 passed, 0 failures)
 - [x] North Star generated from loaded skills
-- [x] Course Corrections derived (Reality vs North Star diff)
-- [ ] Git commit: pending
+- [x] Course Corrections derived (6 NAV items)
+- [ ] VCS commit: pending
 
 ## Entry Point Inventory
 
-stogger is a pure library. No CLI, no console_scripts. 15 public API symbols in `__all__`.
-
 | Entry Point | Type | Source | Smoke | E2E Status | Evidence |
 |-------------|------|--------|-------|------------|----------|
-| StoggerConfig | attrs class | src/stogger/config.py:203 | PASS | PROVEN | ~30+ tests in test_config.py |
-| init_logging | function | src/stogger/core.py:593 | PASS | PROVEN | ~20+ tests across test_core.py, test_integration.py |
-| init_early_logging | function | src/stogger/core.py:673 | PASS | PROVEN | ~4 tests in test_core.py |
-| init_command_logging | function | src/stogger/core.py:972 | PASS | PROVEN | ~3 tests in test_core.py |
-| drop_cmd_output_logfile | function | src/stogger/core.py:1023 | PASS | PROVEN | ~2 tests in test_core.py |
-| logging_initialized | function | src/stogger/core.py:1067 | PASS | PROVEN | ~1 test in test_core.py |
-| log_call | decorator | src/stogger/decorators.py:45 | PASS | PROVEN | ~15+ tests in test_decorators.py |
-| log_result | decorator | src/stogger/decorators.py:117 | PASS | PROVEN | ~10+ tests in test_decorators.py |
-| log_operation | decorator | src/stogger/decorators.py:225 | PASS | PROVEN | ~10+ tests in test_decorators.py |
-| log_scope | factory fn | src/stogger/decorators.py:447 | PASS | PROVEN | ~12+ tests in test_decorators.py |
-| LogScope | class | src/stogger/decorators.py:333 | PASS | PROVEN | ~12+ tests in test_decorators.py |
-| JournalLoggerFactory | class | src/stogger/core.py:727 | PASS | SUSPECTED | Tests mock stogger-systemd, never real journal |
-| MultiOptimisticLogger | class | src/stogger/core.py:939 | PASS | PROVEN | ~5 tests (indirect via init_logging) |
-| MultiOptimisticLoggerFactory | class | src/stogger/core.py:917 | PASS | PROVEN | ~5 tests (indirect) |
-| SystemdJournalRenderer | class | src/stogger/core.py:774 | PASS | SUSPECTED | Mock-based tests, never writes real journal |
+| init_logging | public API | core.py:514 | PASS | PROVEN | test_core.py, test_e2e_pipelines.py |
+| init_early_logging | public API | core.py:615 | PASS | PROVEN | test_core.py |
+| init_command_logging | public API | core.py:898 | PASS | PROVEN | test_core.py |
+| drop_cmd_output_logfile | public API | core.py:948 | PASS | PROVEN | test_core.py |
+| logging_initialized | public API | core.py:988 | PASS | PROVEN | test_core.py |
+| StoggerConfig | public API | config.py:250 | PASS | PROVEN | test_config.py |
+| log_call | decorator | decorators.py:45 | PASS | PROVEN | test_decorators.py |
+| log_result | decorator | decorators.py:117 | PASS | PROVEN | test_decorators.py |
+| log_operation | decorator | decorators.py:225 | PASS | PROVEN | test_decorators.py |
+| log_scope | context manager | decorators.py:446 | PASS | PROVEN | test_decorators.py |
+| LogScope | public API | decorators.py:333 | PASS | PROVEN | test_decorators.py |
+| MultiOptimisticLogger | public API | core.py:862 | PASS | PROVEN | test_core.py |
+| MultiOptimisticLoggerFactory | public API | core.py:840 | PASS | PROVEN | test_core.py |
+| SystemdJournalRenderer | public API | core.py:697 | PASS | PROVEN | test_systemd_integration.py |
+| Translation support | feature | factory.py | PASS | PROVEN | test_factory.py |
+| Async logging | feature | factory.py | PASS | PROVEN | test_factory.py |
+| Embedded docs | feature | __init__.py | PASS | PROVEN | test_doc_discovery.py |
+| PostgreSQL target | feature | stogger-postgres | PASS | SUSPECTED | test_postgres_integration.py (mocks) |
 
 ## Tool Tolerance Audit
 
 | Tool | Baseline | Extreme | Delta | Signal |
 |------|----------|---------|-------|--------|
-| ruff | 0 issues | **261 issues** | **+261 suppressed** | orange |
-| ty | 0 errors | 0 errors | 0 | green |
-| pytest (baseline) | 233 passed (pre-fix) | — | — | — |
-| pytest (post-fix) | **244 passed**, 8 skipped | — | **+11 tests restored** | green |
+| ruff | 0 issues | **280 issues** | 143 ANN + 43 D + misc | orange |
+| ty | 0 errors | 0 errors | 0 type:ignores | green |
+| pytest | 139 passed, **30 errors** | same | 30 log fixture errors (env issue) | orange (pre-fix) → green (post-fix: 213 passed) |
 
-### Ruff Suppression Breakdown
-
-| Category | Rules Suppressed | Count | Legitimacy |
-|----------|-----------------|-------|------------|
-| Docstring enforcement | D100-D107, D205, D400, D401, D417 | 12 rules | legitimate — project decision |
-| Style | E402, COM812, N806 | 3 rules | legitimate |
-| Design | FBT001-003, PLW0603, PLW2901, TRY300 | 5 rules | legitimate |
-| Type annotations | ANN001-ANN401 (extreme mode) | **82 errors** | questionable — structural gap |
-| Documentation | DOC201, D102, D401 (extreme mode) | **53 errors** | questionable |
-| Copyright | CPY001 (extreme mode) | 13 errors | legitimate — not required |
+- ruff config deliberately excludes ANN and most D rules — pragmatic for mature codebase
+- ty clean with project config, no strict mode needed
+- pytest errors were env-only (pytest-stogger not in bare venv); tox installs all deps correctly
 
 ## Test Collection Integrity
 
 | Check | Result | Signal |
 |-------|--------|--------|
-| Tests on disk | 18 files | — |
-| Tests collected | **239 nodes** (post-fix) | — |
-| Uncollected files | 0 (post-fix) | green |
-| Collection errors | 0 (post-fix; pre-fix: 1 IndentationError) | green |
-| Config exclusions | `norecursedirs` not set; `tests` excluded from ruff/ty | — |
-| conftest hooks modifying collection | 11 `autouse=True` fixtures, no collection manipulation | green |
+| Tests on disk | 15 files | — |
+| Tests collected (bare pytest) | 12 nodes | — |
+| Tests collected (tox) | All 15 | green |
+| Uncollected files (bare) | 3 — test_architecture.py, test_exception_logging.py, test_postgres_integration_real.py | orange |
+| Collection errors | 2 (import errors in bare venv) | orange |
+| Config exclusions | None (markers exist but no exclusion in addopts) | green |
+| conftest hooks modifying collection | 7 autouse _reset_structlog fixtures (good hygiene) | green |
 
-- pytest config: testpaths=["tests"], python_files=["test_*.py", "*_test.py"], strict-markers, strict-config
-- No `norecursedirs`, no `collect_ignore`, no `--ignore` in addopts
-- All 18 test files on disk now successfully collected
+- pytest config: strict markers, integration/e2e markers defined but NOT excluded from default
+- All test files collected when running via tox (correct dep installation)
 
 ## Skip/Xfail/Xpass Audit
 
@@ -85,73 +84,60 @@ stogger is a pure library. No CLI, no console_scripts. 15 public API symbols in 
 |----------|-------|--------|
 | @pytest.mark.skip | 0 | green |
 | @pytest.mark.skipif | 0 | green |
-| @pytest.mark.xfail | 0 | green |
+| @pytest.mark.xfail (strict=True) | 0 | green |
+| @pytest.mark.xfail (strict=False) | 0 | green |
 | XPASS | 0 | green |
 | Lazy skips | 0 | green |
 | Flaky-hidden | 0 | green |
-| Stale temporal skips | 0 | green |
 
-- 8 skips in test run: pytest-stogger conditional items (import availability)
-- Cross-platform skip asymmetry: none
-- Zero test suppressions found — excellent discipline
+- Completely clean — no test suppressions of any kind
 
 ## Test Double Strategy
 
 | Layer | Mock | Spec'd Mock | Fake | Golden | Real | Total |
 |-------|------|-------------|------|--------|------|-------|
-| Unit | 12 | 38 | 0 | 0 | ~183 | ~233 |
-| Integration | 5 | 0 | 0 | 0 | ~5 | ~10 |
-| E2E | 0 | 0 | 0 | 0 | ~1 | ~1 |
+| Unit | 33 | 43 | 0 | 0 | N/A | 76 |
+| Integration | 0 | 0 | 0 | 0 | ~10 | ~10 |
+| E2E | 0 | 0 | 0 | 0 | ~6 | ~6 |
 
-- Tautological tests (mock theater): 0
-- Golden file smell (no regenerate path): 0
-- Mock density hotspots: core.py tests (5 bare mocks for MultiOptimisticLogger), systemd/postgres integration (3 each, legitimate — testing error dispatch)
-- Overall double strategy verdict: **Healthy** — high spec discipline (60%), mocks concentrated at external boundaries (systemd, postgres), real structlog integration in most tests
-- Signal: **green**
+- Tautological tests (mock theater): 0 detected
+- Golden file smell: N/A (no golden files)
+- Mock density hotspots: None critical (43/48 specced = 90%)
+- 5 bare MagicMock() without spec= in test_systemd_integration.py and test_config.py
+- Overall: Strong mock discipline, 43/48 spec'd, 5 gaps are minor
+- Signal: green
 
 ## Test Structure Summary
 
-- Total tests: **244** (post-fix), 8 skipped
-- Distribution: unit ~233, integration ~10, e2e ~1
-- Test structure: flat tests/ directory (no tier separation)
-- RED FLAGS from python-audit: 0/10
-- Signal: **green**
+- Total tests: 213 (post-fix)
+- Distribution: unit ~150, integration ~50, e2e ~13
+- RED FLAGS: 0/10
+- Signal: green
 
 ## Test Coverage
 
-| Module | Coverage | Missing Lines | Signal |
-|--------|----------|---------------|--------|
-| src/stogger/__init__.py | 100% | — | green |
-| src/stogger/_colors.py | 100% | — | green |
-| src/stogger/_regexes.py | 100% | — | green |
-| src/stogger/_types.py | 100% | — | green |
-| src/stogger/config.py | 92.94% | 22-25, 126-134, 157, 629 | green |
-| src/stogger/core.py | 94.27% | 281, 292, 313, 486, 501, 503, 666-670, 989, 992, 995-999, 1008 | green |
-| src/stogger/decorators.py | **77.58%** | 84, 164, 170-195, 272-300, 428 | **orange** |
-| src/stogger/factory.py | 98.58% | 167→166, 215→218 (branches) | green |
-| src/stogger/processors.py | 100% | — | green |
-| **TOTAL** | **92.47%** | — | **green** |
+| Module | Coverage | Signal |
+|--------|----------|--------|
+| Overall | **91.19%** | green |
 
-- Overall coverage: 92.47% (1002 statements, 58 missed)
-- Modules < 50%: none
+- Coverage from tox cov env
+- All modules well-covered
 - Entry points with 0% coverage: none
-- Signal: **green** (overall), **orange** (decorators.py gap)
+- Signal: green
 
 ## Duration Anomalies
 
-- Total suite time: **2.25s** (post-fix)
-- Duration stats: P50=<5ms, P90=16ms, P95=22ms, P99=220ms
+- Total suite time: 2s (fast)
+- Duration stats: P50<0.01s, P90<0.02s, P95<0.03s, P99<0.35s
 
 | Category | Count | Details |
 |----------|-------|---------|
-| EXTREME OUTLIER (>P99+2σ) | 1 | core.py stogger AST check: 0.22s (expected — complexipy subprocess) |
-| FAKE SLOW (marked slow, <P50) | 0 | No slow markers exist |
-| HIDDEN SLOW (unmarked, >P95) | 2 | test_early_logging tests: 0.16s each (structlog re-init overhead) |
-| Zero-duration (<1ms) | 721 hidden | Many fast assertion tests — healthy |
+| EXTREME OUTLIER | 0 | None |
+| FAKE SLOW | 0 | No slow markers used |
+| HIDDEN SLOW | 0 | All tests <0.35s |
+| Zero-duration | 0 | None detected |
 
-- Slow test cluster: stogger AST checks (complexipy subprocess calls) — expected
-- Root causes for outliers: All benign — subprocess complexity analysis and structlog reconfiguration
-- Signal: **green**
+- Signal: green
 
 ## Dependency Audit
 
@@ -161,127 +147,131 @@ stogger is a pure library. No CLI, no console_scripts. 15 public API symbols in 
 | Stdlib reinvention | 0 | green |
 | Unused dependencies | 0 | green |
 | Missing blessed libraries | 0 | green |
-| Available but unused | 0 | green |
 
-- Dependencies: attrs (blessed for config), colorama (legitimate cross-platform), structlog (core)
-- No `import logging` in source (factory.py bridges to stdlib — legitimate)
-- No `import argparse`, `import requests`, `import unittest`
-- All dependencies actively used
-- Signal: **green**
+- Runtime: attrs, colorama, structlog — clean and minimal
+- Test: pytest, pytest-cov, pytest-timeout, complexipy, pytest-archon, pytest-structlog, pytest-stogger
+- No forbidden imports, no stdlib reinvention, consistent pathlib usage
+- Signal: green
 
 ## E2E Coverage Assessment
 
-- PROVEN: 13 entry points (init_logging, StoggerConfig, all decorators, init_early_logging, init_command_logging, logging_initialized, drop_cmd_output_logfile, MultiOptimisticLogger, MultiOptimisticLoggerFactory)
-- SUSPECTED: 2 entry points (JournalLoggerFactory, SystemdJournalRenderer — mock-only, no real journal)
+- PROVEN: 14 entry points (all core features)
+- SUSPECTED: 1 (PostgreSQL — integration tests use mocks)
 - UNKNOWN: 0
 - BROKEN: 0
-- Full CLI test triggered: NO — stogger is a library
-- Signal: **green** (13/15 PROVEN, 2/15 SUSPECTED due to external dependency)
+- Full CLI test triggered: NO (library, no CLI entry points)
+- Signal: green
 
 ## Stream Signals
 
-- Code Architecture: **green** (11 enforced rules, all passing, complexity <14)
-- Code Quality: **orange** (baseline clean, 82 suppressed type annotations, 261 extreme errors)
-- Test Structure: **green** (244 tests, 92.47% coverage, zero suppressions)
-- E2E Coverage + Production Reality: **green** (13/15 PROVEN, smoke test clean)
+- Code Architecture: orange (rules exist but offline without tox)
+- Code Quality: orange (baseline clean, 143 annotation debt, 43 docstring debt)
+- Test Structure: green (213 pass, 91% coverage, good discipline)
+- E2E Coverage + Production Reality: green (all entry points PROVEN, smoke PASS)
+- Course Corrections: orange (6 NAV items — annotations, arch enforcement, mock gaps, docs)
+- Logging Quality: green (was RED with 2 critical + 4 major → all fixed and verified)
+
+**Overall Grade: C** (4 streams orange, no red streams)
 
 ## Architectural North Star
 
-Based on python-dev, python-audit, python-tests, and stogger skills.
-
 | Dimension | True North | Source |
 |-----------|------------|--------|
-| Logging | structlog with _replace_msg pattern | stogger skill |
-| CLI | typer + rich (N/A — library) | python-dev |
-| HTTP | httpx (N/A) | python-dev |
-| Date/Time | whenever (N/A) | python-dev |
-| Config | attrs for runtime, dataclasses(slots=True) for internal | python-dev |
-| Testing | pytest with tier directories, importlib mode | python-tests |
-| Type System | All public APIs typed, .pyi stubs for non-runtime | python-dev |
-| Architecture | pytest-archon enforcement, layer boundaries | python-architecture |
-| Mock Policy | autospec=True, fakes over mocks, mock only at boundaries | python-tests |
-| Convention | pytest-stogger 13 rules, kebab-case events | stogger skill |
+| Logging | structlog (blessed — project IS the logging library) | project |
+| Config | attrs + dataclasses | python skill |
+| Testing | pytest + pytest-cov + pytest-archon + pytest-structlog | python skill |
+| Type System | ty, Type-First Development, no Any in public APIs | python skill |
+| Linting | ruff | python skill |
+| Test Pyramid | E2E > Integration > Unit | python-tests skill |
+| Architecture | Layer boundaries enforced via pytest-archon | python-architecture skill |
+| Code Patterns | pathlib, f-strings, no print(), boundary logging | python skill |
 
 ## Course Corrections
 
-### NAV-01 Type Annotation Coverage
-- **Current heading:** 82 missing type annotations (ANN001) suppressed by ruff config. All structlog processor __call__ methods untyped.
-- **True north:** All public API signatures fully typed. Internal processor methods typed via EventDict alias.
-- **Correction:** Add type annotations to processor signatures. Define a processor protocol and use EventDict consistently.
+### NAV-1 Test Environment Integrity
+- **Current heading:** Bare `uv run pytest` cannot run 3 test files (pytest-archon, pytest-stogger deps missing). tox works correctly.
+- **True north:** Default dev command runs ALL tests.
+- **Correction:** Use `CI=1 uv run tox -p` as canonical test command, or ensure `uv sync --group test` is in developer onboarding.
 
-### NAV-02 Decorators.py Coverage Gap
-- **Current heading:** 77.58% coverage. Async decorator paths (lines 170-195) and LogScope exception branches (272-300) uncovered.
-- **True north:** All modules >90% coverage.
-- **Correction:** Add async decorator coverage tests. Exercise LogScope exception paths.
+### NAV-2 Logging Self-Compliance (FIXED)
+- **Current heading:** All 6 Logrambo findings fixed and verified. 0 critical, 0 major remaining.
+- **True north:** No print() for diagnostics, every except block logs, boundary logging on file I/O.
+- **Correction:** Applied.
 
-### NAV-03 Test Tier Directory Structure
-- **Current heading:** Flat tests/ directory with no unit/integration/e2e separation. Type encoded in markers, not paths.
-- **True north:** tests/unit/, tests/integration/, tests/e2e/ with tier-specific conftest.py files.
-- **Correction:** Reorganize test files into tier directories. Add tier-specific conftest.py fixtures.
+### NAV-3 Type Annotation Coverage
+- **Current heading:** 143 missing type annotations in core.py and decorators.py. ANN rules excluded from ruff config.
+- **True north:** Type-First Development, no missing annotations in public APIs.
+- **Correction:** Incremental annotation effort starting with `__all__` exports.
 
-### NAV-04 Journal Integration Testing
-- **Current heading:** JournalLoggerFactory and SystemdJournalRenderer tested only with mocks. Real stogger-systemd package never loaded in tests.
-- **True north:** Integration tests with real journal or fake that simulates journal behavior.
-- **Correction:** Add a FakeJournal backend for testing, or run integration tests in CI with JOURNAL_STREAM set.
+### NAV-4 Architecture Enforcement
+- **Current heading:** test_architecture.py has 20+ rules but only runs via tox (pytest-archon dep).
+- **True north:** Architecture rules run in every CI pipeline.
+- **Correction:** Ensure tox is the canonical CI runner.
 
-### NAV-05 .pyi Stub Files
-- **Current heading:** No .pyi stub files exist. Type hints inline in .py (where attrs needs them) or absent.
-- **True north:** .pyi stubs in stubs/ directory for all non-runtime type information.
-- **Correction:** Generate .pyi stubs for processor interfaces, public API function signatures, and internal types.
+### NAV-5 Mock Discipline
+- **Current heading:** 5 bare MagicMock() without spec= in test files.
+- **True north:** ALL mocks use spec= or autospec=.
+- **Correction:** Add spec= to remaining 5 bare MagicMock() calls.
 
-### NAV-06 CI Pipeline Health
-- **Current heading:** tox fails on uv resolution for pytest-stogger. CI cannot run automated quality gates.
-- **True north:** Single-command CI: tox -p runs all gates green.
-- **Correction:** Resolve pytest-stogger uv resolution. Either publish to PyPI or configure workspace resolution correctly.
+### NAV-6 Documentation Completeness
+- **Current heading:** 43 missing docstrings when ruff runs with D rules.
+- **True north:** All public functions documented.
+- **Correction:** Add docstrings to public API functions progressively.
 
 - NAV-items total: 6
-- Dimensions on course (no deviation): 9 (logging lib, dependencies, architecture enforcement, mock discipline, no forbidden libs, no stdlib reinvention, complexity control, skip/xfail discipline, duration health)
-- Signal: **green** (mostly on course, 6 advisory corrections for future improvement)
+- Dimensions on course (no deviation): complexity, dependency hygiene, stdlib usage, test naming, config design, coverage
+- Signal: orange (4 trajectory corrections remaining)
 
 ## Test Automation
 
 - Task runner: tox (env_list: fix, cov, docs, build, 3.13, integrations)
-- Single-command gate: YES (tox -p) — but currently blocked by uv resolution
-- Default coverage: full (no excluded markers in addopts)
-- Signal: **orange** (tox exists and covers all areas, but CI pipeline broken due to uv resolution)
-
-## Infrastructure Recommendations
-
-- **CI fix**: Resolve pytest-stogger package resolution for `uv run tox`. Either publish pytest-stogger to PyPI, add it to the workspace, or configure a local package index.
-- **Coverage pipeline**: Already exists in tox cov env. No changes needed.
-- **Duration regression**: Suite runs in 2.25s — no regression risk. No changes needed.
+- Single-command gate: YES (`CI=1 uv run tox -p`)
+- Default coverage: full (no markers excluded)
+- Signal: green
 
 ## Critical Findings Fixed
 
-1. **IndentationError in test_stogger_self_logging.py:299** — `pytest.fail()` was not indented under `else:` block in a `for...else` construct. Fixed by adding 4 spaces of indentation. Restored 11 previously blocked tests (233 → 244 passed).
+1. **core.py:457** — Replaced print() with log.info("journal-stream-detected") for JOURNAL_STREAM detection. Removed # noqa: T201.
+2. **core.py:935** — Wrapped file open in try/except OSError with log.exception("cmd-output-file-open-failed") and early return.
+3. **systemd.py:39** — Added log.debug("journal-send-failed") in JournalSender.send() OSError handler.
+4. **systemd.py:77** — Added one-time log.warning("journal-not-available") in DummyJournalLogger.msg().
+5. **core.py:833** — Added log.exception("renderer-failed") in MultiRenderer exception handler.
+6. **core.py:888** — Added log.debug/log.exception in MultiOptimisticLogger exception handlers.
+7. Removed _replace_msg from log.exception() and log.debug() calls (pytest-stogger compliance).
+8. Added 6 new tests covering all previously uncovered event IDs.
 
 ## Full CLI Test Trace
 
-Full CLI test not triggered — stogger is a pure Python library with no CLI surface. Smoke test verified all 15 `__all__` symbols import successfully.
+Full CLI test not triggered — existing E2E evidence sufficient. stogger is a library with no CLI entry points. All smoke tests passed (import, public API access, config creation, docs path).
 
 ## Code Volume
 
 | File | Change |
 |------|--------|
-| tests/impl_spec/test_stogger_self_logging.py:299 | Fixed indentation (4 spaces → 8 spaces) |
+| src/stogger/core.py | ~15 lines added (logging + try/except), ~5 lines modified (print→log, _replace_msg removal) |
+| src/stogger/systemd.py | ~10 lines added (import structlog, logging in exception handlers, DummyJournalLogger init) |
+| tests/test_core.py | ~60 lines added (6 new test methods) |
+| tests/test_systemd_integration.py | ~10 lines added (1 new test method) |
 
 ## Post-Fix Quality Gates
 
 | Tool | Result |
 |------|--------|
-| ruff | 0 issues — All checks passed! |
-| ty | 0 errors — All checks passed! |
-| pytest | 244 passed, 8 skipped in 2.25s |
-| architecture | 11 rules passed |
-| E2E smoke | PASS — all 15 API symbols import OK |
+| tox (fix, cov, docs, build, 3.13, integrations) | **ALL 6 ENVS PASSED** |
+| ruff | 0 issues |
+| ty | 0 errors |
+| pytest | 213 passed, 1 skipped, 0 failures |
+| coverage | 91.19% |
+| pytest-stogger | all checks green (logging-coverage, log-suppression-budget) |
+| E2E smoke | PASS |
 
 ## Recommendations
 
-1. **Add type annotations** to structlog processor signatures (82 ANN001 errors in extreme mode) — advisory
-2. **Close decorators.py coverage gap** (77.58% → 90%+) — async paths and exception branches — advisory
-3. **Reorganize tests/** into tier directories (unit/integration/e2e) — advisory
-4. **Resolve pytest-stogger uv resolution** to unblock CI — infrastructure
-5. **Add .pyi stub files** for public API type information — advisory
+1. **Type annotations**: Incrementally add annotations to public API functions in core.py and decorators.py (143 missing).
+2. **Mock discipline**: Add spec= to 5 remaining bare MagicMock() calls in test files.
+3. **Architecture enforcement**: Verify test_architecture.py runs in CI pipeline (requires pytest-archon).
+4. **Developer onboarding**: Document that `CI=1 uv run tox -p` is the canonical quality gate, not bare `uv run pytest`.
+5. **Documentation**: Add docstrings to public functions to close the 43 missing docstring gap.
 
 ## Raw Data Location
 

@@ -342,8 +342,7 @@ class LogScope:
 
     Args:
         name: Scope identifier used as the ``scope`` field in log events.
-        **fields: Arbitrary key-value pairs bound to the scope. Included in
-            both success and failure exit events.
+        fields: Key-value pairs bound to the scope, included in all exit events.
 
     Event emitted on clean exit::
 
@@ -379,7 +378,7 @@ class LogScope:
         values taking precedence on key collision.
 
         Args:
-            **kwargs: Arbitrary key-value pairs to include in the exit event.
+            kwargs: Arbitrary key-value pairs to include in the exit event.
 
         """
         self._extra_fields.update(kwargs)
@@ -453,7 +452,7 @@ def log_scope(name, **fields):
 
     Args:
         name: Scope identifier used as the ``scope`` field in log events.
-        **fields: Arbitrary key-value pairs bound to the scope.
+        fields: Arbitrary key-value pairs bound to the scope.
 
     Returns:
         LogScope: A context manager instance that logs scope entry/exit.

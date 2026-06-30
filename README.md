@@ -31,11 +31,22 @@ Configure stogger in `pyproject.toml` under `[tool.stogger]`:
 
 ```toml
 [tool.stogger]
+logdir = "logs/"
 log_format = "simple"
 
 [tool.stogger.format]
 timestamp_precision = "iso_seconds"  # iso | iso_seconds | iso_no_z | relative
 ```
+
+Override any setting via environment variables (`STOGGER_<KEY>`) — useful for CI/CD and containers:
+
+```bash
+STOGGER_LOGDIR=/var/log/myapp
+STOGGER_VERBOSE=true
+STOGGER_LOG_TO_CONSOLE=false
+```
+
+Priority: **environment > kwargs > pyproject.toml**. See [Getting Started](docs/user/getting_started.md) for the full list.
 
 The `timestamp_precision` values:
 
@@ -65,7 +76,7 @@ Full docs at `docs/` — build with:
 
 Then open `docs/_build/html/index.html`.
 
-LLM-friendly: `docs/_build/html/llms-full.txt`
+LLM-friendly: `docs/_build/html/llms.txt`
 
 ## License
 

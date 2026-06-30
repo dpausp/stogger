@@ -2,6 +2,7 @@
 
 import importlib
 import logging
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -164,6 +165,7 @@ def test_colors_import():
     for constant in (RESET_ALL, BRIGHT, DIM, RED, BACKRED, BLUE, CYAN, MAGENTA, YELLOW, GREEN):
         assert isinstance(constant, str)
 
+
 # ---------------------------------------------------------------------------
 # ProjectStructure method tests
 # ---------------------------------------------------------------------------
@@ -262,6 +264,7 @@ def test_load_config_invalid_toml(log):
 
         log.has("config-loading-failed")
 
+
 # ---------------------------------------------------------------------------
 # Detection subsystem tests
 # ---------------------------------------------------------------------------
@@ -283,6 +286,7 @@ def test_detect_from_stogger_section(log):
         assert "tests" in result.test_dirs
 
         log.has("project-structure-detected-from-pyproject")
+
 
 @pytest.mark.integration
 def test_detect_from_hatch_section():
@@ -330,6 +334,7 @@ def test_detect_fallback_to_heuristics(log):
 
         log.has("project-structure-detected-from-heuristics")
 
+
 @pytest.mark.integration
 def test_detect_heuristics_no_src():
     """No src/ dir, but .py files in root → source_dirs=['.'] via heuristics."""
@@ -350,6 +355,7 @@ def test_detect_heuristics_nothing_found(log):
             detect_project_structure(root)
 
         log.has("heuristic-detection-failed")
+
 
 @pytest.mark.integration
 def test_detect_pyproject_invalid_toml():
@@ -440,6 +446,162 @@ def test_probe_pytest_no_testpaths():
         root = Path(tmpdir)
         result = _probe_pytest_section({"ini_options": {}}, root)
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Logdir config fallback & env override tests
+# ---------------------------------------------------------------------------
+
+
+from stogger.config import _load_env_overrides
+from stogger.core import init_logging
+
+
+def test_init_logging_falls_back_to_cfg_logdir():
+    """init_logging() without logdir falls back to cfg.logdir from pyproject.toml."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        pyproject_path = config_dir / "pyproject.toml"
+        pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch("stogger.core._build_logger_factories", return_value=({}, {})) as mock_factories:
+                init_logging()
+
+                mock_factories.assert_called_once()
+                args, _ = mock_factories.call_args
+                logdir_arg = args[0]
+                assert logdir_arg == Path("/tmp/logs")
+
+
+def test_init_logging_logdir_param_wins():
+    """Explicit logdir parameter overrides cfg.logdir."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        pyproject_path = config_dir / "pyproject.toml"
+        pyproject_path.write_text('[tool.stogger]\nlogdir = "/tmp/logs"\n')
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch("stogger.core._build_logger_factories", return_value=({}, {})) as mock_factories:
+                init_logging(logdir="/custom/path")
+
+                mock_factories.assert_called_once()
+                args, _ = mock_factories.call_args
+                logdir_arg = args[0]
+                assert logdir_arg == Path("/custom/path")
+
+
+def test_env_override_logdir():
+    """STOGGER_LOGDIR env var overrides pyproject.toml and defaults."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+        pyproject_path = config_dir / "pyproject.toml"
+        pyproject_path.write_text('[tool.stogger]\nlogdir = "/toml/path"\n')
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch.dict(os.environ, {"STOGGER_LOGDIR": "/env/path"}, clear=True):
+                config = StoggerConfig()
+                assert config.logdir == Path("/env/path")
+
+
+def test_env_override_verbose():
+    """STOGGER_VERBOSE=true env var sets verbose to True."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True):
+                config = StoggerConfig()
+                assert config.verbose is True
+
+
+def test_env_override_bool_false():
+    """STOGGER_LOG_TO_CONSOLE=false env var sets log_to_console to False."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch.dict(os.environ, {"STOGGER_LOG_TO_CONSOLE": "false"}, clear=True):
+                config = StoggerConfig()
+                assert config.log_to_console is False
+
+
+def test_env_override_bool_invalid():
+    """STOGGER_VERBOSE=invalid is ignored, default stays."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch.dict(os.environ, {"STOGGER_VERBOSE": "invalid"}, clear=True):
+                config = StoggerConfig()
+                assert config.verbose is False
+
+
+def test_env_override_kwargs_priority():
+    """ENV overrides kwargs (highest priority)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_dir = Path(tmpdir)
+
+        with patch("pathlib.Path.cwd", return_value=config_dir, autospec=True):
+            with patch.dict(os.environ, {"STOGGER_VERBOSE": "true"}, clear=True):
+                config = StoggerConfig(verbose=False)
+                assert config.verbose is True
+
+
+def test_env_no_override_stogger_debug():
+    """STOGGER_DEBUG env var is not affected by the env override feature."""
+    with patch.dict(os.environ, {"STOGGER_DEBUG": "1"}, clear=True):
+        overrides = _load_env_overrides()
+        assert "debug" not in overrides
+
+
+# ---------------------------------------------------------------------------
+# Pyproject config contract tests (migrated from impl_spec)
+# ---------------------------------------------------------------------------
+
+
+def test_pyproject_exempt_event_ids_empty():
+    """pyproject.toml must have empty exempt_event_ids."""
+    import tomllib
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as f:
+        config = tomllib.load(f)
+    exempt_ids = config["tool"]["pytest-stogger"]["exempt_event_ids"]
+    assert exempt_ids == []
+
+
+def test_pyproject_infrastructure_files_removed():
+    """pyproject.toml must NOT have explicit infrastructure_files key."""
+    import tomllib
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as f:
+        config = tomllib.load(f)
+    stogger_config = config["tool"]["pytest-stogger"]
+    assert "infrastructure_files" not in stogger_config
+
+
+def test_pyproject_decorators_inline_ignore():
+    """decorators.py must NOT be in per-file-ignores; uses inline ignore instead."""
+    import tomllib
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as f:
+        config = tomllib.load(f)
+
+    per_file_ignores = config["tool"]["pytest-stogger"]["per-file-ignores"]
+    assert "decorators.py" not in per_file_ignores
+
+    source = (Path(__file__).resolve().parent.parent / "src" / "stogger" / "decorators.py").read_text()
+    for line in source.splitlines():
+        if line.strip().startswith("def _filter_args("):
+            assert "stogger: ignore complexity-needs-log" in line, (
+                f"Expected inline ignore on _filter_args() def line: {line!r}"
+            )
+            break
+    else:
+        pytest.fail("_filter_args() not found in decorators.py")
 
 
 if __name__ == "__main__":

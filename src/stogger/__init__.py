@@ -1,8 +1,10 @@
 """Opinionated structured logging built on structlog.
 
-Docs embedded in this package: llms.txt (index, ~50 entries), _sources/ (individual markdown files).
-llms-full.txt contains ALL docs in one file but is VERY large (~8000+ lines) — prefer reading
-individual files from _sources/ instead.
+Embedded docs (``stogger._docs/``): ``llms.txt`` is the index,
+``_sources/`` has individual markdown files, ``agent_skill.md``
+is the primary agent entry point.
+
+Discover via ``__docs_path__ / '_docs' / 'llms.txt'``.
 """
 
 from importlib.metadata import PackageNotFoundError, version

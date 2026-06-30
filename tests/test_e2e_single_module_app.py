@@ -165,3 +165,34 @@ def test_single_module_app_exception_logging(tmp_path, capsys, monkeypatch):
     assert "operation-failed" in captured.err
     assert "ValueError" in captured.err
     assert "something broke" in captured.err
+
+
+@pytest.mark.e2e
+def test_single_module_app_exception_logging_with_log_exception(tmp_path, capsys, monkeypatch):
+    """log.exception() injects traceback automatically — no manual exc_info=True needed."""
+    monkeypatch.delenv("JOURNAL_STREAM", raising=False)
+
+    logdir = tmp_path / "logs"
+    logdir.mkdir()
+
+    import stogger
+
+    stogger.init_logging(
+        logdir=str(logdir),
+        log_to_console=True,
+        syslog_identifier="e2e-exc-auto",
+    )
+
+    log = structlog.get_logger("myapp")
+
+    try:
+        raise RuntimeError("auto-injected")
+    except RuntimeError:
+        log.exception("operation-failed")
+
+    captured = capsys.readouterr()
+
+    assert "operation-failed" in captured.err
+    assert "RuntimeError" in captured.err
+    assert "auto-injected" in captured.err
+    assert "Traceback" in captured.err or "traceback" in captured.err.lower()
