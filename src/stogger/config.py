@@ -1,14 +1,31 @@
 """Configuration handling for stogger."""
 
+import atexit
 import fnmatch
+import sys
 import time
 import tomllib
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import attrs
 import structlog
+
+_TEST_DEPS_WARNED = False
+_PENDING_WARNINGS: list[str] = []
+
+
+def _emit_pending_warnings() -> None:
+    """Emit accumulated test dependency warnings at process exit."""
+    log = structlog.get_logger()
+    for msg in _PENDING_WARNINGS:
+        log.debug("emitting-deferred-warning", message=msg)
+        warnings.warn(msg, UserWarning, stacklevel=2)
+
+
+atexit.register(_emit_pending_warnings)
 
 
 @dataclass
@@ -82,6 +99,41 @@ class ProjectStructure:
             return True
 
 
+def _check_test_dependencies(full_config: dict[str, Any]) -> None:
+    """Warn if pytest-stogger or pytest-structlog are missing during pytest."""
+    global _TEST_DEPS_WARNED
+
+    if _TEST_DEPS_WARNED or "_pytest" not in sys.modules:
+        return
+
+    log = structlog.get_logger(__name__)
+    log.debug("checking-test-dependencies", has_dependency_groups="dependency-groups" in full_config)
+
+    _TEST_DEPS_WARNED = True
+
+    required = {"pytest-stogger", "pytest-structlog"}
+    dep_groups = full_config.get("dependency-groups", {})
+    test_deps = dep_groups.get("test")
+
+    if test_deps is None:
+        msg = (
+            "stogger test infrastructure incomplete: no [dependency-groups].test found in pyproject.toml. "
+            "Add pytest-stogger and pytest-structlog to [dependency-groups].test."
+        )
+        _PENDING_WARNINGS.append(msg)
+        return
+
+    deps_str = " ".join(str(d).lower() for d in test_deps)
+    missing = sorted(r for r in required if r not in deps_str)
+
+    if missing:
+        msg = (
+            f"stogger test infrastructure incomplete: {', '.join(missing)}. "
+            "Add to [dependency-groups].test in pyproject.toml."
+        )
+        _PENDING_WARNINGS.append(msg)
+
+
 def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
     """Load ``[tool.stogger]`` settings from ``pyproject.toml`` in cwd.
 
@@ -108,6 +160,11 @@ def _load_pyproject_config(*, verbose: bool = False) -> dict[str, Any]:
         with pyproject_path.open("rb") as f:
             config = tomllib.load(f)
         stogger_config = config.get("tool", {}).get("stogger", {})
+        if "syslog_identifier" not in stogger_config:
+            project_name = config.get("project", {}).get("name")
+            if project_name:
+                stogger_config["syslog_identifier"] = project_name
+        _check_test_dependencies(config)
         if verbose:
             log.debug(
                 "config-loaded-successfully",
@@ -316,10 +373,11 @@ def _probe_stogger_section(stogger_config: dict, project_root: Path) -> ProjectS
         ProjectStructure if the section is present, else None.
 
     """
-    if not stogger_config:
-        return None
-
     log = structlog.get_logger(__name__)
+
+    if not stogger_config:
+        log.debug("no-stogger-section", has_section=False)
+        return None
     log.debug("probing-stogger-section", src_dir=stogger_config.get("src_dir", "src"))
 
     src_dir = stogger_config.get("src_dir", "src")
@@ -377,10 +435,11 @@ def _probe_hatch_section(hatch_config: dict, project_root: Path) -> ProjectStruc
         ProjectStructure if a Hatch wheel package source is found, else None.
 
     """
-    if not hatch_config:
-        return None
-
     log = structlog.get_logger(__name__)
+
+    if not hatch_config:
+        log.debug("no-hatch-section", has_section=False)
+        return None
     log.debug("probing-hatch-section", has_build="build" in hatch_config)
 
     build_config = hatch_config.get("build", {})
@@ -413,10 +472,11 @@ def _probe_pytest_section(pytest_config: dict, project_root: Path) -> ProjectStr
         ProjectStructure if pytest testpaths are found, else None.
 
     """
-    if not pytest_config:
-        return None
-
     log = structlog.get_logger(__name__)
+
+    if not pytest_config:
+        log.debug("no-pytest-section", has_section=False)
+        return None
     log.debug("probing-pytest-section", has_ini_options="ini_options" in pytest_config)
 
     testpaths = pytest_config.get("ini_options", {}).get("testpaths", [])

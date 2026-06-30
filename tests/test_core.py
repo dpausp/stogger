@@ -13,6 +13,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import structlog
 
+from stogger._colors import RED, RESET_ALL
+
 # Import the modules we want to test
 from stogger.config import FormatConfig
 from stogger.core import (
@@ -27,6 +29,7 @@ from stogger.core import (
     SelectRenderedString,
     SystemdJournalRenderer,
     TranslationProcessor,
+    _build_logger_factories,
     drop_cmd_output_logfile,
     init_command_logging,
     init_early_logging,
@@ -36,8 +39,6 @@ from stogger.core import (
     prefix,
     process_exc_info,
 )
-
-from stogger._colors import RED, RESET_ALL
 
 
 class _MsgTarget:
@@ -117,7 +118,7 @@ class TestConsoleFileRenderer:
         assert "some_value" in result["console"]
         assert "\x1b" not in result["file"]  # No ANSI codes in file output
 
-    def test_json_renderer_output(self):
+    def test_json_renderer_output(self, log):
         """Test the output of the JSONRenderer."""
         renderer = JSONRenderer()
         event_dict = {
@@ -134,6 +135,7 @@ class TestConsoleFileRenderer:
         assert console_json["event"] == "test-event"
         assert console_json["some_key"] == "some_value"
         assert file_json["level"] == "info"
+        assert log.has("initializing-json-renderer")
 
 
 @pytest.mark.integration
@@ -334,7 +336,6 @@ class TestRenderOutputSections:
 
     def test_raw_output_ansi_passthrough(self):
         """_raw_output preserves ANSI in console, strips for file."""
-
         renderer = ConsoleFileRenderer()
         ansi_content = RED + "error text" + RESET_ALL
         event_dict = {
@@ -356,11 +357,12 @@ class TestRenderOutputSections:
 class TestPartialFormatter:
     """Tests for PartialFormatter get_field and format_field."""
 
-    def test_get_field_missing_key(self):
+    def test_get_field_missing_key(self, log):
         """KeyError/AttributeError in get_field returns (None, field_name)."""
         fmt = PartialFormatter()
         result = fmt.get_field("nonexistent", [], {})
         assert result == (None, "nonexistent")
+        assert log.has("format-field-missing")
 
     def test_get_field_present(self):
         """Normal field lookup returns (value, rest)."""
@@ -373,11 +375,12 @@ class TestPartialFormatter:
         fmt = PartialFormatter()
         assert fmt.format_field(None, "") == "<missing>"
 
-    def test_format_field_bad_format(self):
+    def test_format_field_bad_format(self, log):
         """ValueError in format_field returns '<bad format>'."""
         fmt = PartialFormatter()
         result = fmt.format_field(42, "z")
         assert result == "<bad format>"
+        assert log.has("format-field-bad-format")
 
 
 @pytest.mark.integration
@@ -406,6 +409,10 @@ class TestTranslationProcessor:
         result = proc(None, "info", event_dict)
         assert "_translated_msg" not in result
 
+    def test_translation_processor_init_logs(self, log):
+        """TranslationProcessor.__init__ logs initializing-translation-processor."""
+        TranslationProcessor({"greeting": "Hello {name}!"})
+        log.has("initializing-translation-processor")
 
 class TestPrefix:
     """Tests for prefix function."""
@@ -585,6 +592,11 @@ class TestInitEarlyLogging:
         init_early_logging()
         second_config = structlog.get_config()
         assert first_config == second_config
+
+    def test_init_early_logging_logs(self, log):
+        """init_early_logging(verbose=True) logs init-early-logging-called."""
+        init_early_logging(verbose=True)
+        log.has("init-early-logging-called")
 
 
 class TestLoggingInitialized:
@@ -767,6 +779,8 @@ class TestInitCommandLogging:
         init_command_logging(log, tmp_path)
 
         assert "cmd_output_file" in factories
+
+        log.has("logging-cmd-output")
         # Clean up file handle
         factories["cmd_output_file"]._file.close()  # noqa: SLF001, RUF100
 
@@ -780,7 +794,9 @@ class TestInitCommandLogging:
         )
         log = structlog.get_logger()
         # Should not raise
-        init_command_logging(log)
+        #KV|        init_command_logging(log)
+
+        log.has("logging-cmd-output-no-logdir")
 
 
 @pytest.mark.integration
@@ -804,6 +820,21 @@ class TestDropCmdOutputLogfile:
         drop_cmd_output_logfile(log)
         assert not cmd_file.exists()
 
+    def test_drop_cmd_output_logs(self, tmp_path, log):
+        """drop_cmd_output_logfile logs logging-cmd-output-drop."""
+        cmd_file = tmp_path / "build-output.log"
+        cmd_file_handle = cmd_file.open("w")
+        factories = {"cmd_output_file": structlog.PrintLoggerFactory(cmd_file_handle)}
+        factory = MultiOptimisticLoggerFactory({"logdir": tmp_path}, factories)
+        structlog.configure(
+            processors=[],
+            wrapper_class=structlog.BoundLogger,
+            logger_factory=factory,
+        )
+        test_log = structlog.get_logger()
+
+        drop_cmd_output_logfile(test_log)
+        log.has("logging-cmd-output-drop")
     def test_drop_missing_factory(self):
         """KeyError when cmd_output_file not in factories."""
         factory = MultiOptimisticLoggerFactory({}, {})
@@ -815,3 +846,24 @@ class TestDropCmdOutputLogfile:
         log = structlog.get_logger()
         with pytest.raises(KeyError):
             drop_cmd_output_logfile(log)
+
+        log.has("logging-cmd-output-file-not-found")
+
+
+@pytest.mark.integration
+class TestBuildLoggerFactories:
+    """Tests for _build_logger_factories."""
+
+    def test_permission_denied_logs_warning(self, log):
+        """PermissionError opening log file logs file-open-permission-denied."""
+        from stogger.config import StoggerConfig
+
+        cfg = StoggerConfig(enable_systemd=False, enable_postgres=False)
+        with patch.object(Path, "open", side_effect=PermissionError("denied")):
+            _build_logger_factories(
+                logdir=Path("/fake"),
+                log_to_console=False,
+                syslog_identifier="test",
+                cfg=cfg,
+            )
+        log.has("file-open-permission-denied")

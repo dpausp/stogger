@@ -28,7 +28,7 @@ def _extract_args(func, args, kwargs, include_args, exclude_args):
     return _filter_args(all_args, include_args, exclude_args)
 
 
-def _filter_args(args_dict, include_args, exclude_args):
+def _filter_args(args_dict, include_args, exclude_args):  # stogger: ignore complexity-needs-log
     """Apply include/exclude filtering to an args dict."""
     if include_args is not None:
         args_dict = {k: v for k, v in args_dict.items() if k in include_args}
@@ -288,18 +288,17 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
                     "failed",
                     _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                     func=func_name,
-                    args=all_args,
+                    **all_args,
                     exc_type=type(exc).__name__,
                     exc_msg=str(exc),
                     duration_ms=duration_ms,
                 )
                 raise
             duration_ms = (time.perf_counter() - t0) * 1000
-            log.info(
+            log.debug(
                 "operation",
-                _replace_msg="{func}({args}) -> {result} in {duration_ms:.1f}ms",
                 func=func_name,
-                args=all_args,
+                **all_args,
                 result=result,
                 duration_ms=duration_ms,
             )
@@ -320,18 +319,17 @@ def log_operation(func=None, *, include_args=None, exclude_args=None):
                 "failed",
                 _replace_msg="{func} failed: {exc_type}: {exc_msg}",
                 func=func_name,
-                args=all_args,
+                **all_args,
                 exc_type=type(exc).__name__,
                 exc_msg=str(exc),
                 duration_ms=duration_ms,
             )
             raise
         duration_ms = (time.perf_counter() - t0) * 1000
-        log.info(
+        log.debug(
             "operation",
-            _replace_msg="{func}({args}) -> {result} in {duration_ms:.1f}ms",
             func=func_name,
-            args=all_args,
+            **all_args,
             result=result,
             duration_ms=duration_ms,
         )

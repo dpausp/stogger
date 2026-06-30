@@ -38,6 +38,7 @@ test = [
     "complexipy>=0.1.0",
     "pytest-stogger",
     "pytest-archon>=0.0.7",
+    "pytest-structlog>=1.2",
 ]
 docs = [
     "sphinx>=7.0.0",
@@ -73,6 +74,9 @@ sort_by_size = true
 [tool.ty.src]
 exclude = ["tests", "docs"]
 
+[tool.pyright]
+exclude = ["tests", "docs"]
+
 [tool.pytest.ini_options]
 testpaths = [ "tests",]
 python_files = [ "test_*.py", "*_test.py",]
@@ -91,28 +95,10 @@ source = "src/stogger"
 test_dir = "tests"
 exclude = []
 info_allowed_layers = []
-infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
-exempt_event_ids = [
-    "called",
-    "config-loading-failed",
-    "failed",
-    "file-logging-setup-failed",
-    "heuristic-detection-failed",
-    "logging-cmd-output",
-    "logging-cmd-output-file-not-found",
-    "logging-cmd-output-no-logdir",
-    "no-logging-handlers-configured",
-    "operation",
-    "project-structure-detected-from-heuristics",
-    "project-structure-detected-from-pyproject",
-    "returned",
-    "scope-end",
-    "scope-failed",
-    "translation-load-failed",
-]
+#KH|infrastructure_files = ["core.py", "_colors.py", "_decorators.py"]
+exempt_event_ids = []
 
 [tool.pytest-stogger.per-file-ignores]
-"core.py" = ["except-must-log", "complexity-needs-log"]
 "_colors.py" = ["except-must-log", "complexity-needs-log"]
 
 [tool.ruff.lint]
@@ -202,3 +188,9 @@ stogger-postgres = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/stogger-postgres"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

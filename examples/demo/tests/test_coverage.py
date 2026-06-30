@@ -15,6 +15,8 @@ class _CoverageLog:
 log = _CoverageLog()
 
 
+# --- Explicit log.info/warn events from orders.py ---
+
 def test_order_processed_coverage():
     """Coverage marker: order-processed event exists in service.orders."""
     assert log.has("order-processed")
@@ -28,3 +30,28 @@ def test_payment_processed_coverage():
 def test_payment_failed_coverage():
     """Coverage marker: payment-failed event exists in service.orders."""
     assert log.has("payment-failed")
+
+
+def test_validation_result_coverage():
+    """Coverage marker: validation-result event exists in service.orders."""
+    assert log.has("validation-result")
+
+
+def test_total_calculated_coverage():
+    """Coverage marker: total-calculated event exists in service.orders."""
+    assert log.has("total-calculated")
+
+
+def test_charge_ref_coverage():
+    """Coverage marker: charge-ref event exists in service.orders."""
+    assert log.has("charge-ref")
+
+
+def test_charge_failed_coverage():
+    """Coverage marker: charge-failed event exists in service.orders."""
+    assert log.has("charge-failed")
+
+
+def test_demo_charge_failed_coverage():
+    """Coverage marker: demo-charge-failed event exists in service.orders."""
+    assert log.has("demo-charge-failed")
